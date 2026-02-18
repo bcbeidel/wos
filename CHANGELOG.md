@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-02-18
+
+### Added
+
+- **Token budget estimation** (`wos/token_budget.py`): Estimates aggregate token
+  cost of context files using a `words × 1.3` heuristic, grouped by area. Always
+  included in `/wos:health` output as a `token_budget` key with per-area breakdown,
+  total estimate, and configurable warning threshold (default 40K tokens). Emits
+  `severity: warn` issue when total context exceeds threshold.
+  ([#7](https://github.com/bcbeidel/wos/issues/7))
+
+### Fixed
+
+- Pre-existing lint issues in `tests/test_source_verification.py` (unused import,
+  line length, import sorting)
+
 ## [0.1.3] - 2026-02-18
 
 ### Added
@@ -116,6 +132,7 @@ implemented with 229 tests passing.
 - Build roadmap with session protocol and dependency graph
 - 18 design principles across four layers
 
+[0.1.4]: https://github.com/bcbeidel/wos/releases/tag/v0.1.4
 [0.1.3]: https://github.com/bcbeidel/wos/releases/tag/v0.1.3
 [0.1.2]: https://github.com/bcbeidel/wos/releases/tag/v0.1.2
 [0.1.0]: https://github.com/bcbeidel/wos/releases/tag/v0.1.0

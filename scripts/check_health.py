@@ -34,6 +34,7 @@ def main() -> None:
     from wos.cross_validators import run_cross_validators
     from wos.document_types import parse_document
     from wos.tier2_triggers import run_triggers
+    from wos.token_budget import estimate_token_budget
     from wos.validators import validate_document
 
     root = Path(args.root).resolve()
@@ -55,6 +56,7 @@ def main() -> None:
         report = {
             "status": "pass",
             "files_checked": 0,
+            "token_budget": estimate_token_budget([]),
             "issues": [],
             "triggers": [],
             "message": "No documents found. "
@@ -87,6 +89,12 @@ def main() -> None:
     # Run cross-file validators
     all_issues.extend(run_cross_validators(docs, str(root)))
 
+    # Compute token budget for context files only
+    context_docs = [d for d in docs if d.path.startswith("context/")]
+    token_budget = estimate_token_budget(context_docs)
+    if "issue" in token_budget:
+        all_issues.append(token_budget["issue"])
+
     # Run Tier 2 triggers if requested
     all_triggers = []
     if args.tier2:
@@ -108,9 +116,13 @@ def main() -> None:
     else:
         status = "pass"
 
+    # Strip the issue from the budget dict (it's already in all_issues)
+    budget_output = {k: v for k, v in token_budget.items() if k != "issue"}
+
     report = {
         "status": status,
         "files_checked": len(docs) + len(parse_issues),
+        "token_budget": budget_output,
         "issues": all_issues,
         "triggers": all_triggers,
     }

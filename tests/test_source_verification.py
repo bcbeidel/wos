@@ -14,7 +14,6 @@ import requests
 from wos.source_verification import (
     VerificationResult,
     extract_page_title,
-    format_human_summary,
     format_summary,
     main,
     normalize_title,
@@ -22,7 +21,6 @@ from wos.source_verification import (
     verify_source,
     verify_sources,
 )
-
 
 # ── normalize_title ───────────────────────────────────────────────
 
@@ -224,8 +222,10 @@ def test_timeout(mock_get: MagicMock) -> None:
 
 @patch("wos.source_verification.requests.get")
 def test_request_exception_catchall(mock_get: MagicMock) -> None:
-    """Unexpected RequestException (e.g. TooManyRedirects) should be flagged, not crash."""
-    mock_get.side_effect = requests.exceptions.TooManyRedirects("Exceeded max redirects")
+    """Unexpected RequestException (e.g. TooManyRedirects) should be flagged."""
+    mock_get.side_effect = requests.exceptions.TooManyRedirects(
+        "Exceeded max redirects"
+    )
     result = verify_source("https://loop.example.com", "Loop Page")
     assert result.action == "flagged"
     assert result.http_status is None
