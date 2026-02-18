@@ -16,14 +16,19 @@ using it.
 python3 -m pytest tests/ -v
 ```
 
-One dependency: `pydantic>=2.0` (declared in `pyproject.toml`)
+Lint:
+```bash
+ruff check wos/ tests/ scripts/
+```
+
+Dependencies: `pydantic>=2.0`, `pyyaml>=6.0`, `requests>=2.28` (declared in `pyproject.toml`)
 
 ## Architecture
 
 ### Package Structure
 
 - `wos/` — importable Python package with core logic (models, discovery,
-  validators, templates, etc.)
+  validators, templates, source verification, etc.)
 - `scripts/` — thin CLI entry points with argparse that import from `wos`
 - `skills/` — skill definitions (SKILL.md + workflows/) auto-discovered by
   Claude Code
@@ -39,19 +44,10 @@ sections, size bounds, and directory patterns.
 **Adding a new document type:** Add a model, add dispatch table entries. No
 skill routing changes needed.
 
-### Skills (build order)
+### Skills
 
-| Phase | Skills |
-|-------|--------|
-| Foundation | Document type models, discovery layer |
-| Core | setup, curate, health, maintain, report-issue |
-| Capability | research, consider |
-| Extended | observe |
-
-Skill prefix: `/wos:` (e.g., `/wos:setup`, `/wos:health`, `/wos:curate`)
-
-Each skill has: `SKILL.md` (routing), `workflows/` (multi-step processes),
-optionally `references/` (domain knowledge).
+Prefix: `/wos:` (e.g., `/wos:setup`, `/wos:health`). Each skill has `SKILL.md`
+(routing), `workflows/`, optionally `references/`.
 
 ### Key Separation
 
@@ -73,26 +69,11 @@ Context types (topic, overview) are agent-facing — they appear in the CLAUDE.m
 manifest under `## Context`. Artifact types (research, plan) are internal work
 products, reachable via `related` links.
 
-## Implementation Plans
+## Reference
 
-Plans in `artifacts/plans/v0.1-foundation/` define what to build. Each plan follows the plan
-document type format: Objective, Context, Steps, Verification. The
-[roadmap](artifacts/plans/v0.1-foundation/_roadmap.md) tracks build order and status.
-
-Current plans (all draft):
-- Document type models (foundation)
-- Discovery layer (foundation)
-- Setup, curate, health, maintain, report-issue (core skills)
-- Research, consider (capability skills)
-- Observe (extended)
-
-## Design Documents
-
-Full design docs are in `artifacts/research/v0.1-foundation/`:
-- `2026-02-16-document-type-reference.md` — concise rules
-- `2026-02-16-document-type-specification.md` — normative spec
-- `2026-02-16-document-type-data-models.md` — Pydantic models
-- `2026-02-17-skills-architecture-design.md` — skills architecture
+- Plans & roadmap: `artifacts/plans/v0.1-foundation/` (v0.1 complete)
+- Design docs & spec: `artifacts/research/v0.1-foundation/`
+- Design principles: [2026-02-17-design-principles.md](artifacts/research/v0.1-foundation/2026-02-17-design-principles.md)
 
 ## Conventions
 
@@ -107,18 +88,3 @@ Full design docs are in `artifacts/research/v0.1-foundation/`:
 - Pydantic `ValidationError` + stdlib exceptions only (no custom exception hierarchy)
 - Tests use inline markdown strings (no fixture files)
 
-## Design Principles
-
-18 principles in three layers — see
-[Design Principles](artifacts/research/v0.1-foundation/2026-02-17-design-principles.md):
-
-1. **Knowledge amplifier** (5 principles): source primacy, dual audience,
-   domain-shaped organization, right-sized scope, progressive disclosure
-2. **Agent operating system** (5 principles): schema-first design, separation
-   of observation/action, convention over configuration, derived artifacts,
-   free-text intake
-3. **Quality-first workflow** (5 principles): SIFT at the source, structured
-   reasoning before action, three-tier validation, empirical feedback,
-   provenance and traceability
-4. **Cognitive science** (3 principles): explain the why, concrete before
-   abstract, multiple representations
