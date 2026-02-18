@@ -1,0 +1,522 @@
+"""Tests for wos.validators — per-file document validators.
+
+All tests use inline markdown strings.
+"""
+
+from __future__ import annotations
+
+from wos.document_types import DocumentType, parse_document
+from wos.validators import (
+    VALIDATORS_BY_TYPE,
+    check_date_prefix_matches,
+    check_directory_placement,
+    check_go_deeper_links,
+    check_heading_hierarchy,
+    check_last_validated,
+    check_placeholder_comments,
+    check_question_nonempty,
+    check_section_ordering,
+    check_section_presence,
+    check_size_bounds,
+    check_source_diversity,
+    check_title_heading,
+    check_what_this_covers_length,
+    validate_document,
+)
+
+# ── Helpers ──────────────────────────────────────────────────────
+
+
+def _topic_md(
+    *,
+    extra_fm: str = "",
+    sections: str = "",
+) -> str:
+    base_sections = (
+        "## Guidance\n\nUse exceptions for exceptional cases.\n\n"
+        "## Context\n\nBackground info here.\n\n"
+        "## In Practice\n\nExample usage here.\n\n"
+        "## Pitfalls\n\nCommon mistakes to avoid here.\n\n"
+        "## Go Deeper\n\n- [Python Docs](https://docs.python.org)\n"
+    )
+    return (
+        "---\n"
+        "document_type: topic\n"
+        'description: "When and how to use exceptions in Python"\n'
+        "last_updated: 2026-02-17\n"
+        "last_validated: 2026-02-17\n"
+        "sources:\n"
+        '  - url: "https://docs.python.org/3/tutorial/errors.html"\n'
+        '    title: "Python Errors Tutorial"\n'
+        '  - url: "https://realpython.com/python-exceptions/"\n'
+        '    title: "Real Python Exceptions"\n'
+        f"{extra_fm}"
+        "---\n"
+        "\n"
+        "# Error Handling\n"
+        "\n"
+        f"{sections or base_sections}"
+    )
+
+
+def _overview_md(*, sections: str = "") -> str:
+    base_sections = (
+        "## What This Covers\n\n"
+        "This area covers core Python programming concepts including "
+        "error handling with try-except blocks, unit testing with pytest, "
+        "package management with pip and virtual environments, type hints "
+        "and static analysis, logging best practices, and common design "
+        "patterns used in modern Python development projects.\n\n"
+        "## Topics\n\n"
+        "- Error Handling\n\n"
+        "## Key Sources\n\n"
+        "- [Python Docs](https://docs.python.org)\n"
+    )
+    return (
+        "---\n"
+        "document_type: overview\n"
+        'description: "Core Python programming concepts"\n'
+        "last_updated: 2026-02-17\n"
+        "last_validated: 2026-02-17\n"
+        "---\n"
+        "\n"
+        "# Python\n"
+        "\n"
+        f"{sections or base_sections}"
+    )
+
+
+def _research_md(*, sections: str = "") -> str:
+    base_sections = (
+        "## Question\n\n"
+        "What are the best practices for error handling?\n\n"
+        "## Findings\n\nUse specific exception types.\n\n"
+        "## Implications\n\nBetter error messages.\n\n"
+        "## Sources\n\n- Python docs\n"
+    )
+    return (
+        "---\n"
+        "document_type: research\n"
+        'description: "Investigation of error handling patterns"\n'
+        "last_updated: 2026-02-17\n"
+        "sources:\n"
+        '  - url: "https://docs.python.org"\n'
+        '    title: "Python Docs"\n'
+        "---\n"
+        "\n"
+        "# Error Handling Research\n"
+        "\n"
+        f"{sections or base_sections}"
+    )
+
+
+def _plan_md(*, sections: str = "") -> str:
+    base_sections = (
+        "## Objective\n\nImprove error handling.\n\n"
+        "## Context\n\nCurrent state is poor.\n\n"
+        "## Steps\n\n1. Audit existing code.\n"
+        "2. Refactor handlers.\n\n"
+        "## Verification\n\n- All tests pass.\n"
+    )
+    return (
+        "---\n"
+        "document_type: plan\n"
+        'description: "Plan to improve error handling across the codebase"\n'
+        "last_updated: 2026-02-17\n"
+        "status: active\n"
+        "---\n"
+        "\n"
+        "# Error Handling Plan\n"
+        "\n"
+        f"{sections or base_sections}"
+    )
+
+
+def _parse(md: str, path: str = "context/python/error-handling.md"):
+    return parse_document(path, md)
+
+
+# ── Dispatch table ───────────────────────────────────────────────
+
+
+class TestDispatchTable:
+    def test_all_types_have_validators(self) -> None:
+        for dt in DocumentType:
+            assert dt in VALIDATORS_BY_TYPE, (
+                f"{dt} missing from VALIDATORS_BY_TYPE"
+            )
+
+    def test_topic_has_last_validated(self) -> None:
+        fns = VALIDATORS_BY_TYPE[DocumentType.TOPIC]
+        names = [f.__name__ for f in fns]
+        assert "check_last_validated" in names
+
+    def test_research_has_no_last_validated(self) -> None:
+        fns = VALIDATORS_BY_TYPE[DocumentType.RESEARCH]
+        names = [f.__name__ for f in fns]
+        assert "check_last_validated" not in names
+
+    def test_plan_has_no_last_validated(self) -> None:
+        fns = VALIDATORS_BY_TYPE[DocumentType.PLAN]
+        names = [f.__name__ for f in fns]
+        assert "check_last_validated" not in names
+
+    def test_extensible_with_new_type(self) -> None:
+        """Adding a new type to the dispatch table should work."""
+        original_len = len(VALIDATORS_BY_TYPE)
+        # Simulate adding a new type entry (read-only check)
+        assert original_len == len(DocumentType)
+
+
+# ── check_section_presence ───────────────────────────────────────
+
+
+class TestCheckSectionPresence:
+    def test_all_sections_present(self) -> None:
+        doc = _parse(_topic_md())
+        issues = check_section_presence(doc)
+        assert len(issues) == 0
+
+    def test_missing_section(self) -> None:
+        md = _topic_md(
+            sections=(
+                "## Guidance\n\nContent.\n\n"
+                "## Context\n\nContent.\n\n"
+                "## In Practice\n\nContent.\n"
+            )
+        )
+        doc = _parse(md)
+        issues = check_section_presence(doc)
+        missing = [i["section"] for i in issues]
+        assert "Pitfalls" in missing
+        assert "Go Deeper" in missing
+
+    def test_plan_missing_verification(self) -> None:
+        md = _plan_md(
+            sections=(
+                "## Objective\n\nGoal.\n\n"
+                "## Context\n\nBackground.\n\n"
+                "## Steps\n\n1. Do thing.\n"
+            )
+        )
+        doc = _parse(
+            md,
+            path="artifacts/plans/2026-02-17-test.md",
+        )
+        issues = check_section_presence(doc)
+        assert any(i["section"] == "Verification" for i in issues)
+        assert all(i["severity"] == "warn" for i in issues)
+
+
+# ── check_section_ordering ───────────────────────────────────────
+
+
+class TestCheckSectionOrdering:
+    def test_correct_order(self) -> None:
+        doc = _parse(_topic_md())
+        assert check_section_ordering(doc) == []
+
+    def test_wrong_order(self) -> None:
+        md = _topic_md(
+            sections=(
+                "## Context\n\nContent.\n\n"
+                "## Guidance\n\nContent.\n\n"
+                "## In Practice\n\nContent.\n\n"
+                "## Pitfalls\n\nContent.\n\n"
+                "## Go Deeper\n\nContent.\n"
+            )
+        )
+        doc = _parse(md)
+        issues = check_section_ordering(doc)
+        assert len(issues) == 1
+        assert issues[0]["severity"] == "warn"
+
+
+# ── check_size_bounds ────────────────────────────────────────────
+
+
+class TestCheckSizeBounds:
+    def test_within_bounds(self) -> None:
+        doc = _parse(_topic_md())
+        assert check_size_bounds(doc) == []
+
+    def test_too_short(self) -> None:
+        md = (
+            "---\n"
+            "document_type: topic\n"
+            'description: "Short topic for testing"\n'
+            "last_updated: 2026-02-17\n"
+            "last_validated: 2026-02-17\n"
+            'sources: [{url: "https://example.com", title: "Ex"}]\n'
+            "---\n"
+        )
+        doc = _parse(md)
+        issues = check_size_bounds(doc)
+        # Topic min is 10 lines, this is 7
+        assert any("minimum" in i["issue"] for i in issues)
+
+
+# ── check_directory_placement ────────────────────────────────────
+
+
+class TestCheckDirectoryPlacement:
+    def test_correct_placement(self) -> None:
+        doc = _parse(
+            _topic_md(), path="context/python/error-handling.md"
+        )
+        assert check_directory_placement(doc) == []
+
+    def test_wrong_placement(self) -> None:
+        doc = _parse(_topic_md(), path="wrong/place/file.md")
+        issues = check_directory_placement(doc)
+        assert len(issues) == 1
+        assert issues[0]["severity"] == "warn"
+
+
+# ── check_title_heading ──────────────────────────────────────────
+
+
+class TestCheckTitleHeading:
+    def test_has_title(self) -> None:
+        doc = _parse(_topic_md())
+        assert check_title_heading(doc) == []
+
+    def test_no_title(self) -> None:
+        md = (
+            "---\n"
+            "document_type: topic\n"
+            'description: "Topic without a title heading"\n'
+            "last_updated: 2026-02-17\n"
+            "last_validated: 2026-02-17\n"
+            "sources:\n"
+            '  - url: "https://example.com"\n'
+            '    title: "Ex"\n'
+            "---\n"
+            "\n"
+            "## Guidance\n\nContent.\n"
+            "## Context\n\nContent.\n"
+            "## In Practice\n\nContent.\n"
+            "## Pitfalls\n\nContent.\n"
+            "## Go Deeper\n\nContent.\n"
+        )
+        doc = _parse(md)
+        issues = check_title_heading(doc)
+        assert len(issues) == 1
+
+
+# ── check_heading_hierarchy ──────────────────────────────────────
+
+
+class TestCheckHeadingHierarchy:
+    def test_good_hierarchy(self) -> None:
+        doc = _parse(_topic_md())
+        assert check_heading_hierarchy(doc) == []
+
+
+# ── check_placeholder_comments ───────────────────────────────────
+
+
+class TestCheckPlaceholderComments:
+    def test_no_placeholders(self) -> None:
+        doc = _parse(_topic_md())
+        assert check_placeholder_comments(doc) == []
+
+    def test_has_todo(self) -> None:
+        md = _topic_md(
+            sections=(
+                "## Guidance\n\n<!-- TODO: add content -->\n\n"
+                "## Context\n\nContent.\n\n"
+                "## In Practice\n\nContent.\n\n"
+                "## Pitfalls\n\nContent.\n\n"
+                "## Go Deeper\n\n- [Link](https://example.com)\n"
+            )
+        )
+        doc = _parse(md)
+        issues = check_placeholder_comments(doc)
+        assert len(issues) == 1
+        assert issues[0]["severity"] == "info"
+
+
+# ── check_last_validated ─────────────────────────────────────────
+
+
+class TestCheckLastValidated:
+    def test_recent_is_clean(self) -> None:
+        doc = _parse(_topic_md())
+        assert check_last_validated(doc) == []
+
+    def test_research_not_checked(self) -> None:
+        """Research documents should NOT be checked for staleness."""
+        doc = _parse(
+            _research_md(),
+            path="artifacts/research/2026-02-17-test.md",
+        )
+        issues = check_last_validated(doc)
+        assert len(issues) == 0
+
+    def test_plan_not_checked(self) -> None:
+        """Plan documents should NOT be checked for staleness."""
+        doc = _parse(
+            _plan_md(),
+            path="artifacts/plans/2026-02-17-test.md",
+        )
+        issues = check_last_validated(doc)
+        assert len(issues) == 0
+
+
+# ── check_source_diversity ───────────────────────────────────────
+
+
+class TestCheckSourceDiversity:
+    def test_diverse_sources(self) -> None:
+        doc = _parse(_topic_md())
+        assert check_source_diversity(doc) == []
+
+    def test_same_domain(self) -> None:
+        md = _topic_md(
+            extra_fm=""  # Default has 2 different domains
+        )
+        # Create a topic with same-domain sources
+        md = (
+            "---\n"
+            "document_type: topic\n"
+            'description: "Topic with same-domain sources for testing"\n'
+            "last_updated: 2026-02-17\n"
+            "last_validated: 2026-02-17\n"
+            "sources:\n"
+            '  - url: "https://example.com/a"\n'
+            '    title: "Example A"\n'
+            '  - url: "https://example.com/b"\n'
+            '    title: "Example B"\n'
+            "---\n"
+            "\n"
+            "# Same Domain\n"
+            "\n"
+            "## Guidance\n\nContent.\n"
+            "## Context\n\nContent.\n"
+            "## In Practice\n\nContent.\n"
+            "## Pitfalls\n\nContent.\n"
+            "## Go Deeper\n\n- [Link](https://example.com)\n"
+        )
+        doc = _parse(md)
+        issues = check_source_diversity(doc)
+        assert len(issues) == 1
+        assert issues[0]["severity"] == "info"
+
+
+# ── check_go_deeper_links ───────────────────────────────────────
+
+
+class TestCheckGoDeeperLinks:
+    def test_has_links(self) -> None:
+        doc = _parse(_topic_md())
+        assert check_go_deeper_links(doc) == []
+
+    def test_no_links(self) -> None:
+        md = _topic_md(
+            sections=(
+                "## Guidance\n\nContent.\n\n"
+                "## Context\n\nContent.\n\n"
+                "## In Practice\n\nContent.\n\n"
+                "## Pitfalls\n\nContent.\n\n"
+                "## Go Deeper\n\nJust text, no links.\n"
+            )
+        )
+        doc = _parse(md)
+        issues = check_go_deeper_links(doc)
+        assert len(issues) == 1
+
+
+# ── check_what_this_covers_length ────────────────────────────────
+
+
+class TestCheckWhatThisCoversLength:
+    def test_sufficient_length(self) -> None:
+        doc = _parse(
+            _overview_md(),
+            path="context/python/_overview.md",
+        )
+        assert check_what_this_covers_length(doc) == []
+
+    def test_too_short(self) -> None:
+        md = _overview_md(
+            sections=(
+                "## What This Covers\n\nJust Python stuff.\n\n"
+                "## Topics\n\n- Topics here\n\n"
+                "## Key Sources\n\n- Sources here\n"
+            )
+        )
+        doc = _parse(md, path="context/python/_overview.md")
+        issues = check_what_this_covers_length(doc)
+        assert len(issues) == 1
+        assert issues[0]["severity"] == "warn"
+
+
+# ── check_question_nonempty ──────────────────────────────────────
+
+
+class TestCheckQuestionNonempty:
+    def test_has_question(self) -> None:
+        doc = _parse(
+            _research_md(),
+            path="artifacts/research/2026-02-17-test.md",
+        )
+        assert check_question_nonempty(doc) == []
+
+    def test_empty_question(self) -> None:
+        md = _research_md(
+            sections=(
+                "## Question\n\n\n\n"
+                "## Findings\n\nSome findings.\n\n"
+                "## Implications\n\nSome implications.\n\n"
+                "## Sources\n\n- Source\n"
+            )
+        )
+        doc = _parse(
+            md, path="artifacts/research/2026-02-17-test.md"
+        )
+        issues = check_question_nonempty(doc)
+        assert len(issues) == 1
+        assert issues[0]["severity"] == "fail"
+
+
+# ── check_date_prefix_matches ───────────────────────────────────
+
+
+class TestCheckDatePrefixMatches:
+    def test_matching_date(self) -> None:
+        doc = _parse(
+            _research_md(),
+            path="artifacts/research/2026-02-17-test.md",
+        )
+        assert check_date_prefix_matches(doc) == []
+
+    def test_mismatched_date(self) -> None:
+        doc = _parse(
+            _research_md(),
+            path="artifacts/research/2025-01-01-test.md",
+        )
+        issues = check_date_prefix_matches(doc)
+        assert len(issues) == 1
+        assert issues[0]["severity"] == "info"
+
+
+# ── validate_document (integration) ─────────────────────────────
+
+
+class TestValidateDocument:
+    def test_clean_topic(self) -> None:
+        doc = _parse(_topic_md())
+        issues = validate_document(doc)
+        # May have some info-level issues but no fails
+        fails = [i for i in issues if i["severity"] == "fail"]
+        assert len(fails) == 0
+
+    def test_clean_plan(self) -> None:
+        doc = _parse(
+            _plan_md(),
+            path="artifacts/plans/2026-02-17-test.md",
+        )
+        issues = validate_document(doc)
+        fails = [i for i in issues if i["severity"] == "fail"]
+        assert len(fails) == 0
