@@ -8,8 +8,12 @@ or stale sources.
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from html.parser import HTMLParser
 from typing import Optional
+from urllib.parse import urlparse
+
+import requests
 
 
 def normalize_title(title: str) -> str:
@@ -83,3 +87,149 @@ def extract_page_title(html: str) -> Optional[str]:
     if parser.h1:
         return parser.h1
     return None
+
+
+# ── Verification result ───────────────────────────────────────────
+
+
+@dataclass
+class VerificationResult:
+    """Result of verifying a single source URL."""
+
+    url: str
+    cited_title: str
+    http_status: Optional[int]
+    page_title: Optional[str]
+    title_match: Optional[bool]
+    action: str  # "ok" | "removed" | "flagged"
+    reason: str
+
+
+# ── Single-source verification ────────────────────────────────────
+
+
+def verify_source(url: str, cited_title: str) -> VerificationResult:
+    """Verify a single source URL.
+
+    Checks HTTP status, detects cross-domain redirects, extracts
+    page title, and compares to the cited title.
+    """
+    try:
+        resp = requests.get(url, timeout=10, allow_redirects=True)
+    except requests.ConnectionError:
+        return VerificationResult(
+            url=url,
+            cited_title=cited_title,
+            http_status=None,
+            page_title=None,
+            title_match=None,
+            action="removed",
+            reason="Connection error: could not reach URL",
+        )
+    except requests.Timeout:
+        return VerificationResult(
+            url=url,
+            cited_title=cited_title,
+            http_status=None,
+            page_title=None,
+            title_match=None,
+            action="removed",
+            reason="Timeout: request did not complete in time",
+        )
+
+    status = resp.status_code
+
+    # 404 and other 4xx (except 403) → removed
+    if status == 404:
+        return VerificationResult(
+            url=url,
+            cited_title=cited_title,
+            http_status=status,
+            page_title=None,
+            title_match=None,
+            action="removed",
+            reason="HTTP 404: page not found",
+        )
+
+    if status == 403:
+        return VerificationResult(
+            url=url,
+            cited_title=cited_title,
+            http_status=status,
+            page_title=None,
+            title_match=None,
+            action="flagged",
+            reason="HTTP 403: possible paywall or access restriction",
+        )
+
+    if 500 <= status < 600:
+        return VerificationResult(
+            url=url,
+            cited_title=cited_title,
+            http_status=status,
+            page_title=None,
+            title_match=None,
+            action="flagged",
+            reason=f"HTTP {status}: server error",
+        )
+
+    if 400 <= status < 500:
+        return VerificationResult(
+            url=url,
+            cited_title=cited_title,
+            http_status=status,
+            page_title=None,
+            title_match=None,
+            action="removed",
+            reason=f"HTTP {status}: client error",
+        )
+
+    # Check for cross-domain redirect
+    original_domain = urlparse(url).netloc
+    final_domain = urlparse(resp.url).netloc
+    if original_domain != final_domain:
+        return VerificationResult(
+            url=url,
+            cited_title=cited_title,
+            http_status=status,
+            page_title=None,
+            title_match=None,
+            action="flagged",
+            reason=f"Cross-domain redirect: {original_domain} -> {final_domain}",
+        )
+
+    # 200 — extract and compare title
+    page_title = extract_page_title(resp.text)
+
+    if page_title is None:
+        return VerificationResult(
+            url=url,
+            cited_title=cited_title,
+            http_status=status,
+            page_title=None,
+            title_match=None,
+            action="ok",
+            reason="No title found on page; cannot verify",
+        )
+
+    match = titles_match(cited_title, page_title)
+    if match:
+        return VerificationResult(
+            url=url,
+            cited_title=cited_title,
+            http_status=status,
+            page_title=page_title,
+            title_match=True,
+            action="ok",
+            reason="Title matches",
+        )
+
+    return VerificationResult(
+        url=url,
+        cited_title=cited_title,
+        http_status=status,
+        page_title=page_title,
+        title_match=False,
+        action="flagged",
+        reason=f"Title mismatch: cited '{cited_title}', found '{page_title}'",
+    )
