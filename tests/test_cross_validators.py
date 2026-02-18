@@ -211,15 +211,17 @@ class TestCheckManifestSync:
         docs = _setup_project(tmp_path)
         run_discovery(str(tmp_path))
 
-        # Add a new topic without running discovery
-        new_topic = tmp_path / "context" / "python" / "testing.md"
-        new_topic.write_text(
-            _topic_md(title="Testing"),
+        # Add a new area without running discovery
+        new_area = tmp_path / "context" / "testing"
+        new_area.mkdir(parents=True)
+        overview = new_area / "_overview.md"
+        overview.write_text(
+            _overview_md(topics_section="- Unit Tests\n"),
             encoding="utf-8",
         )
         new_doc = parse_document(
-            "context/python/testing.md",
-            new_topic.read_text(encoding="utf-8"),
+            "context/testing/_overview.md",
+            overview.read_text(encoding="utf-8"),
         )
         docs.append(new_doc)
 
