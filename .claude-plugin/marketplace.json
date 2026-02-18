@@ -6,7 +6,7 @@
   },
   "plugins": [
     {
-      "name": "wos",
+      "name": "work-os",
       "source": {
         "source": "github",
         "repo": "bcbeidel/work-os"
