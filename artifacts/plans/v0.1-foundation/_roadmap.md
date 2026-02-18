@@ -51,7 +51,7 @@ where you left off.
 | 2.1 | [Setup Skill](2.1-skill-setup.md) | done | 22 tests, ruff clean, plugin renamed to wos |
 | 2.2 | [Health Skill](2.2-skill-health.md) | done | 54 tests, ruff clean, CLI produces valid JSON |
 | 3.1 | [Curate Skill](3.1-skill-curate.md) | done | 18 tests, ruff clean, round-trip validation |
-| 3.2 | [Maintain Skill](3.2-skill-maintain.md) | not started | |
+| 3.2 | [Maintain Skill](3.2-skill-maintain.md) | done | 29 tests, ruff clean, 4 workflows |
 | 4.1 | [Report-Issue Skill](4.1-skill-report-issue.md) | not started | |
 | 4.2 | [Consider Skill](4.2-skill-consider.md) | not started | |
 | 5.1 | [Research Skill](5.1-skill-research.md) | not started | |
