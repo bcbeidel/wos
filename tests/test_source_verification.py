@@ -12,9 +12,11 @@ import requests
 from wos.source_verification import (
     VerificationResult,
     extract_page_title,
+    format_summary,
     normalize_title,
     titles_match,
     verify_source,
+    verify_sources,
 )
 
 
@@ -236,3 +238,71 @@ def test_title_normalization_match(mock_get: MagicMock) -> None:
     result = verify_source("https://example.com/tutorial", "python tutorial")
     assert result.action == "ok"
     assert result.title_match is True
+
+
+# ── verify_sources (batch) ────────────────────────────────────────
+
+
+@patch("wos.source_verification.requests.get")
+def test_batch_mixed(mock_get: MagicMock) -> None:
+    """Three sources: one good, one 404, one title mismatch."""
+
+    def side_effect(url: str, **kwargs: object) -> MagicMock:
+        if "good" in url:
+            return _mock_response(
+                text="<html><head><title>Good Page</title></head></html>",
+                url=url,
+            )
+        if "missing" in url:
+            return _mock_response(status_code=404, url=url)
+        # title mismatch
+        return _mock_response(
+            text="<html><head><title>Wrong Title</title></head></html>",
+            url=url,
+        )
+
+    mock_get.side_effect = side_effect
+    sources = [
+        {"url": "https://example.com/good", "title": "Good Page"},
+        {"url": "https://example.com/missing", "title": "Gone"},
+        {"url": "https://example.com/mismatch", "title": "Expected Title"},
+    ]
+    results = verify_sources(sources)
+    assert len(results) == 3
+    assert results[0].action == "ok"
+    assert results[1].action == "removed"
+    assert results[2].action == "flagged"
+
+
+@patch("wos.source_verification.requests.get")
+def test_batch_empty(mock_get: MagicMock) -> None:
+    results = verify_sources([])
+    assert results == []
+    mock_get.assert_not_called()
+
+
+# ── format_summary ────────────────────────────────────────────────
+
+
+def test_format_summary_counts() -> None:
+    results = [
+        VerificationResult(
+            url="u1", cited_title="t1", http_status=200,
+            page_title="t1", title_match=True, action="ok", reason="ok",
+        ),
+        VerificationResult(
+            url="u2", cited_title="t2", http_status=200,
+            page_title="t2", title_match=True, action="ok", reason="ok",
+        ),
+        VerificationResult(
+            url="u3", cited_title="t3", http_status=404,
+            page_title=None, title_match=None, action="removed", reason="404",
+        ),
+        VerificationResult(
+            url="u4", cited_title="t4", http_status=200,
+            page_title="wrong", title_match=False, action="flagged",
+            reason="mismatch",
+        ),
+    ]
+    summary = format_summary(results)
+    assert summary == {"total": 4, "ok": 2, "removed": 1, "flagged": 1}

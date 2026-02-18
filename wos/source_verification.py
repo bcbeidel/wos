@@ -233,3 +233,21 @@ def verify_source(url: str, cited_title: str) -> VerificationResult:
         action="flagged",
         reason=f"Title mismatch: cited '{cited_title}', found '{page_title}'",
     )
+
+
+# ── Batch verification ────────────────────────────────────────────
+
+
+def verify_sources(sources: list[dict]) -> list[VerificationResult]:
+    """Verify a list of sources. Each dict must have 'url' and 'title' keys."""
+    return [verify_source(s["url"], s["title"]) for s in sources]
+
+
+def format_summary(results: list[VerificationResult]) -> dict:
+    """Return summary counts: {total, ok, removed, flagged}."""
+    return {
+        "total": len(results),
+        "ok": sum(1 for r in results if r.action == "ok"),
+        "removed": sum(1 for r in results if r.action == "removed"),
+        "flagged": sum(1 for r in results if r.action == "flagged"),
+    }
