@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-02-18
+
+### Added
+
+- **Source URL verification** (`wos/source_verification.py`): Mechanical
+  verification pass that checks cited source URLs resolve and page titles match
+  cited titles. Catches hallucinated sources, dead links, and title mismatches
+  before they propagate into context files. ([#6](https://github.com/bcbeidel/wos/issues/6))
+  - `verify_sources()` for batch URL checking with structured `VerificationResult` output
+  - HTTP status handling: 404/DNS/timeout → removed; 403/5xx/cross-domain redirect → flagged
+  - Title comparison via normalized substring matching (lowercase, strip punctuation, collapse whitespace)
+  - HTML `<title>` extraction with `<h1>` fallback using stdlib `html.parser`
+  - CLI entry point: `python3 -m wos.source_verification` (JSON stdin/stdout, human summary on stderr)
+- **Research skill workflow integration**: New Phase 3 (Verify Sources) inserted
+  between source gathering and SIFT evaluation in `research-investigate.md`,
+  with `source-verification.md` reference for agent instructions
+
+### Fixed
+
+- `titles_match()` no longer vacuously matches when either title normalizes to
+  an empty string
+- `verify_source()` now catches all `requests.RequestException` subclasses
+  (e.g., `TooManyRedirects`, `SSLError`) instead of only `ConnectionError` and
+  `Timeout`
+
+### Changed
+
+- Added `requests>=2.28` to project dependencies
+
 ## [0.1.2] - 2026-02-18
 
 ### Changed
@@ -87,5 +116,6 @@ implemented with 229 tests passing.
 - Build roadmap with session protocol and dependency graph
 - 18 design principles across four layers
 
+[0.1.3]: https://github.com/bcbeidel/wos/releases/tag/v0.1.3
 [0.1.2]: https://github.com/bcbeidel/wos/releases/tag/v0.1.2
 [0.1.0]: https://github.com/bcbeidel/wos/releases/tag/v0.1.0
