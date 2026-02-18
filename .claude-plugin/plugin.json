@@ -6,6 +6,5 @@
     "name": "bbeidel"
   },
   "license": "MIT",
-  "skills": "./skills/",
-  "hooks": "./hooks/hooks.json"
+  "skills": "./skills/"
 }
