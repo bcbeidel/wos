@@ -1064,7 +1064,7 @@ This specification is part of a progressive disclosure chain:
 | Reference | `2026-02-16-document-type-reference.md` | Concise rules for creating/validating documents (~150 lines) |
 | **Specification** | **this document** | Normative rules with rationale and justifications |
 | Data Models | `2026-02-16-document-type-data-models.md` | Pydantic models, validation dispatch, Tier 2 triggers |
-| Research | `../artifacts/research/2026-02-17-document-type-system-deep-dive.md` | Evidence base from five research threads |
+| Research | `2026-02-17-document-type-system-deep-dive.md` | Evidence base from five research threads |
 
 _Data models and Tier 2 triggers have been moved to
 `2026-02-16-document-type-data-models.md` to keep this document focused

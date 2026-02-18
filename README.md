@@ -12,7 +12,7 @@ Most AI-assisted work lacks rigor. Agents search and summarize without checking 
 
 **Quality-first workflow** — SIFT framework for source evaluation. Mental models for structured reasoning. Three-tier validation (deterministic, LLM-assisted, human). If it can't be measured, it can't be maintained.
 
-See [Design Principles](artifacts/research/2026-02-17-design-principles.md) for the full 18 principles grounded in agent context research, cognitive science, and software engineering practice.
+See [Design Principles](artifacts/research/v0.1-foundation/2026-02-17-design-principles.md) for the full 18 principles grounded in agent context research, cognitive science, and software engineering practice.
 
 ## Architecture
 
@@ -172,30 +172,30 @@ work-os/
 
 ## Implementation Plans
 
-Plans in `artifacts/plans/` (build order):
+Plans in `artifacts/plans/v0.1-foundation/` (build order — see [roadmap](artifacts/plans/v0.1-foundation/_roadmap.md)):
 
 | Phase | Plan | Status |
 |-------|------|--------|
-| Foundation | [Document Type Models](artifacts/plans/2026-02-17-document-type-models.md) | draft |
-| Foundation | [Discovery Layer](artifacts/plans/2026-02-17-discovery-layer.md) | draft |
-| Core | [Setup Skill](artifacts/plans/2026-02-17-skill-setup.md) | draft |
-| Core | [Curate Skill](artifacts/plans/2026-02-17-skill-curate.md) | draft |
-| Core | [Health Skill](artifacts/plans/2026-02-17-skill-health.md) | draft |
-| Core | [Maintain Skill](artifacts/plans/2026-02-17-skill-maintain.md) | draft |
-| Core | [Report-Issue Skill](artifacts/plans/2026-02-17-skill-report-issue.md) | draft |
-| Capability | [Research Skill](artifacts/plans/2026-02-17-skill-research.md) | draft |
-| Capability | [Consider Skill](artifacts/plans/2026-02-17-skill-consider.md) | draft |
-| Extended | [Observe Skill](artifacts/plans/2026-02-17-skill-observe.md) | draft |
+| Foundation | [Document Type Models](artifacts/plans/v0.1-foundation/1.1-document-type-models.md) | draft |
+| Foundation | [Discovery Layer](artifacts/plans/v0.1-foundation/1.2-discovery-layer.md) | draft |
+| Core | [Setup Skill](artifacts/plans/v0.1-foundation/2.1-skill-setup.md) | draft |
+| Core | [Curate Skill](artifacts/plans/v0.1-foundation/3.1-skill-curate.md) | draft |
+| Core | [Health Skill](artifacts/plans/v0.1-foundation/2.2-skill-health.md) | draft |
+| Core | [Maintain Skill](artifacts/plans/v0.1-foundation/3.2-skill-maintain.md) | draft |
+| Core | [Report-Issue Skill](artifacts/plans/v0.1-foundation/4.1-skill-report-issue.md) | draft |
+| Capability | [Research Skill](artifacts/plans/v0.1-foundation/5.1-skill-research.md) | draft |
+| Capability | [Consider Skill](artifacts/plans/v0.1-foundation/4.2-skill-consider.md) | draft |
+| Extended | [Observe Skill](artifacts/plans/v0.1-foundation/6.1-skill-observe.md) | draft |
 
 ## Design Documents
 
-Design docs are in `artifacts/research/`:
+Design docs are in `artifacts/research/v0.1-foundation/`:
 
-- [Document Type Reference](artifacts/research/2026-02-16-document-type-reference.md) — concise rules (~170 lines)
-- [Document Type Specification](artifacts/research/2026-02-16-document-type-specification.md) — normative spec with rationale
-- [Document Type Data Models](artifacts/research/2026-02-16-document-type-data-models.md) — Pydantic models and validators
-- [Skills Architecture Design](artifacts/research/2026-02-17-skills-architecture-design.md) — skills and discovery layer
-- [Deep Dive Research](artifacts/research/2026-02-17-document-type-system-deep-dive.md) — evidence base
+- [Document Type Reference](artifacts/research/v0.1-foundation/2026-02-16-document-type-reference.md) — concise rules (~170 lines)
+- [Document Type Specification](artifacts/research/v0.1-foundation/2026-02-16-document-type-specification.md) — normative spec with rationale
+- [Document Type Data Models](artifacts/research/v0.1-foundation/2026-02-16-document-type-data-models.md) — Pydantic models and validators
+- [Skills Architecture Design](artifacts/research/v0.1-foundation/2026-02-17-skills-architecture-design.md) — skills and discovery layer
+- [Deep Dive Research](artifacts/research/v0.1-foundation/2026-02-17-document-type-system-deep-dive.md) — evidence base
 
 ## Usage
 

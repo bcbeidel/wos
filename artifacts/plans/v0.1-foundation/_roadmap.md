@@ -4,16 +4,16 @@ description: "Sequenced build roadmap for work-os with session protocol, depende
 last_updated: 2026-02-17
 status: active
 related:
-  - 2026-02-17-document-type-models.md
-  - 2026-02-17-discovery-layer.md
-  - 2026-02-17-skill-setup.md
-  - 2026-02-17-skill-curate.md
-  - 2026-02-17-skill-health.md
-  - 2026-02-17-skill-maintain.md
-  - 2026-02-17-skill-report-issue.md
-  - 2026-02-17-skill-research.md
-  - 2026-02-17-skill-consider.md
-  - 2026-02-17-skill-observe.md
+  - artifacts/plans/v0.1-foundation/1.1-document-type-models.md
+  - artifacts/plans/v0.1-foundation/1.2-discovery-layer.md
+  - artifacts/plans/v0.1-foundation/2.1-skill-setup.md
+  - artifacts/plans/v0.1-foundation/3.1-skill-curate.md
+  - artifacts/plans/v0.1-foundation/2.2-skill-health.md
+  - artifacts/plans/v0.1-foundation/3.2-skill-maintain.md
+  - artifacts/plans/v0.1-foundation/4.1-skill-report-issue.md
+  - artifacts/plans/v0.1-foundation/5.1-skill-research.md
+  - artifacts/plans/v0.1-foundation/4.2-skill-consider.md
+  - artifacts/plans/v0.1-foundation/6.1-skill-observe.md
 ---
 
 # Work-OS Build Roadmap
@@ -28,10 +28,15 @@ At the start of every session:
    sections — those are your implementation spec.
 3. **Verify entry criteria.** If the phase has prerequisites, confirm they
    pass before starting (run the prior phase's verification commands).
-4. **Implement the plan.** Follow the steps. Run tests as you go.
-5. **Run exit criteria.** Every verification item in the plan must pass.
-6. **Update this file.** Change the phase status to `done` and commit.
-7. **If time remains,** move to the next phase.
+4. **Research before building.** For skill phases (2.1+), search for
+   existing implementations to learn from before writing code. Look for
+   well-starred repos, established Claude Code plugins, and similar tools.
+   Bias toward battle-tested patterns over inventing from scratch. Document
+   findings and how they inform the implementation.
+5. **Implement the plan.** Follow the steps. Run tests as you go.
+6. **Run exit criteria.** Every verification item in the plan must pass.
+7. **Update this file.** Change the phase status to `done` and commit.
+8. **If time remains,** move to the next phase.
 
 If a phase is too large for one session, update its status to `in-progress`
 and note what's complete in the Comments column. The next session picks up
@@ -41,41 +46,41 @@ where you left off.
 
 | Phase | Plan | Status | Comments |
 |-------|------|--------|----------|
-| 1.1 | [Document Type Models](2026-02-17-document-type-models.md) | not started | |
-| 1.2 | [Discovery Layer](2026-02-17-discovery-layer.md) | not started | |
-| 2.1 | [Setup Skill](2026-02-17-skill-setup.md) | not started | |
-| 2.2 | [Health Skill](2026-02-17-skill-health.md) | not started | |
-| 3.1 | [Curate Skill](2026-02-17-skill-curate.md) | not started | |
-| 3.2 | [Maintain Skill](2026-02-17-skill-maintain.md) | not started | |
-| 4.1 | [Report-Issue Skill](2026-02-17-skill-report-issue.md) | not started | |
-| 4.2 | [Consider Skill](2026-02-17-skill-consider.md) | not started | |
-| 5.1 | [Research Skill](2026-02-17-skill-research.md) | not started | |
-| 6.1 | [Observe Skill](2026-02-17-skill-observe.md) | not started | |
+| 1.1 | [Document Type Models](1.1-document-type-models.md) | not started | |
+| 1.2 | [Discovery Layer](1.2-discovery-layer.md) | not started | |
+| 2.1 | [Setup Skill](2.1-skill-setup.md) | not started | |
+| 2.2 | [Health Skill](2.2-skill-health.md) | not started | |
+| 3.1 | [Curate Skill](3.1-skill-curate.md) | not started | |
+| 3.2 | [Maintain Skill](3.2-skill-maintain.md) | not started | |
+| 4.1 | [Report-Issue Skill](4.1-skill-report-issue.md) | not started | |
+| 4.2 | [Consider Skill](4.2-skill-consider.md) | not started | |
+| 5.1 | [Research Skill](5.1-skill-research.md) | not started | |
+| 6.1 | [Observe Skill](6.1-skill-observe.md) | not started | |
 
 ## Dependency Graph
 
 ```
-Phase 1 ─ Foundation (sequential)
-  1.1  Document Type Models          ← no dependencies
-  1.2  Discovery Layer               ← requires 1.1
+Phase 1 - Foundation (sequential)
+  1.1  Document Type Models          <- no dependencies
+  1.2  Discovery Layer               <- requires 1.1
 
-Phase 2 ─ Core Infrastructure (parallel after phase 1)
-  2.1  Setup Skill                   ← requires 1.1 + 1.2
-  2.2  Health Skill                  ← requires 1.1 only
+Phase 2 - Core Infrastructure (parallel after phase 1)
+  2.1  Setup Skill                   <- requires 1.1 + 1.2
+  2.2  Health Skill                  <- requires 1.1 only
 
-Phase 3 ─ Content & Maintenance (parallel after phase 2)
-  3.1  Curate Skill                  ← requires 1.1 + 1.2 + 2.1
-  3.2  Maintain Skill                ← requires 1.2 + 2.2
+Phase 3 - Content & Maintenance (parallel after phase 2)
+  3.1  Curate Skill                  <- requires 1.1 + 1.2 + 2.1
+  3.2  Maintain Skill                <- requires 1.2 + 2.2
 
-Phase 4 ─ Standalone Skills (no ordering constraint)
-  4.1  Report-Issue Skill            ← independent
-  4.2  Consider Skill                ← independent
+Phase 4 - Standalone Skills (no ordering constraint)
+  4.1  Report-Issue Skill            <- independent
+  4.2  Consider Skill                <- independent
 
-Phase 5 ─ Capability
-  5.1  Research Skill                ← requires 1.1 + 3.1
+Phase 5 - Capability
+  5.1  Research Skill                <- requires 1.1 + 3.1
 
-Phase 6 ─ Extended
-  6.1  Observe Skill                 ← requires 2.2 + 3.2
+Phase 6 - Extended
+  6.1  Observe Skill                 <- requires 2.2 + 3.2
 ```
 
 Phases 4.1 and 4.2 are independent — they can be built at any point without
@@ -86,20 +91,24 @@ need to parallelize work.
 
 ### Phase 1.1 — Document Type Models
 
-**Plan:** [2026-02-17-document-type-models.md](2026-02-17-document-type-models.md)
+**Plan:** [1.1-document-type-models.md](1.1-document-type-models.md)
 
 **Entry criteria:** None. This is the foundation.
 
-**What you're building:** `scripts/document_types.py` — Pydantic v2 models for
-all four document types (topic, overview, research, plan), a discriminated union
-`parse_document()` function, and dispatch tables (SECTIONS, SIZE_BOUNDS,
-VALIDATORS_BY_TYPE, TIER2_TRIGGERS, DIRECTORY_PATTERNS, TEMPLATES).
+**What you're building:** Project tooling (`pyproject.toml`, ruff config, GitHub
+Actions CI) and `wos/document_types.py` — Pydantic v2 models for all four
+document types (topic, overview, research, plan), a discriminated union
+`parse_document()` function, and structural dispatch tables (SECTIONS,
+SIZE_BOUNDS, DIRECTORY_PATTERNS).
 
 **Exit criteria:**
-- `python3 -c "from document_types import parse_document, DocumentType"` succeeds
+- `pyproject.toml` exists with pydantic + ruff + pytest deps
+- `python3 -c "from wos.document_types import parse_document, DocumentType"` succeeds
 - `python3 -m pytest tests/test_document_types.py -v` passes
+- `ruff check wos/ tests/` passes
 - Missing required fields raise `ValidationError` with clear messages
 - Research documents parse without `last_validated`
+- GitHub Actions CI runs pytest + ruff on push
 
 **Why first:** Every other component imports from this module. Nothing works
 without it.
@@ -108,16 +117,17 @@ without it.
 
 ### Phase 1.2 — Discovery Layer
 
-**Plan:** [2026-02-17-discovery-layer.md](2026-02-17-discovery-layer.md)
+**Plan:** [1.2-discovery-layer.md](1.2-discovery-layer.md)
 
 **Entry criteria:** Phase 1.1 `done`. `parse_document()` importable.
 
-**What you're building:** `scripts/discovery.py` — generates the CLAUDE.md
-manifest (marker-delimited), the `.claude/rules/dewey-knowledge-base.md` rules
-file, and mirrors to AGENTS.md. All derived from files on disk.
+**What you're building:** `wos/discovery.py` — generates the CLAUDE.md
+manifest (marker-delimited under `## Context`), the
+`.claude/rules/work-os-context.md` rules file, and mirrors to AGENTS.md. All
+derived from files on disk.
 
 **Exit criteria:**
-- `python3 scripts/discovery.py --knowledge-base-root /path` produces correct manifest
+- `python3 scripts/run_discovery.py` produces correct manifest
 - Existing content outside markers preserved
 - Rules file exists and is under 50 lines
 - Running twice produces identical output (idempotent)
@@ -127,17 +137,17 @@ file, and mirrors to AGENTS.md. All derived from files on disk.
 
 ### Phase 2.1 — Setup Skill
 
-**Plan:** [2026-02-17-skill-setup.md](2026-02-17-skill-setup.md)
+**Plan:** [2.1-skill-setup.md](2.1-skill-setup.md)
 
 **Entry criteria:** Phases 1.1 and 1.2 `done`.
 
 **What you're building:** `skills/setup/` — SKILL.md, workflows for init and
-add-area, `scripts/scaffold.py` for directory creation and config management.
+add-area, `wos/scaffold.py` for directory creation.
 
 **Exit criteria:**
-- `/dewey:setup` on fresh directory creates full structure
-- `.dewey/config.json` exists after init
-- Each area has valid `overview.md`
+- `/wos:setup` on fresh directory creates full structure
+- CLAUDE.md exists with `## Context` manifest and markers
+- Each area has valid `_overview.md`
 - Adding areas doesn't disturb existing content
 - `python3 -m pytest tests/test_scaffold.py -v` passes
 
@@ -145,7 +155,7 @@ add-area, `scripts/scaffold.py` for directory creation and config management.
 
 ### Phase 2.2 — Health Skill
 
-**Plan:** [2026-02-17-skill-health.md](2026-02-17-skill-health.md)
+**Plan:** [2.2-skill-health.md](2.2-skill-health.md)
 
 **Entry criteria:** Phase 1.1 `done`. (Does not need discovery layer.)
 
@@ -154,10 +164,11 @@ cross-validators, Tier 2 triggers, CLI entry point. The dispatch tables in
 `document_types.py` control which validators run for which document type.
 
 **Exit criteria:**
-- `python3 scripts/check_knowledge_base.py --knowledge-base-root /path` outputs valid JSON
+- `python3 scripts/check_health.py` outputs valid JSON
 - Missing `sources` in topic → `severity: fail`
 - Missing `## Verification` in plan → `severity: warn`
 - Research documents NOT checked by `check_last_validated`
+- Broken `related` links → `severity: fail`
 - CI exit code 1 on `severity: fail`
 - All validator tests pass
 
@@ -165,7 +176,7 @@ cross-validators, Tier 2 triggers, CLI entry point. The dispatch tables in
 
 ### Phase 3.1 — Curate Skill
 
-**Plan:** [2026-02-17-skill-curate.md](2026-02-17-skill-curate.md)
+**Plan:** [3.1-skill-curate.md](3.1-skill-curate.md)
 
 **Entry criteria:** Phases 1.1, 1.2, and 2.1 `done`.
 
@@ -184,7 +195,7 @@ manifest regeneration after context-type changes.
 
 ### Phase 3.2 — Maintain Skill
 
-**Plan:** [2026-02-17-skill-maintain.md](2026-02-17-skill-maintain.md)
+**Plan:** [3.2-skill-maintain.md](3.2-skill-maintain.md)
 
 **Entry criteria:** Phases 1.2 and 2.2 `done`.
 
@@ -202,7 +213,7 @@ manifest regeneration, cleanup. All write operations require user confirmation.
 
 ### Phase 4.1 — Report-Issue Skill
 
-**Plan:** [2026-02-17-skill-report-issue.md](2026-02-17-skill-report-issue.md)
+**Plan:** [4.1-skill-report-issue.md](4.1-skill-report-issue.md)
 
 **Entry criteria:** None. Independent of all other phases.
 
@@ -220,13 +231,12 @@ issue type, draft GitHub issue, preview, submit via `gh`.
 
 ### Phase 4.2 — Consider Skill
 
-**Plan:** [2026-02-17-skill-consider.md](2026-02-17-skill-consider.md)
+**Plan:** [4.2-skill-consider.md](4.2-skill-consider.md)
 
 **Entry criteria:** None. Independent of all other phases.
 
-**What you're building:** `skills/consider/` — 16 mental model files following
-the taches per-file pattern. Each is an independent `.md` file (~45 lines) with
-uniform structure.
+**What you're building:** `skills/consider/` — 16 mental model files. Each is
+an independent `.md` file (~45 lines) with uniform structure.
 
 **Exit criteria:**
 - `skills/consider/models/` contains 16 `.md` files
@@ -239,7 +249,7 @@ uniform structure.
 
 ### Phase 5.1 — Research Skill
 
-**Plan:** [2026-02-17-skill-research.md](2026-02-17-skill-research.md)
+**Plan:** [5.1-skill-research.md](5.1-skill-research.md)
 
 **Entry criteria:** Phases 1.1 and 3.1 `done`.
 
@@ -258,7 +268,7 @@ historical, open source). Produces research documents via curate.
 
 ### Phase 6.1 — Observe Skill
 
-**Plan:** [2026-02-17-skill-observe.md](2026-02-17-skill-observe.md)
+**Plan:** [6.1-skill-observe.md](6.1-skill-observe.md)
 
 **Entry criteria:** Phases 2.2 and 3.2 `done`.
 
@@ -267,7 +277,7 @@ utilization data layer, recommendations engine (6 categories), dashboard and
 trends workflows.
 
 **Exit criteria:**
-- Hook fires on Read and appends to `.dewey/utilization/log.jsonl`
+- Hook fires on Read and appends to `.work-os/utilization/log.jsonl`
 - Hook never crashes (exits 0 on errors)
 - `read_utilization()` returns correct counts
 - `generate_recommendations()` with insufficient data returns `skipped`
@@ -279,6 +289,6 @@ trends workflows.
 
 Copy this into your first session in the work-os repo:
 
-> Read `artifacts/plans/roadmap.md` and follow the session protocol. Find the
+> Read `artifacts/plans/v0.1-foundation/_roadmap.md` and follow the session protocol. Find the
 > first phase not marked `done`, read its plan, implement it, run verification,
 > and update the roadmap status.

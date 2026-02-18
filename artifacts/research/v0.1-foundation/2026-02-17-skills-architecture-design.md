@@ -533,4 +533,4 @@ consumes the tables automatically handles the new type.
 | `2026-02-16-document-type-reference.md` | Concise rules for creating/validating documents |
 | `2026-02-16-document-type-specification.md` | Normative rules with rationale |
 | `2026-02-16-document-type-data-models.md` | Pydantic models, validation dispatch, Tier 2 triggers |
-| `../artifacts/research/2026-02-17-document-type-system-deep-dive.md` | Research: evidence base from five investigation threads |
+| `2026-02-17-document-type-system-deep-dive.md` | Research: evidence base from five investigation threads |
