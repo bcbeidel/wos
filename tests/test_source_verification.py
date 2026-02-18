@@ -5,6 +5,8 @@ All tests use inline data (no fixture files).
 
 from __future__ import annotations
 
+import io
+import json
 from unittest.mock import MagicMock, patch
 
 import requests
@@ -12,7 +14,9 @@ import requests
 from wos.source_verification import (
     VerificationResult,
     extract_page_title,
+    format_human_summary,
     format_summary,
+    main,
     normalize_title,
     titles_match,
     verify_source,
@@ -306,3 +310,79 @@ def test_format_summary_counts() -> None:
     ]
     summary = format_summary(results)
     assert summary == {"total": 4, "ok": 2, "removed": 1, "flagged": 1}
+
+
+# ── CLI (main) ────────────────────────────────────────────────────
+
+
+@patch("wos.source_verification.requests.get")
+def test_cli_json_output(mock_get: MagicMock) -> None:
+    """main() writes valid JSON to stdout with results and summary."""
+    mock_get.return_value = _mock_response(
+        text="<html><head><title>Good Page</title></head></html>",
+        url="https://example.com/good",
+    )
+    stdin_data = json.dumps([
+        {"url": "https://example.com/good", "title": "Good Page"},
+    ])
+    stdout = io.StringIO()
+    stderr = io.StringIO()
+    with patch("sys.stdin", io.StringIO(stdin_data)), \
+         patch("sys.stdout", stdout), \
+         patch("sys.stderr", stderr):
+        try:
+            main()
+        except SystemExit as e:
+            assert e.code == 0
+
+    output = json.loads(stdout.getvalue())
+    assert "results" in output
+    assert "summary" in output
+    assert len(output["results"]) == 1
+    assert output["results"][0]["action"] == "ok"
+    assert output["summary"]["total"] == 1
+
+
+@patch("wos.source_verification.requests.get")
+def test_cli_exit_code_zero_when_all_ok(mock_get: MagicMock) -> None:
+    mock_get.return_value = _mock_response(
+        text="<html><head><title>Good Page</title></head></html>",
+        url="https://example.com/good",
+    )
+    stdin_data = json.dumps([
+        {"url": "https://example.com/good", "title": "Good Page"},
+    ])
+    stdout = io.StringIO()
+    stderr = io.StringIO()
+    with patch("sys.stdin", io.StringIO(stdin_data)), \
+         patch("sys.stdout", stdout), \
+         patch("sys.stderr", stderr):
+        try:
+            main()
+            exit_code = 0
+        except SystemExit as e:
+            exit_code = e.code
+
+    assert exit_code == 0
+
+
+@patch("wos.source_verification.requests.get")
+def test_cli_exit_code_one_when_removed(mock_get: MagicMock) -> None:
+    mock_get.return_value = _mock_response(
+        status_code=404, url="https://example.com/missing"
+    )
+    stdin_data = json.dumps([
+        {"url": "https://example.com/missing", "title": "Gone Page"},
+    ])
+    stdout = io.StringIO()
+    stderr = io.StringIO()
+    with patch("sys.stdin", io.StringIO(stdin_data)), \
+         patch("sys.stdout", stdout), \
+         patch("sys.stderr", stderr):
+        try:
+            main()
+            exit_code = 0
+        except SystemExit as e:
+            exit_code = e.code
+
+    assert exit_code == 1

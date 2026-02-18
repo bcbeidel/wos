@@ -7,8 +7,10 @@ or stale sources.
 
 from __future__ import annotations
 
+import json
 import re
-from dataclasses import dataclass
+import sys
+from dataclasses import asdict, dataclass
 from html.parser import HTMLParser
 from typing import Optional
 from urllib.parse import urlparse
@@ -251,3 +253,56 @@ def format_summary(results: list[VerificationResult]) -> dict:
         "removed": sum(1 for r in results if r.action == "removed"),
         "flagged": sum(1 for r in results if r.action == "flagged"),
     }
+
+
+# ── Human-readable output ─────────────────────────────────────────
+
+_ACTION_ICONS = {"ok": "\u2713", "removed": "\u2717", "flagged": "\u26a0"}
+
+
+def format_human_summary(results: list[VerificationResult]) -> str:
+    """Format results as a human-readable string with icons."""
+    lines: list[str] = []
+    for r in results:
+        icon = _ACTION_ICONS.get(r.action, "?")
+        lines.append(f"  {icon} {r.url} - {r.reason}")
+    summary = format_summary(results)
+    lines.append("")
+    lines.append(
+        f"Total: {summary['total']}  "
+        f"OK: {summary['ok']}  "
+        f"Removed: {summary['removed']}  "
+        f"Flagged: {summary['flagged']}"
+    )
+    return "\n".join(lines)
+
+
+# ── CLI entry point ───────────────────────────────────────────────
+
+
+def main() -> None:
+    """Read JSON from stdin, verify sources, write JSON to stdout.
+
+    Human summary goes to stderr. Exits 1 if any sources were removed.
+    """
+    sources = json.load(sys.stdin)
+    results = verify_sources(sources)
+    summary = format_summary(results)
+
+    output = {
+        "results": [asdict(r) for r in results],
+        "summary": summary,
+    }
+    json.dump(output, sys.stdout, indent=2)
+    sys.stdout.write("\n")
+
+    sys.stderr.write(format_human_summary(results))
+    sys.stderr.write("\n")
+
+    if summary["removed"] > 0:
+        raise SystemExit(1)
+    raise SystemExit(0)
+
+
+if __name__ == "__main__":
+    main()
