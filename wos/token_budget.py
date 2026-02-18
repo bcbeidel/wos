@@ -68,7 +68,7 @@ def estimate_token_budget(
             "validator": "token_budget",
             "section": None,
             "suggestion": (
-                "Review per-area token counts to identify"
+                "Review per-area estimated token counts to identify"
                 " optimization targets."
             ),
         }
