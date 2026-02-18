@@ -47,7 +47,7 @@ where you left off.
 | Phase | Plan | Status | Comments |
 |-------|------|--------|----------|
 | 1.1 | [Document Type Models](1.1-document-type-models.md) | done | 48 tests, ruff clean |
-| 1.2 | [Discovery Layer](1.2-discovery-layer.md) | not started | |
+| 1.2 | [Discovery Layer](1.2-discovery-layer.md) | done | 30 tests, ruff clean |
 | 2.1 | [Setup Skill](2.1-skill-setup.md) | not started | |
 | 2.2 | [Health Skill](2.2-skill-health.md) | not started | |
 | 3.1 | [Curate Skill](3.1-skill-curate.md) | not started | |
