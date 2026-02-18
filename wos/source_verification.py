@@ -34,6 +34,8 @@ def titles_match(cited: str, page: str) -> bool:
     """Check if normalized titles match via substring containment."""
     c = normalize_title(cited)
     p = normalize_title(page)
+    if not c or not p:
+        return False
     return c in p or p in c
 
 
@@ -137,6 +139,16 @@ def verify_source(url: str, cited_title: str) -> VerificationResult:
             title_match=None,
             action="removed",
             reason="Timeout: request did not complete in time",
+        )
+    except requests.RequestException as exc:
+        return VerificationResult(
+            url=url,
+            cited_title=cited_title,
+            http_status=None,
+            page_title=None,
+            title_match=None,
+            action="flagged",
+            reason=f"Request error: {exc}",
         )
 
     status = resp.status_code

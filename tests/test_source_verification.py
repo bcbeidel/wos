@@ -66,6 +66,16 @@ def test_titles_no_match():
     assert titles_match("Python Tutorial", "Java Reference") is False
 
 
+def test_titles_match_empty_cited():
+    """Empty cited title (after normalization) should not match anything."""
+    assert titles_match("!!!", "Python Tutorial") is False
+
+
+def test_titles_match_empty_page():
+    """Empty page title (after normalization) should not match anything."""
+    assert titles_match("Python Tutorial", "!!!") is False
+
+
 # ── extract_page_title ────────────────────────────────────────────
 
 
@@ -210,6 +220,16 @@ def test_timeout(mock_get: MagicMock) -> None:
     assert result.action == "removed"
     assert result.http_status is None
     assert "timeout" in result.reason.lower()
+
+
+@patch("wos.source_verification.requests.get")
+def test_request_exception_catchall(mock_get: MagicMock) -> None:
+    """Unexpected RequestException (e.g. TooManyRedirects) should be flagged, not crash."""
+    mock_get.side_effect = requests.exceptions.TooManyRedirects("Exceeded max redirects")
+    result = verify_source("https://loop.example.com", "Loop Page")
+    assert result.action == "flagged"
+    assert result.http_status is None
+    assert "request error" in result.reason.lower()
 
 
 @patch("wos.source_verification.requests.get")
