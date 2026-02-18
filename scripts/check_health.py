@@ -56,12 +56,7 @@ def main() -> None:
         report = {
             "status": "pass",
             "files_checked": 0,
-            "token_budget": {
-                "total_estimated_tokens": 0,
-                "warning_threshold": 40_000,
-                "over_budget": False,
-                "areas": [],
-            },
+            "token_budget": estimate_token_budget([]),
             "issues": [],
             "triggers": [],
             "message": "No documents found. "
