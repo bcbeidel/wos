@@ -12,6 +12,7 @@ All outputs are deterministic — running twice produces identical results.
 from __future__ import annotations
 
 import os
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Optional
@@ -113,35 +114,29 @@ def _display_name(slug: str) -> str:
 
 
 def render_manifest(areas: List[AreaInfo]) -> str:
-    """Generate the markdown manifest section from scanned areas.
+    """Generate a compact markdown manifest from scanned areas.
+
+    Produces a single area-level table. Each area links to its _overview.md
+    (or directory if no overview exists). Topic details are deferred to the
+    overview files — progressive disclosure keeps the manifest small.
 
     Returns the content to place between markers (not including markers).
     """
     if not areas:
         return ""
 
-    parts: List[str] = []
+    parts: List[str] = [
+        "| Area | Description |",
+        "|------|-------------|",
+    ]
 
     for area in areas:
-        parts.append(f"### {area.display_name}")
-        parts.append("")
-
+        description = area.overview_description or ""
         if area.overview_path:
-            parts.append(f"[Overview]({area.overview_path})")
-            parts.append("")
-
-        if area.topics:
-            parts.append("| Topic | Description |")
-            parts.append("|-------|-------------|")
-            for topic in area.topics:
-                parts.append(
-                    f"| [{topic.title}]({topic.path}) | {topic.description} |"
-                )
-            parts.append("")
-
-    # Remove trailing empty line
-    while parts and parts[-1] == "":
-        parts.pop()
+            link = f"[{area.display_name}]({area.overview_path})"
+        else:
+            link = f"[{area.display_name}](context/{area.name}/)"
+        parts.append(f"| {link} | {description} |")
 
     return "\n".join(parts)
 
@@ -160,8 +155,18 @@ def update_claude_md(file_path: str, manifest_content: str) -> None:
 
     if path.exists():
         existing = path.read_text(encoding="utf-8")
+        if MARKER_BEGIN not in existing:
+            print(
+                f"  CLAUDE.md exists without markers — appending ## Context "
+                f"section ({len(existing.splitlines())} existing lines preserved)",
+                file=sys.stderr,
+            )
     else:
         existing = _claude_md_template()
+        print(
+            "  CLAUDE.md not found — creating from template",
+            file=sys.stderr,
+        )
 
     updated = _replace_between_markers(existing, manifest_content)
     path.write_text(updated, encoding="utf-8")
@@ -278,6 +283,10 @@ def update_agents_md(file_path: str, manifest_content: str) -> None:
         existing = path.read_text(encoding="utf-8")
     else:
         existing = _agents_md_template()
+        print(
+            "  AGENTS.md not found — creating from template",
+            file=sys.stderr,
+        )
 
     updated = _replace_between_markers(existing, manifest_content)
     path.write_text(updated, encoding="utf-8")
@@ -302,7 +311,11 @@ def run_discovery(root: str) -> None:
     """Full discovery pipeline: scan → render → update all files."""
     root = os.path.abspath(root)
 
+    print(f"Discovery root: {root}", file=sys.stderr)
+
     areas = scan_context(root)
+    print(f"Found {len(areas)} context area(s)", file=sys.stderr)
+
     manifest = render_manifest(areas)
 
     update_claude_md(os.path.join(root, "CLAUDE.md"), manifest)

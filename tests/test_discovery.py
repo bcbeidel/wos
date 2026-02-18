@@ -218,7 +218,7 @@ class TestRenderManifest:
     def test_empty_areas(self) -> None:
         assert render_manifest([]) == ""
 
-    def test_single_area_with_overview_and_topics(self) -> None:
+    def test_single_area_with_overview(self) -> None:
         areas = [
             AreaInfo(
                 name="python",
@@ -236,15 +236,13 @@ class TestRenderManifest:
         ]
         manifest = render_manifest(areas)
 
-        assert "### Python" in manifest
-        assert "[Overview](context/python/_overview.md)" in manifest
-        assert "| Topic | Description |" in manifest
-        assert (
-            "| [Error Handling](context/python/error-handling.md)"
-            " | When and how to use exceptions |"
-        ) in manifest
+        assert "| Area | Description |" in manifest
+        assert "[Python](context/python/_overview.md)" in manifest
+        assert "Python concepts" in manifest
+        # Topics are NOT listed individually in compact format
+        assert "Error Handling" not in manifest
 
-    def test_area_without_overview(self) -> None:
+    def test_area_without_overview_links_to_directory(self) -> None:
         areas = [
             AreaInfo(
                 name="python",
@@ -261,8 +259,7 @@ class TestRenderManifest:
             ),
         ]
         manifest = render_manifest(areas)
-        assert "### Python" in manifest
-        assert "Overview" not in manifest
+        assert "[Python](context/python/)" in manifest
 
     def test_area_without_topics(self) -> None:
         areas = [
@@ -275,33 +272,58 @@ class TestRenderManifest:
             ),
         ]
         manifest = render_manifest(areas)
-        assert "### Python" in manifest
-        assert "[Overview]" in manifest
-        assert "| Topic |" not in manifest
+        assert "[Python](context/python/_overview.md)" in manifest
 
-    def test_multiple_areas(self) -> None:
+    def test_multiple_areas_in_order(self) -> None:
         areas = [
             AreaInfo(
                 name="python",
                 display_name="Python",
                 overview_path="context/python/_overview.md",
-                overview_description="Python",
+                overview_description="Python stuff",
                 topics=[],
             ),
             AreaInfo(
                 name="typescript",
                 display_name="Typescript",
                 overview_path="context/typescript/_overview.md",
-                overview_description="TS",
+                overview_description="TS stuff",
                 topics=[],
             ),
         ]
         manifest = render_manifest(areas)
-        assert "### Python" in manifest
-        assert "### Typescript" in manifest
-        python_idx = manifest.index("### Python")
-        ts_idx = manifest.index("### Typescript")
+        assert "| Area | Description |" in manifest
+        python_idx = manifest.index("Python")
+        ts_idx = manifest.index("Typescript")
         assert python_idx < ts_idx
+
+    def test_compact_format_is_single_table(self) -> None:
+        areas = [
+            AreaInfo(
+                name="python",
+                display_name="Python",
+                overview_path="context/python/_overview.md",
+                overview_description="Python concepts",
+                topics=[
+                    TopicInfo(
+                        path="context/python/error-handling.md",
+                        title="Error Handling",
+                        description="When and how to use exceptions",
+                    ),
+                ],
+            ),
+            AreaInfo(
+                name="testing",
+                display_name="Testing",
+                overview_path="context/testing/_overview.md",
+                overview_description="Testing practices",
+                topics=[],
+            ),
+        ]
+        manifest = render_manifest(areas)
+        lines = manifest.strip().split("\n")
+        # Header + separator + 2 area rows = 4 lines
+        assert len(lines) == 4
 
 
 # ── update_claude_md ─────────────────────────────────────────────
@@ -401,6 +423,49 @@ class TestUpdateClaudeMd:
         assert MARKER_END in content
         assert "old" not in content
 
+    def test_preserves_large_existing_file_without_markers(
+        self, tmp_path: Path
+    ) -> None:
+        """Regression test for #3: large CLAUDE.md must not be overwritten."""
+        target = tmp_path / "CLAUDE.md"
+        lines = [f"Line {i}: important project guidance" for i in range(305)]
+        original = "\n".join(lines) + "\n"
+        target.write_text(original, encoding="utf-8")
+
+        update_claude_md(str(target), "| Area | Description |")
+        content = target.read_text(encoding="utf-8")
+
+        # All original lines preserved
+        for i in range(0, 305, 50):
+            assert f"Line {i}: important project guidance" in content
+
+        # Context section appended
+        assert "## Context" in content
+        assert MARKER_BEGIN in content
+        assert "| Area | Description |" in content
+
+    def test_warns_on_append_to_existing(
+        self, tmp_path: Path, capsys: object
+    ) -> None:
+        target = tmp_path / "CLAUDE.md"
+        target.write_text("# Project\n\nExisting content.\n", encoding="utf-8")
+
+        update_claude_md(str(target), "manifest")
+        captured = capsys.readouterr()  # type: ignore[attr-defined]
+
+        assert "exists without markers" in captured.err
+        assert "3 existing lines preserved" in captured.err
+
+    def test_warns_on_create_from_template(
+        self, tmp_path: Path, capsys: object
+    ) -> None:
+        target = str(tmp_path / "CLAUDE.md")
+
+        update_claude_md(target, "manifest")
+        captured = capsys.readouterr()  # type: ignore[attr-defined]
+
+        assert "creating from template" in captured.err
+
 
 # ── update_agents_md ─────────────────────────────────────────────
 
@@ -477,13 +542,11 @@ class TestRunDiscovery:
         )
         rules = rules_path.read_text(encoding="utf-8")
 
-        # CLAUDE.md has manifest
-        assert "### Python" in claude_md
-        assert "Error Handling" in claude_md
+        # CLAUDE.md has compact manifest with area link
+        assert "[Python](context/python/_overview.md)" in claude_md
 
         # AGENTS.md mirrors CLAUDE.md manifest
-        assert "### Python" in agents_md
-        assert "Error Handling" in agents_md
+        assert "[Python](context/python/_overview.md)" in agents_md
 
         # Rules file exists and is reasonable
         assert "Document Types" in rules
@@ -528,7 +591,7 @@ class TestRunDiscovery:
         assert "# My Project" in content
         assert "Custom instructions here." in content
         assert "make build" in content
-        assert "### Python" in content
+        assert "[Python](context/python/_overview.md)" in content
 
     def test_empty_context_produces_empty_manifest(self, tmp_path: Path) -> None:
         (tmp_path / "context").mkdir()
