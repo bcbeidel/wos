@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "work-os"
 version = "0.1.0"
@@ -13,6 +17,9 @@ dev = [
     "pytest>=7.0",
     "ruff>=0.4",
 ]
+
+[tool.setuptools.packages.find]
+include = ["wos*"]
 
 [tool.ruff]
 target-version = "py39"
