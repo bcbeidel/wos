@@ -33,7 +33,7 @@ Ask the user what happened. Collect:
 Auto-gather (do not ask the user for these):
 
 ```bash
-# work-os version
+# wos version
 python3 -c "import json; print(json.load(open('.claude-plugin/plugin.json'))['version'])"
 
 # Python version
@@ -73,7 +73,7 @@ Show the user the complete issue draft:
 ──────────────────────────────────────
 Title: [issue title]
 Labels: [labels]
-Repo: bcbeidel/work-os
+Repo: bcbeidel/wos
 ──────────────────────────────────────
 [full issue body]
 ──────────────────────────────────────
@@ -90,7 +90,7 @@ Only after explicit approval:
 
 ```bash
 gh issue create \
-  --repo bcbeidel/work-os \
+  --repo bcbeidel/wos \
   --title "TITLE_HERE" \
   --body "BODY_HERE" \
   --label "LABEL_HERE"

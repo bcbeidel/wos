@@ -54,7 +54,7 @@ class TestHookFiltering:
             },
         )
         assert result.returncode == 0
-        log = tmp_path / ".work-os" / "utilization" / "log.jsonl"
+        log = tmp_path / ".wos" / "utilization" / "log.jsonl"
         assert not log.exists()
 
     def test_logs_context_files(self, tmp_path) -> None:
@@ -68,7 +68,7 @@ class TestHookFiltering:
             },
         )
         assert result.returncode == 0
-        log = tmp_path / ".work-os" / "utilization" / "log.jsonl"
+        log = tmp_path / ".wos" / "utilization" / "log.jsonl"
         assert log.exists()
         entry = json.loads(log.read_text().strip())
         assert entry["file"] == "context/area/topic.md"
@@ -84,6 +84,6 @@ class TestHookFiltering:
             },
         )
         assert result.returncode == 0
-        log = tmp_path / ".work-os" / "utilization" / "log.jsonl"
+        log = tmp_path / ".wos" / "utilization" / "log.jsonl"
         entry = json.loads(log.read_text().strip())
         assert entry["context"] == "agent"

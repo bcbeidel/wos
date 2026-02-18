@@ -1,10 +1,10 @@
 ---
 name: setup
 description: >
-  This skill should be used when the user asks to "set up work-os",
+  This skill should be used when the user asks to "set up wos",
   "initialize project context", "scaffold context directories",
   "create context structure", "add a new area", "add a domain area",
-  or "configure work-os for this project".
+  or "configure wos for this project".
 disable-model-invocation: true
 argument-hint: "[area-name]"
 ---
@@ -31,7 +31,7 @@ Check whether the project already has a `/context/` directory:
 - `_overview.md` in each area (valid overview frontmatter)
 - CLAUDE.md with `## Context` manifest (via discovery)
 - AGENTS.md mirroring the manifest
-- `.claude/rules/work-os-context.md` rules file
+- `.claude/rules/wos-context.md` rules file
 
 **Add area** creates:
 - `context/{area-name}/` directory

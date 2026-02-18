@@ -1,15 +1,27 @@
 # Changelog
 
-All notable changes to work-os will be documented in this file.
+All notable changes to wos will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-02-18
+
+### Changed
+
+- **Rename work-os → wos** across entire project for consistency with plugin
+  prefix (`/wos:`). GitHub repo renamed `bcbeidel/work-os` → `bcbeidel/wos`.
+- Context markers: `<!-- wos:context:begin -->` / `<!-- wos:context:end -->`
+- Rules file: `.claude/rules/wos-context.md`
+- Data directory: `.wos/` (was `.work-os/`)
+- Package name in pyproject.toml: `wos`
+- Marketplace and plugin config: name and repo updated
+
 ## [0.1.0] - 2026-02-18
 
-First complete release of work-os — a Claude Code plugin for building and
+First complete release of wos — a Claude Code plugin for building and
 maintaining structured project context. All 10 v0.1-foundation phases
 implemented with 229 tests passing.
 
@@ -23,7 +35,7 @@ implemented with 229 tests passing.
   directory patterns
 - **Discovery layer** (`wos/discovery.py`): Auto-generates CLAUDE.md manifest
   with marker-delimited `## Context` section, `.claude/rules/work-os-context.md`
-  rules file, and AGENTS.md mirroring — all derived from files on disk
+  rules file, and AGENTS.md mirroring — all derived from files on disk (note: rules file renamed to `.claude/rules/wos-context.md` in v0.1.2)
 
 #### Core Skills (Phases 2.1–3.2)
 
@@ -75,4 +87,5 @@ implemented with 229 tests passing.
 - Build roadmap with session protocol and dependency graph
 - 18 design principles across four layers
 
-[0.1.0]: https://github.com/bcbeidel/work-os/releases/tag/v0.1.0
+[0.1.2]: https://github.com/bcbeidel/wos/releases/tag/v0.1.2
+[0.1.0]: https://github.com/bcbeidel/wos/releases/tag/v0.1.0

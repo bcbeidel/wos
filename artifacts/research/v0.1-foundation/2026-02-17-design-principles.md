@@ -1,6 +1,6 @@
 ---
 document_type: research
-description: "Design principles for work-os grounded in agent context research, cognitive science, and software engineering practice"
+description: "Design principles for wos grounded in agent context research, cognitive science, and software engineering practice"
 last_updated: 2026-02-17
 sources:
   - url: https://www.anthropic.com/engineering/claude-code-best-practices
@@ -17,7 +17,7 @@ sources:
 
 # Design Principles
 
-Work-os exists to make human + AI collaboration more effective by structuring
+WOS exists to make human + AI collaboration more effective by structuring
 knowledge, improving research quality, and validating work at every step.
 
 These principles are organized in three layers: why the system exists (purpose),

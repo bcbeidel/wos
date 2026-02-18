@@ -1,18 +1,18 @@
 {
-  "name": "work-os",
+  "name": "wos",
   "description": "Claude Code plugin for building and maintaining structured project context",
   "owner": {
     "name": "bcbeidel"
   },
   "plugins": [
     {
-      "name": "work-os",
+      "name": "wos",
       "source": {
         "source": "github",
-        "repo": "bcbeidel/work-os"
+        "repo": "bcbeidel/wos"
       },
       "description": "Claude Code plugin for building and maintaining structured project context",
-      "version": "0.1.0",
+      "version": "0.1.2",
       "license": "MIT"
     }
   ]

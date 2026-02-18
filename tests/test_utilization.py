@@ -17,13 +17,13 @@ from wos.utilization import (
 class TestRecordReference:
     def test_creates_log_file(self, tmp_path) -> None:
         record_reference(str(tmp_path), "context/test/topic.md")
-        log = tmp_path / ".work-os" / "utilization" / "log.jsonl"
+        log = tmp_path / ".wos" / "utilization" / "log.jsonl"
         assert log.exists()
 
     def test_appends_valid_jsonl(self, tmp_path) -> None:
         record_reference(str(tmp_path), "context/test/a.md")
         record_reference(str(tmp_path), "context/test/b.md")
-        log = tmp_path / ".work-os" / "utilization" / "log.jsonl"
+        log = tmp_path / ".wos" / "utilization" / "log.jsonl"
         lines = log.read_text().strip().splitlines()
         assert len(lines) == 2
         for line in lines:
@@ -35,7 +35,7 @@ class TestRecordReference:
         record_reference(
             str(tmp_path), "context/test/topic.md", context="agent-read"
         )
-        log = tmp_path / ".work-os" / "utilization" / "log.jsonl"
+        log = tmp_path / ".wos" / "utilization" / "log.jsonl"
         data = json.loads(log.read_text().strip())
         assert data["context"] == "agent-read"
 
@@ -58,7 +58,7 @@ class TestReadUtilization:
     def test_tracks_first_and_last_referenced(self, tmp_path) -> None:
         root = str(tmp_path)
         # Write entries with known timestamps
-        log = tmp_path / ".work-os" / "utilization" / "log.jsonl"
+        log = tmp_path / ".wos" / "utilization" / "log.jsonl"
         log.parent.mkdir(parents=True)
         entries = [
             {"file": "context/a.md", "timestamp": "2026-01-01T00:00:00"},
@@ -84,7 +84,7 @@ class TestReadUtilization:
         assert stats["context/a.md"].unique_contexts == {"agent", "human"}
 
     def test_handles_malformed_lines(self, tmp_path) -> None:
-        log = tmp_path / ".work-os" / "utilization" / "log.jsonl"
+        log = tmp_path / ".wos" / "utilization" / "log.jsonl"
         log.parent.mkdir(parents=True)
         log.write_text(
             'not json\n'
@@ -109,7 +109,7 @@ class TestReadUtilizationTimeseries:
 
 class TestPurgeOldEntries:
     def test_removes_old_entries(self, tmp_path) -> None:
-        log = tmp_path / ".work-os" / "utilization" / "log.jsonl"
+        log = tmp_path / ".wos" / "utilization" / "log.jsonl"
         log.parent.mkdir(parents=True)
         entries = [
             {"file": "old.md", "timestamp": "2025-01-01T00:00:00"},
@@ -145,7 +145,7 @@ class TestTrackingPeriod:
         assert tracking_days(str(tmp_path)) == 0
 
     def test_with_data(self, tmp_path) -> None:
-        log = tmp_path / ".work-os" / "utilization" / "log.jsonl"
+        log = tmp_path / ".wos" / "utilization" / "log.jsonl"
         log.parent.mkdir(parents=True)
         log.write_text(
             '{"file": "a.md", "timestamp": "2026-02-01T00:00:00"}\n'

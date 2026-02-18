@@ -1,10 +1,10 @@
-# work-os
+# wos
 
 Personal work operating system — a Claude Code plugin for building and maintaining structured knowledge bases with AI-assisted research, structured reasoning, and quality validation.
 
 ## Why
 
-Most AI-assisted work lacks rigor. Agents search and summarize without checking sources. Knowledge accumulates without structure. Quality degrades without validation. Work-os addresses this at three levels:
+Most AI-assisted work lacks rigor. Agents search and summarize without checking sources. Knowledge accumulates without structure. Quality degrades without validation. WOS addresses this at three levels:
 
 **Knowledge amplifier** — Structure what you know. Every piece of knowledge has provenance, validation dates, and clear paths to primary sources. Progressive disclosure means agents load what they need, not everything.
 
@@ -142,7 +142,7 @@ Four document types organized on two axes:
 ## Repository Structure
 
 ```
-work-os/
+wos/
   .claude-plugin/plugin.json     # Plugin manifest
   skills/                         # Claude Code skills
     setup/                        # Initialize and scaffold
@@ -200,7 +200,7 @@ Design docs are in `artifacts/research/v0.1-foundation/`:
 ## Usage
 
 ```bash
-claude --plugin-dir /path/to/work-os
+claude --plugin-dir /path/to/wos
 ```
 
 Or add to Claude Code settings for automatic loading.

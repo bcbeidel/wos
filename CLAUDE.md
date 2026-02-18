@@ -1,11 +1,11 @@
 # CLAUDE.md
 
-This repo is **work-os** — a Claude Code plugin for building and maintaining
+This repo is **wos** — a Claude Code plugin for building and maintaining
 structured project context. You are helping build this tooling.
 
 ## What This Repo Is
 
-Work-os is a plugin (not a project context itself). It provides skills, scripts,
+WOS is a plugin (not a project context itself). It provides skills, scripts,
 and agents that help users create, validate, and maintain structured context in
 their own repos. When working in this repo, you are building the tool, not
 using it.

@@ -522,7 +522,7 @@ class TestUpdateRulesFile:
     def test_creates_directory_and_file(self, tmp_path: Path) -> None:
         update_rules_file(str(tmp_path), "# Rules content\n")
 
-        rules_path = tmp_path / ".claude" / "rules" / "work-os-context.md"
+        rules_path = tmp_path / ".claude" / "rules" / "wos-context.md"
         assert rules_path.exists()
         assert rules_path.read_text(encoding="utf-8") == "# Rules content\n"
 
@@ -538,7 +538,7 @@ class TestRunDiscovery:
         claude_md = (tmp_path / "CLAUDE.md").read_text(encoding="utf-8")
         agents_md = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
         rules_path = (
-            tmp_path / ".claude" / "rules" / "work-os-context.md"
+            tmp_path / ".claude" / "rules" / "wos-context.md"
         )
         rules = rules_path.read_text(encoding="utf-8")
 
@@ -558,7 +558,7 @@ class TestRunDiscovery:
         first_claude = (tmp_path / "CLAUDE.md").read_text(encoding="utf-8")
         first_agents = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
         rules_path = (
-            tmp_path / ".claude" / "rules" / "work-os-context.md"
+            tmp_path / ".claude" / "rules" / "wos-context.md"
         )
         first_rules = rules_path.read_text(encoding="utf-8")
 

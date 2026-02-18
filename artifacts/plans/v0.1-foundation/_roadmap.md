@@ -1,6 +1,6 @@
 ---
 document_type: plan
-description: "Sequenced build roadmap for work-os with session protocol, dependency tracking, and phase-level entry/exit criteria"
+description: "Sequenced build roadmap for wos with session protocol, dependency tracking, and phase-level entry/exit criteria"
 last_updated: 2026-02-17
 status: active
 related:
@@ -16,7 +16,7 @@ related:
   - artifacts/plans/v0.1-foundation/6.1-skill-observe.md
 ---
 
-# Work-OS Build Roadmap
+# WOS Build Roadmap
 
 ## Session Protocol
 
@@ -123,7 +123,7 @@ without it.
 
 **What you're building:** `wos/discovery.py` — generates the CLAUDE.md
 manifest (marker-delimited under `## Context`), the
-`.claude/rules/work-os-context.md` rules file, and mirrors to AGENTS.md. All
+`.claude/rules/wos-context.md` rules file, and mirrors to AGENTS.md. All
 derived from files on disk.
 
 **Exit criteria:**
@@ -277,7 +277,7 @@ utilization data layer, recommendations engine (6 categories), dashboard and
 trends workflows.
 
 **Exit criteria:**
-- Hook fires on Read and appends to `.work-os/utilization/log.jsonl`
+- Hook fires on Read and appends to `.wos/utilization/log.jsonl`
 - Hook never crashes (exits 0 on errors)
 - `read_utilization()` returns correct counts
 - `generate_recommendations()` with insufficient data returns `skipped`
@@ -287,7 +287,7 @@ trends workflows.
 
 ## Starting Prompt
 
-Copy this into your first session in the work-os repo:
+Copy this into your first session in the wos repo:
 
 > Read `artifacts/plans/v0.1-foundation/_roadmap.md` and follow the session protocol. Find the
 > first phase not marked `done`, read its plan, implement it, run verification,

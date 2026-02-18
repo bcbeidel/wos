@@ -6,7 +6,7 @@ to match the current state of files on disk.
 ## Steps
 
 1. **Show current manifest state**
-   - Read CLAUDE.md between the work-os markers
+   - Read CLAUDE.md between the wos markers
    - Show the current manifest content
 
 2. **Scan disk for actual state**
@@ -15,7 +15,7 @@ to match the current state of files on disk.
    ```
    Discovery scans `/context/`, reads frontmatter, and regenerates:
    - CLAUDE.md manifest (between markers)
-   - `.claude/rules/work-os-context.md`
+   - `.claude/rules/wos-context.md`
    - AGENTS.md (mirrors CLAUDE.md manifest)
 
 3. **Show what changed**

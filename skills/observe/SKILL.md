@@ -20,7 +20,7 @@ Shows how project context is being used and where to focus curation effort.
 ## How It Works
 
 A PostToolUse hook fires on every Read of a `/context/` file, appending to
-`.work-os/utilization/log.jsonl`. Over time this builds a usage profile that
+`.wos/utilization/log.jsonl`. Over time this builds a usage profile that
 powers recommendations.
 
 **Data layer:** `wos/utilization.py` — record, aggregate, purge

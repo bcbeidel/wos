@@ -1,6 +1,6 @@
 """Utilization data layer — track and query document access patterns.
 
-Stores access events as JSONL in .work-os/utilization/log.jsonl.
+Stores access events as JSONL in .wos/utilization/log.jsonl.
 Each entry records: file path, timestamp, and context (what triggered
 the read). Aggregation functions compute per-file stats for
 recommendations and dashboards.
@@ -61,7 +61,7 @@ class FileStats:
 # ── Log path ─────────────────────────────────────────────────────
 
 def _log_path(root: str) -> Path:
-    return Path(root) / ".work-os" / "utilization" / "log.jsonl"
+    return Path(root) / ".wos" / "utilization" / "log.jsonl"
 
 
 # ── Record ───────────────────────────────────────────────────────

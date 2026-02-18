@@ -16,7 +16,7 @@ TODAY = date.today().isoformat()
 
 def _setup_log(tmp_path, entries):
     """Write utilization log entries."""
-    log = tmp_path / ".work-os" / "utilization" / "log.jsonl"
+    log = tmp_path / ".wos" / "utilization" / "log.jsonl"
     log.parent.mkdir(parents=True, exist_ok=True)
     with open(log, "w") as f:
         for entry in entries:

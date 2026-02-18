@@ -26,7 +26,7 @@ with gathered context.
 
 ## Environment
 
-- **work-os version:** [version from plugin.json]
+- **wos version:** [version from plugin.json]
 - **Python:** [python3 --version output]
 - **Platform:** [uname output]
 
@@ -52,7 +52,7 @@ with gathered context.
 
 ## Environment
 
-- **work-os version:** [version from plugin.json]
+- **wos version:** [version from plugin.json]
 
 ## Additional Context
 
@@ -76,5 +76,5 @@ with gathered context.
 
 ## Environment
 
-- **work-os version:** [version from plugin.json]
+- **wos version:** [version from plugin.json]
 ```
