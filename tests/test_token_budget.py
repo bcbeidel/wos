@@ -8,7 +8,6 @@ from __future__ import annotations
 from wos.document_types import parse_document
 from wos.token_budget import estimate_token_budget
 
-
 # ── Helpers ──────────────────────────────────────────────────────
 
 
