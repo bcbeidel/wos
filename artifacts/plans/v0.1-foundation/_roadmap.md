@@ -54,7 +54,7 @@ where you left off.
 | 3.2 | [Maintain Skill](3.2-skill-maintain.md) | done | 29 tests, ruff clean, 4 workflows |
 | 4.1 | [Report-Issue Skill](4.1-skill-report-issue.md) | done | Skill-only, gh CLI integration |
 | 4.2 | [Consider Skill](4.2-skill-consider.md) | done | 16 models, uniform structure, all under 60 lines |
-| 5.1 | [Research Skill](5.1-skill-research.md) | not started | |
+| 5.1 | [Research Skill](5.1-skill-research.md) | done | SIFT framework, 8 modes, source hierarchy |
 | 6.1 | [Observe Skill](6.1-skill-observe.md) | not started | |
 
 ## Dependency Graph
