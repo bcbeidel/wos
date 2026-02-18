@@ -20,7 +20,21 @@ with SIFT intensity varying by mode (see research-modes.md).
 4. Flag all sources as **unverified** at this stage
 5. Prioritize diversity — different organizations, perspectives, source types
 
-## Phase 3: Source Evaluation (SIFT)
+## Phase 3: Verify Sources
+
+Run mechanical URL verification on all gathered sources before SIFT evaluation.
+See `references/source-verification.md` for full instructions.
+
+1. Format all gathered sources as JSON: `[{"url": "...", "title": "..."}, ...]`
+2. Run: `echo '<json>' | python3 -m wos.source_verification`
+3. Review the results:
+   - Remove sources with action `removed` from your list
+   - For sources with action `flagged`: update cited titles if mismatched,
+     note access issues for paywalled sources
+4. If all sources were removed, gather new sources before proceeding
+5. Report verification results to the user before continuing
+
+## Phase 4: Source Evaluation (SIFT)
 
 Apply SIFT framework (see sift-framework.md) at the mode's intensity level.
 
@@ -39,7 +53,7 @@ After evaluation:
 - Never cite T6 (AI-generated) as a source
 - Annotate remaining sources with their tier
 
-## Phase 4: Synthesis
+## Phase 5: Synthesis
 
 1. Organize findings by sub-question
 2. For each sub-question, note:
@@ -50,14 +64,14 @@ After evaluation:
 4. If mode requires counter-evidence: dedicate a section to arguments,
    evidence, or perspectives that challenge the main findings
 
-## Phase 5: Implications
+## Phase 6: Implications
 
 1. Connect findings to the user's context and decisions
 2. Identify actionable insights (what should change based on these findings?)
 3. Note limitations — what couldn't be determined and why
 4. Suggest follow-up questions if the investigation revealed new unknowns
 
-## Phase 6: Produce Research Document
+## Phase 7: Produce Research Document
 
 Create the research document via `/wos:curate` with type=research:
 
@@ -73,6 +87,7 @@ The document will be placed at `artifacts/research/{date}-{slug}.md`.
 ## Quality Checklist
 
 Before finalizing, verify:
+- [ ] All sources passed URL verification (Phase 3)
 - [ ] All sources have been SIFT-evaluated at the mode's intensity
 - [ ] Sources are annotated with hierarchy tiers
 - [ ] Counter-evidence section present (if mode requires it)
