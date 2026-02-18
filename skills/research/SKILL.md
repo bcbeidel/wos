@@ -1,0 +1,54 @@
+---
+name: research
+description: >
+  This skill should be used when the user wants to "investigate",
+  "research", "look into", "what do we know about", "compare options",
+  "evaluate feasibility", "analyze the landscape", "find out about",
+  "deep dive into", "explore alternatives", or any request to conduct
+  a structured investigation and produce a research document.
+argument-hint: "[topic or question to investigate]"
+---
+
+# Research Skill
+
+Conduct structured investigations using the SIFT framework (Stop,
+Investigate the source, Find better coverage, Trace claims). Produces
+research documents in `/artifacts/research/` with verified sources
+and structured findings.
+
+## Mode Detection
+
+Detect the research mode from the question framing:
+
+| Question pattern | Mode | Intensity |
+|-----------------|------|-----------|
+| "What do we know about X?" | deep-dive | High |
+| "What's the landscape for X?" | landscape | Medium |
+| "How does X work technically?" | technical | High |
+| "Can we do X with our constraints?" | feasibility | Medium |
+| "How does X compare to competitors?" | competitive | Medium |
+| "Should we use A or B?" | options | High |
+| "How did X evolve / what's the history?" | historical | Low |
+| "What open source options exist for X?" | open-source | Medium |
+
+If ambiguous, ask: "What kind of investigation would be most useful?
+A **deep dive** (comprehensive), **options comparison**, or
+**feasibility study**?"
+
+## Workflow
+
+All modes follow the same workflow with varying SIFT intensity.
+See `references/research-investigate.md` for the full multi-phase process.
+
+## Key Rules
+
+- **SIFT every source.** No source enters the document unverified.
+  See `references/sift-framework.md`.
+- **Source hierarchy matters.** Prefer official docs over blog posts.
+  See `references/source-evaluation.md`.
+- **Counter-evidence is required** for deep-dive, options, and technical modes.
+  Actively search for disagreement.
+- **Output is a research document.** Use `/wos:curate` to create the final
+  artifact with `document_type: research`.
+- **Authority annotations.** Each source in the final document should note
+  its tier in the source hierarchy.

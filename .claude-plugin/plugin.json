@@ -1,0 +1,12 @@
+{
+  "name": "wos",
+  "version": "0.1.0",
+  "description": "Personal work operating system — a collection of Claude Code skills for daily workflows",
+  "author": {
+    "name": "bbeidel"
+  },
+  "license": "MIT",
+  "skills": "./skills/",
+  "agents": "./agents/",
+  "hooks": "./hooks/hooks.json"
+}
