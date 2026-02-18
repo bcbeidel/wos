@@ -28,7 +28,7 @@ Follow the steps in `references/report-issue-submit.md`.
   and get explicit approval before running `gh issue create`.
 - **Check `gh` first.** Verify the CLI is installed and authenticated
   before gathering details. If missing, show setup instructions.
-- **Target repo is hardcoded:** `bbeidel/work-os`
+- **Target repo is hardcoded:** `bcbeidel/work-os`
 - **Include context automatically:** work-os version from plugin.json,
   Python version, platform info.
 - **Never submit without approval.** The user must explicitly confirm.

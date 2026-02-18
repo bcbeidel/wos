@@ -73,7 +73,7 @@ Show the user the complete issue draft:
 ──────────────────────────────────────
 Title: [issue title]
 Labels: [labels]
-Repo: bbeidel/work-os
+Repo: bcbeidel/work-os
 ──────────────────────────────────────
 [full issue body]
 ──────────────────────────────────────
@@ -90,7 +90,7 @@ Only after explicit approval:
 
 ```bash
 gh issue create \
-  --repo bbeidel/work-os \
+  --repo bcbeidel/work-os \
   --title "TITLE_HERE" \
   --body "BODY_HERE" \
   --label "LABEL_HERE"
