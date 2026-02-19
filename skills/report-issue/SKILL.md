@@ -1,12 +1,11 @@
 ---
 name: report-issue
 description: >
-  This skill should be used when the user wants to "report a bug",
-  "submit feedback", "request a feature", "file an issue",
-  "something is broken", "I found a problem", "this doesn't work",
-  "suggest an improvement", or any request to report issues or
-  feedback about the wos plugin itself.
-disable-model-invocation: true
+  Use when the user wants to "report a bug", "submit feedback",
+  "request a feature", "file an issue", or when you discover
+  a problem, limitation, or missing capability in WOS during
+  normal work. Proactively suggest filing when you encounter
+  WOS issues the maintainer should know about.
 argument-hint: "[describe the issue or feedback]"
 ---
 
