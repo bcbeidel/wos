@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-02-18
+
+### Improved
+
+- **Health check error messages now include expected section lists** for both
+  `check_section_presence` and `check_section_ordering` validators. When a
+  section is missing or misordered, the `suggestion` field lists all required
+  sections in canonical order for that document type, eliminating the
+  "whack-a-mole" pattern of fixing one section, re-running health, and
+  discovering the next. ([#9](https://github.com/bcbeidel/wos/issues/9))
+
+## [0.1.5] - 2026-02-18
+
+### Added
+
+- **Source URL reachability checking** (`wos/source_verification.py`): Lightweight
+  HEAD-request reachability check for source URLs, wired into `/wos:health` behind
+  `--tier2` flag. Cross-validator deduplicates URLs across documents and reports
+  unreachable (404, DNS, timeout) as `warn` and access-restricted (403) as `info`.
+
 ## [0.1.4] - 2026-02-18
 
 ### Added
@@ -132,6 +152,8 @@ implemented with 229 tests passing.
 - Build roadmap with session protocol and dependency graph
 - 18 design principles across four layers
 
+[0.1.6]: https://github.com/bcbeidel/wos/releases/tag/v0.1.6
+[0.1.5]: https://github.com/bcbeidel/wos/releases/tag/v0.1.5
 [0.1.4]: https://github.com/bcbeidel/wos/releases/tag/v0.1.4
 [0.1.3]: https://github.com/bcbeidel/wos/releases/tag/v0.1.3
 [0.1.2]: https://github.com/bcbeidel/wos/releases/tag/v0.1.2

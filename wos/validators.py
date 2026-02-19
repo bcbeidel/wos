@@ -17,6 +17,7 @@ from urllib.parse import urlparse
 from wos.document_types import (
     DIRECTORY_PATTERNS,
     FRESHNESS_TRACKED_TYPES,
+    SECTIONS,
     Document,
     DocumentType,
 )
@@ -49,10 +50,17 @@ def _issue(
 # ── Shared validators (all types) ───────────────────────────────
 
 
+def _format_section_list(doc_type: DocumentType) -> str:
+    """Format the canonical section list for a document type."""
+    names = [f"## {s.name}" for s in SECTIONS[doc_type]]
+    return f"{doc_type.value.capitalize()} documents require these sections in order: {', '.join(names)}"
+
+
 def check_section_presence(doc: Document) -> List[Issue]:
     """Check that all required sections exist."""
     issues: List[Issue] = []
     required = doc.required_sections
+    section_hint = _format_section_list(doc.document_type)
     for spec in required:
         if spec.name not in doc.sections:
             issues.append(
@@ -62,7 +70,7 @@ def check_section_presence(doc: Document) -> List[Issue]:
                     "warn",
                     "check_section_presence",
                     section=spec.name,
-                    suggestion=f"Add a ## {spec.name} section",
+                    suggestion=f"Add a ## {spec.name} section. {section_hint}",
                 )
             )
     return issues
@@ -83,6 +91,7 @@ def check_section_ordering(doc: Document) -> List[Issue]:
         idx_a = section_names.index(present[i].name)
         idx_b = section_names.index(present[i + 1].name)
         if idx_a > idx_b:
+            section_hint = _format_section_list(doc.document_type)
             issues.append(
                 _issue(
                     doc,
@@ -90,7 +99,7 @@ def check_section_ordering(doc: Document) -> List[Issue]:
                     f"## {present[i].name} (expected after)",
                     "warn",
                     "check_section_ordering",
-                    suggestion="Reorder sections to match canonical order",
+                    suggestion=f"Reorder sections to match canonical order. {section_hint}",
                 )
             )
             break  # Report first misordering only

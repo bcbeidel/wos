@@ -207,6 +207,62 @@ class TestCheckSectionPresence:
         assert any(i["section"] == "Verification" for i in issues)
         assert all(i["severity"] == "warn" for i in issues)
 
+    def test_suggestion_includes_full_section_list_for_plan(self) -> None:
+        """Issue #9: suggestion should list all expected sections."""
+        md = _plan_md(
+            sections=(
+                "## Objective\n\nGoal.\n\n"
+                "## Steps\n\n1. Do thing.\n"
+            )
+        )
+        doc = _parse(md, path="artifacts/plans/2026-02-17-test.md")
+        issues = check_section_presence(doc)
+        # Both missing sections should mention the full plan section list
+        for issue in issues:
+            assert "## Objective" in issue["suggestion"]
+            assert "## Context" in issue["suggestion"]
+            assert "## Steps" in issue["suggestion"]
+            assert "## Verification" in issue["suggestion"]
+
+    def test_suggestion_includes_full_section_list_for_topic(self) -> None:
+        """Issue #9: topic missing sections list all expected sections."""
+        md = _topic_md(
+            sections=(
+                "## Guidance\n\nContent.\n\n"
+                "## Context\n\nContent.\n\n"
+                "## In Practice\n\nContent.\n"
+            )
+        )
+        doc = _parse(md)
+        issues = check_section_presence(doc)
+        for issue in issues:
+            assert "## Guidance" in issue["suggestion"]
+            assert "## Go Deeper" in issue["suggestion"]
+
+    def test_suggestion_includes_full_section_list_for_research(self) -> None:
+        """Issue #9: research missing sections list all expected sections."""
+        md = _research_md(
+            sections="## Question\n\nWhat?\n\n## Findings\n\nStuff.\n"
+        )
+        doc = _parse(md, path="artifacts/research/2026-02-17-test.md")
+        issues = check_section_presence(doc)
+        assert len(issues) == 2  # Implications and Sources missing
+        for issue in issues:
+            assert "## Question" in issue["suggestion"]
+            assert "## Sources" in issue["suggestion"]
+
+    def test_suggestion_includes_full_section_list_for_overview(self) -> None:
+        """Issue #9: overview missing sections list all expected sections."""
+        md = _overview_md(
+            sections="## Topics\n\n- Topic A\n\n## Key Sources\n\n- Src\n"
+        )
+        doc = _parse(md, path="context/python/_overview.md")
+        issues = check_section_presence(doc)
+        assert len(issues) == 1  # What This Covers missing
+        assert "## What This Covers" in issues[0]["suggestion"]
+        assert "## Topics" in issues[0]["suggestion"]
+        assert "## Key Sources" in issues[0]["suggestion"]
+
 
 # ── check_section_ordering ───────────────────────────────────────
 
@@ -230,6 +286,40 @@ class TestCheckSectionOrdering:
         issues = check_section_ordering(doc)
         assert len(issues) == 1
         assert issues[0]["severity"] == "warn"
+
+    def test_suggestion_includes_full_section_list(self) -> None:
+        """Issue #9: ordering error should list all expected sections."""
+        md = _topic_md(
+            sections=(
+                "## Context\n\nContent.\n\n"
+                "## Guidance\n\nContent.\n\n"
+                "## In Practice\n\nContent.\n\n"
+                "## Pitfalls\n\nContent.\n\n"
+                "## Go Deeper\n\nContent.\n"
+            )
+        )
+        doc = _parse(md)
+        issues = check_section_ordering(doc)
+        assert len(issues) == 1
+        assert "## Guidance" in issues[0]["suggestion"]
+        assert "## Context" in issues[0]["suggestion"]
+        assert "## Go Deeper" in issues[0]["suggestion"]
+
+    def test_plan_ordering_suggestion_includes_plan_sections(self) -> None:
+        """Issue #9: plan ordering error lists plan sections."""
+        md = _plan_md(
+            sections=(
+                "## Steps\n\n1. Do thing.\n\n"
+                "## Objective\n\nGoal.\n\n"
+                "## Context\n\nBackground.\n\n"
+                "## Verification\n\n- Tests pass.\n"
+            )
+        )
+        doc = _parse(md, path="artifacts/plans/2026-02-17-test.md")
+        issues = check_section_ordering(doc)
+        assert len(issues) == 1
+        assert "## Objective" in issues[0]["suggestion"]
+        assert "## Verification" in issues[0]["suggestion"]
 
 
 # ── check_size_bounds ────────────────────────────────────────────
