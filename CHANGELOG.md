@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-02-18
+
+### Improved
+
+- **Report-issue skill: quality gates, framing guidance, and LLM invocability.**
+  The `/wos:report-issue` skill now produces higher-quality issues with three
+  changes: (1) the agent can invoke the skill proactively when it discovers WOS
+  issues during normal work (`disable-model-invocation` removed), (2) templates
+  include evaluation criteria, MRE sections, scope/non-goals, and before/after
+  examples matching the quality standard of issue #12, (3) a framing rule in the
+  drafting phase prevents consumer-specific language, and an advisory quality
+  checklist is shown alongside the preview before submission.
+  ([#14](https://github.com/bcbeidel/wos/issues/14))
+
 ## [0.1.6] - 2026-02-18
 
 ### Improved
@@ -152,6 +166,7 @@ implemented with 229 tests passing.
 - Build roadmap with session protocol and dependency graph
 - 18 design principles across four layers
 
+[0.1.7]: https://github.com/bcbeidel/wos/releases/tag/v0.1.7
 [0.1.6]: https://github.com/bcbeidel/wos/releases/tag/v0.1.6
 [0.1.5]: https://github.com/bcbeidel/wos/releases/tag/v0.1.5
 [0.1.4]: https://github.com/bcbeidel/wos/releases/tag/v0.1.4

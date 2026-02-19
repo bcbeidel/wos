@@ -53,7 +53,8 @@ def _issue(
 def _format_section_list(doc_type: DocumentType) -> str:
     """Format the canonical section list for a document type."""
     names = [f"## {s.name}" for s in SECTIONS[doc_type]]
-    return f"{doc_type.value.capitalize()} documents require these sections in order: {', '.join(names)}"
+    prefix = f"{doc_type.value.capitalize()} documents require"
+    return f"{prefix} these sections in order: {', '.join(names)}"
 
 
 def check_section_presence(doc: Document) -> List[Issue]:
@@ -99,7 +100,8 @@ def check_section_ordering(doc: Document) -> List[Issue]:
                     f"## {present[i].name} (expected after)",
                     "warn",
                     "check_section_ordering",
-                    suggestion=f"Reorder sections to match canonical order. {section_hint}",
+                    suggestion="Reorder sections to match "
+                    f"canonical order. {section_hint}",
                 )
             )
             break  # Report first misordering only

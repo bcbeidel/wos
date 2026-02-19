@@ -65,9 +65,47 @@ Fill in:
 - **Body**: From the template, with gathered context
 - **Labels**: From classification above
 
-## Phase 5: Preview
+### Framing Rule
 
-Show the user the complete issue draft:
+Write issues from the WOS tool author's perspective, not the consumer's.
+The reader is the WOS maintainer who needs to understand, reproduce, and
+fix the issue.
+
+- Replace vault-specific details with generic examples
+- Use "a WOS user" or "a project with N context files" instead of "I"
+  or "my vault"
+- Describe solutions in terms of WOS's internal architecture (scripts,
+  validators, skills)
+- If the user provides consumer-specific context, extract the generic
+  pattern
+
+**Consumer-specific details to catch and generalize:**
+- References to specific vault files or directory structures
+- Exact file counts or token numbers from a specific deployment
+- "During my recent X" narratives tied to a particular workflow
+- Vault-specific template names, area names, or project structures
+
+## Phase 5: Preview and Quality Check
+
+Before showing the preview, evaluate the draft against the quality
+checklist below. Show results alongside the draft.
+
+### Quality Checklist
+
+Apply the checks relevant to the issue type:
+
+| Check | Applies to | Pass criteria |
+|---|---|---|
+| Generic framing | All types | No vault-specific paths, file counts, or "my vault" language |
+| Self-contained | All types | Understandable without reading prior conversations or external context |
+| Has evaluation criteria | Feature requests | Test fixtures table and pass criteria table are present and filled in |
+| Has MRE | Bug reports | Minimum reproducible example section is present with fixture + command + error |
+| Has before/after examples | Features changing existing behavior | Current vs proposed output shown |
+| Has scope/non-goals | Feature requests | Scope and Non-Goals subsections are present and filled in |
+
+### Preview Format
+
+Show the user the complete issue draft with quality check results:
 
 ```
 ──────────────────────────────────────
@@ -77,7 +115,15 @@ Repo: bcbeidel/wos
 ──────────────────────────────────────
 [full issue body]
 ──────────────────────────────────────
+
+Quality Checks:
+  ✓ Generic framing
+  ✓ Self-contained
+  ⚠ [any checks that didn't fully pass — explain briefly]
 ```
+
+All checks are **advisory**. The user can approve and submit even if
+some checks show warnings.
 
 Ask: "Does this look right? I can edit any part before submitting."
 
