@@ -27,8 +27,13 @@ Dependencies: `pydantic>=2.0`, `pyyaml>=6.0`, `requests>=2.28` (declared in `pyp
 
 ### Package Structure
 
-- `wos/` — importable Python package with core logic (models, discovery,
-  validators, templates, source verification, etc.)
+- `wos/` — importable Python package with core logic
+  - **Core:** `document_types.py` (models, dispatch tables, `parse_document()`),
+    `validators.py` (per-file), `cross_validators.py` (multi-file),
+    `templates.py`, `discovery.py`, `scaffold.py`
+  - **Extended:** `auto_fix.py`, `token_budget.py`, `tier2_triggers.py`,
+    `source_verification.py`, `utilization.py`, `recommendations.py`,
+    `hook_log_access.py`
 - `scripts/` — thin CLI entry points with argparse that import from `wos`
 - `skills/` — skill definitions (SKILL.md + workflows/) auto-discovered by
   Claude Code
@@ -69,6 +74,13 @@ Context types (topic, overview) are agent-facing — they appear in the CLAUDE.m
 manifest under `## Context`. Artifact types (research, plan) are internal work
 products, reachable via `related` links.
 
+### Key Entry Points
+
+- `wos/document_types.py` — schema foundation; start here for new document types
+- `wos/validators.py` — per-file validators dispatched by `VALIDATORS_BY_TYPE`
+- `wos/cross_validators.py` — multi-file validators (link graph, manifest sync, naming)
+- `scripts/check_health.py` — CLI that wires validators into `/wos:health` output
+
 ## Reference
 
 - Plans & roadmap: `artifacts/plans/v0.1-foundation/` (v0.1 complete)
@@ -81,8 +93,9 @@ products, reachable via `related` links.
   `Optional[X]` for runtime expressions
 - CLI scripts handle both `python` and `python3` invocations gracefully
 - CLI scripts default to CWD as root; accept `--root` for override
-- Validators return `list[dict]` with keys: file, issue, severity, validator,
-  section, suggestion
+- Both per-file validators (`validators.py`) and cross-validators
+  (`cross_validators.py`) return `list[dict]` with keys: file, issue, severity,
+  validator, section, suggestion
 - All document operations validate via `parse_document()` before writing
 - Skills use free-text intake — users describe intent, Claude routes
 - Pydantic `ValidationError` + stdlib exceptions only (no custom exception hierarchy)
