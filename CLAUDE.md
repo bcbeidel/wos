@@ -23,6 +23,11 @@ ruff check wos/ tests/ scripts/
 
 Dependencies: `pydantic>=2.0`, `pyyaml>=6.0`, `requests>=2.28` (declared in `pyproject.toml`)
 
+Note: `ruff` may not be installed locally; CI runs it via GitHub Actions.
+
+Version bump requires updating all three: `pyproject.toml`,
+`.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`
+
 ## Architecture
 
 ### Package Structure
