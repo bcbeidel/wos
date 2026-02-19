@@ -2,9 +2,10 @@
 """Run health checks on project documents.
 
 Usage:
-    python3 scripts/check_health.py [--root ROOT] [--tier2]
+    python3 scripts/check_health.py [--root ROOT] [--tier2] [--detailed|--json] [--no-color]
 
-Outputs JSON report. Exit code 1 if any issue has severity: fail.
+Default output is human-readable text. Use --json for machine-readable JSON.
+Exit code 1 if any issue has severity: fail.
 """
 
 from __future__ import annotations
@@ -29,7 +30,25 @@ def main() -> None:
         action="store_true",
         help="Include Tier 2 LLM trigger pre-screening",
     )
+    parser.add_argument(
+        "--detailed",
+        action="store_true",
+        help="Show detailed output grouped by severity with suggestions",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output JSON (machine-readable)",
+    )
+    parser.add_argument(
+        "--no-color",
+        action="store_true",
+        help="Disable ANSI color in text output",
+    )
     args = parser.parse_args()
+
+    if args.detailed and args.json:
+        parser.error("--detailed and --json are mutually exclusive")
 
     from wos.cross_validators import check_source_url_reachability, run_cross_validators
     from wos.document_types import parse_document
@@ -62,7 +81,16 @@ def main() -> None:
             "message": "No documents found. "
             "Use /wos:setup to initialize your project.",
         }
-        print(json.dumps(report, indent=2))
+        if args.json:
+            print(json.dumps(report, indent=2))
+        else:
+            from wos.formatting import format_detailed, format_summary
+
+            use_color = not args.no_color and sys.stdout.isatty()
+            if args.detailed:
+                print(format_detailed(report, color=use_color), end="")
+            else:
+                print(format_summary(report, color=use_color), end="")
         sys.exit(0)
 
     for md_file in sorted(md_files):
@@ -133,7 +161,17 @@ def main() -> None:
         "triggers": all_triggers,
     }
 
-    print(json.dumps(report, indent=2))
+    if args.json:
+        print(json.dumps(report, indent=2))
+    else:
+        from wos.formatting import format_detailed, format_summary
+
+        use_color = not args.no_color and sys.stdout.isatty()
+        if args.detailed:
+            print(format_detailed(report, color=use_color), end="")
+        else:
+            print(format_summary(report, color=use_color), end="")
+
     sys.exit(1 if status == "fail" else 0)
 
 
