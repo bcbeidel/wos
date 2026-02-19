@@ -83,9 +83,7 @@ products, reachable via `related` links.
 
 ## Reference
 
-- Plans & roadmap: `artifacts/plans/v0.1-foundation/` (v0.1 complete)
-- Design docs & spec: `artifacts/research/v0.1-foundation/`
-- Design principles: [2026-02-17-design-principles.md](artifacts/research/v0.1-foundation/2026-02-17-design-principles.md)
+- Architecture & design: [2026-02-18-architecture-snapshot.md](artifacts/research/2026-02-18-architecture-snapshot.md)
 
 ## Conventions
 
