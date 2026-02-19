@@ -14,11 +14,11 @@ Report on document staleness based on `last_validated` dates.
 
 1. **Run the health check script**
    ```bash
-   python3 scripts/check_health.py --root .
+   python3 scripts/check_health.py --root . --detailed --no-color
    ```
 
-2. **Filter issues** to only staleness-related findings
-   (validator: `check_last_validated`)
+2. **Filter the output** to only staleness-related findings
+   (issues mentioning "validated" or "days ago")
 
 3. **Group by urgency** — 90+ days first, then 60+, then 30+
 

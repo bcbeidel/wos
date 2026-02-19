@@ -35,19 +35,17 @@ All validation runs through the CLI script:
 # Tier 1 only (default, CI-friendly)
 python3 scripts/check_health.py --root .
 
+# Detailed output with suggestions
+python3 scripts/check_health.py --root . --detailed
+
 # Tier 1 + Tier 2 triggers
 python3 scripts/check_health.py --root . --tier2
+
+# JSON output for programmatic use
+python3 scripts/check_health.py --root . --json
 ```
 
-The script outputs JSON:
-```json
-{
-  "status": "fail",
-  "files_checked": 12,
-  "issues": [...],
-  "triggers": [...]
-}
-```
+Default output is human-readable text. Use `--json` for machine-parseable output.
 
 Exit code: 0 if no `severity: fail`, 1 otherwise.
 
