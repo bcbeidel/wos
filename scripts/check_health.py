@@ -31,7 +31,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    from wos.cross_validators import run_cross_validators
+    from wos.cross_validators import check_source_url_reachability, run_cross_validators
     from wos.document_types import parse_document
     from wos.tier2_triggers import run_triggers
     from wos.token_budget import estimate_token_budget
@@ -94,6 +94,12 @@ def main() -> None:
     token_budget = estimate_token_budget(context_docs)
     if "issue" in token_budget:
         all_issues.append(token_budget["issue"])
+
+    # Run Tier 2 source URL reachability if requested
+    if args.tier2:
+        all_issues.extend(
+            check_source_url_reachability(docs, str(root))
+        )
 
     # Run Tier 2 triggers if requested
     all_triggers = []

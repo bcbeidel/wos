@@ -109,6 +109,17 @@ class VerificationResult:
     reason: str
 
 
+@dataclass
+class ReachabilityResult:
+    """Result of a lightweight URL reachability check."""
+
+    url: str
+    http_status: Optional[int]
+    reachable: bool
+    reason: str
+    final_url: Optional[str]
+
+
 # ── Single-source verification ────────────────────────────────────
 
 
@@ -246,6 +257,103 @@ def verify_source(url: str, cited_title: str) -> VerificationResult:
         title_match=False,
         action="flagged",
         reason=f"Title mismatch: cited '{cited_title}', found '{page_title}'",
+    )
+
+
+# ── Lightweight reachability check ────────────────────────────────
+
+
+def check_url_reachability(url: str) -> ReachabilityResult:
+    """Check if a URL is reachable via HTTP HEAD (GET fallback on 405).
+
+    Lightweight alternative to verify_source() — checks reachability
+    only, no title extraction or comparison.
+    """
+    try:
+        resp = requests.head(url, timeout=10, allow_redirects=True)
+    except requests.ConnectionError:
+        return ReachabilityResult(
+            url=url, http_status=None, reachable=False,
+            reason="Connection error: could not reach URL",
+            final_url=None,
+        )
+    except requests.Timeout:
+        return ReachabilityResult(
+            url=url, http_status=None, reachable=False,
+            reason="Timeout: request did not complete in time",
+            final_url=None,
+        )
+    except requests.RequestException as exc:
+        return ReachabilityResult(
+            url=url, http_status=None, reachable=False,
+            reason=f"Request error: {exc}",
+            final_url=None,
+        )
+
+    status = resp.status_code
+
+    # HEAD returned 405 — retry with GET
+    if status == 405:
+        try:
+            resp = requests.get(url, timeout=10, allow_redirects=True)
+            status = resp.status_code
+        except requests.RequestException as exc:
+            return ReachabilityResult(
+                url=url, http_status=None, reachable=False,
+                reason=f"GET fallback failed: {exc}",
+                final_url=None,
+            )
+
+    final_url = resp.url
+
+    # Cross-domain redirect detection
+    original_domain = urlparse(url).netloc
+    final_domain = urlparse(final_url).netloc
+    if original_domain != final_domain:
+        return ReachabilityResult(
+            url=url, http_status=status, reachable=False,
+            reason=f"Cross-domain redirect: {original_domain} -> {final_domain}",
+            final_url=final_url,
+        )
+
+    if status == 200:
+        return ReachabilityResult(
+            url=url, http_status=200, reachable=True,
+            reason="OK", final_url=final_url,
+        )
+
+    if status == 403:
+        return ReachabilityResult(
+            url=url, http_status=403, reachable=False,
+            reason="HTTP 403: possible paywall or access restriction",
+            final_url=final_url,
+        )
+
+    if status == 404:
+        return ReachabilityResult(
+            url=url, http_status=404, reachable=False,
+            reason="HTTP 404: page not found",
+            final_url=final_url,
+        )
+
+    if 500 <= status < 600:
+        return ReachabilityResult(
+            url=url, http_status=status, reachable=False,
+            reason=f"HTTP {status}: server error",
+            final_url=final_url,
+        )
+
+    if 400 <= status < 500:
+        return ReachabilityResult(
+            url=url, http_status=status, reachable=False,
+            reason=f"HTTP {status}: client error",
+            final_url=final_url,
+        )
+
+    # 2xx/3xx other than 200 — treat as reachable
+    return ReachabilityResult(
+        url=url, http_status=status, reachable=True,
+        reason=f"HTTP {status}", final_url=final_url,
     )
 
 

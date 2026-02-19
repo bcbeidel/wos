@@ -1,4 +1,4 @@
-"""Integration test for token_budget in health script output."""
+"""Integration tests for health script output (token_budget, source reachability)."""
 
 from __future__ import annotations
 
@@ -127,3 +127,45 @@ class TestHealthScriptTokenBudget:
         # Only python area, no artifact area
         area_names = [a["area"] for a in budget["areas"]]
         assert area_names == ["python"]
+
+
+class TestHealthScriptSourceReachability:
+    """Verify source URL reachability runs with --tier2."""
+
+    def test_no_reachability_without_tier2(self, tmp_path: Path):
+        """Without --tier2, no reachability issues appear."""
+        area = tmp_path / "context" / "python"
+        area.mkdir(parents=True)
+        _write_topic(area, "error-handling")
+        _write_overview(area, "python", ["error-handling"])
+
+        result = _run_health_script(str(tmp_path))
+        report = json.loads(result.stdout)
+        reachability_issues = [
+            i for i in report["issues"]
+            if i["validator"] == "check_source_url_reachability"
+        ]
+        assert len(reachability_issues) == 0
+
+    def test_tier2_flag_runs_reachability(self, tmp_path: Path):
+        """--tier2 flag triggers source URL reachability checks."""
+        area = tmp_path / "context" / "python"
+        area.mkdir(parents=True)
+        _write_topic(area, "error-handling")
+        _write_overview(area, "python", ["error-handling"])
+
+        env = os.environ.copy()
+        env["PYTHONPATH"] = PROJECT_ROOT
+        result = subprocess.run(
+            [
+                sys.executable, "scripts/check_health.py",
+                "--root", str(tmp_path), "--tier2",
+            ],
+            capture_output=True,
+            text=True,
+            cwd=PROJECT_ROOT,
+            env=env,
+        )
+        report = json.loads(result.stdout)
+        # Script completes successfully with --tier2 flag
+        assert "issues" in report

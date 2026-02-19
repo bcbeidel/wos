@@ -6,16 +6,19 @@ Tests use tmp_path for filesystem operations and inline markdown strings.
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import patch
 
 from wos.cross_validators import (
     check_link_graph,
     check_manifest_sync,
     check_naming_conventions,
     check_overview_topic_sync,
+    check_source_url_reachability,
     run_cross_validators,
 )
 from wos.discovery import run_discovery
 from wos.document_types import parse_document
+from wos.source_verification import ReachabilityResult
 
 # ── Helpers ──────────────────────────────────────────────────────
 
@@ -254,3 +257,122 @@ class TestRunCrossValidators:
         issues = run_cross_validators(docs, str(tmp_path))
         # Should run without errors; specific issues depend on content
         assert isinstance(issues, list)
+
+
+# ── check_source_url_reachability ────────────────────────────────
+
+
+class TestCheckSourceUrlReachability:
+    def test_200_no_issues(self, tmp_path: Path) -> None:
+        """Reachable URLs produce no issues."""
+        docs = _setup_project(tmp_path)
+        ok_result = ReachabilityResult(
+            url="https://docs.python.org",
+            http_status=200,
+            reachable=True,
+            reason="OK",
+            final_url="https://docs.python.org",
+        )
+        with patch(
+            "wos.cross_validators.check_url_reachability",
+            return_value=ok_result,
+        ):
+            issues = check_source_url_reachability(docs, str(tmp_path))
+        assert len(issues) == 0
+
+    def test_404_produces_warn(self, tmp_path: Path) -> None:
+        """404 URL produces a warn-severity issue."""
+        docs = _setup_project(tmp_path)
+        not_found = ReachabilityResult(
+            url="https://docs.python.org",
+            http_status=404,
+            reachable=False,
+            reason="HTTP 404: page not found",
+            final_url="https://docs.python.org",
+        )
+        with patch(
+            "wos.cross_validators.check_url_reachability",
+            return_value=not_found,
+        ):
+            issues = check_source_url_reachability(docs, str(tmp_path))
+        assert len(issues) >= 1
+        assert issues[0]["severity"] == "warn"
+        assert issues[0]["validator"] == "check_source_url_reachability"
+        assert "404" in issues[0]["issue"]
+
+    def test_403_produces_info(self, tmp_path: Path) -> None:
+        """403 URL produces an info-severity issue."""
+        docs = _setup_project(tmp_path)
+        forbidden = ReachabilityResult(
+            url="https://docs.python.org",
+            http_status=403,
+            reachable=False,
+            reason="HTTP 403: possible paywall or access restriction",
+            final_url="https://docs.python.org",
+        )
+        with patch(
+            "wos.cross_validators.check_url_reachability",
+            return_value=forbidden,
+        ):
+            issues = check_source_url_reachability(docs, str(tmp_path))
+        assert len(issues) >= 1
+        assert issues[0]["severity"] == "info"
+
+    def test_deduplicates_urls(self, tmp_path: Path) -> None:
+        """Same URL in two files is checked once, issues emitted for both."""
+        area_dir = tmp_path / "context" / "python"
+        area_dir.mkdir(parents=True)
+        (area_dir / "_overview.md").write_text(
+            _overview_md("- Error Handling\n- Testing\n"), encoding="utf-8"
+        )
+        (area_dir / "error-handling.md").write_text(
+            _topic_md(title="Error Handling"), encoding="utf-8"
+        )
+        (area_dir / "testing.md").write_text(
+            _topic_md(title="Testing"), encoding="utf-8"
+        )
+        docs = []
+        for md_file in sorted(area_dir.rglob("*.md")):
+            rel = str(md_file.relative_to(tmp_path))
+            content = md_file.read_text(encoding="utf-8")
+            docs.append(parse_document(rel, content))
+
+        not_found = ReachabilityResult(
+            url="https://docs.python.org",
+            http_status=404,
+            reachable=False,
+            reason="HTTP 404: page not found",
+            final_url="https://docs.python.org",
+        )
+        with patch(
+            "wos.cross_validators.check_url_reachability",
+            return_value=not_found,
+        ) as mock_check:
+            issues = check_source_url_reachability(docs, str(tmp_path))
+
+        # URL checked only once despite appearing in two docs
+        mock_check.assert_called_once()
+        # But issues emitted for both files
+        issue_files = [i["file"] for i in issues]
+        assert "context/python/error-handling.md" in issue_files
+        assert "context/python/testing.md" in issue_files
+
+    def test_skips_overview_and_plan(self, tmp_path: Path) -> None:
+        """Overview and plan docs have no sources — should produce no checks."""
+        area_dir = tmp_path / "context" / "python"
+        area_dir.mkdir(parents=True)
+        (area_dir / "_overview.md").write_text(
+            _overview_md(), encoding="utf-8"
+        )
+        docs = []
+        for md_file in sorted(area_dir.rglob("*.md")):
+            rel = str(md_file.relative_to(tmp_path))
+            content = md_file.read_text(encoding="utf-8")
+            docs.append(parse_document(rel, content))
+
+        with patch(
+            "wos.cross_validators.check_url_reachability",
+        ) as mock_check:
+            issues = check_source_url_reachability(docs, str(tmp_path))
+        mock_check.assert_not_called()
+        assert len(issues) == 0

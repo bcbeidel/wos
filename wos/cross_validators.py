@@ -7,12 +7,14 @@ with external state (CLAUDE.md manifest, file system).
 from __future__ import annotations
 
 import re
+import time
 from pathlib import Path
 from typing import Dict, List, Optional
 from urllib.parse import urlparse
 
 from wos.discovery import MARKER_BEGIN, MARKER_END, render_manifest, scan_context
-from wos.document_types import Document, DocumentType
+from wos.document_types import SOURCE_GROUNDED_TYPES, Document, DocumentType
+from wos.source_verification import check_url_reachability
 
 Issue = Dict[str, Optional[str]]
 
@@ -217,6 +219,81 @@ def check_naming_conventions(
                         suggestion="Rename to lowercase-hyphenated format",
                     )
                 )
+
+    return issues
+
+
+def check_source_url_reachability(
+    docs: List[Document], root: str
+) -> List[Issue]:
+    """Check that source URLs in frontmatter are reachable.
+
+    Collects unique URLs from SOURCE_GROUNDED_TYPES documents, checks each
+    once via HTTP HEAD, and maps results back to issue dicts per file.
+    Rate-limited to 100ms between requests to the same domain.
+    """
+    issues: List[Issue] = []
+
+    # Collect unique URLs and map back to files
+    url_to_files: Dict[str, List[str]] = {}
+    for doc in docs:
+        if doc.document_type not in SOURCE_GROUNDED_TYPES:
+            continue
+        sources = getattr(doc.frontmatter, "sources", None)
+        if not sources:
+            continue
+        for source in sources:
+            url_to_files.setdefault(source.url, []).append(doc.path)
+
+    # Check each unique URL once, with per-domain rate limiting
+    last_request_by_domain: Dict[str, float] = {}
+
+    for url, files in url_to_files.items():
+        domain = urlparse(url).netloc
+
+        # Rate limit: 100ms between requests to same domain
+        last = last_request_by_domain.get(domain, 0.0)
+        elapsed = time.monotonic() - last
+        if elapsed < 0.1:
+            time.sleep(0.1 - elapsed)
+
+        result = check_url_reachability(url)
+        last_request_by_domain[domain] = time.monotonic()
+
+        if result.reachable:
+            continue
+
+        # Map severity based on HTTP status
+        if result.http_status == 403:
+            severity = "info"
+            suggestion = (
+                "Verify source is accessible. If paywalled,"
+                " consider linking to an open-access mirror."
+            )
+        elif result.http_status == 404:
+            severity = "warn"
+            suggestion = (
+                "Verify source still exists. If removed,"
+                " find replacement or remove citation."
+            )
+        else:
+            severity = "warn"
+            suggestion = (
+                "Check if source is temporarily down"
+                " or permanently unavailable."
+            )
+
+        # Emit one issue per file that cites this URL
+        for file_path in files:
+            issues.append(
+                _issue(
+                    file_path,
+                    f"Source URL unreachable: {url} — {result.reason}",
+                    severity,
+                    "check_source_url_reachability",
+                    suggestion=suggestion,
+                )
+            )
 
     return issues
 
