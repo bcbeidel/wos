@@ -12,7 +12,9 @@ from unittest.mock import MagicMock, patch
 import requests
 
 from wos.source_verification import (
+    ReachabilityResult,
     VerificationResult,
+    check_url_reachability,
     extract_page_title,
     format_summary,
     main,
@@ -406,3 +408,113 @@ def test_cli_exit_code_one_when_removed(mock_get: MagicMock) -> None:
             exit_code = e.code
 
     assert exit_code == 1
+
+
+# ── ReachabilityResult ───────────────────────────────────────────
+
+
+def test_reachability_result_fields():
+    r = ReachabilityResult(
+        url="https://example.com",
+        http_status=200,
+        reachable=True,
+        reason="OK",
+        final_url="https://example.com",
+    )
+    assert r.url == "https://example.com"
+    assert r.reachable is True
+    assert r.http_status == 200
+
+
+# ── check_url_reachability ───────────────────────────────────────
+
+
+@patch("wos.source_verification.requests.head")
+def test_reachability_200(mock_head: MagicMock) -> None:
+    mock_head.return_value = _mock_response(
+        status_code=200, url="https://example.com/page"
+    )
+    result = check_url_reachability("https://example.com/page")
+    assert result.reachable is True
+    assert result.http_status == 200
+    assert result.reason == "OK"
+    mock_head.assert_called_once()
+
+
+@patch("wos.source_verification.requests.head")
+def test_reachability_404(mock_head: MagicMock) -> None:
+    mock_head.return_value = _mock_response(
+        status_code=404, url="https://example.com/missing"
+    )
+    result = check_url_reachability("https://example.com/missing")
+    assert result.reachable is False
+    assert result.http_status == 404
+    assert "404" in result.reason
+
+
+@patch("wos.source_verification.requests.head")
+def test_reachability_403(mock_head: MagicMock) -> None:
+    mock_head.return_value = _mock_response(
+        status_code=403, url="https://example.com/paid"
+    )
+    result = check_url_reachability("https://example.com/paid")
+    assert result.reachable is False
+    assert result.http_status == 403
+    assert "403" in result.reason
+
+
+@patch("wos.source_verification.requests.head")
+def test_reachability_5xx(mock_head: MagicMock) -> None:
+    mock_head.return_value = _mock_response(
+        status_code=502, url="https://example.com/error"
+    )
+    result = check_url_reachability("https://example.com/error")
+    assert result.reachable is False
+    assert result.http_status == 502
+
+
+@patch("wos.source_verification.requests.head")
+def test_reachability_connection_error(mock_head: MagicMock) -> None:
+    mock_head.side_effect = requests.ConnectionError("DNS failed")
+    result = check_url_reachability("https://nonexistent.example.com")
+    assert result.reachable is False
+    assert result.http_status is None
+    assert "connection" in result.reason.lower()
+
+
+@patch("wos.source_verification.requests.head")
+def test_reachability_timeout(mock_head: MagicMock) -> None:
+    mock_head.side_effect = requests.Timeout("Timed out")
+    result = check_url_reachability("https://slow.example.com")
+    assert result.reachable is False
+    assert result.http_status is None
+    assert "timeout" in result.reason.lower()
+
+
+@patch("wos.source_verification.requests.head")
+def test_reachability_cross_domain_redirect(mock_head: MagicMock) -> None:
+    mock_head.return_value = _mock_response(
+        status_code=200, url="https://other-domain.com/page"
+    )
+    result = check_url_reachability("https://example.com/old")
+    assert result.reachable is False
+    assert "redirect" in result.reason.lower()
+    assert result.final_url == "https://other-domain.com/page"
+
+
+@patch("wos.source_verification.requests.get")
+@patch("wos.source_verification.requests.head")
+def test_reachability_head_405_falls_back_to_get(
+    mock_head: MagicMock, mock_get: MagicMock
+) -> None:
+    mock_head.return_value = _mock_response(
+        status_code=405, url="https://example.com/page"
+    )
+    mock_get.return_value = _mock_response(
+        status_code=200, url="https://example.com/page"
+    )
+    result = check_url_reachability("https://example.com/page")
+    assert result.reachable is True
+    assert result.http_status == 200
+    mock_head.assert_called_once()
+    mock_get.assert_called_once()
