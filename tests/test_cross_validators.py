@@ -376,3 +376,20 @@ class TestCheckSourceUrlReachability:
             issues = check_source_url_reachability(docs, str(tmp_path))
         mock_check.assert_not_called()
         assert len(issues) == 0
+
+
+class TestNotesCrossValidation:
+    def test_naming_conventions_skip_notes(self):
+        from wos.cross_validators import check_naming_conventions
+
+        md = (
+            "---\n"
+            "document_type: note\n"
+            'description: "Personal notes on meeting facilitation techniques"\n'
+            "---\n"
+            "\n"
+            "# My Note\n"
+        )
+        doc = parse_document("WEIRD_PATH/My File.md", md)
+        issues = check_naming_conventions([doc], "/tmp")
+        assert issues == []

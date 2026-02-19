@@ -64,6 +64,8 @@ class TestDispatchTable:
 
     def test_shared_trigger_in_all_types(self) -> None:
         for dt in DocumentType:
+            if dt == DocumentType.NOTE:
+                continue  # Notes have no triggers
             fns = TIER2_TRIGGERS_BY_TYPE[dt]
             names = [f.__name__ for f in fns]
             assert "trigger_description_quality" in names
@@ -119,3 +121,11 @@ class TestRunTriggers:
         )
         result = run_triggers(doc)
         assert isinstance(result, list)
+
+
+class TestNoteTriggers:
+    def test_note_has_triggers_entry(self):
+        assert DocumentType.NOTE in TIER2_TRIGGERS_BY_TYPE
+
+    def test_note_triggers_empty(self):
+        assert TIER2_TRIGGERS_BY_TYPE[DocumentType.NOTE] == []

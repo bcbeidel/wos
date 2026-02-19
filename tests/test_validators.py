@@ -610,3 +610,69 @@ class TestValidateDocument:
         issues = validate_document(doc)
         fails = [i for i in issues if i["severity"] == "fail"]
         assert len(fails) == 0
+
+
+# ── Note helpers ────────────────────────────────────────────────
+
+
+def _note_md(
+    *,
+    description="Personal notes on effective meeting facilitation techniques",
+) -> str:
+    return (
+        "---\n"
+        "document_type: note\n"
+        f'description: "{description}"\n'
+        "---\n"
+        "\n"
+        "# Meeting Facilitation\n"
+        "\n"
+        "Some content here.\n"
+    )
+
+
+class TestNoteValidation:
+    def test_clean_note_no_issues(self):
+        doc = parse_document("notes/test.md", _note_md())
+        issues = validate_document(doc)
+        assert issues == []
+
+    def test_note_missing_title_warns(self):
+        md = (
+            "---\n"
+            "document_type: note\n"
+            'description: "Personal notes on effective meeting facilitation"\n'
+            "---\n"
+            "\n"
+            "Some content without a title.\n"
+        )
+        doc = parse_document("notes/test.md", md)
+        issues = validate_document(doc)
+        assert len(issues) == 1
+        assert issues[0]["validator"] == "check_title_heading"
+
+    def test_note_no_section_checks(self):
+        md = (
+            "---\n"
+            "document_type: note\n"
+            'description: "Personal notes on effective meeting facilitation"\n'
+            "---\n"
+            "\n"
+            "# My Note\n"
+            "\n"
+            "## Random Section\n"
+            "\n"
+            "Content here.\n"
+            "\n"
+            "## Another Section\n"
+            "\n"
+            "More content.\n"
+        )
+        doc = parse_document("notes/test.md", md)
+        issues = validate_document(doc)
+        assert all(
+            i["validator"] != "check_section_presence" for i in issues
+        )
+        assert all(
+            i["validator"] != "check_section_ordering" for i in issues
+        )
