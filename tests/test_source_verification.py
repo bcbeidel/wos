@@ -518,3 +518,38 @@ def test_reachability_head_405_falls_back_to_get(
     assert result.http_status == 200
     mock_head.assert_called_once()
     mock_get.assert_called_once()
+
+
+@patch("wos.source_verification.requests.get")
+@patch("wos.source_verification.requests.head")
+def test_reachability_get_fallback_failure(
+    mock_head: MagicMock, mock_get: MagicMock
+) -> None:
+    mock_head.return_value = _mock_response(
+        status_code=405, url="https://example.com/page"
+    )
+    mock_get.side_effect = requests.ConnectionError("GET failed")
+    result = check_url_reachability("https://example.com/page")
+    assert result.reachable is False
+    assert "GET fallback failed" in result.reason
+
+
+@patch("wos.source_verification.requests.head")
+def test_reachability_204_treated_as_reachable(mock_head: MagicMock) -> None:
+    mock_head.return_value = _mock_response(
+        status_code=204, url="https://example.com/page"
+    )
+    result = check_url_reachability("https://example.com/page")
+    assert result.reachable is True
+    assert result.http_status == 204
+
+
+@patch("wos.source_verification.requests.head")
+def test_reachability_429_treated_as_unreachable(mock_head: MagicMock) -> None:
+    mock_head.return_value = _mock_response(
+        status_code=429, url="https://example.com/page"
+    )
+    result = check_url_reachability("https://example.com/page")
+    assert result.reachable is False
+    assert result.http_status == 429
+    assert "429" in result.reason
