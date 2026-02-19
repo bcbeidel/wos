@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.8] - 2026-02-19
+
+### Added
+
+- **Note document type** (`document_type: note`): A generic document type with
+  minimal frontmatter requirements (`document_type` + `description` only). Notes
+  can live anywhere in the repo without failing health checks, have no required
+  sections, no directory constraints, and are excluded from the CLAUDE.md
+  manifest. Useful for work products that don't fit the topic/overview/research/
+  plan schema — decision records, reading notes, templates, personal docs, etc.
+  ([#5](https://github.com/bcbeidel/wos/issues/5))
+
 ## [0.1.7] - 2026-02-18
 
 ### Improved
@@ -166,6 +178,7 @@ implemented with 229 tests passing.
 - Build roadmap with session protocol and dependency graph
 - 18 design principles across four layers
 
+[0.1.8]: https://github.com/bcbeidel/wos/releases/tag/v0.1.8
 [0.1.7]: https://github.com/bcbeidel/wos/releases/tag/v0.1.7
 [0.1.6]: https://github.com/bcbeidel/wos/releases/tag/v0.1.6
 [0.1.5]: https://github.com/bcbeidel/wos/releases/tag/v0.1.5

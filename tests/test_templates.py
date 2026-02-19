@@ -231,3 +231,30 @@ class TestEdgeCases:
         )
         doc = parse_document("context/test/test.md", md)
         assert len(doc.frontmatter.sources) == 1
+
+
+class TestRenderNote:
+    def test_round_trip(self):
+        from wos.templates import render_note
+
+        md = render_note("My Note", "Personal notes on a specific topic area")
+        doc = parse_document("notes/test.md", md)
+        assert doc.document_type == DocumentType.NOTE
+        assert doc.frontmatter.description == (
+            "Personal notes on a specific topic area"
+        )
+        assert doc.title == "My Note"
+
+    def test_no_sections(self):
+        from wos.templates import render_note
+
+        md = render_note("My Note", "Personal notes on a specific topic area")
+        doc = parse_document("notes/test.md", md)
+        # Note: the template has a placeholder comment, but no H2 sections
+        # So sections dict should be empty
+        assert doc.sections == {}
+
+    def test_dispatch_table_has_note(self):
+        from wos.templates import TEMPLATES
+
+        assert DocumentType.NOTE in TEMPLATES

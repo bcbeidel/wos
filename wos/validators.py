@@ -455,6 +455,9 @@ VALIDATORS_BY_TYPE: Dict[DocumentType, List[ValidatorFn]] = {
     DocumentType.PLAN: _SHARED_VALIDATORS + [
         check_date_prefix_matches,
     ],
+    DocumentType.NOTE: [
+        check_title_heading,
+    ],
 }
 
 
