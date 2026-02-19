@@ -23,6 +23,7 @@ class DocumentType(str, Enum):
     TOPIC = "topic"
     RESEARCH = "research"
     PLAN = "plan"
+    NOTE = "note"
 
 
 class PlanStatus(str, Enum):
@@ -120,6 +121,32 @@ class PlanFrontmatter(FrontmatterBase):
     status: PlanStatus
 
 
+class NoteFrontmatter(BaseModel):
+    """Minimal frontmatter for generic notes — no structural requirements."""
+
+    document_type: Literal["note"]
+    description: str = Field(min_length=10)
+
+    # Optional fields — same validation as other types
+    tags: Optional[List[str]] = None
+    related: Optional[List[str]] = None
+
+    @field_validator("tags")
+    @classmethod
+    def tags_lowercase_hyphenated(
+        cls, v: Optional[List[str]]
+    ) -> Optional[List[str]]:
+        if v is None:
+            return v
+        for tag in v:
+            if not re.match(r"^[a-z0-9]+(-[a-z0-9]+)*$", tag):
+                raise ValueError(
+                    f"tag '{tag}' must be lowercase hyphenated "
+                    f"(e.g., 'api-design', 'caching')"
+                )
+        return v
+
+
 # ── Discriminated union ──────────────────────────────────────────
 
 Frontmatter = Annotated[
@@ -128,6 +155,7 @@ Frontmatter = Annotated[
         OverviewFrontmatter,
         ResearchFrontmatter,
         PlanFrontmatter,
+        NoteFrontmatter,
     ],
     Field(discriminator="document_type"),
 ]
@@ -169,12 +197,14 @@ SECTIONS: Dict[DocumentType, List[SectionSpec]] = {
         SectionSpec(name="Steps", position=3),
         SectionSpec(name="Verification", position=4),
     ],
+    DocumentType.NOTE: [],
 }
 
 OPTIONAL_SECTIONS: Dict[DocumentType, Dict[str, Dict[str, str]]] = {
     DocumentType.TOPIC: {
         "Quick Reference": {"after": "Pitfalls", "before": "Go Deeper"},
     },
+    DocumentType.NOTE: {},
 }
 
 
@@ -190,6 +220,7 @@ SIZE_BOUNDS: Dict[DocumentType, SizeBounds] = {
     DocumentType.OVERVIEW: SizeBounds(min_lines=5, max_lines=150),
     DocumentType.RESEARCH: SizeBounds(min_lines=20),
     DocumentType.PLAN: SizeBounds(min_lines=10),
+    DocumentType.NOTE: SizeBounds(min_lines=1),
 }
 
 DIRECTORY_PATTERNS: Dict[DocumentType, str] = {

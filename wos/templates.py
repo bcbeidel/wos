@@ -152,11 +152,31 @@ def render_plan(
 
 TemplateFn = Callable[..., str]
 
+def render_note(
+    title: str,
+    description: str,
+    *,
+    body: str = "",
+) -> str:
+    """Render a note document — minimal frontmatter, free-form body."""
+    return (
+        "---\n"
+        "document_type: note\n"
+        f'description: "{_escape_yaml(description)}"\n'
+        "---\n"
+        "\n"
+        f"# {title}\n"
+        "\n"
+        f"{body or '<!-- Add content -->'}\n"
+    )
+
+
 TEMPLATES: Dict[DocumentType, TemplateFn] = {
     DocumentType.TOPIC: render_topic,
     DocumentType.OVERVIEW: render_overview,
     DocumentType.RESEARCH: render_research,
     DocumentType.PLAN: render_plan,
+    DocumentType.NOTE: render_note,
 }
 
 

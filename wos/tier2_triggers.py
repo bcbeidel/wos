@@ -251,6 +251,7 @@ TIER2_TRIGGERS_BY_TYPE: Dict[DocumentType, List[TriggerFn]] = {
         trigger_step_specificity,
         trigger_verification_completeness,
     ],
+    DocumentType.NOTE: list(_SHARED_TRIGGERS),
 }
 
 

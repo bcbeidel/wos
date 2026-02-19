@@ -22,6 +22,9 @@ from wos.document_types import (
     parse_document,
 )
 
+# Types that are deliberately excluded from DIRECTORY_PATTERNS
+_TYPES_WITHOUT_DIRECTORY_PATTERN = {DocumentType.NOTE}
+
 # ── Helpers ──────────────────────────────────────────────────────
 
 
@@ -185,6 +188,24 @@ def _plan_md(
         "\n"
         "- Tests pass\n"
         "- Import succeeds\n"
+    )
+
+
+def _note_md(
+    *,
+    description="Personal notes on effective meeting facilitation techniques",
+    extra_fm="",
+) -> str:
+    return (
+        "---\n"
+        "document_type: note\n"
+        f'description: "{description}"\n'
+        f"{extra_fm}"
+        "---\n"
+        "\n"
+        "# Meeting Facilitation\n"
+        "\n"
+        "Some content here.\n"
     )
 
 
@@ -530,6 +551,57 @@ class TestDocumentProperties:
         assert doc.size_bounds.max_lines is None
 
 
+# ── Note documents ───────────────────────────────────────────────
+
+
+class TestNoteDocument:
+    def test_note_parses(self):
+        doc = parse_document("notes/meeting-facilitation.md", _note_md())
+        assert doc.document_type == DocumentType.NOTE
+        assert doc.frontmatter.description == (
+            "Personal notes on effective meeting facilitation techniques"
+        )
+
+    def test_note_minimal_frontmatter(self):
+        doc = parse_document("notes/test.md", _note_md())
+        assert not hasattr(doc.frontmatter, "last_updated")
+        assert not hasattr(doc.frontmatter, "sources")
+
+    def test_note_with_tags(self):
+        md = _note_md(extra_fm='tags:\n  - meetings\n  - facilitation\n')
+        doc = parse_document("notes/test.md", md)
+        assert doc.frontmatter.tags == ["meetings", "facilitation"]
+
+    def test_note_with_related(self):
+        md = _note_md(extra_fm='related:\n  - context/area/topic.md\n')
+        doc = parse_document("notes/test.md", md)
+        assert doc.frontmatter.related == ["context/area/topic.md"]
+
+    def test_note_short_description_rejected(self):
+        with pytest.raises(ValidationError):
+            parse_document("notes/test.md", _note_md(description="Short"))
+
+    def test_note_any_directory_accepted(self):
+        for path in [
+            "notes/test.md",
+            "context/area/test.md",
+            "artifacts/test.md",
+            "reading/book.md",
+            "recipes/pasta.md",
+        ]:
+            doc = parse_document(path, _note_md())
+            assert doc.document_type == DocumentType.NOTE
+
+    def test_note_no_required_sections(self):
+        doc = parse_document("notes/test.md", _note_md())
+        assert doc.required_sections == []
+
+    def test_note_size_bounds_minimal(self):
+        doc = parse_document("notes/test.md", _note_md())
+        assert doc.size_bounds.min_lines == 1
+        assert doc.size_bounds.max_lines is None
+
+
 # ── Type groupings ───────────────────────────────────────────────
 
 
@@ -548,6 +620,13 @@ class TestTypeGroupings:
 
     def test_date_prefix_types(self):
         assert DATE_PREFIX_TYPES == {DocumentType.RESEARCH, DocumentType.PLAN}
+
+    def test_note_not_in_any_group(self):
+        assert DocumentType.NOTE not in CONTEXT_TYPES
+        assert DocumentType.NOTE not in ARTIFACT_TYPES
+        assert DocumentType.NOTE not in SOURCE_GROUNDED_TYPES
+        assert DocumentType.NOTE not in FRESHNESS_TRACKED_TYPES
+        assert DocumentType.NOTE not in DATE_PREFIX_TYPES
 
 
 # ── Directory patterns ───────────────────────────────────────────
@@ -590,6 +669,8 @@ class TestDirectoryPatterns:
 
     def test_all_types_have_patterns(self):
         for dt in DocumentType:
+            if dt in _TYPES_WITHOUT_DIRECTORY_PATTERN:
+                continue
             assert dt in DIRECTORY_PATTERNS, f"Missing pattern for {dt}"
 
 
@@ -616,3 +697,6 @@ class TestDispatchTables:
         overview_sections = SECTIONS[DocumentType.OVERVIEW]
         wtc = next(s for s in overview_sections if s.name == "What This Covers")
         assert wtc.min_words == 30
+
+    def test_note_not_in_directory_patterns(self):
+        assert DocumentType.NOTE not in DIRECTORY_PATTERNS
