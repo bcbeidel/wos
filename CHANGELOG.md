@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-02-19
+
+### Changed
+
+- **Human-readable health output** is now the default. `scripts/check_health.py`
+  outputs formatted text with issues sorted by severity, one line per issue in
+  summary mode, or grouped by severity with suggestions in `--detailed` mode.
+  JSON output preserved via `--json` flag. Basic ANSI color auto-detected on
+  TTY, disabled with `--no-color`.
+  ([#15](https://github.com/bcbeidel/wos/issues/15))
+- Health skill workflows simplified to show text output directly instead of
+  instructing the LLM to parse and format JSON.
+
 ## [0.1.8] - 2026-02-19
 
 ### Added
@@ -178,6 +191,7 @@ implemented with 229 tests passing.
 - Build roadmap with session protocol and dependency graph
 - 18 design principles across four layers
 
+[0.1.9]: https://github.com/bcbeidel/wos/releases/tag/v0.1.9
 [0.1.8]: https://github.com/bcbeidel/wos/releases/tag/v0.1.8
 [0.1.7]: https://github.com/bcbeidel/wos/releases/tag/v0.1.7
 [0.1.6]: https://github.com/bcbeidel/wos/releases/tag/v0.1.6
