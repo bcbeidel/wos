@@ -725,3 +725,108 @@ class TestCitedSource:
         tokens = s.get_estimated_tokens()
         assert isinstance(tokens, int)
         assert tokens > 0
+
+
+# ── Document representations ─────────────────────────────────────
+
+
+class TestDocumentRepresentations:
+    def _make_topic_doc(self):
+        md = (
+            "---\n"
+            "document_type: topic\n"
+            'description: "When and how to use exceptions in Python"\n'
+            "last_updated: 2026-02-17\n"
+            "last_validated: 2026-02-17\n"
+            "sources:\n"
+            '  - url: "https://docs.python.org"\n'
+            '    title: "Python Docs"\n'
+            "---\n"
+            "\n"
+            "# Error Handling\n"
+            "\n"
+            "## Guidance\n\nUse exceptions for exceptional cases.\n\n"
+            "## Context\n\nBackground info here.\n\n"
+            "## In Practice\n\nExample usage here.\n\n"
+            "## Pitfalls\n\nCommon mistakes to avoid here.\n\n"
+            "## Go Deeper\n\n- [Python Docs](https://docs.python.org)\n"
+        )
+        return parse_document("context/python/error-handling.md", md)
+
+    def test_to_index_record(self):
+        doc = self._make_topic_doc()
+        record = doc.to_index_record()
+        assert record["path"] == "context/python/error-handling.md"
+        assert record["document_type"] == "topic"
+        assert record["title"] == "Error Handling"
+        assert "exceptions" in record["description"]
+
+    def test_to_outline(self):
+        doc = self._make_topic_doc()
+        outline = doc.to_outline()
+        assert "# Error Handling (topic)" in outline
+        assert "## Guidance" in outline
+        assert "words)" in outline
+
+    def test_to_plain_text(self):
+        doc = self._make_topic_doc()
+        text = doc.to_plain_text()
+        assert text.startswith("# Error Handling")
+        assert "## Guidance" in text
+        assert "Use exceptions" in text
+        # No frontmatter in plain text
+        assert "document_type" not in text
+
+    def test_get_estimated_tokens(self):
+        doc = self._make_topic_doc()
+        tokens = doc.get_estimated_tokens()
+        assert isinstance(tokens, int)
+        assert tokens > 0
+
+
+# ── Document subclass dispatch ───────────────────────────────────
+
+
+class TestDocumentSubclasses:
+    def test_parse_returns_topic_document(self):
+        from wos.models.documents import TopicDocument
+
+        md = (
+            "---\n"
+            "document_type: topic\n"
+            'description: "When and how to use exceptions in Python"\n'
+            "last_updated: 2026-02-17\n"
+            "last_validated: 2026-02-17\n"
+            "sources:\n"
+            '  - url: "https://example.com"\n'
+            '    title: "Example"\n'
+            "---\n\n# Topic\n\n## Guidance\n\nContent.\n"
+        )
+        doc = parse_document("context/python/test.md", md)
+        assert isinstance(doc, TopicDocument)
+
+    def test_parse_returns_overview_document(self):
+        from wos.models.documents import OverviewDocument
+
+        md = (
+            "---\n"
+            "document_type: overview\n"
+            'description: "Core Python programming concepts"\n'
+            "last_updated: 2026-02-17\n"
+            "last_validated: 2026-02-17\n"
+            "---\n\n# Python\n\n## What This Covers\n\nContent.\n"
+        )
+        doc = parse_document("context/python/_overview.md", md)
+        assert isinstance(doc, OverviewDocument)
+
+    def test_parse_returns_note_document(self):
+        from wos.models.documents import NoteDocument
+
+        md = (
+            "---\n"
+            "document_type: note\n"
+            'description: "Personal notes on a specific topic area"\n'
+            "---\n\n# My Note\n\nContent.\n"
+        )
+        doc = parse_document("notes/test.md", md)
+        assert isinstance(doc, NoteDocument)

@@ -63,6 +63,45 @@ class BaseDocument(BaseModel):
         """Check if a section exists by name."""
         return any(s.name == name for s in self.sections)
 
+    # ── Representations ────────────────────────────────────────────
+
+    def to_index_record(self) -> dict:
+        """Compact record for scanning/indexing (path, type, title, description)."""
+        return {
+            "path": self.path,
+            "document_type": self.document_type.value,
+            "title": self.title,
+            "description": self.frontmatter.description,
+        }
+
+    def to_outline(self) -> str:
+        """Section headings with word counts — for quick orientation."""
+        lines = [f"# {self.title} ({self.document_type.value})"]
+        for s in self.sections:
+            lines.append(f"## {s.name} ({s.word_count} words)")
+        return "\n".join(lines)
+
+    def to_plain_text(self) -> str:
+        """Full plain-text rendering (title + sections, no frontmatter)."""
+        parts = [f"# {self.title}"]
+        for s in self.sections:
+            parts.append(f"## {s.name}\n\n{s.content}")
+        return "\n\n".join(parts)
+
+    def get_estimated_tokens(self) -> int:
+        """Estimate total token cost of this document."""
+        # Title
+        tokens = len(self.title) // 4 + 2
+        # Frontmatter (description + metadata)
+        tokens += len(self.frontmatter.description) // 4 + 10
+        # Sections
+        for s in self.sections:
+            tokens += len(s.name) // 4 + 2  # heading
+            tokens += len(s.content) // 4  # content
+        return tokens
+
+    # ── Validation ──────────────────────────────────────────────
+
     def validate_structure(self) -> list[ValidationIssue]:
         """Run structural validators for this document type.
 
@@ -92,7 +131,6 @@ class BaseDocument(BaseModel):
         ]:
             issues.extend(validator(self))
         return issues
-
 
     def validate_content(self) -> list:
         """Run Tier 2 content triggers for LLM-assisted quality assessment.
