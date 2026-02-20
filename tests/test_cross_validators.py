@@ -232,7 +232,7 @@ class TestCheckManifestSync:
         assert len(issues) == 1
         assert issues[0].severity == "warn"
 
-    def test_no_claude_md(self, tmp_path: Path) -> None:
+    def test_no_agents_md(self, tmp_path: Path) -> None:
         docs = _setup_project(tmp_path)
         issues = check_manifest_sync(docs, str(tmp_path))
         assert len(issues) == 0

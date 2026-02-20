@@ -89,17 +89,17 @@ def check_overview_topic_sync(
 def check_manifest_sync(
     docs: List[Document], root: str
 ) -> List[ValidationIssue]:
-    """Check that CLAUDE.md manifest matches disk state.
+    """Check that AGENTS.md manifest matches disk state.
 
     Drift between manifest and actual files -> severity: warn.
     """
     issues: List[ValidationIssue] = []
-    claude_md_path = Path(root) / "CLAUDE.md"
+    agents_md_path = Path(root) / "AGENTS.md"
 
-    if not claude_md_path.exists():
+    if not agents_md_path.exists():
         return issues
 
-    content = claude_md_path.read_text(encoding="utf-8")
+    content = agents_md_path.read_text(encoding="utf-8")
     begin_idx = content.find(MARKER_BEGIN)
     end_idx = content.find(MARKER_END)
 
@@ -115,7 +115,7 @@ def check_manifest_sync(
     if current_manifest != expected_manifest:
         issues.append(
             ValidationIssue(
-                file="CLAUDE.md",
+                file="AGENTS.md",
                 issue="Manifest is out of sync with context files on disk",
                 severity=IssueSeverity.WARN,
                 validator="check_manifest_sync",
