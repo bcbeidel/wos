@@ -12,24 +12,31 @@ from wos.document_types import (
     parse_document,
 )
 from wos.templates import (
-    TEMPLATES,
     render_overview,
     render_plan,
     render_research,
     render_topic,
 )
 
-# ── Dispatch table ───────────────────────────────────────────────
+# ── Polymorphic dispatch ─────────────────────────────────────────
 
 
-class TestDispatchTable:
-    def test_all_types_have_templates(self) -> None:
-        for dt in DocumentType:
-            assert dt in TEMPLATES, f"{dt} missing from TEMPLATES"
+class TestFromTemplate:
+    def test_all_subclasses_have_from_template(self) -> None:
+        from wos.models.documents import (
+            NoteDocument,
+            OverviewDocument,
+            PlanDocument,
+            ResearchDocument,
+            TopicDocument,
+        )
 
-    def test_templates_are_callable(self) -> None:
-        for dt, fn in TEMPLATES.items():
-            assert callable(fn), f"TEMPLATES[{dt}] is not callable"
+        for cls in [
+            TopicDocument, OverviewDocument, ResearchDocument,
+            PlanDocument, NoteDocument,
+        ]:
+            assert hasattr(cls, "from_template")
+            assert callable(cls.from_template)
 
 
 # ── render_topic ─────────────────────────────────────────────────
@@ -254,7 +261,8 @@ class TestRenderNote:
         # So sections dict should be empty
         assert doc.sections == []
 
-    def test_dispatch_table_has_note(self):
-        from wos.templates import TEMPLATES
+    def test_note_has_from_template(self):
+        from wos.models.documents import NoteDocument
 
-        assert DocumentType.NOTE in TEMPLATES
+        assert hasattr(NoteDocument, "from_template")
+        assert callable(NoteDocument.from_template)
