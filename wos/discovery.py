@@ -2,9 +2,9 @@
 
 Scans a project's /context/ directory, reads frontmatter from context
 documents (topics + overviews), and generates:
-  - CLAUDE.md manifest section (markdown between markers under ## Context)
+  - AGENTS.md with manifest section (markdown between markers under ## Context)
+  - CLAUDE.md with @AGENTS.md reference (thin pointer)
   - .claude/rules/wos-context.md (compact behavioral guide)
-  - AGENTS.md (mirrors the CLAUDE.md manifest)
 
 All outputs are deterministic — running twice produces identical results.
 """
@@ -200,7 +200,7 @@ Optional on all types: `tags` (lowercase-hyphenated), `related` (file paths or U
 
 ## Agent Guidelines
 
-- Context types (topic, overview) appear in the CLAUDE.md manifest
+- Context types (topic, overview) appear in the AGENTS.md manifest
 - Artifact types (research, plan) are internal — reachable via `related` links
 - Use `/wos:create-document` to create new documents
 - Use `/wos:update-document` to update existing documents

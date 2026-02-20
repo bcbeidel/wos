@@ -19,7 +19,7 @@ Use this workflow when `/context/` already exists in the project root.
    ```bash
    python3 scripts/run_discovery.py --root .
    ```
-   This updates the CLAUDE.md and AGENTS.md manifests with the new area.
+   This updates the AGENTS.md manifest with the new area.
 
 4. **Present summary**
    Show the user:

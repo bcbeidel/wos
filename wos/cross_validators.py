@@ -1,7 +1,7 @@
 """Cross-file validators that need the full document set.
 
 These validators check relationships between documents and consistency
-with external state (CLAUDE.md manifest, file system).
+with external state (AGENTS.md manifest, file system).
 """
 
 from __future__ import annotations
