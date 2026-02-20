@@ -217,21 +217,21 @@ class TestValidDocuments:
         doc = parse_document("context/chess/opening-principles.md", _topic_md())
         assert doc.document_type == DocumentType.TOPIC
         assert doc.title == "Opening Principles"
-        assert "Guidance" in doc.sections
+        assert doc.has_section("Guidance")
         assert doc.frontmatter.description.startswith("Core principles")
 
     def test_overview_parses(self):
         doc = parse_document("context/chess/_overview.md", _overview_md())
         assert doc.document_type == DocumentType.OVERVIEW
         assert doc.title == "Chess Strategy"
-        assert "What This Covers" in doc.sections
+        assert doc.has_section("What This Covers")
 
     def test_research_parses(self):
         doc = parse_document(
             "artifacts/research/2026-02-17-doc-types.md", _research_md()
         )
         assert doc.document_type == DocumentType.RESEARCH
-        assert "Question" in doc.sections
+        assert doc.has_section("Question")
 
     def test_plan_parses(self):
         doc = parse_document(
@@ -477,7 +477,7 @@ class TestSplitMarkdown:
 
     def test_extracts_sections(self):
         doc = parse_document("context/chess/opening.md", _topic_md())
-        assert set(doc.sections.keys()) == {
+        assert set(doc.section_names) == {
             "Guidance",
             "Context",
             "In Practice",
@@ -520,9 +520,9 @@ class TestSplitMarkdown:
             "- It works.\n"
         )
         doc = parse_document("artifacts/plans/2026-02-17-plan.md", md)
-        assert "Sub-heading within context" in doc.sections["Context"]
-        assert "Another sub-heading" in doc.sections["Context"]
-        assert "Sub-heading within context" not in doc.sections
+        assert "Sub-heading within context" in doc.get_section_content("Context")
+        assert "Another sub-heading" in doc.get_section_content("Context")
+        assert "Sub-heading within context" not in doc.section_names
 
     def test_preserves_raw_content(self):
         content = _topic_md()

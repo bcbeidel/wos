@@ -148,7 +148,7 @@ def fix_missing_sections(
         # Insert after the preceding canonical section (or at the end)
         preceding = None
         for i in range(target_idx - 1, -1, -1):
-            if canonical_order[i] in doc.sections:
+            if doc.has_section(canonical_order[i]):
                 preceding = canonical_order[i]
                 break
 

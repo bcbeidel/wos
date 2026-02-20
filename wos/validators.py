@@ -42,7 +42,7 @@ def check_section_presence(doc: Document) -> List[ValidationIssue]:
     required = doc.required_sections
     section_hint = _format_section_list(doc.document_type)
     for spec in required:
-        if spec.name not in doc.sections:
+        if not doc.has_section(spec.name):
             issues.append(
                 ValidationIssue(
                     file=doc.path,
@@ -60,7 +60,7 @@ def check_section_ordering(doc: Document) -> List[ValidationIssue]:
     """Check that sections appear in canonical order."""
     issues: List[ValidationIssue] = []
     required = doc.required_sections
-    section_names = list(doc.sections.keys())
+    section_names = doc.section_names
 
     # Build ordered list of required sections that are present
     present = [s for s in required if s.name in section_names]
@@ -310,7 +310,7 @@ def check_go_deeper_links(doc: Document) -> List[ValidationIssue]:
     if doc.document_type != DocumentType.TOPIC:
         return issues
 
-    go_deeper = doc.sections.get("Go Deeper", "")
+    go_deeper = doc.get_section_content("Go Deeper")
     if go_deeper and not re.search(r"\[.+\]\(.+\)", go_deeper):
         issues.append(
             ValidationIssue(
@@ -332,7 +332,7 @@ def check_what_this_covers_length(doc: Document) -> List[ValidationIssue]:
     if doc.document_type != DocumentType.OVERVIEW:
         return issues
 
-    section = doc.sections.get("What This Covers", "")
+    section = doc.get_section_content("What This Covers")
     word_count = len(section.split())
     min_words = 30  # From SectionSpec
 
@@ -358,7 +358,7 @@ def check_question_nonempty(doc: Document) -> List[ValidationIssue]:
     if doc.document_type != DocumentType.RESEARCH:
         return issues
 
-    question = doc.sections.get("Question", "")
+    question = doc.get_section_content("Question")
     if not question.strip():
         issues.append(
             ValidationIssue(

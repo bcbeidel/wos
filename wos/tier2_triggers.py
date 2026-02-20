@@ -61,7 +61,7 @@ def trigger_in_practice_concreteness(
     doc: Document,
 ) -> List[TriggerContext]:
     """Flag In Practice sections that may lack concrete examples."""
-    section = doc.sections.get("In Practice", "")
+    section = doc.get_section_content("In Practice", "")
     if not section:
         return []
 
@@ -86,7 +86,7 @@ def trigger_pitfalls_completeness(
     doc: Document,
 ) -> List[TriggerContext]:
     """Flag Pitfalls sections that may be incomplete."""
-    section = doc.sections.get("Pitfalls", "")
+    section = doc.get_section_content("Pitfalls", "")
     if not section:
         return []
 
@@ -112,7 +112,7 @@ def trigger_overview_coverage_quality(
     doc: Document,
 ) -> List[TriggerContext]:
     """Flag overviews where What This Covers may be vague."""
-    section = doc.sections.get("What This Covers", "")
+    section = doc.get_section_content("What This Covers", "")
     if not section:
         return []
 
@@ -135,7 +135,7 @@ def trigger_overview_coverage_quality(
 
 def trigger_question_clarity(doc: Document) -> List[TriggerContext]:
     """Flag research questions that may be unclear."""
-    section = doc.sections.get("Question", "")
+    section = doc.get_section_content("Question", "")
     if not section:
         return []
 
@@ -156,7 +156,7 @@ def trigger_question_clarity(doc: Document) -> List[TriggerContext]:
 
 def trigger_finding_groundedness(doc: Document) -> List[TriggerContext]:
     """Flag findings that may not be well-grounded in sources."""
-    section = doc.sections.get("Findings", "")
+    section = doc.get_section_content("Findings", "")
     if not section:
         return []
 
@@ -180,7 +180,7 @@ def trigger_finding_groundedness(doc: Document) -> List[TriggerContext]:
 
 def trigger_step_specificity(doc: Document) -> List[TriggerContext]:
     """Flag plan steps that may be too vague."""
-    section = doc.sections.get("Steps", "")
+    section = doc.get_section_content("Steps", "")
     if not section:
         return []
 
@@ -208,7 +208,7 @@ def trigger_verification_completeness(
     doc: Document,
 ) -> List[TriggerContext]:
     """Flag verification sections that may be incomplete."""
-    section = doc.sections.get("Verification", "")
+    section = doc.get_section_content("Verification", "")
     if not section:
         return []
 

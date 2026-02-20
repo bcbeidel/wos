@@ -134,7 +134,7 @@ class TestFixSectionOrdering:
         fixed, desc = result
         assert "Reordered" in desc
         doc = parse_document("context/test/test.md", fixed)
-        keys = list(doc.sections.keys())
+        keys = doc.section_names
         assert keys.index("Context") < keys.index("Pitfalls")
 
     def test_valid_order_returns_none(self) -> None:
@@ -187,7 +187,7 @@ class TestFixSectionOrdering:
         assert result is not None
         fixed, _ = result
         doc = parse_document("context/test/test.md", fixed)
-        assert "Quick Reference" in doc.sections
+        assert doc.has_section("Quick Reference")
 
 
 # ── fix_missing_sections ─────────────────────────────────────────
@@ -212,7 +212,7 @@ class TestFixMissingSections:
         fixed, desc = result
         assert "Pitfalls" in desc
         doc = parse_document("context/test/test.md", fixed)
-        assert "Pitfalls" in doc.sections
+        assert doc.has_section("Pitfalls")
 
     def test_adds_first_section(self) -> None:
         # Missing the very first canonical section
@@ -232,7 +232,7 @@ class TestFixMissingSections:
         assert result is not None
         fixed, _ = result
         doc = parse_document("context/test/test.md", fixed)
-        assert "Guidance" in doc.sections
+        assert doc.has_section("Guidance")
 
     def test_no_section_name_returns_none(self) -> None:
         md = _topic()
@@ -413,7 +413,7 @@ class TestGetFixedContent:
         result = get_fixed_content("context/test/test.md", md, issues)
         assert result is not None
         doc = parse_document("context/test/test.md", result)
-        keys = list(doc.sections.keys())
+        keys = doc.section_names
         assert keys.index("Guidance") < keys.index("Context")
 
 

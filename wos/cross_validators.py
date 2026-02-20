@@ -100,7 +100,7 @@ def check_overview_topic_sync(
         if not overview:
             continue
 
-        topics_section = overview.sections.get("Topics", "")
+        topics_section = overview.get_section_content("Topics")
 
         for topic in area_topics:
             # Check if topic filename or title appears in the Topics section

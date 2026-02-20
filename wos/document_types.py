@@ -253,6 +253,24 @@ DIRECTORY_PATTERNS: Dict[DocumentType, str] = {
 DATE_PREFIX_TYPES = {DocumentType.RESEARCH, DocumentType.PLAN}
 
 
+# ── Section model ────────────────────────────────────────────────
+
+
+class DocumentSection(BaseModel):
+    """A single H2 section within a document."""
+
+    name: str
+    content: str
+
+    @property
+    def word_count(self) -> int:
+        return len(self.content.split())
+
+    @property
+    def line_count(self) -> int:
+        return self.content.count("\n") + 1 if self.content else 0
+
+
 # ── Markdown splitting ───────────────────────────────────────────
 
 _FRONTMATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*\n", re.DOTALL)
@@ -262,7 +280,7 @@ _H2_RE = re.compile(r"^##\s+(.+)$", re.MULTILINE)
 
 def _split_markdown(
     content: str,
-) -> tuple[dict, str, dict[str, str], str]:
+) -> tuple[dict, str, list[DocumentSection], str]:
     """Parse YAML frontmatter, title, and sections from markdown.
 
     Returns (frontmatter_dict, title, sections, raw_content).
@@ -296,13 +314,15 @@ def _split_markdown(
     title = h1_match.group(1).strip() if h1_match else ""
 
     # Extract sections by H2 headings
-    sections: dict[str, str] = {}
+    sections: list[DocumentSection] = []
     h2_matches = list(_H2_RE.finditer(body))
     for i, m in enumerate(h2_matches):
         section_name = m.group(1).strip()
         start = m.end()
         end = h2_matches[i + 1].start() if i + 1 < len(h2_matches) else len(body)
-        sections[section_name] = body[start:end].strip()
+        sections.append(
+            DocumentSection(name=section_name, content=body[start:end].strip())
+        )
 
     return frontmatter_dict, title, sections, content
 
@@ -316,7 +336,7 @@ class Document(BaseModel):
     path: str
     frontmatter: Frontmatter  # discriminated union dispatches here
     title: str
-    sections: Dict[str, str]  # section_name -> section_content
+    sections: List[DocumentSection]
     raw_content: str
 
     @property
@@ -330,6 +350,27 @@ class Document(BaseModel):
     @property
     def size_bounds(self) -> SizeBounds:
         return SIZE_BOUNDS[self.document_type]
+
+    @property
+    def section_names(self) -> list[str]:
+        """Ordered list of section names."""
+        return [s.name for s in self.sections]
+
+    def get_section(self, name: str) -> Optional[DocumentSection]:
+        """Get a section by name, or None if not found."""
+        for s in self.sections:
+            if s.name == name:
+                return s
+        return None
+
+    def get_section_content(self, name: str, default: str = "") -> str:
+        """Get section content by name, or default if not found."""
+        s = self.get_section(name)
+        return s.content if s else default
+
+    def has_section(self, name: str) -> bool:
+        """Check if a section exists by name."""
+        return any(s.name == name for s in self.sections)
 
 
 # ── Public API ───────────────────────────────────────────────────
