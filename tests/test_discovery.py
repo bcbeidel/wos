@@ -10,8 +10,6 @@ from pathlib import Path
 from wos.discovery import (
     MARKER_BEGIN,
     MARKER_END,
-    AreaInfo,
-    TopicInfo,
     render_manifest,
     render_rules_file,
     run_discovery,
@@ -20,8 +18,49 @@ from wos.discovery import (
     update_claude_md,
     update_rules_file,
 )
+from wos.models.context_area import ContextArea
 
 # ── Helpers ──────────────────────────────────────────────────────
+
+
+def _make_area(
+    name: str,
+    *,
+    overview_desc: str | None = None,
+    topic_titles: list[str] | None = None,
+) -> ContextArea:
+    """Build a ContextArea from inline parsed documents (no filesystem)."""
+    from wos.document_types import parse_document
+
+    area = ContextArea(name=name)
+
+    if overview_desc is not None:
+        md = (
+            "---\n"
+            "document_type: overview\n"
+            f'description: "{overview_desc}"\n'
+            "last_updated: 2026-02-17\n"
+            "last_validated: 2026-02-17\n"
+            "---\n\n"
+            "# Title\n\n"
+            "## What This Covers\n\n"
+            "Coverage content for this area.\n\n"
+            "## Topics\n\n- topic\n\n"
+            "## Key Sources\n\n- source\n"
+        )
+        area.overview = parse_document(f"context/{name}/_overview.md", md)
+
+    if topic_titles:
+        for title in topic_titles:
+            slug = title.lower().replace(" ", "-")
+            area.topics.append(
+                parse_document(
+                    f"context/{name}/{slug}.md",
+                    _topic_md(title=title),
+                )
+            )
+
+    return area
 
 
 def _topic_md(
@@ -220,18 +259,10 @@ class TestRenderManifest:
 
     def test_single_area_with_overview(self) -> None:
         areas = [
-            AreaInfo(
-                name="python",
-                display_name="Python",
-                overview_path="context/python/_overview.md",
-                overview_description="Python concepts",
-                topics=[
-                    TopicInfo(
-                        path="context/python/error-handling.md",
-                        title="Error Handling",
-                        description="When and how to use exceptions",
-                    ),
-                ],
+            _make_area(
+                "python",
+                overview_desc="Python concepts",
+                topic_titles=["Error Handling"],
             ),
         ]
         manifest = render_manifest(areas)
@@ -244,52 +275,22 @@ class TestRenderManifest:
 
     def test_area_without_overview_links_to_directory(self) -> None:
         areas = [
-            AreaInfo(
-                name="python",
-                display_name="Python",
-                overview_path=None,
-                overview_description=None,
-                topics=[
-                    TopicInfo(
-                        path="context/python/error-handling.md",
-                        title="Error Handling",
-                        description="Exceptions guide",
-                    ),
-                ],
-            ),
+            _make_area("python", topic_titles=["Error Handling"]),
         ]
         manifest = render_manifest(areas)
         assert "[Python](context/python/)" in manifest
 
     def test_area_without_topics(self) -> None:
         areas = [
-            AreaInfo(
-                name="python",
-                display_name="Python",
-                overview_path="context/python/_overview.md",
-                overview_description="Python concepts",
-                topics=[],
-            ),
+            _make_area("python", overview_desc="Python concepts"),
         ]
         manifest = render_manifest(areas)
         assert "[Python](context/python/_overview.md)" in manifest
 
     def test_multiple_areas_in_order(self) -> None:
         areas = [
-            AreaInfo(
-                name="python",
-                display_name="Python",
-                overview_path="context/python/_overview.md",
-                overview_description="Python stuff",
-                topics=[],
-            ),
-            AreaInfo(
-                name="typescript",
-                display_name="Typescript",
-                overview_path="context/typescript/_overview.md",
-                overview_description="TS stuff",
-                topics=[],
-            ),
+            _make_area("python", overview_desc="Python programming concepts"),
+            _make_area("typescript", overview_desc="TypeScript development patterns"),
         ]
         manifest = render_manifest(areas)
         assert "| Area | Description |" in manifest
@@ -299,26 +300,12 @@ class TestRenderManifest:
 
     def test_compact_format_is_single_table(self) -> None:
         areas = [
-            AreaInfo(
-                name="python",
-                display_name="Python",
-                overview_path="context/python/_overview.md",
-                overview_description="Python concepts",
-                topics=[
-                    TopicInfo(
-                        path="context/python/error-handling.md",
-                        title="Error Handling",
-                        description="When and how to use exceptions",
-                    ),
-                ],
+            _make_area(
+                "python",
+                overview_desc="Python concepts",
+                topic_titles=["Error Handling"],
             ),
-            AreaInfo(
-                name="testing",
-                display_name="Testing",
-                overview_path="context/testing/_overview.md",
-                overview_description="Testing practices",
-                topics=[],
-            ),
+            _make_area("testing", overview_desc="Testing practices"),
         ]
         manifest = render_manifest(areas)
         lines = manifest.strip().split("\n")

@@ -13,11 +13,10 @@ from __future__ import annotations
 
 import os
 import sys
-from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
-from wos.document_types import DocumentType, parse_document
+from wos.models.context_area import ContextArea
 
 # ── Markers ──────────────────────────────────────────────────────
 
@@ -25,95 +24,22 @@ MARKER_BEGIN = "<!-- wos:context:begin -->"
 MARKER_END = "<!-- wos:context:end -->"
 
 
-# ── Data structures ──────────────────────────────────────────────
-
-
-@dataclass
-class TopicInfo:
-    """Metadata for a single topic document."""
-
-    path: str  # root-relative, e.g. "context/python/error-handling.md"
-    title: str
-    description: str
-
-
-@dataclass
-class AreaInfo:
-    """Metadata for a context area (directory under /context/)."""
-
-    name: str  # directory name, e.g. "python"
-    display_name: str  # title-cased for headings, e.g. "Python"
-    overview_path: Optional[str]  # root-relative path to _overview.md
-    overview_description: Optional[str]
-    topics: List[TopicInfo] = field(default_factory=list)
-
-
 # ── Step 1: Scan ─────────────────────────────────────────────────
 
 
-def scan_context(root: str) -> List[AreaInfo]:
-    """Walk /context/ and return structured metadata for each area.
+def scan_context(root: str) -> List[ContextArea]:
+    """Walk /context/ and return ContextArea for each area directory.
 
-    Skips files that fail to parse. Areas are sorted alphabetically.
-    Topics within each area are sorted alphabetically by filename.
+    Delegates to ContextArea.scan_all(). Skips files that fail to parse.
+    Areas are sorted alphabetically.
     """
-    context_dir = Path(root) / "context"
-    if not context_dir.is_dir():
-        return []
-
-    areas: List[AreaInfo] = []
-
-    for entry in sorted(context_dir.iterdir()):
-        if not entry.is_dir() or entry.name.startswith("."):
-            continue
-
-        area = AreaInfo(
-            name=entry.name,
-            display_name=_display_name(entry.name),
-            overview_path=None,
-            overview_description=None,
-        )
-
-        for md_file in sorted(entry.iterdir()):
-            if not md_file.is_file() or md_file.suffix != ".md":
-                continue
-
-            rel_path = str(md_file.relative_to(root))
-            try:
-                content = md_file.read_text(encoding="utf-8")
-                doc = parse_document(rel_path, content)
-            except Exception:
-                continue
-
-            if doc.document_type == DocumentType.OVERVIEW:
-                area.overview_path = rel_path
-                area.overview_description = doc.frontmatter.description
-            elif doc.document_type == DocumentType.TOPIC:
-                area.topics.append(
-                    TopicInfo(
-                        path=rel_path,
-                        title=doc.title or _display_name(md_file.stem),
-                        description=doc.frontmatter.description,
-                    )
-                )
-
-        areas.append(area)
-
-    return areas
-
-
-def _display_name(slug: str) -> str:
-    """Convert a hyphenated slug to a display name.
-
-    'python-basics' -> 'Python Basics'
-    """
-    return slug.replace("-", " ").title()
+    return ContextArea.scan_all(root)
 
 
 # ── Step 2: Render manifest ─────────────────────────────────────
 
 
-def render_manifest(areas: List[AreaInfo]) -> str:
+def render_manifest(areas: List[ContextArea]) -> str:
     """Generate a compact markdown manifest from scanned areas.
 
     Produces a single area-level table. Each area links to its _overview.md
@@ -131,12 +57,7 @@ def render_manifest(areas: List[AreaInfo]) -> str:
     ]
 
     for area in areas:
-        description = area.overview_description or ""
-        if area.overview_path:
-            link = f"[{area.display_name}]({area.overview_path})"
-        else:
-            link = f"[{area.display_name}](context/{area.name}/)"
-        parts.append(f"| {link} | {description} |")
+        parts.append(area.to_manifest_entry())
 
     return "\n".join(parts)
 

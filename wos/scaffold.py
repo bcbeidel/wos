@@ -113,7 +113,10 @@ def _create_area(
 
 
 def _display_name(slug: str) -> str:
-    """Convert a hyphenated slug to a display name."""
+    """Convert a hyphenated slug to a display name.
+
+    Shared logic also in ContextArea.display_name property.
+    """
     return slug.replace("-", " ").title()
 
 
