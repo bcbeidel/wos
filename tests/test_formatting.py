@@ -55,3 +55,57 @@ class TestStatusLine:
         line = _status_line("fail", 1, 5, color=True)
         assert "\033[" in line
         assert "FAIL" in line
+
+
+from wos.formatting import _format_token_budget
+
+
+class TestFormatTokenBudget:
+    def test_summary_one_liner(self) -> None:
+        budget = {
+            "total_estimated_tokens": 28500,
+            "warning_threshold": 40000,
+            "over_budget": False,
+            "areas": [
+                {"area": "python", "files": 5, "estimated_tokens": 18200},
+                {"area": "testing", "files": 1, "estimated_tokens": 2000},
+            ],
+        }
+        result = _format_token_budget(budget, detailed=False, color=False)
+        assert result == "Token budget: 28,500 / 40,000"
+
+    def test_detailed_with_areas(self) -> None:
+        budget = {
+            "total_estimated_tokens": 28500,
+            "warning_threshold": 40000,
+            "over_budget": False,
+            "areas": [
+                {"area": "python", "files": 5, "estimated_tokens": 18200},
+                {"area": "testing", "files": 1, "estimated_tokens": 2000},
+            ],
+        }
+        result = _format_token_budget(budget, detailed=True, color=False)
+        assert "Token budget: 28,500 / 40,000 (2 areas)" in result
+        assert "python" in result
+        assert "18,200" in result
+        assert "testing" in result
+
+    def test_empty_budget(self) -> None:
+        budget = {
+            "total_estimated_tokens": 0,
+            "warning_threshold": 40000,
+            "over_budget": False,
+            "areas": [],
+        }
+        result = _format_token_budget(budget, detailed=False, color=False)
+        assert result == "Token budget: 0 / 40,000"
+
+    def test_over_budget_colored(self) -> None:
+        budget = {
+            "total_estimated_tokens": 50000,
+            "warning_threshold": 40000,
+            "over_budget": True,
+            "areas": [],
+        }
+        result = _format_token_budget(budget, detailed=False, color=True)
+        assert "\033[33m" in result  # yellow for warn

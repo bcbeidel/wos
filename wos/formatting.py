@@ -43,3 +43,35 @@ def _status_line(
         f"Health: {status_colored} "
         f"({issue_count} {issues_word} in {file_count} {files_word})"
     )
+
+
+def _format_token_budget(
+    budget: dict, *, detailed: bool, color: bool
+) -> str:
+    """Render token budget as a summary line or detailed breakdown."""
+    total = budget["total_estimated_tokens"]
+    threshold = budget["warning_threshold"]
+    over = budget.get("over_budget", False)
+    areas = budget.get("areas", [])
+
+    headline = f"Token budget: {total:,} / {threshold:,}"
+    if over and color:
+        headline = _colorize(headline, "warn", color=True)
+
+    if not detailed or not areas:
+        return headline
+
+    # Detailed: add area count and per-area lines
+    headline += f" ({len(areas)} {'area' if len(areas) == 1 else 'areas'})"
+    lines = [headline]
+
+    # Find max area name length for alignment
+    max_name = max(len(a["area"]) for a in areas) if areas else 0
+    for area in areas:
+        name = area["area"].ljust(max_name)
+        tokens = f"{area['estimated_tokens']:,}"
+        files = area["files"]
+        files_word = "file" if files == 1 else "files"
+        lines.append(f"  {name}  {tokens:>8} ({files} {files_word})")
+
+    return "\n".join(lines)
