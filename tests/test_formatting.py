@@ -181,3 +181,73 @@ class TestFormatSummary:
         report = _make_report()
         result = format_summary(report, color=False)
         assert "\n\n\n" not in result
+
+
+from wos.formatting import format_detailed
+
+
+class TestFormatDetailed:
+    def test_groups_by_severity(self) -> None:
+        issues = [
+            {"file": "a.md", "issue": "broken", "severity": "fail",
+             "validator": "v", "section": None, "suggestion": "Fix it"},
+            {"file": "b.md", "issue": "stale", "severity": "info",
+             "validator": "v", "section": None, "suggestion": "Review"},
+        ]
+        report = _make_report(issues=issues, status="fail", files_checked=2)
+        result = format_detailed(report, color=False)
+        assert "Failures (1)" in result
+        assert "Info (1)" in result
+        assert "Warnings" not in result
+
+    def test_suggestion_arrow(self) -> None:
+        issues = [
+            {"file": "a.md", "issue": "bad", "severity": "warn",
+             "validator": "v", "section": None, "suggestion": "Fix this"},
+        ]
+        report = _make_report(issues=issues, status="warn", files_checked=1)
+        result = format_detailed(report, color=False)
+        assert "\u2192 Fix this" in result
+
+    def test_no_suggestion_no_arrow(self) -> None:
+        issues = [
+            {"file": "a.md", "issue": "bad", "severity": "warn",
+             "validator": "v", "section": None, "suggestion": None},
+        ]
+        report = _make_report(issues=issues, status="warn", files_checked=1)
+        result = format_detailed(report, color=False)
+        assert "\u2192" not in result
+
+    def test_multiple_issues_same_file_grouped(self) -> None:
+        issues = [
+            {"file": "a.md", "issue": "issue 1", "severity": "warn",
+             "validator": "v", "section": None, "suggestion": None},
+            {"file": "a.md", "issue": "issue 2", "severity": "warn",
+             "validator": "v", "section": None, "suggestion": None},
+        ]
+        report = _make_report(issues=issues, status="warn", files_checked=1)
+        result = format_detailed(report, color=False)
+        # File path appears once as a header, both issues underneath
+        lines = result.split("\n")
+        file_lines = [l for l in lines if "a.md" in l and not l.startswith("    ")]
+        assert len(file_lines) == 1
+
+    def test_detailed_token_budget_shows_areas(self) -> None:
+        report = _make_report()
+        report["token_budget"] = {
+            "total_estimated_tokens": 5000,
+            "warning_threshold": 40000,
+            "over_budget": False,
+            "areas": [
+                {"area": "python", "files": 3, "estimated_tokens": 5000},
+            ],
+        }
+        result = format_detailed(report, color=False)
+        assert "python" in result
+        assert "5,000" in result
+
+    def test_clean_report(self) -> None:
+        report = _make_report()
+        result = format_detailed(report, color=False)
+        assert "Health: PASS" in result
+        assert "Failures" not in result

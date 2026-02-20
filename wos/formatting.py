@@ -20,6 +20,12 @@ _RESET = "\033[0m"
 
 _SEVERITY_ORDER: Dict[str, int] = {"fail": 0, "warn": 1, "info": 2}
 
+_SEVERITY_LABELS: Dict[str, str] = {
+    "fail": "Failures",
+    "warn": "Warnings",
+    "info": "Info",
+}
+
 
 def _colorize(text: str, severity: str, *, color: bool) -> str:
     """Wrap text in ANSI color codes for the given severity."""
@@ -110,5 +116,54 @@ def format_summary(report: dict, *, color: bool = False) -> str:
     if budget:
         parts.append("")
         parts.append(_format_token_budget(budget, detailed=False, color=color))
+
+    return "\n".join(parts) + "\n"
+
+
+def format_detailed(report: dict, *, color: bool = False) -> str:
+    """Render a severity-grouped health report with suggestions."""
+    status = report["status"]
+    files_checked = report["files_checked"]
+    issues = report.get("issues", [])
+    budget = report.get("token_budget", {})
+
+    parts: List[str] = []
+
+    # Status line
+    parts.append(
+        _status_line(status, len(issues), files_checked, color=color)
+    )
+
+    # Group issues by severity
+    for sev in ("fail", "warn", "info"):
+        sev_issues = sorted(
+            [i for i in issues if i["severity"] == sev],
+            key=lambda i: i["file"],
+        )
+        if not sev_issues:
+            continue
+
+        label = _SEVERITY_LABELS[sev]
+        count = len(sev_issues)
+        header = _colorize(f"{label} ({count})", sev, color=color)
+        parts.append("")
+        parts.append(header)
+
+        # Group by file within severity
+        current_file: Optional[str] = None
+        for issue in sev_issues:
+            if issue["file"] != current_file:
+                current_file = issue["file"]
+                parts.append(f"  {current_file}")
+            parts.append(f"    {issue['issue']}")
+            if issue.get("suggestion"):
+                parts.append(f"    → {issue['suggestion']}")
+
+    # Token budget (detailed with areas)
+    if budget:
+        parts.append("")
+        parts.append(
+            _format_token_budget(budget, detailed=True, color=color)
+        )
 
     return "\n".join(parts) + "\n"
