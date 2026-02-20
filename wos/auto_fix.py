@@ -19,13 +19,14 @@ from wos.document_types import (
     SECTIONS,
     DocumentType,
     PlanStatus,
+    ValidationIssue,
     parse_document,
 )
 
 # ── Types ────────────────────────────────────────────────────────
 
 FixResult = Tuple[str, str]  # (fixed_content, description)
-FixFn = Callable[[str, str, dict], Optional[FixResult]]
+FixFn = Callable[[str, str, ValidationIssue], Optional[FixResult]]
 
 # path, content, issue -> optional (new_content, description)
 
@@ -34,7 +35,7 @@ FixFn = Callable[[str, str, dict], Optional[FixResult]]
 
 
 def fix_section_ordering(
-    path: str, content: str, issue: dict
+    path: str, content: str, issue: ValidationIssue
 ) -> Optional[FixResult]:
     """Reorder H2 sections to match canonical order for the document type."""
     try:
@@ -109,10 +110,10 @@ def fix_section_ordering(
 
 
 def fix_missing_sections(
-    path: str, content: str, issue: dict
+    path: str, content: str, issue: ValidationIssue
 ) -> Optional[FixResult]:
     """Add missing required sections with TODO placeholders."""
-    section_name = issue.get("section")
+    section_name = issue.section
     if not section_name:
         return None
 
@@ -184,7 +185,7 @@ def fix_missing_sections(
 
 
 def fix_missing_last_updated(
-    path: str, content: str, issue: dict
+    path: str, content: str, issue: ValidationIssue
 ) -> Optional[FixResult]:
     """Set last_updated to today if missing or invalid."""
     today = date.today().isoformat()
@@ -329,7 +330,7 @@ AUTO_FIXES: Dict[str, FixFn] = {
 def apply_auto_fixes(
     path: str,
     content: str,
-    issues: List[dict],
+    issues: List[ValidationIssue],
     *,
     dry_run: bool = False,
 ) -> List[dict]:
@@ -342,8 +343,7 @@ def apply_auto_fixes(
     current = content
 
     for issue in issues:
-        validator = issue.get("validator", "")
-        fix_fn = AUTO_FIXES.get(validator)
+        fix_fn = AUTO_FIXES.get(issue.validator)
         if not fix_fn:
             continue
 
@@ -354,7 +354,7 @@ def apply_auto_fixes(
         fixed_content, description = result
         entry = {
             "file": path,
-            "fix": validator,
+            "fix": issue.validator,
             "description": description,
             "applied": not dry_run,
         }
@@ -369,15 +369,14 @@ def apply_auto_fixes(
 def get_fixed_content(
     path: str,
     content: str,
-    issues: List[dict],
+    issues: List[ValidationIssue],
 ) -> Optional[str]:
     """Apply all auto-fixes and return the final content, or None if no fixes."""
     current = content
     any_fixed = False
 
     for issue in issues:
-        validator = issue.get("validator", "")
-        fix_fn = AUTO_FIXES.get(validator)
+        fix_fn = AUTO_FIXES.get(issue.validator)
         if not fix_fn:
             continue
 

@@ -9,44 +9,29 @@ from __future__ import annotations
 import re
 import time
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List
 from urllib.parse import urlparse
 
 from wos.discovery import MARKER_BEGIN, MARKER_END, render_manifest, scan_context
-from wos.document_types import SOURCE_GROUNDED_TYPES, Document, DocumentType
+from wos.document_types import (
+    SOURCE_GROUNDED_TYPES,
+    Document,
+    DocumentType,
+    IssueSeverity,
+    ValidationIssue,
+)
 from wos.source_verification import check_url_reachability
-
-Issue = Dict[str, Optional[str]]
-
-
-def _issue(
-    file: str,
-    issue: str,
-    severity: str,
-    validator: str,
-    *,
-    section: Optional[str] = None,
-    suggestion: Optional[str] = None,
-) -> Issue:
-    return {
-        "file": file,
-        "issue": issue,
-        "severity": severity,
-        "validator": validator,
-        "section": section,
-        "suggestion": suggestion,
-    }
 
 
 def check_link_graph(
     docs: List[Document], root: str
-) -> List[Issue]:
+) -> List[ValidationIssue]:
     """Check that all related links resolve.
 
     File paths must exist on disk. URLs are format-checked only.
-    Broken file paths → severity: fail.
+    Broken file paths -> severity: fail.
     """
-    issues: List[Issue] = []
+    issues: List[ValidationIssue] = []
     root_path = Path(root)
 
     for doc in docs:
@@ -60,11 +45,11 @@ def check_link_graph(
                 parsed = urlparse(link)
                 if not parsed.scheme or not parsed.netloc:
                     issues.append(
-                        _issue(
-                            doc.path,
-                            f"Malformed URL in related: {link}",
-                            "fail",
-                            "check_link_graph",
+                        ValidationIssue(
+                            file=doc.path,
+                            issue=f"Malformed URL in related: {link}",
+                            severity=IssueSeverity.FAIL,
+                            validator="check_link_graph",
                             suggestion="Fix the URL format",
                         )
                     )
@@ -73,11 +58,11 @@ def check_link_graph(
                 target = root_path / link
                 if not target.exists():
                     issues.append(
-                        _issue(
-                            doc.path,
-                            f"Broken related link: {link}",
-                            "fail",
-                            "check_link_graph",
+                        ValidationIssue(
+                            file=doc.path,
+                            issue=f"Broken related link: {link}",
+                            severity=IssueSeverity.FAIL,
+                            validator="check_link_graph",
                             suggestion="Fix the path or remove the link",
                         )
                     )
@@ -87,12 +72,12 @@ def check_link_graph(
 
 def check_overview_topic_sync(
     docs: List[Document], root: str
-) -> List[Issue]:
+) -> List[ValidationIssue]:
     """Check that overview Topics sections match actual topic files.
 
-    A topic on disk that is not listed in its area's overview → fail.
+    A topic on disk that is not listed in its area's overview -> fail.
     """
-    issues: List[Issue] = []
+    issues: List[ValidationIssue] = []
 
     # Group by area
     overviews: Dict[str, Document] = {}
@@ -125,12 +110,12 @@ def check_overview_topic_sync(
                 and topic.title not in topics_section
             ):
                 issues.append(
-                    _issue(
-                        overview.path,
-                        f"Topic '{topic.title}' ({topic.path}) not listed "
+                    ValidationIssue(
+                        file=overview.path,
+                        issue=f"Topic '{topic.title}' ({topic.path}) not listed "
                         f"in overview Topics section",
-                        "fail",
-                        "check_overview_topic_sync",
+                        severity=IssueSeverity.FAIL,
+                        validator="check_overview_topic_sync",
                         section="Topics",
                         suggestion=f"Add {topic.title} to the Topics section",
                     )
@@ -141,12 +126,12 @@ def check_overview_topic_sync(
 
 def check_manifest_sync(
     docs: List[Document], root: str
-) -> List[Issue]:
+) -> List[ValidationIssue]:
     """Check that CLAUDE.md manifest matches disk state.
 
-    Drift between manifest and actual files → severity: warn.
+    Drift between manifest and actual files -> severity: warn.
     """
-    issues: List[Issue] = []
+    issues: List[ValidationIssue] = []
     claude_md_path = Path(root) / "CLAUDE.md"
 
     if not claude_md_path.exists():
@@ -167,11 +152,11 @@ def check_manifest_sync(
 
     if current_manifest != expected_manifest:
         issues.append(
-            _issue(
-                "CLAUDE.md",
-                "Manifest is out of sync with context files on disk",
-                "warn",
-                "check_manifest_sync",
+            ValidationIssue(
+                file="CLAUDE.md",
+                issue="Manifest is out of sync with context files on disk",
+                severity=IssueSeverity.WARN,
+                validator="check_manifest_sync",
                 suggestion="Run discovery to regenerate: "
                 "python3 scripts/run_discovery.py",
             )
@@ -182,9 +167,9 @@ def check_manifest_sync(
 
 def check_naming_conventions(
     docs: List[Document], root: str
-) -> List[Issue]:
+) -> List[ValidationIssue]:
     """Check that file and directory names follow conventions."""
-    issues: List[Issue] = []
+    issues: List[ValidationIssue] = []
     slug_re = re.compile(r"^[a-z0-9]([a-z0-9-]*[a-z0-9])?$")
 
     for doc in docs:
@@ -195,12 +180,12 @@ def check_naming_conventions(
                 area_name = match.group(1)
                 if not slug_re.match(area_name):
                     issues.append(
-                        _issue(
-                            doc.path,
-                            f"Area directory '{area_name}' is not "
+                        ValidationIssue(
+                            file=doc.path,
+                            issue=f"Area directory '{area_name}' is not "
                             f"lowercase-hyphenated",
-                            "warn",
-                            "check_naming_conventions",
+                            severity=IssueSeverity.WARN,
+                            validator="check_naming_conventions",
                             suggestion="Rename to lowercase-hyphenated format",
                         )
                     )
@@ -210,12 +195,12 @@ def check_naming_conventions(
             filename = Path(doc.path).stem
             if not slug_re.match(filename):
                 issues.append(
-                    _issue(
-                        doc.path,
-                        f"Topic filename '{filename}' is not "
+                    ValidationIssue(
+                        file=doc.path,
+                        issue=f"Topic filename '{filename}' is not "
                         f"lowercase-hyphenated",
-                        "warn",
-                        "check_naming_conventions",
+                        severity=IssueSeverity.WARN,
+                        validator="check_naming_conventions",
                         suggestion="Rename to lowercase-hyphenated format",
                     )
                 )
@@ -225,14 +210,14 @@ def check_naming_conventions(
 
 def check_source_url_reachability(
     docs: List[Document], root: str
-) -> List[Issue]:
+) -> List[ValidationIssue]:
     """Check that source URLs in frontmatter are reachable.
 
     Collects unique URLs from SOURCE_GROUNDED_TYPES documents, checks each
-    once via HTTP HEAD, and maps results back to issue dicts per file.
+    once via HTTP HEAD, and maps results back to issues per file.
     Rate-limited to 100ms between requests to the same domain.
     """
-    issues: List[Issue] = []
+    issues: List[ValidationIssue] = []
 
     # Collect unique URLs and map back to files
     url_to_files: Dict[str, List[str]] = {}
@@ -265,19 +250,19 @@ def check_source_url_reachability(
 
         # Map severity based on HTTP status
         if result.http_status == 403:
-            severity = "info"
+            severity = IssueSeverity.INFO
             suggestion = (
                 "Verify source is accessible. If paywalled,"
                 " consider linking to an open-access mirror."
             )
         elif result.http_status == 404:
-            severity = "warn"
+            severity = IssueSeverity.WARN
             suggestion = (
                 "Verify source still exists. If removed,"
                 " find replacement or remove citation."
             )
         else:
-            severity = "warn"
+            severity = IssueSeverity.WARN
             suggestion = (
                 "Check if source is temporarily down"
                 " or permanently unavailable."
@@ -286,11 +271,11 @@ def check_source_url_reachability(
         # Emit one issue per file that cites this URL
         for file_path in files:
             issues.append(
-                _issue(
-                    file_path,
-                    f"Source URL unreachable: {url} — {result.reason}",
-                    severity,
-                    "check_source_url_reachability",
+                ValidationIssue(
+                    file=file_path,
+                    issue=f"Source URL unreachable: {url} — {result.reason}",
+                    severity=severity,
+                    validator="check_source_url_reachability",
                     suggestion=suggestion,
                 )
             )
@@ -300,9 +285,9 @@ def check_source_url_reachability(
 
 def run_cross_validators(
     docs: List[Document], root: str
-) -> List[Issue]:
+) -> List[ValidationIssue]:
     """Run all cross-file validators."""
-    issues: List[Issue] = []
+    issues: List[ValidationIssue] = []
     issues.extend(check_link_graph(docs, root))
     issues.extend(check_overview_topic_sync(docs, root))
     issues.extend(check_manifest_sync(docs, root))

@@ -26,11 +26,31 @@ class DocumentType(str, Enum):
     NOTE = "note"
 
 
+class IssueSeverity(str, Enum):
+    FAIL = "fail"
+    WARN = "warn"
+    INFO = "info"
+
+
 class PlanStatus(str, Enum):
     DRAFT = "draft"
     ACTIVE = "active"
     COMPLETE = "complete"
     ABANDONED = "abandoned"
+
+
+# ── Validation issue model ────────────────────────────────────────
+
+
+class ValidationIssue(BaseModel):
+    """A single validation issue found during document health checks."""
+
+    file: str
+    issue: str
+    severity: IssueSeverity
+    validator: str
+    section: Optional[str] = None
+    suggestion: Optional[str] = None
 
 
 # ── Type groupings for validation dispatch ───────────────────────

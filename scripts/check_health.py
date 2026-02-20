@@ -32,14 +32,14 @@ def main() -> None:
     args = parser.parse_args()
 
     from wos.cross_validators import check_source_url_reachability, run_cross_validators
-    from wos.document_types import parse_document
+    from wos.document_types import IssueSeverity, ValidationIssue, parse_document
     from wos.tier2_triggers import run_triggers
     from wos.token_budget import estimate_token_budget
     from wos.validators import validate_document
 
     root = Path(args.root).resolve()
     docs = []
-    parse_issues = []
+    parse_issues: list[ValidationIssue] = []
 
     # Find and parse all markdown files in context/ and artifacts/
     search_dirs = [
@@ -72,17 +72,18 @@ def main() -> None:
             doc = parse_document(rel_path, content)
             docs.append(doc)
         except Exception as e:
-            parse_issues.append({
-                "file": rel_path,
-                "issue": f"Failed to parse: {e}",
-                "severity": "fail",
-                "validator": "parse_document",
-                "section": None,
-                "suggestion": "Fix frontmatter or document structure",
-            })
+            parse_issues.append(
+                ValidationIssue(
+                    file=rel_path,
+                    issue=f"Failed to parse: {e}",
+                    severity=IssueSeverity.FAIL,
+                    validator="parse_document",
+                    suggestion="Fix frontmatter or document structure",
+                )
+            )
 
     # Run per-file validators
-    all_issues = list(parse_issues)
+    all_issues: list[ValidationIssue] = list(parse_issues)
     for doc in docs:
         all_issues.extend(validate_document(doc))
 
@@ -108,16 +109,16 @@ def main() -> None:
             # Skip T2 for files with T1 failures
             doc_failures = [
                 i for i in all_issues
-                if i["file"] == doc.path and i["severity"] == "fail"
+                if i.file == doc.path and i.severity == IssueSeverity.FAIL
             ]
             if not doc_failures:
                 all_triggers.extend(run_triggers(doc))
 
     # Determine overall status
-    severities = [i["severity"] for i in all_issues]
-    if "fail" in severities:
+    severities = [i.severity for i in all_issues]
+    if IssueSeverity.FAIL in severities:
         status = "fail"
-    elif "warn" in severities:
+    elif IssueSeverity.WARN in severities:
         status = "warn"
     else:
         status = "pass"
@@ -129,7 +130,7 @@ def main() -> None:
         "status": status,
         "files_checked": len(docs) + len(parse_issues),
         "token_budget": budget_output,
-        "issues": all_issues,
+        "issues": [i.model_dump(mode="json") for i in all_issues],
         "triggers": all_triggers,
     }
 
