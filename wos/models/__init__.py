@@ -54,6 +54,9 @@ from wos.models.documents import (
 # ── Context area ───────────────────────────────────────────────
 from wos.models.context_area import ContextArea
 
+# ── Health report ──────────────────────────────────────────────
+from wos.models.health_report import HealthReport
+
 # ── Parsing ─────────────────────────────────────────────────────
 from wos.models.parsing import parse_document
 
@@ -100,6 +103,8 @@ __all__ = [
     "NoteDocument",
     # Context area
     "ContextArea",
+    # Health report
+    "HealthReport",
     # Parsing
     "parse_document",
 ]

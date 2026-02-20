@@ -27,6 +27,7 @@ class IssueSeverity(str, Enum):
     FAIL = "fail"
     WARN = "warn"
     INFO = "info"
+    PASS = "pass"
 
 
 class PlanStatus(str, Enum):

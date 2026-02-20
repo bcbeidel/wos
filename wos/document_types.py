@@ -26,6 +26,7 @@ from wos.models import (  # noqa: F401
     DocumentType,
     Frontmatter,
     FrontmatterBase,
+    HealthReport,
     IssueSeverity,
     NoteDocument,
     NoteFrontmatter,
