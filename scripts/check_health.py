@@ -33,6 +33,7 @@ def main() -> None:
 
     from wos.cross_validators import check_source_url_reachability, run_cross_validators
     from wos.document_types import IssueSeverity, ValidationIssue, parse_document
+    from wos.models.health_report import HealthReport
     from wos.tier2_triggers import run_triggers
     from wos.token_budget import estimate_token_budget
     from wos.validators import validate_document
@@ -53,16 +54,17 @@ def main() -> None:
             md_files.extend(search_dir.rglob("*.md"))
 
     if not md_files:
-        report = {
-            "status": "pass",
-            "files_checked": 0,
-            "token_budget": estimate_token_budget([]),
-            "issues": [],
-            "triggers": [],
-            "message": "No documents found. "
-            "Use /wos:setup to initialize your project.",
-        }
-        print(json.dumps(report, indent=2))
+        report = HealthReport(
+            files_checked=0,
+            issues=[],
+            triggers=[],
+            token_budget=estimate_token_budget([]),
+        )
+        output = report.to_json()
+        output["message"] = (
+            "No documents found. Use /wos:setup to initialize your project."
+        )
+        print(json.dumps(output, indent=2))
         sys.exit(0)
 
     for md_file in sorted(md_files):
@@ -114,28 +116,19 @@ def main() -> None:
             if not doc_failures:
                 all_triggers.extend(run_triggers(doc))
 
-    # Determine overall status
-    severities = [i.severity for i in all_issues]
-    if IssueSeverity.FAIL in severities:
-        status = "fail"
-    elif IssueSeverity.WARN in severities:
-        status = "warn"
-    else:
-        status = "pass"
-
     # Strip the issue from the budget dict (it's already in all_issues)
     budget_output = {k: v for k, v in token_budget.items() if k != "issue"}
 
-    report = {
-        "status": status,
-        "files_checked": len(docs) + len(parse_issues),
-        "token_budget": budget_output,
-        "issues": [i.model_dump(mode="json") for i in all_issues],
-        "triggers": all_triggers,
-    }
+    # Build and output report
+    report = HealthReport(
+        files_checked=len(docs) + len(parse_issues),
+        issues=all_issues,
+        triggers=all_triggers,
+        token_budget=budget_output,
+    )
 
-    print(json.dumps(report, indent=2))
-    sys.exit(1 if status == "fail" else 0)
+    print(json.dumps(report.to_json(), indent=2))
+    sys.exit(1 if report.status == IssueSeverity.FAIL else 0)
 
 
 if __name__ == "__main__":
