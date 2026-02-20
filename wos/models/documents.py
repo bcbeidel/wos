@@ -299,7 +299,6 @@ class PlanDocument(BaseDocument):
         title: str,
         description: str,
         *,
-        status: str = "draft",
         section_content: Optional[Dict[str, str]] = None,
     ) -> str:
         """Render a plan document with valid frontmatter and sections."""
@@ -307,7 +306,7 @@ class PlanDocument(BaseDocument):
 
         return render_plan(
             title, description,
-            status=status, section_content=section_content,
+            section_content=section_content,
         )
 
     def validate_structure(self) -> list[ValidationIssue]:

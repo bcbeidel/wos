@@ -125,7 +125,6 @@ def render_plan(
     title: str,
     description: str,
     *,
-    status: str = "draft",
     section_content: Optional[Dict[str, str]] = None,
 ) -> str:
     """Render a plan document with valid frontmatter and sections."""
@@ -139,7 +138,6 @@ def render_plan(
         "document_type: plan\n"
         f'description: "{_escape_yaml(description)}"\n'
         f"last_updated: {today}\n"
-        f"status: {status}\n"
         "---\n"
         "\n"
         f"# {title}\n"

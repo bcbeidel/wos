@@ -17,7 +17,6 @@ from wos.models.core import (
     DocumentSection,
     DocumentType,
     IssueSeverity,
-    PlanStatus,
     Source,
     ValidationIssue,
 )
@@ -64,7 +63,6 @@ __all__ = [
     # Enums
     "DocumentType",
     "IssueSeverity",
-    "PlanStatus",
     # Type groupings
     "ARTIFACT_TYPES",
     "CONTEXT_TYPES",

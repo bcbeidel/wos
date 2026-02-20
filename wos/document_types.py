@@ -34,7 +34,6 @@ from wos.models import (  # noqa: F401
     OverviewFrontmatter,
     PlanDocument,
     PlanFrontmatter,
-    PlanStatus,
     ResearchDocument,
     ResearchFrontmatter,
     SectionSpec,

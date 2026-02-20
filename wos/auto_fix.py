@@ -18,7 +18,6 @@ import yaml
 from wos.document_types import (
     SECTIONS,
     DocumentType,
-    PlanStatus,
     ValidationIssue,
     parse_document,
 )
@@ -216,76 +215,6 @@ def fix_missing_last_updated(
         return None
 
     return (fixed, f"Set last_updated to {today}")
-
-
-# ── Lifecycle transitions ────────────────────────────────────────
-
-# Valid transitions: from_status -> set of allowed to_statuses
-VALID_TRANSITIONS: Dict[PlanStatus, List[PlanStatus]] = {
-    PlanStatus.DRAFT: [PlanStatus.ACTIVE, PlanStatus.ABANDONED],
-    PlanStatus.ACTIVE: [PlanStatus.COMPLETE, PlanStatus.ABANDONED],
-    PlanStatus.COMPLETE: [PlanStatus.ACTIVE],  # reopen
-    PlanStatus.ABANDONED: [PlanStatus.DRAFT],  # resurrect
-}
-
-
-def transition_status(
-    path: str,
-    content: str,
-    new_status: PlanStatus,
-) -> Optional[FixResult]:
-    """Update a plan's status field and last_updated date.
-
-    Returns None if the transition is invalid.
-    """
-    try:
-        doc = parse_document(path, content)
-    except Exception:
-        return None
-
-    if doc.document_type != DocumentType.PLAN:
-        return None
-
-    current = doc.frontmatter.status
-    if isinstance(current, str):
-        current = PlanStatus(current)
-
-    allowed = VALID_TRANSITIONS.get(current, [])
-    if new_status not in allowed:
-        return None
-
-    today = date.today().isoformat()
-
-    # Update frontmatter via regex replacement
-    fixed = content
-
-    # Replace status
-    fixed = re.sub(
-        r"^status:\s*\S+",
-        f"status: {new_status.value}",
-        fixed,
-        count=1,
-        flags=re.MULTILINE,
-    )
-
-    # Replace last_updated
-    fixed = re.sub(
-        r"^last_updated:\s*\S+",
-        f"last_updated: {today}",
-        fixed,
-        count=1,
-        flags=re.MULTILINE,
-    )
-
-    try:
-        parse_document(path, fixed)
-    except Exception:
-        return None
-
-    return (
-        fixed,
-        f"Transitioned status: {current.value} -> {new_status.value}",
-    )
 
 
 # ── Cleanup ──────────────────────────────────────────────────────

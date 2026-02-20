@@ -19,7 +19,6 @@ from wos.document_types import (
     SIZE_BOUNDS,
     SOURCE_GROUNDED_TYPES,
     DocumentType,
-    PlanStatus,
     Source,
     parse_document,
 )
@@ -162,12 +161,13 @@ def _plan_md(
     status="draft",
     extra_fm="",
 ) -> str:
+    status_line = f"status: {status}\n" if status else ""
     return (
         "---\n"
         "document_type: plan\n"
         f'description: "{description}"\n'
         f"last_updated: {last_updated}\n"
-        f"status: {status}\n"
+        f"{status_line}"
         f"{extra_fm}"
         "---\n"
         "\n"
@@ -240,7 +240,22 @@ class TestValidDocuments:
             "artifacts/plans/2026-02-17-doc-types.md", _plan_md()
         )
         assert doc.document_type == DocumentType.PLAN
-        assert doc.frontmatter.status == PlanStatus.DRAFT
+
+    def test_plan_with_status_accepted(self):
+        """Plans with legacy status field still parse (backward compat)."""
+        doc = parse_document(
+            "artifacts/plans/2026-02-17-doc-types.md",
+            _plan_md(status="active"),
+        )
+        assert doc.frontmatter.status == "active"
+
+    def test_plan_without_status(self):
+        """Plans without status field parse correctly."""
+        doc = parse_document(
+            "artifacts/plans/2026-02-17-doc-types.md",
+            _plan_md(status=""),
+        )
+        assert doc.frontmatter.status is None
 
     def test_research_without_last_validated(self):
         """Research documents do not require last_validated."""
@@ -249,31 +264,6 @@ class TestValidDocuments:
         )
         assert doc.document_type == DocumentType.RESEARCH
         assert not hasattr(doc.frontmatter, "last_validated")
-
-    def test_research_with_optional_status(self):
-        """Research documents can have an optional status."""
-        doc = parse_document(
-            "artifacts/research/2026-02-17-doc-types.md",
-            _research_md(status="complete"),
-        )
-        assert doc.frontmatter.status == PlanStatus.COMPLETE
-
-    def test_research_without_status(self):
-        """Research documents work without status."""
-        doc = parse_document(
-            "artifacts/research/2026-02-17-doc-types.md",
-            _research_md(),
-        )
-        assert doc.frontmatter.status is None
-
-    def test_plan_all_statuses(self):
-        """All PlanStatus values are accepted."""
-        for status in PlanStatus:
-            doc = parse_document(
-                "artifacts/plans/2026-02-17-doc-types.md",
-                _plan_md(status=status.value),
-            )
-            assert doc.frontmatter.status == status
 
 
 # ── Discriminated union routes correctly ─────────────────────────
@@ -352,7 +342,8 @@ class TestMissingFields:
         with pytest.raises(ValidationError, match="last_validated"):
             parse_document("context/chess/opening.md", md)
 
-    def test_plan_missing_status(self):
+    def test_plan_without_status_ok(self):
+        """Plans no longer require a status field."""
         md = (
             "---\n"
             "document_type: plan\n"
@@ -362,8 +353,8 @@ class TestMissingFields:
             "\n"
             "# My Plan\n"
         )
-        with pytest.raises(ValidationError, match="status"):
-            parse_document("artifacts/plans/2026-02-17-plan.md", md)
+        doc = parse_document("artifacts/plans/2026-02-17-plan.md", md)
+        assert doc.frontmatter.status is None
 
     def test_missing_description(self):
         md = (
@@ -417,12 +408,13 @@ class TestFieldValidation:
                 _topic_md(last_validated="2099-01-01"),
             )
 
-    def test_invalid_plan_status(self):
-        with pytest.raises(ValidationError, match="status"):
-            parse_document(
-                "artifacts/plans/2026-02-17-plan.md",
-                _plan_md(status="invalid"),
-            )
+    def test_plan_any_status_string_accepted(self):
+        """Plan status is now a free-form optional string (no enum)."""
+        doc = parse_document(
+            "artifacts/plans/2026-02-17-plan.md",
+            _plan_md(status="any-value"),
+        )
+        assert doc.frontmatter.status == "any-value"
 
     def test_tags_must_be_lowercase_hyphenated(self):
         with pytest.raises(ValidationError, match="lowercase hyphenated"):

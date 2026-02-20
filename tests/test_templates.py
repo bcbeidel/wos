@@ -178,17 +178,6 @@ class TestRenderPlan:
         path = "artifacts/plans/2026-02-17-improve-errors.md"
         doc = parse_document(path, md)
         assert doc.frontmatter.document_type == "plan"
-        assert doc.frontmatter.status.value == "draft"
-
-    def test_custom_status(self) -> None:
-        md = render_plan(
-            "Active Plan",
-            "A plan that is already in progress",
-            status="active",
-        )
-        path = "artifacts/plans/2026-02-17-active.md"
-        doc = parse_document(path, md)
-        assert doc.frontmatter.status.value == "active"
 
     def test_has_all_required_sections(self) -> None:
         md = render_plan(

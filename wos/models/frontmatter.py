@@ -16,7 +16,6 @@ from pydantic import BaseModel, Field, field_validator
 from wos.models.core import (
     CitedSource,
     DocumentType,
-    PlanStatus,
     Source,
 )
 
@@ -86,12 +85,11 @@ class OverviewFrontmatter(FrontmatterBase):
 class ResearchFrontmatter(FrontmatterBase):
     document_type: Literal["research"]
     sources: List[Source] = Field(min_length=1)
-    status: Optional[PlanStatus] = None
 
 
 class PlanFrontmatter(FrontmatterBase):
     document_type: Literal["plan"]
-    status: PlanStatus
+    status: Optional[str] = None
 
 
 class NoteFrontmatter(BaseModel):

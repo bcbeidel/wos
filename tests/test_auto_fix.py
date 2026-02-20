@@ -10,15 +10,13 @@ from datetime import date
 
 from wos.auto_fix import (
     AUTO_FIXES,
-    VALID_TRANSITIONS,
     apply_auto_fixes,
     find_unparseable_files,
     fix_missing_sections,
     fix_section_ordering,
     get_fixed_content,
-    transition_status,
 )
-from wos.document_types import IssueSeverity, PlanStatus, ValidationIssue, parse_document
+from wos.document_types import IssueSeverity, ValidationIssue, parse_document
 
 # ── Helpers ──────────────────────────────────────────────────────
 
@@ -54,7 +52,6 @@ def _topic(
 
 def _plan(
     *,
-    status: str = "draft",
     title: str = "Test Plan",
     description: str = "A test plan for auto-fix validation",
 ) -> str:
@@ -63,7 +60,6 @@ def _plan(
         "document_type: plan\n"
         f'description: "{description}"\n'
         f"last_updated: {TODAY}\n"
-        f"status: {status}\n"
         "---\n\n"
         f"# {title}\n\n"
         "## Objective\n\nThe goal.\n\n"
@@ -242,96 +238,6 @@ class TestFixMissingSections:
         )
         result = fix_missing_sections("context/test/test.md", md, issue)
         assert result is None
-
-
-# ── transition_status ────────────────────────────────────────────
-
-
-class TestTransitionStatus:
-    def test_draft_to_active(self) -> None:
-        md = _plan(status="draft")
-        result = transition_status(
-            "artifacts/plans/2026-02-17-test.md",
-            md,
-            PlanStatus.ACTIVE,
-        )
-        assert result is not None
-        fixed, desc = result
-        assert "draft -> active" in desc
-        doc = parse_document("artifacts/plans/2026-02-17-test.md", fixed)
-        assert doc.frontmatter.status == PlanStatus.ACTIVE
-
-    def test_active_to_complete(self) -> None:
-        md = _plan(status="active")
-        result = transition_status(
-            "artifacts/plans/2026-02-17-test.md",
-            md,
-            PlanStatus.COMPLETE,
-        )
-        assert result is not None
-        fixed, _ = result
-        doc = parse_document("artifacts/plans/2026-02-17-test.md", fixed)
-        assert doc.frontmatter.status == PlanStatus.COMPLETE
-
-    def test_updates_last_updated(self) -> None:
-        md = _plan(status="draft")
-        result = transition_status(
-            "artifacts/plans/2026-02-17-test.md",
-            md,
-            PlanStatus.ACTIVE,
-        )
-        assert result is not None
-        fixed, _ = result
-        doc = parse_document("artifacts/plans/2026-02-17-test.md", fixed)
-        assert doc.frontmatter.last_updated == date.today()
-
-    def test_invalid_transition_returns_none(self) -> None:
-        md = _plan(status="draft")
-        result = transition_status(
-            "artifacts/plans/2026-02-17-test.md",
-            md,
-            PlanStatus.COMPLETE,  # Can't go draft -> complete
-        )
-        assert result is None
-
-    def test_non_plan_returns_none(self) -> None:
-        md = _topic()
-        result = transition_status(
-            "context/test/test.md",
-            md,
-            PlanStatus.ACTIVE,
-        )
-        assert result is None
-
-    def test_complete_to_active_reopen(self) -> None:
-        md = _plan(status="complete")
-        result = transition_status(
-            "artifacts/plans/2026-02-17-test.md",
-            md,
-            PlanStatus.ACTIVE,
-        )
-        assert result is not None
-        fixed, desc = result
-        assert "complete -> active" in desc
-
-
-# ── Valid transitions ────────────────────────────────────────────
-
-
-class TestValidTransitions:
-    def test_all_statuses_have_transitions(self) -> None:
-        for status in PlanStatus:
-            assert status in VALID_TRANSITIONS
-
-    def test_draft_can_become_active_or_abandoned(self) -> None:
-        allowed = VALID_TRANSITIONS[PlanStatus.DRAFT]
-        assert PlanStatus.ACTIVE in allowed
-        assert PlanStatus.ABANDONED in allowed
-
-    def test_active_can_become_complete_or_abandoned(self) -> None:
-        allowed = VALID_TRANSITIONS[PlanStatus.ACTIVE]
-        assert PlanStatus.COMPLETE in allowed
-        assert PlanStatus.ABANDONED in allowed
 
 
 # ── apply_auto_fixes ─────────────────────────────────────────────

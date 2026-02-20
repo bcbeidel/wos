@@ -30,13 +30,6 @@ class IssueSeverity(str, Enum):
     PASS = "pass"
 
 
-class PlanStatus(str, Enum):
-    DRAFT = "draft"
-    ACTIVE = "active"
-    COMPLETE = "complete"
-    ABANDONED = "abandoned"
-
-
 # ── Type groupings for validation dispatch ───────────────────────
 
 CONTEXT_TYPES = {DocumentType.OVERVIEW, DocumentType.TOPIC}
