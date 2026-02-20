@@ -75,3 +75,40 @@ def _format_token_budget(
         lines.append(f"  {name}  {tokens:>8} ({files} {files_word})")
 
     return "\n".join(lines)
+
+
+def format_summary(report: dict, *, color: bool = False) -> str:
+    """Render a compact one-line-per-issue health report."""
+    status = report["status"]
+    files_checked = report["files_checked"]
+    issues = report.get("issues", [])
+    budget = report.get("token_budget", {})
+
+    parts: List[str] = []
+
+    # Status line
+    parts.append(
+        _status_line(status, len(issues), files_checked, color=color)
+    )
+
+    # Issue lines
+    if issues:
+        parts.append("")  # blank line
+        sorted_issues = sorted(
+            issues,
+            key=lambda i: (
+                _SEVERITY_ORDER.get(i["severity"], 99),
+                i["file"],
+            ),
+        )
+        for issue in sorted_issues:
+            sev = issue["severity"]
+            label = _colorize(sev.upper().ljust(4), sev, color=color)
+            parts.append(f"  {label}  {issue['file']}  {issue['issue']}")
+
+    # Token budget
+    if budget:
+        parts.append("")
+        parts.append(_format_token_budget(budget, detailed=False, color=color))
+
+    return "\n".join(parts) + "\n"

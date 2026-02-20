@@ -109,3 +109,75 @@ class TestFormatTokenBudget:
         }
         result = _format_token_budget(budget, detailed=False, color=True)
         assert "\033[33m" in result  # yellow for warn
+
+
+from wos.formatting import format_summary
+
+
+def _make_report(
+    issues=None,
+    status="pass",
+    files_checked=5,
+):
+    """Build a minimal report dict for testing."""
+    return {
+        "status": status,
+        "files_checked": files_checked,
+        "issues": issues or [],
+        "triggers": [],
+        "token_budget": {
+            "total_estimated_tokens": 1200,
+            "warning_threshold": 40000,
+            "over_budget": False,
+            "areas": [],
+        },
+    }
+
+
+class TestFormatSummary:
+    def test_clean_report(self) -> None:
+        report = _make_report()
+        result = format_summary(report, color=False)
+        assert "Health: PASS (0 issues in 5 files)" in result
+        assert "Token budget:" in result
+
+    def test_issues_sorted_by_severity(self) -> None:
+        issues = [
+            {"file": "b.md", "issue": "info issue", "severity": "info",
+             "validator": "v", "section": None, "suggestion": None},
+            {"file": "a.md", "issue": "fail issue", "severity": "fail",
+             "validator": "v", "section": None, "suggestion": None},
+            {"file": "c.md", "issue": "warn issue", "severity": "warn",
+             "validator": "v", "section": None, "suggestion": None},
+        ]
+        report = _make_report(issues=issues, status="fail", files_checked=3)
+        result = format_summary(report, color=False)
+        lines = result.strip().split("\n")
+        issue_lines = [
+            l for l in lines
+            if l.strip().startswith(("FAIL", "WARN", "INFO"))
+        ]
+        assert len(issue_lines) == 3
+        assert "FAIL" in issue_lines[0]
+        assert "WARN" in issue_lines[1]
+        assert "INFO" in issue_lines[2]
+
+    def test_issues_sorted_by_path_within_severity(self) -> None:
+        issues = [
+            {"file": "z.md", "issue": "issue z", "severity": "warn",
+             "validator": "v", "section": None, "suggestion": None},
+            {"file": "a.md", "issue": "issue a", "severity": "warn",
+             "validator": "v", "section": None, "suggestion": None},
+        ]
+        report = _make_report(issues=issues, status="warn", files_checked=2)
+        result = format_summary(report, color=False)
+        lines = [
+            l for l in result.split("\n") if l.strip().startswith("WARN")
+        ]
+        assert "a.md" in lines[0]
+        assert "z.md" in lines[1]
+
+    def test_no_issues_no_blank_issue_block(self) -> None:
+        report = _make_report()
+        result = format_summary(report, color=False)
+        assert "\n\n\n" not in result
