@@ -94,6 +94,19 @@ class BaseDocument(BaseModel):
         return issues
 
 
+    def validate_content(self) -> list:
+        """Run Tier 2 content triggers for LLM-assisted quality assessment.
+
+        Returns list of TriggerContext dicts. Subclasses override to add
+        type-specific triggers.
+        """
+        from wos.tier2_triggers import trigger_description_quality
+
+        results: list = []
+        results.extend(trigger_description_quality(self))
+        return results
+
+
 class TopicDocument(BaseDocument):
     """A topic document with actionable guidance and citations."""
 
@@ -131,6 +144,20 @@ class TopicDocument(BaseDocument):
             issues.extend(validator(self))
         return issues
 
+    def validate_content(self) -> list:
+        from wos.tier2_triggers import (
+            trigger_in_practice_concreteness,
+            trigger_pitfalls_completeness,
+        )
+
+        results = super().validate_content()
+        for trigger in [
+            trigger_in_practice_concreteness,
+            trigger_pitfalls_completeness,
+        ]:
+            results.extend(trigger(self))
+        return results
+
 
 class OverviewDocument(BaseDocument):
     """An overview document for area orientation and topic index."""
@@ -165,6 +192,13 @@ class OverviewDocument(BaseDocument):
         ]:
             issues.extend(validator(self))
         return issues
+
+    def validate_content(self) -> list:
+        from wos.tier2_triggers import trigger_overview_coverage_quality
+
+        results = super().validate_content()
+        results.extend(trigger_overview_coverage_quality(self))
+        return results
 
 
 class ResearchDocument(BaseDocument):
@@ -203,6 +237,20 @@ class ResearchDocument(BaseDocument):
             issues.extend(validator(self))
         return issues
 
+    def validate_content(self) -> list:
+        from wos.tier2_triggers import (
+            trigger_finding_groundedness,
+            trigger_question_clarity,
+        )
+
+        results = super().validate_content()
+        for trigger in [
+            trigger_question_clarity,
+            trigger_finding_groundedness,
+        ]:
+            results.extend(trigger(self))
+        return results
+
 
 class PlanDocument(BaseDocument):
     """A plan document with actionable work steps."""
@@ -231,6 +279,20 @@ class PlanDocument(BaseDocument):
         issues.extend(check_date_prefix_matches(self))
         return issues
 
+    def validate_content(self) -> list:
+        from wos.tier2_triggers import (
+            trigger_step_specificity,
+            trigger_verification_completeness,
+        )
+
+        results = super().validate_content()
+        for trigger in [
+            trigger_step_specificity,
+            trigger_verification_completeness,
+        ]:
+            results.extend(trigger(self))
+        return results
+
 
 class NoteDocument(BaseDocument):
     """A generic note document with minimal structure."""
@@ -254,6 +316,9 @@ class NoteDocument(BaseDocument):
         issues: list[ValidationIssue] = []
         issues.extend(check_title_heading(self))
         return issues
+
+    def validate_content(self) -> list:
+        return []
 
 
 # Backward compat alias — callers that import Document still work

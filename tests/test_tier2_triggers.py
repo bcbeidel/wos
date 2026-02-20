@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from wos.document_types import DocumentType, parse_document
 from wos.tier2_triggers import (
-    TIER2_TRIGGERS_BY_TYPE,
     run_triggers,
     trigger_description_quality,
     trigger_verification_completeness,
@@ -54,21 +53,33 @@ def _plan_md(verification: str = "- All tests pass.\n- Linting clean.\n"):
     )
 
 
-# ── Dispatch table ───────────────────────────────────────────────
+# ── Polymorphic dispatch ─────────────────────────────────────────
 
 
-class TestDispatchTable:
-    def test_all_types_have_triggers(self) -> None:
-        for dt in DocumentType:
-            assert dt in TIER2_TRIGGERS_BY_TYPE
+class TestPolymorphicDispatch:
+    def test_all_subclasses_have_validate_content(self) -> None:
+        from wos.models.documents import (
+            NoteDocument,
+            OverviewDocument,
+            PlanDocument,
+            ResearchDocument,
+            TopicDocument,
+        )
 
-    def test_shared_trigger_in_all_types(self) -> None:
-        for dt in DocumentType:
-            if dt == DocumentType.NOTE:
-                continue  # Notes have no triggers
-            fns = TIER2_TRIGGERS_BY_TYPE[dt]
-            names = [f.__name__ for f in fns]
-            assert "trigger_description_quality" in names
+        for cls in [
+            TopicDocument, OverviewDocument, ResearchDocument,
+            PlanDocument, NoteDocument,
+        ]:
+            assert hasattr(cls, "validate_content")
+
+    def test_shared_trigger_runs_for_topic(self) -> None:
+        doc = parse_document(
+            "context/python/topic.md",
+            _topic_md(desc="Short desc here"),
+        )
+        results = run_triggers(doc)
+        triggers = [r["trigger"] for r in results]
+        assert "description_quality" in triggers
 
 
 # ── trigger_description_quality ──────────────────────────────────
@@ -124,8 +135,12 @@ class TestRunTriggers:
 
 
 class TestNoteTriggers:
-    def test_note_has_triggers_entry(self):
-        assert DocumentType.NOTE in TIER2_TRIGGERS_BY_TYPE
-
-    def test_note_triggers_empty(self):
-        assert TIER2_TRIGGERS_BY_TYPE[DocumentType.NOTE] == []
+    def test_note_validate_content_empty(self):
+        md = (
+            "---\n"
+            "document_type: note\n"
+            'description: "Personal notes on a specific topic area"\n'
+            "---\n\n# My Note\n\nContent.\n"
+        )
+        doc = parse_document("notes/test.md", md)
+        assert run_triggers(doc) == []
