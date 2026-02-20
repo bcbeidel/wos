@@ -62,7 +62,7 @@ def main() -> None:
         )
         output = report.to_json()
         output["message"] = (
-            "No documents found. Use /wos:setup to initialize your project."
+            "No documents found. Use /wos:create-context to initialize your project."
         )
         print(json.dumps(output, indent=2))
         sys.exit(0)

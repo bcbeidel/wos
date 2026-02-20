@@ -48,7 +48,7 @@ See `references/research-investigate.md` for the full multi-phase process.
   See `references/source-evaluation.md`.
 - **Counter-evidence is required** for deep-dive, options, and technical modes.
   Actively search for disagreement.
-- **Output is a research document.** Use `/wos:curate` to create the final
+- **Output is a research document.** Use `/wos:create-document` to create the final
   artifact with `document_type: research`.
 - **Authority annotations.** Each source in the final document should note
   its tier in the source hierarchy.
