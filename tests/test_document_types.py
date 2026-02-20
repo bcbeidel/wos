@@ -11,6 +11,7 @@ from pydantic import ValidationError
 from wos.document_types import (
     ARTIFACT_TYPES,
     CONTEXT_TYPES,
+    CitedSource,
     DATE_PREFIX_TYPES,
     DIRECTORY_PATTERNS,
     FRESHNESS_TRACKED_TYPES,
@@ -19,6 +20,7 @@ from wos.document_types import (
     SOURCE_GROUNDED_TYPES,
     DocumentType,
     PlanStatus,
+    Source,
     parse_document,
 )
 
@@ -700,3 +702,26 @@ class TestDispatchTables:
 
     def test_note_not_in_directory_patterns(self):
         assert DocumentType.NOTE not in DIRECTORY_PATTERNS
+
+
+# ── CitedSource ─────────────────────────────────────────────────
+
+
+class TestCitedSource:
+    def test_source_alias(self):
+        """Source is a backward-compat alias for CitedSource."""
+        assert Source is CitedSource
+
+    def test_normalize_title(self):
+        s = CitedSource(url="https://example.com", title="Python — Best Practices!")
+        assert s.normalize_title() == "python best practices"
+
+    def test_normalize_title_unicode_dashes(self):
+        s = CitedSource(url="https://example.com", title="A\u2013B\u2014C")
+        assert s.normalize_title() == "a b c"
+
+    def test_get_estimated_tokens(self):
+        s = CitedSource(url="https://example.com", title="Example")
+        tokens = s.get_estimated_tokens()
+        assert isinstance(tokens, int)
+        assert tokens > 0

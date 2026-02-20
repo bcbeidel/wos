@@ -64,11 +64,39 @@ FRESHNESS_TRACKED_TYPES = {DocumentType.TOPIC, DocumentType.OVERVIEW}
 # ── Shared models ────────────────────────────────────────────────
 
 
-class Source(BaseModel):
+class CitedSource(BaseModel):
     """A cited source with URL and title."""
 
     url: str
     title: str
+
+    def normalize_title(self) -> str:
+        """Lowercase, strip punctuation, collapse whitespace."""
+        text = self.title.lower()
+        text = text.replace("\u2013", " ").replace("\u2014", " ")
+        text = re.sub(r"[^a-z0-9 ]", "", text)
+        text = re.sub(r"\s+", " ", text).strip()
+        return text
+
+    def get_estimated_tokens(self) -> int:
+        """Estimate token cost of this source citation."""
+        return len(self.url) // 3 + len(self.title) // 4 + 5
+
+    def check_reachability(self):
+        """HTTP HEAD check. Returns ReachabilityResult."""
+        from wos.source_verification import check_url_reachability
+
+        return check_url_reachability(self.url)
+
+    def verify(self):
+        """Full verification — reachability + title match. Returns VerificationResult."""
+        from wos.source_verification import verify_source
+
+        return verify_source(self.url, self.title)
+
+
+# Backward compat alias
+Source = CitedSource
 
 
 class FrontmatterBase(BaseModel):
