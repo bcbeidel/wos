@@ -37,8 +37,7 @@ Version bump requires updating all three: `pyproject.toml`,
     `validators.py` (per-file), `cross_validators.py` (multi-file),
     `templates.py`, `discovery.py`, `scaffold.py`
   - **Extended:** `auto_fix.py`, `token_budget.py`, `tier2_triggers.py`,
-    `source_verification.py`, `utilization.py`, `recommendations.py`,
-    `hook_log_access.py`
+    `source_verification.py`
 - `scripts/` — thin CLI entry points with argparse that import from `wos`
 - `skills/` — skill definitions (SKILL.md + workflows/) auto-discovered by
   Claude Code
