@@ -15,6 +15,7 @@ from urllib.parse import urlparse
 from wos.discovery import MARKER_BEGIN, MARKER_END, render_manifest, scan_context
 from wos.document_types import (
     SOURCE_GROUNDED_TYPES,
+    ContextArea,
     Document,
     DocumentType,
     IssueSeverity,
@@ -76,51 +77,12 @@ def check_overview_topic_sync(
     """Check that overview Topics sections match actual topic files.
 
     A topic on disk that is not listed in its area's overview -> fail.
+    Delegates to ContextArea.validate() for the overview-topic sync check.
     """
+    areas = _build_context_areas(docs)
     issues: List[ValidationIssue] = []
-
-    # Group by area
-    overviews: Dict[str, Document] = {}
-    topics_by_area: Dict[str, List[Document]] = {}
-
-    for doc in docs:
-        if doc.document_type == DocumentType.OVERVIEW:
-            # Extract area from path: context/{area}/_overview.md
-            match = re.match(r"context/([^/]+)/", doc.path)
-            if match:
-                overviews[match.group(1)] = doc
-        elif doc.document_type == DocumentType.TOPIC:
-            match = re.match(r"context/([^/]+)/", doc.path)
-            if match:
-                area = match.group(1)
-                topics_by_area.setdefault(area, []).append(doc)
-
-    for area, area_topics in topics_by_area.items():
-        overview = overviews.get(area)
-        if not overview:
-            continue
-
-        topics_section = overview.get_section_content("Topics")
-
-        for topic in area_topics:
-            # Check if topic filename or title appears in the Topics section
-            filename = Path(topic.path).stem
-            if (
-                filename not in topics_section
-                and topic.title not in topics_section
-            ):
-                issues.append(
-                    ValidationIssue(
-                        file=overview.path,
-                        issue=f"Topic '{topic.title}' ({topic.path}) not listed "
-                        f"in overview Topics section",
-                        severity=IssueSeverity.FAIL,
-                        validator="check_overview_topic_sync",
-                        section="Topics",
-                        suggestion=f"Add {topic.title} to the Topics section",
-                    )
-                )
-
+    for area in areas:
+        issues.extend(area._check_overview_topic_sync())
     return issues
 
 
@@ -168,43 +130,15 @@ def check_manifest_sync(
 def check_naming_conventions(
     docs: List[Document], root: str
 ) -> List[ValidationIssue]:
-    """Check that file and directory names follow conventions."""
+    """Check that file and directory names follow conventions.
+
+    Delegates to ContextArea.validate() for context docs.
+    Non-context docs (notes, etc.) are skipped.
+    """
+    areas = _build_context_areas(docs)
     issues: List[ValidationIssue] = []
-    slug_re = re.compile(r"^[a-z0-9]([a-z0-9-]*[a-z0-9])?$")
-
-    for doc in docs:
-        if doc.document_type in {DocumentType.TOPIC, DocumentType.OVERVIEW}:
-            # Check area directory name
-            match = re.match(r"context/([^/]+)/", doc.path)
-            if match:
-                area_name = match.group(1)
-                if not slug_re.match(area_name):
-                    issues.append(
-                        ValidationIssue(
-                            file=doc.path,
-                            issue=f"Area directory '{area_name}' is not "
-                            f"lowercase-hyphenated",
-                            severity=IssueSeverity.WARN,
-                            validator="check_naming_conventions",
-                            suggestion="Rename to lowercase-hyphenated format",
-                        )
-                    )
-
-        if doc.document_type == DocumentType.TOPIC:
-            # Check topic filename
-            filename = Path(doc.path).stem
-            if not slug_re.match(filename):
-                issues.append(
-                    ValidationIssue(
-                        file=doc.path,
-                        issue=f"Topic filename '{filename}' is not "
-                        f"lowercase-hyphenated",
-                        severity=IssueSeverity.WARN,
-                        validator="check_naming_conventions",
-                        suggestion="Rename to lowercase-hyphenated format",
-                    )
-                )
-
+    for area in areas:
+        issues.extend(area._check_naming_conventions())
     return issues
 
 
@@ -281,6 +215,35 @@ def check_source_url_reachability(
             )
 
     return issues
+
+
+def _build_context_areas(docs: List[Document]) -> List[ContextArea]:
+    """Group parsed documents into ContextArea objects by area directory.
+
+    Only includes context-type docs (topic, overview). Used by
+    check_overview_topic_sync and check_naming_conventions.
+    """
+    area_map: Dict[str, ContextArea] = {}
+
+    for doc in docs:
+        if doc.document_type not in {DocumentType.TOPIC, DocumentType.OVERVIEW}:
+            continue
+
+        match = re.match(r"context/([^/]+)/", doc.path)
+        if not match:
+            continue
+
+        area_name = match.group(1)
+        if area_name not in area_map:
+            area_map[area_name] = ContextArea(name=area_name)
+
+        area = area_map[area_name]
+        if doc.document_type == DocumentType.OVERVIEW:
+            area.overview = doc
+        elif doc.document_type == DocumentType.TOPIC:
+            area.topics.append(doc)
+
+    return list(area_map.values())
 
 
 def run_cross_validators(
