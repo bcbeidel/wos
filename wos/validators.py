@@ -1,16 +1,14 @@
-"""Per-file validators with type-dispatched routing.
+"""Per-file validators — standalone functions called by document subclasses.
 
 Each validator function takes a Document and returns list[ValidationIssue].
-
-VALIDATORS_BY_TYPE is the dispatch table — adding a new document type
-means adding entries here. No validator code changes needed.
+Dispatch is handled by each document subclass's validate_structure() method.
 """
 
 from __future__ import annotations
 
 import re
 from datetime import date
-from typing import Callable, Dict, List
+from typing import List
 from urllib.parse import urlparse
 
 from wos.document_types import (
@@ -22,8 +20,6 @@ from wos.document_types import (
     IssueSeverity,
     ValidationIssue,
 )
-
-ValidatorFn = Callable[[Document], List[ValidationIssue]]
 
 
 # ── Shared validators (all types) ───────────────────────────────
@@ -403,47 +399,13 @@ def check_date_prefix_matches(doc: Document) -> List[ValidationIssue]:
     return issues
 
 
-# ── Dispatch table ───────────────────────────────────────────────
-
-_SHARED_VALIDATORS: List[ValidatorFn] = [
-    check_section_presence,
-    check_section_ordering,
-    check_size_bounds,
-    check_directory_placement,
-    check_title_heading,
-    check_heading_hierarchy,
-    check_placeholder_comments,
-    check_date_fields,
-]
-
-VALIDATORS_BY_TYPE: Dict[DocumentType, List[ValidatorFn]] = {
-    DocumentType.TOPIC: _SHARED_VALIDATORS + [
-        check_last_validated,
-        check_source_diversity,
-        check_go_deeper_links,
-    ],
-    DocumentType.OVERVIEW: _SHARED_VALIDATORS + [
-        check_last_validated,
-        check_what_this_covers_length,
-    ],
-    DocumentType.RESEARCH: _SHARED_VALIDATORS + [
-        check_source_diversity,
-        check_question_nonempty,
-        check_date_prefix_matches,
-    ],
-    DocumentType.PLAN: _SHARED_VALIDATORS + [
-        check_date_prefix_matches,
-    ],
-    DocumentType.NOTE: [
-        check_title_heading,
-    ],
-}
+# ── Public API ───────────────────────────────────────────────────
 
 
 def validate_document(doc: Document) -> List[ValidationIssue]:
-    """Run all validators for a document's type."""
-    validators = VALIDATORS_BY_TYPE.get(doc.document_type, _SHARED_VALIDATORS)
-    issues: List[ValidationIssue] = []
-    for validator in validators:
-        issues.extend(validator(doc))
-    return issues
+    """Run all validators for a document's type.
+
+    Delegates to doc.validate_structure() which uses polymorphic
+    dispatch — each document subclass knows its own validators.
+    """
+    return doc.validate_structure()

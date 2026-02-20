@@ -1,8 +1,8 @@
 """Document model and type-specific subclasses.
 
-BaseDocument is the renamed core Document. Type-specific subclasses
-(TopicDocument, etc.) will gain behavior in later steps as validators,
-templates, and triggers are migrated onto them.
+BaseDocument is the renamed core Document. Each subclass overrides
+``validate_structure()`` to compose the correct set of validators
+for its document type — no dispatch table needed.
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
-from wos.models.core import DocumentSection, DocumentType
+from wos.models.core import DocumentSection, DocumentType, ValidationIssue
 from wos.models.frontmatter import (
     SECTIONS,
     SIZE_BOUNDS,
@@ -63,35 +63,115 @@ class BaseDocument(BaseModel):
         """Check if a section exists by name."""
         return any(s.name == name for s in self.sections)
 
+    def validate_structure(self) -> list[ValidationIssue]:
+        """Run structural validators for this document type.
+
+        Subclasses override to add type-specific validators.
+        """
+        from wos.validators import (
+            check_date_fields,
+            check_directory_placement,
+            check_heading_hierarchy,
+            check_placeholder_comments,
+            check_section_ordering,
+            check_section_presence,
+            check_size_bounds,
+            check_title_heading,
+        )
+
+        issues: list[ValidationIssue] = []
+        for validator in [
+            check_section_presence,
+            check_section_ordering,
+            check_size_bounds,
+            check_directory_placement,
+            check_title_heading,
+            check_heading_hierarchy,
+            check_placeholder_comments,
+            check_date_fields,
+        ]:
+            issues.extend(validator(self))
+        return issues
+
 
 class TopicDocument(BaseDocument):
     """A topic document with actionable guidance and citations."""
 
-    pass
+    def validate_structure(self) -> list[ValidationIssue]:
+        from wos.validators import (
+            check_go_deeper_links,
+            check_last_validated,
+            check_source_diversity,
+        )
+
+        issues = super().validate_structure()
+        for validator in [
+            check_last_validated,
+            check_source_diversity,
+            check_go_deeper_links,
+        ]:
+            issues.extend(validator(self))
+        return issues
 
 
 class OverviewDocument(BaseDocument):
     """An overview document for area orientation and topic index."""
 
-    pass
+    def validate_structure(self) -> list[ValidationIssue]:
+        from wos.validators import (
+            check_last_validated,
+            check_what_this_covers_length,
+        )
+
+        issues = super().validate_structure()
+        for validator in [
+            check_last_validated,
+            check_what_this_covers_length,
+        ]:
+            issues.extend(validator(self))
+        return issues
 
 
 class ResearchDocument(BaseDocument):
     """A research document capturing investigation findings."""
 
-    pass
+    def validate_structure(self) -> list[ValidationIssue]:
+        from wos.validators import (
+            check_date_prefix_matches,
+            check_question_nonempty,
+            check_source_diversity,
+        )
+
+        issues = super().validate_structure()
+        for validator in [
+            check_source_diversity,
+            check_question_nonempty,
+            check_date_prefix_matches,
+        ]:
+            issues.extend(validator(self))
+        return issues
 
 
 class PlanDocument(BaseDocument):
     """A plan document with actionable work steps."""
 
-    pass
+    def validate_structure(self) -> list[ValidationIssue]:
+        from wos.validators import check_date_prefix_matches
+
+        issues = super().validate_structure()
+        issues.extend(check_date_prefix_matches(self))
+        return issues
 
 
 class NoteDocument(BaseDocument):
     """A generic note document with minimal structure."""
 
-    pass
+    def validate_structure(self) -> list[ValidationIssue]:
+        from wos.validators import check_title_heading
+
+        issues: list[ValidationIssue] = []
+        issues.extend(check_title_heading(self))
+        return issues
 
 
 # Backward compat alias — callers that import Document still work
