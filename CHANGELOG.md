@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-02-20
+
+### Changed
+
+- **AGENTS.md is now the primary config file.** The context manifest (area
+  table between `<!-- wos:context:begin/end -->` markers) is written to
+  AGENTS.md instead of CLAUDE.md. CLAUDE.md becomes a thin pointer with an
+  `@AGENTS.md` reference so Claude Code loads it. Existing CLAUDE.md files
+  with old-style markers are automatically migrated on the next discovery run.
+  `check_manifest_sync` now validates AGENTS.md instead of CLAUDE.md.
+  ([#23](https://github.com/bcbeidel/wos/issues/23))
+
 ## [0.1.8] - 2026-02-19
 
 ### Added
@@ -178,6 +190,7 @@ implemented with 229 tests passing.
 - Build roadmap with session protocol and dependency graph
 - 18 design principles across four layers
 
+[0.1.9]: https://github.com/bcbeidel/wos/releases/tag/v0.1.9
 [0.1.8]: https://github.com/bcbeidel/wos/releases/tag/v0.1.8
 [0.1.7]: https://github.com/bcbeidel/wos/releases/tag/v0.1.7
 [0.1.6]: https://github.com/bcbeidel/wos/releases/tag/v0.1.6
