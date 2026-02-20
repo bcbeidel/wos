@@ -20,6 +20,7 @@ from wos.models import (  # noqa: F401
     SOURCE_GROUNDED_TYPES,
     BaseDocument,
     CitedSource,
+    ContextArea,
     Document,
     DocumentSection,
     DocumentType,

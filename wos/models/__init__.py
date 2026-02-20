@@ -51,6 +51,9 @@ from wos.models.documents import (
     TopicDocument,
 )
 
+# ── Context area ───────────────────────────────────────────────
+from wos.models.context_area import ContextArea
+
 # ── Parsing ─────────────────────────────────────────────────────
 from wos.models.parsing import parse_document
 
@@ -95,6 +98,8 @@ __all__ = [
     "ResearchDocument",
     "PlanDocument",
     "NoteDocument",
+    # Context area
+    "ContextArea",
     # Parsing
     "parse_document",
 ]
