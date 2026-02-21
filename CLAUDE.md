@@ -89,6 +89,24 @@ products, reachable via `related` links.
 
 - Architecture & design: [2026-02-18-architecture-snapshot.md](artifacts/research/2026-02-18-architecture-snapshot.md)
 
+## Domain Model Conventions
+
+All domain objects in `wos/models/` follow a standard DDD protocol:
+
+- **Value objects** use `ConfigDict(frozen=True)` (immutable, hashable)
+- **Construction:** `from_json(cls, dict)`, `from_markdown(cls, str)` where applicable
+- **Representations:** `__str__`, `__repr__`, `to_json()`, `to_markdown()` where applicable
+- **Validation:** `validate_self(deep=False) -> list[ValidationIssue]`, `is_valid` property.
+  `deep=True` enables I/O checks (e.g., URL reachability)
+- **Collection:** composites implement `__len__`, `__iter__`, `__contains__`
+- **Tokens:** `get_estimated_tokens()` where meaningful
+- **Test builders:** `tests/builders.py` provides `make_*(**overrides)` for each type
+
+New domain objects must implement this protocol. Put behavior on domain objects,
+not in standalone helper modules.
+
+Design doc: [DDD Domain Model Enrichment](docs/plans/2026-02-20-ddd-domain-model-enrichment-design.md)
+
 ## Conventions
 
 - Python 3.9 — use `from __future__ import annotations` for type hints,
@@ -101,5 +119,5 @@ products, reachable via `related` links.
 - All document operations validate via `parse_document()` before writing
 - Skills use free-text intake — users describe intent, Claude routes
 - Pydantic `ValidationError` + stdlib exceptions only (no custom exception hierarchy)
-- Tests use inline markdown strings (no fixture files)
+- Tests use inline markdown strings and `tests/builders.py` for domain object construction
 
