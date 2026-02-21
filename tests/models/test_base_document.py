@@ -224,6 +224,44 @@ class TestBaseDocumentProtocol:
             assert isinstance(issue, ValidationIssue)
             assert issue.requires_llm is True
 
+    # -- auto_fix --
+
+    def test_auto_fix_reorders_sections(self):
+        """auto_fix() should fix section ordering issues."""
+        bad_order_md = (
+            "---\n"
+            "document_type: topic\n"
+            'description: "Test topic document"\n'
+            "last_updated: 2026-02-17\n"
+            "last_validated: 2026-02-17\n"
+            "sources:\n"
+            '  - url: "https://example.com"\n'
+            '    title: "Example"\n'
+            "---\n"
+            "\n"
+            "# Test Topic\n"
+            "\n"
+            "## Context\n\nBackground info.\n"
+            "\n"
+            "## Guidance\n\nFollow these steps.\n"
+            "\n"
+            "## In Practice\n\n- Do this.\n"
+            "\n"
+            "## Pitfalls\n\nAvoid that.\n"
+            "\n"
+            "## Go Deeper\n\n- [Link](https://example.com)\n"
+        )
+        doc = parse_document("context/testing/example.md", bad_order_md)
+        fixed = doc.auto_fix()
+        assert fixed is not None
+        assert fixed.index("## Guidance") < fixed.index("## Context")
+
+    def test_auto_fix_returns_none_when_valid(self):
+        """auto_fix() returns None for a valid document."""
+        doc = self._make_topic_doc()
+        fixed = doc.auto_fix()
+        assert fixed is None
+
     # -- builder --
 
     def test_builder(self):
