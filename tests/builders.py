@@ -5,6 +5,7 @@ Override any field via keyword arguments.
 """
 from __future__ import annotations
 
+from wos.models.base_document import BaseDocument
 from wos.models.core import CitedSource, DocumentSection, IssueSeverity, ValidationIssue
 from wos.models.frontmatter import SectionSpec, SizeBounds
 from wos.source_verification import ReachabilityResult, VerificationResult
@@ -81,3 +82,23 @@ def make_reachability_result(**overrides) -> ReachabilityResult:
     }
     defaults.update(overrides)
     return ReachabilityResult(**defaults)
+
+
+def make_document(**overrides) -> BaseDocument:
+    """Build a minimal valid document (note type -- simplest)."""
+    from wos.models.parsing import parse_document
+
+    path = overrides.pop("path", "context/testing/example.md")
+    content = overrides.pop("content", None)
+    if content is None:
+        content = (
+            "---\n"
+            "document_type: note\n"
+            'description: "Test document"\n'
+            "---\n"
+            "\n"
+            "# Test Document\n"
+            "\n"
+            "Some content here.\n"
+        )
+    return parse_document(path, content)
