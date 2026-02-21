@@ -10,7 +10,6 @@ from __future__ import annotations
 import json
 import re
 import sys
-from dataclasses import asdict, dataclass
 from html.parser import HTMLParser
 from typing import List, Optional
 from urllib.parse import urlparse
@@ -151,15 +150,44 @@ class VerificationResult(BaseModel):
         return len(self.validate_self()) == 0
 
 
-@dataclass
-class ReachabilityResult:
+class ReachabilityResult(BaseModel):
     """Result of a lightweight URL reachability check."""
+
+    model_config = ConfigDict(frozen=True)
 
     url: str
     http_status: Optional[int]
     reachable: bool
     reason: str
     final_url: Optional[str]
+
+    def __str__(self) -> str:
+        status = "reachable" if self.reachable else "unreachable"
+        return f"{status}: {self.url}"
+
+    def __repr__(self) -> str:
+        return f"ReachabilityResult(reachable={self.reachable!r}, url={self.url!r}, reason={self.reason!r})"
+
+    def to_json(self) -> dict:
+        """Serialize to a plain dict suitable for JSON."""
+        return self.model_dump(mode="json")
+
+    @classmethod
+    def from_json(cls, data: dict) -> ReachabilityResult:
+        """Construct from a plain dict (e.g. parsed JSON)."""
+        return cls.model_validate(data)
+
+    def validate_self(self) -> List:
+        """Check internal consistency.
+
+        Returns list[ValidationIssue] -- empty when this result is well-formed.
+        """
+        return []
+
+    @property
+    def is_valid(self) -> bool:
+        """Shortcut: True when validate_self() returns no issues."""
+        return len(self.validate_self()) == 0
 
 
 # ── Single-source verification ────────────────────────────────────

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from wos.models.core import CitedSource, DocumentSection, IssueSeverity, ValidationIssue
 from wos.models.frontmatter import SectionSpec, SizeBounds
-from wos.source_verification import VerificationResult
+from wos.source_verification import ReachabilityResult, VerificationResult
 
 
 def make_cited_source(**overrides) -> CitedSource:
@@ -69,3 +69,15 @@ def make_verification_result(**overrides) -> VerificationResult:
     }
     defaults.update(overrides)
     return VerificationResult(**defaults)
+
+
+def make_reachability_result(**overrides) -> ReachabilityResult:
+    defaults = {
+        "url": "https://example.com",
+        "http_status": 200,
+        "reachable": True,
+        "reason": "OK",
+        "final_url": "https://example.com",
+    }
+    defaults.update(overrides)
+    return ReachabilityResult(**defaults)
