@@ -171,3 +171,28 @@ class TestValidationIssueProtocol:
     def test_protocol_is_valid(self):
         vi = make_validation_issue()
         assert isinstance(vi.is_valid, bool)
+
+    # -- requires_llm field --
+
+    def test_requires_llm_default_false(self):
+        issue = make_validation_issue()
+        assert issue.requires_llm is False
+
+    def test_requires_llm_explicit_true(self):
+        issue = make_validation_issue(requires_llm=True)
+        assert issue.requires_llm is True
+
+    def test_to_json_includes_requires_llm(self):
+        issue = make_validation_issue(requires_llm=True)
+        data = issue.to_json()
+        assert data["requires_llm"] is True
+
+    def test_from_json_round_trip_with_requires_llm(self):
+        issue = make_validation_issue(requires_llm=True)
+        restored = ValidationIssue.from_json(issue.to_json())
+        assert restored.requires_llm is True
+
+    def test_to_markdown_llm_review(self):
+        issue = make_validation_issue(requires_llm=True, severity=IssueSeverity.INFO)
+        md = issue.to_markdown()
+        assert "LLM-REVIEW" in md

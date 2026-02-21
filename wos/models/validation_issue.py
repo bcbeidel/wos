@@ -23,6 +23,7 @@ class ValidationIssue(BaseModel):
     validator: str
     section: Optional[str] = None
     suggestion: Optional[str] = None
+    requires_llm: bool = False
 
     # ── String representations ────────────────────────────────────
 
@@ -50,7 +51,8 @@ class ValidationIssue(BaseModel):
 
     def to_markdown(self) -> str:
         """Return markdown list item: - **SEVERITY** `file`: issue."""
-        parts = [f"- **{self.severity.value.upper()}** `{self.file}`: {self.issue}"]
+        label = "LLM-REVIEW" if self.requires_llm else self.severity.value.upper()
+        parts = [f"- **{label}** `{self.file}`: {self.issue}"]
         if self.suggestion:
             parts.append(f"  - {self.suggestion}")
         return "\n".join(parts)
