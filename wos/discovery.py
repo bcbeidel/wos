@@ -200,6 +200,7 @@ Optional on all types: `tags` (lowercase-hyphenated), `related` (file paths or U
 
 ## Agent Guidelines
 
+- Use `/wos:discover` to find and access context before reading full files
 - Context types (topic, overview) appear in the AGENTS.md manifest
 - Artifact types (research, plan) are internal — reachable via `related` links
 - Use `/wos:create-document` to create new documents

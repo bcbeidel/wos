@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.9] - 2026-02-20
 
+### Added
+
+- **Progressive context scanner** (`scripts/scan_context.py`): Token-efficient
+  context discovery with three progressive subcommands: `index` (list all
+  documents, filterable by area/type), `outline` (section headings with word
+  counts), and `extract` (raw section content). Reduces typical context lookup
+  from ~8,500 tokens (4 Read calls) to ~700-1,000 tokens (2 Bash calls).
+  ([#12](https://github.com/bcbeidel/wos/issues/12))
+- **Discover skill** (`/wos:discover`): Routes agents through the progressive
+  index → outline → extract pattern for finding and accessing context.
+
 ### Changed
 
 - **AGENTS.md is now the primary config file.** The context manifest (area
