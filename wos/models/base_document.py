@@ -7,7 +7,7 @@ from typing import Iterator, List, Optional
 
 from pydantic import BaseModel
 
-from wos.models.enums import DocumentType
+from wos.models.enums import DocumentType, IssueSeverity
 from wos.models.section import DocumentSection
 from wos.models.validation_issue import ValidationIssue
 from wos.models.frontmatter import (
@@ -252,17 +252,29 @@ class BaseDocument(BaseModel):
         """True when validate_self() returns no issues."""
         return len(self.validate_self()) == 0
 
-    def validate_content(self) -> list:
-        """Run Tier 2 content triggers for LLM-assisted quality assessment.
+    def validate_content(self) -> list[ValidationIssue]:
+        """Run content quality checks that require LLM review.
 
-        Returns list of TriggerContext dicts. Subclasses override to add
-        type-specific triggers.
+        Returns ValidationIssue objects with requires_llm=True.
+        Subclasses override to add type-specific content checks.
         """
-        from wos.tier2_triggers import trigger_description_quality
+        issues: list[ValidationIssue] = []
 
-        results: list = []
-        results.extend(trigger_description_quality(self))
-        return results
+        # Shared: check description quality
+        desc = self.frontmatter.description
+        if len(desc) < 20:
+            issues.append(
+                ValidationIssue(
+                    file=self.path,
+                    issue="Description may be too short for agents to assess relevance",
+                    severity=IssueSeverity.INFO,
+                    validator="validate_content",
+                    suggestion="Expand the description to be more informative",
+                    requires_llm=True,
+                )
+            )
+
+        return issues
 
 
 def _escape_yaml(s: str) -> str:

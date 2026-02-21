@@ -73,13 +73,20 @@ class TestPolymorphicDispatch:
             assert hasattr(cls, "validate_content")
 
     def test_shared_trigger_runs_for_topic(self) -> None:
+        from wos.models.validation_issue import ValidationIssue
+
         doc = parse_document(
             "context/python/topic.md",
             _topic_md(desc="Short desc here"),
         )
         results = run_triggers(doc)
-        triggers = [r["trigger"] for r in results]
-        assert "description_quality" in triggers
+        # Base validate_content() now returns ValidationIssue objects
+        desc_issues = [
+            r for r in results
+            if isinstance(r, ValidationIssue)
+            and r.validator == "validate_content"
+        ]
+        assert len(desc_issues) > 0
 
 
 # ── trigger_description_quality ──────────────────────────────────

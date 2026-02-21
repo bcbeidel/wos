@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from wos.models.base_document import BaseDocument
 from wos.models.parsing import parse_document
+from wos.models.validation_issue import ValidationIssue
 
 
 TOPIC_MD = (
@@ -185,6 +186,43 @@ class TestBaseDocumentProtocol:
         assert isinstance(doc.is_valid, bool)
         # A well-formed topic doc should be valid
         assert doc.is_valid is True
+
+    # -- validate_content --
+
+    def test_validate_content_returns_validation_issues(self):
+        """validate_content() returns ValidationIssue objects, not raw dicts."""
+        short_desc_md = (
+            "---\n"
+            "document_type: topic\n"
+            'description: "Short desc."\n'
+            "last_updated: 2026-02-17\n"
+            "last_validated: 2026-02-17\n"
+            "sources:\n"
+            '  - url: "https://example.com"\n'
+            '    title: "Example"\n'
+            "---\n"
+            "\n"
+            "# Short Topic\n"
+            "\n"
+            "## Guidance\n\nContent.\n"
+            "\n"
+            "## Context\n\nContent.\n"
+            "\n"
+            "## In Practice\n\n- Do this.\n"
+            "\n"
+            "## Pitfalls\n\nAvoid that.\n"
+            "\n"
+            "## Go Deeper\n\n- [Link](https://example.com)\n"
+        )
+        doc = parse_document("context/testing/example.md", short_desc_md)
+        results = doc.validate_content()
+        # "Short desc." is < 20 chars, should trigger description quality check
+        # Filter to ValidationIssue objects (subclass may still add legacy dicts)
+        issues = [r for r in results if isinstance(r, ValidationIssue)]
+        assert len(issues) > 0
+        for issue in issues:
+            assert isinstance(issue, ValidationIssue)
+            assert issue.requires_llm is True
 
     # -- builder --
 

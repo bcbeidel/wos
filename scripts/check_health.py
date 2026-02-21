@@ -136,7 +136,12 @@ def main() -> None:
                 if i.file == doc.path and i.severity == IssueSeverity.FAIL
             ]
             if not doc_failures:
-                all_triggers.extend(run_triggers(doc))
+                results = run_triggers(doc)
+                for r in results:
+                    if isinstance(r, ValidationIssue):
+                        all_issues.append(r)
+                    else:
+                        all_triggers.append(r)
 
     # Strip the issue from the budget dict (it's already in all_issues)
     budget_output = {k: v for k, v in token_budget.items() if k != "issue"}
