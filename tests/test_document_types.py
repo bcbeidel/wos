@@ -11,6 +11,7 @@ from pydantic import ValidationError
 from wos.document_types import (
     ARTIFACT_TYPES,
     CONTEXT_TYPES,
+    CitedSource,
     DATE_PREFIX_TYPES,
     DIRECTORY_PATTERNS,
     FRESHNESS_TRACKED_TYPES,
@@ -18,7 +19,7 @@ from wos.document_types import (
     SIZE_BOUNDS,
     SOURCE_GROUNDED_TYPES,
     DocumentType,
-    PlanStatus,
+    Source,
     parse_document,
 )
 
@@ -160,12 +161,13 @@ def _plan_md(
     status="draft",
     extra_fm="",
 ) -> str:
+    status_line = f"status: {status}\n" if status else ""
     return (
         "---\n"
         "document_type: plan\n"
         f'description: "{description}"\n'
         f"last_updated: {last_updated}\n"
-        f"status: {status}\n"
+        f"{status_line}"
         f"{extra_fm}"
         "---\n"
         "\n"
@@ -217,28 +219,43 @@ class TestValidDocuments:
         doc = parse_document("context/chess/opening-principles.md", _topic_md())
         assert doc.document_type == DocumentType.TOPIC
         assert doc.title == "Opening Principles"
-        assert "Guidance" in doc.sections
+        assert doc.has_section("Guidance")
         assert doc.frontmatter.description.startswith("Core principles")
 
     def test_overview_parses(self):
         doc = parse_document("context/chess/_overview.md", _overview_md())
         assert doc.document_type == DocumentType.OVERVIEW
         assert doc.title == "Chess Strategy"
-        assert "What This Covers" in doc.sections
+        assert doc.has_section("What This Covers")
 
     def test_research_parses(self):
         doc = parse_document(
             "artifacts/research/2026-02-17-doc-types.md", _research_md()
         )
         assert doc.document_type == DocumentType.RESEARCH
-        assert "Question" in doc.sections
+        assert doc.has_section("Question")
 
     def test_plan_parses(self):
         doc = parse_document(
             "artifacts/plans/2026-02-17-doc-types.md", _plan_md()
         )
         assert doc.document_type == DocumentType.PLAN
-        assert doc.frontmatter.status == PlanStatus.DRAFT
+
+    def test_plan_with_status_accepted(self):
+        """Plans with legacy status field still parse (backward compat)."""
+        doc = parse_document(
+            "artifacts/plans/2026-02-17-doc-types.md",
+            _plan_md(status="active"),
+        )
+        assert doc.frontmatter.status == "active"
+
+    def test_plan_without_status(self):
+        """Plans without status field parse correctly."""
+        doc = parse_document(
+            "artifacts/plans/2026-02-17-doc-types.md",
+            _plan_md(status=""),
+        )
+        assert doc.frontmatter.status is None
 
     def test_research_without_last_validated(self):
         """Research documents do not require last_validated."""
@@ -247,31 +264,6 @@ class TestValidDocuments:
         )
         assert doc.document_type == DocumentType.RESEARCH
         assert not hasattr(doc.frontmatter, "last_validated")
-
-    def test_research_with_optional_status(self):
-        """Research documents can have an optional status."""
-        doc = parse_document(
-            "artifacts/research/2026-02-17-doc-types.md",
-            _research_md(status="complete"),
-        )
-        assert doc.frontmatter.status == PlanStatus.COMPLETE
-
-    def test_research_without_status(self):
-        """Research documents work without status."""
-        doc = parse_document(
-            "artifacts/research/2026-02-17-doc-types.md",
-            _research_md(),
-        )
-        assert doc.frontmatter.status is None
-
-    def test_plan_all_statuses(self):
-        """All PlanStatus values are accepted."""
-        for status in PlanStatus:
-            doc = parse_document(
-                "artifacts/plans/2026-02-17-doc-types.md",
-                _plan_md(status=status.value),
-            )
-            assert doc.frontmatter.status == status
 
 
 # ── Discriminated union routes correctly ─────────────────────────
@@ -350,7 +342,8 @@ class TestMissingFields:
         with pytest.raises(ValidationError, match="last_validated"):
             parse_document("context/chess/opening.md", md)
 
-    def test_plan_missing_status(self):
+    def test_plan_without_status_ok(self):
+        """Plans no longer require a status field."""
         md = (
             "---\n"
             "document_type: plan\n"
@@ -360,8 +353,8 @@ class TestMissingFields:
             "\n"
             "# My Plan\n"
         )
-        with pytest.raises(ValidationError, match="status"):
-            parse_document("artifacts/plans/2026-02-17-plan.md", md)
+        doc = parse_document("artifacts/plans/2026-02-17-plan.md", md)
+        assert doc.frontmatter.status is None
 
     def test_missing_description(self):
         md = (
@@ -415,12 +408,13 @@ class TestFieldValidation:
                 _topic_md(last_validated="2099-01-01"),
             )
 
-    def test_invalid_plan_status(self):
-        with pytest.raises(ValidationError, match="status"):
-            parse_document(
-                "artifacts/plans/2026-02-17-plan.md",
-                _plan_md(status="invalid"),
-            )
+    def test_plan_any_status_string_accepted(self):
+        """Plan status is now a free-form optional string (no enum)."""
+        doc = parse_document(
+            "artifacts/plans/2026-02-17-plan.md",
+            _plan_md(status="any-value"),
+        )
+        assert doc.frontmatter.status == "any-value"
 
     def test_tags_must_be_lowercase_hyphenated(self):
         with pytest.raises(ValidationError, match="lowercase hyphenated"):
@@ -477,7 +471,7 @@ class TestSplitMarkdown:
 
     def test_extracts_sections(self):
         doc = parse_document("context/chess/opening.md", _topic_md())
-        assert set(doc.sections.keys()) == {
+        assert set(doc.section_names) == {
             "Guidance",
             "Context",
             "In Practice",
@@ -520,9 +514,9 @@ class TestSplitMarkdown:
             "- It works.\n"
         )
         doc = parse_document("artifacts/plans/2026-02-17-plan.md", md)
-        assert "Sub-heading within context" in doc.sections["Context"]
-        assert "Another sub-heading" in doc.sections["Context"]
-        assert "Sub-heading within context" not in doc.sections
+        assert "Sub-heading within context" in doc.get_section_content("Context")
+        assert "Another sub-heading" in doc.get_section_content("Context")
+        assert "Sub-heading within context" not in doc.section_names
 
     def test_preserves_raw_content(self):
         content = _topic_md()
@@ -700,3 +694,131 @@ class TestDispatchTables:
 
     def test_note_not_in_directory_patterns(self):
         assert DocumentType.NOTE not in DIRECTORY_PATTERNS
+
+
+# ── CitedSource ─────────────────────────────────────────────────
+
+
+class TestCitedSource:
+    def test_source_alias(self):
+        """Source is a backward-compat alias for CitedSource."""
+        assert Source is CitedSource
+
+    def test_normalize_title(self):
+        s = CitedSource(url="https://example.com", title="Python — Best Practices!")
+        assert s.normalize_title() == "python best practices"
+
+    def test_normalize_title_unicode_dashes(self):
+        s = CitedSource(url="https://example.com", title="A\u2013B\u2014C")
+        assert s.normalize_title() == "a b c"
+
+    def test_get_estimated_tokens(self):
+        s = CitedSource(url="https://example.com", title="Example")
+        tokens = s.get_estimated_tokens()
+        assert isinstance(tokens, int)
+        assert tokens > 0
+
+
+# ── Document representations ─────────────────────────────────────
+
+
+class TestDocumentRepresentations:
+    def _make_topic_doc(self):
+        md = (
+            "---\n"
+            "document_type: topic\n"
+            'description: "When and how to use exceptions in Python"\n'
+            "last_updated: 2026-02-17\n"
+            "last_validated: 2026-02-17\n"
+            "sources:\n"
+            '  - url: "https://docs.python.org"\n'
+            '    title: "Python Docs"\n'
+            "---\n"
+            "\n"
+            "# Error Handling\n"
+            "\n"
+            "## Guidance\n\nUse exceptions for exceptional cases.\n\n"
+            "## Context\n\nBackground info here.\n\n"
+            "## In Practice\n\nExample usage here.\n\n"
+            "## Pitfalls\n\nCommon mistakes to avoid here.\n\n"
+            "## Go Deeper\n\n- [Python Docs](https://docs.python.org)\n"
+        )
+        return parse_document("context/python/error-handling.md", md)
+
+    def test_to_index_record(self):
+        doc = self._make_topic_doc()
+        record = doc.to_index_record()
+        assert record["path"] == "context/python/error-handling.md"
+        assert record["document_type"] == "topic"
+        assert record["title"] == "Error Handling"
+        assert "exceptions" in record["description"]
+
+    def test_to_outline(self):
+        doc = self._make_topic_doc()
+        outline = doc.to_outline()
+        assert "# Error Handling (topic)" in outline
+        assert "## Guidance" in outline
+        assert "words)" in outline
+
+    def test_to_plain_text(self):
+        doc = self._make_topic_doc()
+        text = doc.to_plain_text()
+        assert text.startswith("# Error Handling")
+        assert "## Guidance" in text
+        assert "Use exceptions" in text
+        # No frontmatter in plain text
+        assert "document_type" not in text
+
+    def test_get_estimated_tokens(self):
+        doc = self._make_topic_doc()
+        tokens = doc.get_estimated_tokens()
+        assert isinstance(tokens, int)
+        assert tokens > 0
+
+
+# ── Document subclass dispatch ───────────────────────────────────
+
+
+class TestDocumentSubclasses:
+    def test_parse_returns_topic_document(self):
+        from wos.models.documents import TopicDocument
+
+        md = (
+            "---\n"
+            "document_type: topic\n"
+            'description: "When and how to use exceptions in Python"\n'
+            "last_updated: 2026-02-17\n"
+            "last_validated: 2026-02-17\n"
+            "sources:\n"
+            '  - url: "https://example.com"\n'
+            '    title: "Example"\n'
+            "---\n\n# Topic\n\n## Guidance\n\nContent.\n"
+        )
+        doc = parse_document("context/python/test.md", md)
+        assert isinstance(doc, TopicDocument)
+
+    def test_parse_returns_overview_document(self):
+        from wos.models.documents import OverviewDocument
+
+        md = (
+            "---\n"
+            "document_type: overview\n"
+            'description: "Core Python programming concepts"\n'
+            "last_updated: 2026-02-17\n"
+            "last_validated: 2026-02-17\n"
+            "---\n\n# Python\n\n## What This Covers\n\nContent.\n"
+        )
+        doc = parse_document("context/python/_overview.md", md)
+        assert isinstance(doc, OverviewDocument)
+
+    def test_parse_returns_note_document(self):
+        from wos.models.documents import NoteDocument
+
+        md = (
+            "---\n"
+            "document_type: note\n"
+            'description: "Personal notes on a specific topic area"\n'
+            "---\n\n# My Note\n\nContent.\n"
+        )
+        doc = parse_document("notes/test.md", md)
+        assert isinstance(doc, NoteDocument)

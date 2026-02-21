@@ -18,14 +18,14 @@ import yaml
 from wos.document_types import (
     SECTIONS,
     DocumentType,
-    PlanStatus,
+    ValidationIssue,
     parse_document,
 )
 
 # ── Types ────────────────────────────────────────────────────────
 
 FixResult = Tuple[str, str]  # (fixed_content, description)
-FixFn = Callable[[str, str, dict], Optional[FixResult]]
+FixFn = Callable[[str, str, ValidationIssue], Optional[FixResult]]
 
 # path, content, issue -> optional (new_content, description)
 
@@ -34,7 +34,7 @@ FixFn = Callable[[str, str, dict], Optional[FixResult]]
 
 
 def fix_section_ordering(
-    path: str, content: str, issue: dict
+    path: str, content: str, issue: ValidationIssue
 ) -> Optional[FixResult]:
     """Reorder H2 sections to match canonical order for the document type."""
     try:
@@ -109,10 +109,10 @@ def fix_section_ordering(
 
 
 def fix_missing_sections(
-    path: str, content: str, issue: dict
+    path: str, content: str, issue: ValidationIssue
 ) -> Optional[FixResult]:
     """Add missing required sections with TODO placeholders."""
-    section_name = issue.get("section")
+    section_name = issue.section
     if not section_name:
         return None
 
@@ -147,7 +147,7 @@ def fix_missing_sections(
         # Insert after the preceding canonical section (or at the end)
         preceding = None
         for i in range(target_idx - 1, -1, -1):
-            if canonical_order[i] in doc.sections:
+            if doc.has_section(canonical_order[i]):
                 preceding = canonical_order[i]
                 break
 
@@ -184,7 +184,7 @@ def fix_missing_sections(
 
 
 def fix_missing_last_updated(
-    path: str, content: str, issue: dict
+    path: str, content: str, issue: ValidationIssue
 ) -> Optional[FixResult]:
     """Set last_updated to today if missing or invalid."""
     today = date.today().isoformat()
@@ -215,76 +215,6 @@ def fix_missing_last_updated(
         return None
 
     return (fixed, f"Set last_updated to {today}")
-
-
-# ── Lifecycle transitions ────────────────────────────────────────
-
-# Valid transitions: from_status -> set of allowed to_statuses
-VALID_TRANSITIONS: Dict[PlanStatus, List[PlanStatus]] = {
-    PlanStatus.DRAFT: [PlanStatus.ACTIVE, PlanStatus.ABANDONED],
-    PlanStatus.ACTIVE: [PlanStatus.COMPLETE, PlanStatus.ABANDONED],
-    PlanStatus.COMPLETE: [PlanStatus.ACTIVE],  # reopen
-    PlanStatus.ABANDONED: [PlanStatus.DRAFT],  # resurrect
-}
-
-
-def transition_status(
-    path: str,
-    content: str,
-    new_status: PlanStatus,
-) -> Optional[FixResult]:
-    """Update a plan's status field and last_updated date.
-
-    Returns None if the transition is invalid.
-    """
-    try:
-        doc = parse_document(path, content)
-    except Exception:
-        return None
-
-    if doc.document_type != DocumentType.PLAN:
-        return None
-
-    current = doc.frontmatter.status
-    if isinstance(current, str):
-        current = PlanStatus(current)
-
-    allowed = VALID_TRANSITIONS.get(current, [])
-    if new_status not in allowed:
-        return None
-
-    today = date.today().isoformat()
-
-    # Update frontmatter via regex replacement
-    fixed = content
-
-    # Replace status
-    fixed = re.sub(
-        r"^status:\s*\S+",
-        f"status: {new_status.value}",
-        fixed,
-        count=1,
-        flags=re.MULTILINE,
-    )
-
-    # Replace last_updated
-    fixed = re.sub(
-        r"^last_updated:\s*\S+",
-        f"last_updated: {today}",
-        fixed,
-        count=1,
-        flags=re.MULTILINE,
-    )
-
-    try:
-        parse_document(path, fixed)
-    except Exception:
-        return None
-
-    return (
-        fixed,
-        f"Transitioned status: {current.value} -> {new_status.value}",
-    )
 
 
 # ── Cleanup ──────────────────────────────────────────────────────
@@ -329,7 +259,7 @@ AUTO_FIXES: Dict[str, FixFn] = {
 def apply_auto_fixes(
     path: str,
     content: str,
-    issues: List[dict],
+    issues: List[ValidationIssue],
     *,
     dry_run: bool = False,
 ) -> List[dict]:
@@ -342,8 +272,7 @@ def apply_auto_fixes(
     current = content
 
     for issue in issues:
-        validator = issue.get("validator", "")
-        fix_fn = AUTO_FIXES.get(validator)
+        fix_fn = AUTO_FIXES.get(issue.validator)
         if not fix_fn:
             continue
 
@@ -354,7 +283,7 @@ def apply_auto_fixes(
         fixed_content, description = result
         entry = {
             "file": path,
-            "fix": validator,
+            "fix": issue.validator,
             "description": description,
             "applied": not dry_run,
         }
@@ -369,15 +298,14 @@ def apply_auto_fixes(
 def get_fixed_content(
     path: str,
     content: str,
-    issues: List[dict],
+    issues: List[ValidationIssue],
 ) -> Optional[str]:
     """Apply all auto-fixes and return the final content, or None if no fixes."""
     current = content
     any_fixed = False
 
     for issue in issues:
-        validator = issue.get("validator", "")
-        fix_fn = AUTO_FIXES.get(validator)
+        fix_fn = AUTO_FIXES.get(issue.validator)
         if not fix_fn:
             continue
 

@@ -37,8 +37,7 @@ Version bump requires updating all three: `pyproject.toml`,
     `validators.py` (per-file), `cross_validators.py` (multi-file),
     `templates.py`, `discovery.py`, `scaffold.py`
   - **Extended:** `auto_fix.py`, `token_budget.py`, `tier2_triggers.py`,
-    `source_verification.py`, `utilization.py`, `recommendations.py`,
-    `hook_log_access.py`
+    `source_verification.py`
 - `scripts/` — thin CLI entry points with argparse that import from `wos`
 - `skills/` — skill definitions (SKILL.md + workflows/) auto-discovered by
   Claude Code
@@ -56,15 +55,15 @@ skill routing changes needed.
 
 ### Skills
 
-Prefix: `/wos:` (e.g., `/wos:setup`, `/wos:health`). Each skill has `SKILL.md`
-(routing), `workflows/`, optionally `references/`.
+Prefix: `/wos:` (e.g., `/wos:create-context`, `/wos:audit`). Each skill has
+`SKILL.md` (routing) and optionally `references/`.
 
 ### Key Separation
 
-- **Health** is read-only — observes and reports, can run in CI
-- **Maintain** is write — acts on health signals, requires approval
-- **Curate** handles content lifecycle — create, ingest, update
-- **Setup** runs once (or rarely) — scaffold and configure
+- **Audit** is read-only — observes and reports, can run in CI
+- **Fix** is write — acts on audit findings, requires approval
+- **Create-document / Update-document** — document lifecycle
+- **Create-context / Update-context** — project and area scaffolding
 
 ### Document Types
 
@@ -84,7 +83,7 @@ products, reachable via `related` links.
 - `wos/document_types.py` — schema foundation; start here for new document types
 - `wos/validators.py` — per-file validators dispatched by `VALIDATORS_BY_TYPE`
 - `wos/cross_validators.py` — multi-file validators (link graph, manifest sync, naming)
-- `scripts/check_health.py` — CLI that wires validators into `/wos:health` output
+- `scripts/check_health.py` — CLI that wires validators into `/wos:audit` output
 
 ## Reference
 

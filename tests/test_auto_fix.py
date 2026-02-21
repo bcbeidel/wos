@@ -10,15 +10,13 @@ from datetime import date
 
 from wos.auto_fix import (
     AUTO_FIXES,
-    VALID_TRANSITIONS,
     apply_auto_fixes,
     find_unparseable_files,
     fix_missing_sections,
     fix_section_ordering,
     get_fixed_content,
-    transition_status,
 )
-from wos.document_types import PlanStatus, parse_document
+from wos.document_types import IssueSeverity, ValidationIssue, parse_document
 
 # ── Helpers ──────────────────────────────────────────────────────
 
@@ -54,7 +52,6 @@ def _topic(
 
 def _plan(
     *,
-    status: str = "draft",
     title: str = "Test Plan",
     description: str = "A test plan for auto-fix validation",
 ) -> str:
@@ -63,7 +60,6 @@ def _plan(
         "document_type: plan\n"
         f'description: "{description}"\n'
         f"last_updated: {TODAY}\n"
-        f"status: {status}\n"
         "---\n\n"
         f"# {title}\n\n"
         "## Objective\n\nThe goal.\n\n"
@@ -125,18 +121,24 @@ class TestFixSectionOrdering:
             "## Go Deeper\n\n- [Link](https://example.com)\n"
         )
         md = _topic(sections=sections)
-        issue = {"validator": "check_section_ordering"}
+        issue = ValidationIssue(
+            file="context/test/test.md", issue="Sections out of order",
+            severity=IssueSeverity.WARN, validator="check_section_ordering",
+        )
         result = fix_section_ordering("context/test/test.md", md, issue)
         assert result is not None
         fixed, desc = result
         assert "Reordered" in desc
         doc = parse_document("context/test/test.md", fixed)
-        keys = list(doc.sections.keys())
+        keys = doc.section_names
         assert keys.index("Context") < keys.index("Pitfalls")
 
     def test_valid_order_returns_none(self) -> None:
         md = _topic()
-        issue = {"validator": "check_section_ordering"}
+        issue = ValidationIssue(
+            file="context/test/test.md", issue="Sections out of order",
+            severity=IssueSeverity.WARN, validator="check_section_ordering",
+        )
         # Already in correct order — fix should still return reordered
         # (but content is equivalent)
         result = fix_section_ordering("context/test/test.md", md, issue)
@@ -153,7 +155,10 @@ class TestFixSectionOrdering:
             "## Pitfalls\n\nCommon mistakes.\n"
         )
         md = _topic(sections=sections)
-        issue = {"validator": "check_section_ordering"}
+        issue = ValidationIssue(
+            file="context/test/test.md", issue="Sections out of order",
+            severity=IssueSeverity.WARN, validator="check_section_ordering",
+        )
         result = fix_section_ordering("context/test/test.md", md, issue)
         assert result is not None
         fixed, _ = result
@@ -170,12 +175,15 @@ class TestFixSectionOrdering:
             "## Go Deeper\n\n- [Link](https://example.com)\n"
         )
         md = _topic(sections=sections)
-        issue = {"validator": "check_section_ordering"}
+        issue = ValidationIssue(
+            file="context/test/test.md", issue="Sections out of order",
+            severity=IssueSeverity.WARN, validator="check_section_ordering",
+        )
         result = fix_section_ordering("context/test/test.md", md, issue)
         assert result is not None
         fixed, _ = result
         doc = parse_document("context/test/test.md", fixed)
-        assert "Quick Reference" in doc.sections
+        assert doc.has_section("Quick Reference")
 
 
 # ── fix_missing_sections ─────────────────────────────────────────
@@ -190,16 +198,17 @@ class TestFixMissingSections:
             "## Go Deeper\n\n- [Link](https://example.com)\n"
         )
         md = _topic(sections=sections)
-        issue = {
-            "validator": "check_section_presence",
-            "section": "Pitfalls",
-        }
+        issue = ValidationIssue(
+            file="context/test/test.md", issue="Missing section: Pitfalls",
+            severity=IssueSeverity.WARN, validator="check_section_presence",
+            section="Pitfalls",
+        )
         result = fix_missing_sections("context/test/test.md", md, issue)
         assert result is not None
         fixed, desc = result
         assert "Pitfalls" in desc
         doc = parse_document("context/test/test.md", fixed)
-        assert "Pitfalls" in doc.sections
+        assert doc.has_section("Pitfalls")
 
     def test_adds_first_section(self) -> None:
         # Missing the very first canonical section
@@ -210,111 +219,25 @@ class TestFixMissingSections:
             "## Go Deeper\n\n- [Link](https://example.com)\n"
         )
         md = _topic(sections=sections)
-        issue = {
-            "validator": "check_section_presence",
-            "section": "Guidance",
-        }
+        issue = ValidationIssue(
+            file="context/test/test.md", issue="Missing section: Guidance",
+            severity=IssueSeverity.WARN, validator="check_section_presence",
+            section="Guidance",
+        )
         result = fix_missing_sections("context/test/test.md", md, issue)
         assert result is not None
         fixed, _ = result
         doc = parse_document("context/test/test.md", fixed)
-        assert "Guidance" in doc.sections
+        assert doc.has_section("Guidance")
 
     def test_no_section_name_returns_none(self) -> None:
         md = _topic()
-        issue = {"validator": "check_section_presence"}
+        issue = ValidationIssue(
+            file="context/test/test.md", issue="Missing section",
+            severity=IssueSeverity.WARN, validator="check_section_presence",
+        )
         result = fix_missing_sections("context/test/test.md", md, issue)
         assert result is None
-
-
-# ── transition_status ────────────────────────────────────────────
-
-
-class TestTransitionStatus:
-    def test_draft_to_active(self) -> None:
-        md = _plan(status="draft")
-        result = transition_status(
-            "artifacts/plans/2026-02-17-test.md",
-            md,
-            PlanStatus.ACTIVE,
-        )
-        assert result is not None
-        fixed, desc = result
-        assert "draft -> active" in desc
-        doc = parse_document("artifacts/plans/2026-02-17-test.md", fixed)
-        assert doc.frontmatter.status == PlanStatus.ACTIVE
-
-    def test_active_to_complete(self) -> None:
-        md = _plan(status="active")
-        result = transition_status(
-            "artifacts/plans/2026-02-17-test.md",
-            md,
-            PlanStatus.COMPLETE,
-        )
-        assert result is not None
-        fixed, _ = result
-        doc = parse_document("artifacts/plans/2026-02-17-test.md", fixed)
-        assert doc.frontmatter.status == PlanStatus.COMPLETE
-
-    def test_updates_last_updated(self) -> None:
-        md = _plan(status="draft")
-        result = transition_status(
-            "artifacts/plans/2026-02-17-test.md",
-            md,
-            PlanStatus.ACTIVE,
-        )
-        assert result is not None
-        fixed, _ = result
-        doc = parse_document("artifacts/plans/2026-02-17-test.md", fixed)
-        assert doc.frontmatter.last_updated == date.today()
-
-    def test_invalid_transition_returns_none(self) -> None:
-        md = _plan(status="draft")
-        result = transition_status(
-            "artifacts/plans/2026-02-17-test.md",
-            md,
-            PlanStatus.COMPLETE,  # Can't go draft -> complete
-        )
-        assert result is None
-
-    def test_non_plan_returns_none(self) -> None:
-        md = _topic()
-        result = transition_status(
-            "context/test/test.md",
-            md,
-            PlanStatus.ACTIVE,
-        )
-        assert result is None
-
-    def test_complete_to_active_reopen(self) -> None:
-        md = _plan(status="complete")
-        result = transition_status(
-            "artifacts/plans/2026-02-17-test.md",
-            md,
-            PlanStatus.ACTIVE,
-        )
-        assert result is not None
-        fixed, desc = result
-        assert "complete -> active" in desc
-
-
-# ── Valid transitions ────────────────────────────────────────────
-
-
-class TestValidTransitions:
-    def test_all_statuses_have_transitions(self) -> None:
-        for status in PlanStatus:
-            assert status in VALID_TRANSITIONS
-
-    def test_draft_can_become_active_or_abandoned(self) -> None:
-        allowed = VALID_TRANSITIONS[PlanStatus.DRAFT]
-        assert PlanStatus.ACTIVE in allowed
-        assert PlanStatus.ABANDONED in allowed
-
-    def test_active_can_become_complete_or_abandoned(self) -> None:
-        allowed = VALID_TRANSITIONS[PlanStatus.ACTIVE]
-        assert PlanStatus.COMPLETE in allowed
-        assert PlanStatus.ABANDONED in allowed
 
 
 # ── apply_auto_fixes ─────────────────────────────────────────────
@@ -330,7 +253,10 @@ class TestApplyAutoFixes:
             "## Go Deeper\n\n- [Link](https://example.com)\n"
         )
         md = _topic(sections=sections)
-        issues = [{"validator": "check_section_ordering"}]
+        issues = [ValidationIssue(
+            file="context/test/test.md", issue="Sections out of order",
+            severity=IssueSeverity.WARN, validator="check_section_ordering",
+        )]
         results = apply_auto_fixes(
             "context/test/test.md", md, issues, dry_run=True
         )
@@ -346,14 +272,20 @@ class TestApplyAutoFixes:
             "## Go Deeper\n\n- [Link](https://example.com)\n"
         )
         md = _topic(sections=sections)
-        issues = [{"validator": "check_section_ordering"}]
+        issues = [ValidationIssue(
+            file="context/test/test.md", issue="Sections out of order",
+            severity=IssueSeverity.WARN, validator="check_section_ordering",
+        )]
         results = apply_auto_fixes("context/test/test.md", md, issues)
         assert len(results) >= 1
         assert results[0]["applied"] is True
 
     def test_unknown_validator_skipped(self) -> None:
         md = _topic()
-        issues = [{"validator": "check_nonexistent_thing"}]
+        issues = [ValidationIssue(
+            file="context/test/test.md", issue="Unknown issue",
+            severity=IssueSeverity.WARN, validator="check_nonexistent_thing",
+        )]
         results = apply_auto_fixes("context/test/test.md", md, issues)
         assert len(results) == 0
 
@@ -364,7 +296,10 @@ class TestApplyAutoFixes:
 class TestGetFixedContent:
     def test_returns_none_when_nothing_to_fix(self) -> None:
         md = _topic()
-        issues = [{"validator": "check_nonexistent_thing"}]
+        issues = [ValidationIssue(
+            file="context/test/test.md", issue="Unknown issue",
+            severity=IssueSeverity.WARN, validator="check_nonexistent_thing",
+        )]
         result = get_fixed_content("context/test/test.md", md, issues)
         assert result is None
 
@@ -377,11 +312,14 @@ class TestGetFixedContent:
             "## Go Deeper\n\n- [Link](https://example.com)\n"
         )
         md = _topic(sections=sections)
-        issues = [{"validator": "check_section_ordering"}]
+        issues = [ValidationIssue(
+            file="context/test/test.md", issue="Sections out of order",
+            severity=IssueSeverity.WARN, validator="check_section_ordering",
+        )]
         result = get_fixed_content("context/test/test.md", md, issues)
         assert result is not None
         doc = parse_document("context/test/test.md", result)
-        keys = list(doc.sections.keys())
+        keys = doc.section_names
         assert keys.index("Guidance") < keys.index("Context")
 
 
@@ -424,8 +362,15 @@ class TestSafetyGuards:
     def test_valid_topic_not_corrupted(self) -> None:
         md = _topic()
         issues = [
-            {"validator": "check_section_ordering"},
-            {"validator": "check_section_presence", "section": "Guidance"},
+            ValidationIssue(
+                file="context/test/test.md", issue="Sections out of order",
+                severity=IssueSeverity.WARN, validator="check_section_ordering",
+            ),
+            ValidationIssue(
+                file="context/test/test.md", issue="Missing section: Guidance",
+                severity=IssueSeverity.WARN, validator="check_section_presence",
+                section="Guidance",
+            ),
         ]
         result = get_fixed_content("context/test/test.md", md, issues)
         # Either returns None (nothing to fix) or valid content
@@ -435,7 +380,10 @@ class TestSafetyGuards:
     def test_valid_plan_not_corrupted(self) -> None:
         md = _plan()
         issues = [
-            {"validator": "check_section_ordering"},
+            ValidationIssue(
+                file="artifacts/plans/2026-02-17-test.md", issue="Sections out of order",
+                severity=IssueSeverity.WARN, validator="check_section_ordering",
+            ),
         ]
         result = get_fixed_content(
             "artifacts/plans/2026-02-17-test.md", md, issues
@@ -446,7 +394,10 @@ class TestSafetyGuards:
     def test_valid_overview_not_corrupted(self) -> None:
         md = _overview()
         issues = [
-            {"validator": "check_section_ordering"},
+            ValidationIssue(
+                file="context/test/_overview.md", issue="Sections out of order",
+                severity=IssueSeverity.WARN, validator="check_section_ordering",
+            ),
         ]
         result = get_fixed_content("context/test/_overview.md", md, issues)
         if result is not None:

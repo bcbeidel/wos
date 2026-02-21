@@ -2,9 +2,10 @@
 """Run health checks on project documents.
 
 Usage:
-    python3 scripts/check_health.py [--root ROOT] [--tier2]
+    python3 scripts/check_health.py [--root ROOT] [--tier2] [--json] [--detailed] [--no-color]
 
-Outputs JSON report. Exit code 1 if any issue has severity: fail.
+Outputs human-readable text by default. Use --json for machine-readable output.
+Exit code 1 if any issue has severity: fail.
 """
 
 from __future__ import annotations
@@ -29,17 +30,36 @@ def main() -> None:
         action="store_true",
         help="Include Tier 2 LLM trigger pre-screening",
     )
+    parser.add_argument(
+        "--detailed",
+        action="store_true",
+        help="Show detailed output grouped by severity with suggestions",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output JSON (machine-readable)",
+    )
+    parser.add_argument(
+        "--no-color",
+        action="store_true",
+        help="Disable ANSI color in text output",
+    )
     args = parser.parse_args()
 
+    if args.detailed and args.json:
+        parser.error("--detailed and --json are mutually exclusive")
+
     from wos.cross_validators import check_source_url_reachability, run_cross_validators
-    from wos.document_types import parse_document
+    from wos.document_types import IssueSeverity, ValidationIssue, parse_document
+    from wos.models.health_report import HealthReport
     from wos.tier2_triggers import run_triggers
     from wos.token_budget import estimate_token_budget
     from wos.validators import validate_document
 
     root = Path(args.root).resolve()
     docs = []
-    parse_issues = []
+    parse_issues: list[ValidationIssue] = []
 
     # Find and parse all markdown files in context/ and artifacts/
     search_dirs = [
@@ -53,16 +73,20 @@ def main() -> None:
             md_files.extend(search_dir.rglob("*.md"))
 
     if not md_files:
-        report = {
-            "status": "pass",
-            "files_checked": 0,
-            "token_budget": estimate_token_budget([]),
-            "issues": [],
-            "triggers": [],
-            "message": "No documents found. "
-            "Use /wos:setup to initialize your project.",
-        }
-        print(json.dumps(report, indent=2))
+        report = HealthReport(
+            files_checked=0,
+            issues=[],
+            triggers=[],
+            token_budget=estimate_token_budget([]),
+        )
+        if args.json:
+            output = report.to_json()
+            output["message"] = (
+                "No documents found. Use /wos:create-context to initialize your project."
+            )
+            print(json.dumps(output, indent=2))
+        else:
+            print("No documents found. Use /wos:create-context to initialize your project.")
         sys.exit(0)
 
     for md_file in sorted(md_files):
@@ -72,17 +96,18 @@ def main() -> None:
             doc = parse_document(rel_path, content)
             docs.append(doc)
         except Exception as e:
-            parse_issues.append({
-                "file": rel_path,
-                "issue": f"Failed to parse: {e}",
-                "severity": "fail",
-                "validator": "parse_document",
-                "section": None,
-                "suggestion": "Fix frontmatter or document structure",
-            })
+            parse_issues.append(
+                ValidationIssue(
+                    file=rel_path,
+                    issue=f"Failed to parse: {e}",
+                    severity=IssueSeverity.FAIL,
+                    validator="parse_document",
+                    suggestion="Fix frontmatter or document structure",
+                )
+            )
 
     # Run per-file validators
-    all_issues = list(parse_issues)
+    all_issues: list[ValidationIssue] = list(parse_issues)
     for doc in docs:
         all_issues.extend(validate_document(doc))
 
@@ -108,33 +133,35 @@ def main() -> None:
             # Skip T2 for files with T1 failures
             doc_failures = [
                 i for i in all_issues
-                if i["file"] == doc.path and i["severity"] == "fail"
+                if i.file == doc.path and i.severity == IssueSeverity.FAIL
             ]
             if not doc_failures:
                 all_triggers.extend(run_triggers(doc))
 
-    # Determine overall status
-    severities = [i["severity"] for i in all_issues]
-    if "fail" in severities:
-        status = "fail"
-    elif "warn" in severities:
-        status = "warn"
-    else:
-        status = "pass"
-
     # Strip the issue from the budget dict (it's already in all_issues)
     budget_output = {k: v for k, v in token_budget.items() if k != "issue"}
 
-    report = {
-        "status": status,
-        "files_checked": len(docs) + len(parse_issues),
-        "token_budget": budget_output,
-        "issues": all_issues,
-        "triggers": all_triggers,
-    }
+    # Build and output report
+    report = HealthReport(
+        files_checked=len(docs) + len(parse_issues),
+        issues=all_issues,
+        triggers=all_triggers,
+        token_budget=budget_output,
+    )
 
-    print(json.dumps(report, indent=2))
-    sys.exit(1 if status == "fail" else 0)
+    if args.json:
+        print(json.dumps(report.to_json(), indent=2))
+    else:
+        from wos.formatting import format_detailed, format_summary
+
+        use_color = not args.no_color and sys.stdout.isatty()
+        report_dict = report.to_json()
+        if args.detailed:
+            print(format_detailed(report_dict, color=use_color), end="")
+        else:
+            print(format_summary(report_dict, color=use_color), end="")
+
+    sys.exit(1 if report.status == IssueSeverity.FAIL else 0)
 
 
 if __name__ == "__main__":

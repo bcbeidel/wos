@@ -3,18 +3,16 @@
 Each trigger function takes a Document and returns a list of context dicts
 that the LLM should evaluate. Empty list means nothing to evaluate.
 
-TIER2_TRIGGERS_BY_TYPE is the dispatch table — adding a new document type
-means adding entries here.
+Dispatch is handled by each document subclass's validate_content() method.
 """
 
 from __future__ import annotations
 
-from typing import Callable, Dict, List, Optional
+from typing import Dict, List, Optional
 
-from wos.document_types import Document, DocumentType
+from wos.document_types import Document
 
 TriggerContext = Dict[str, Optional[str]]
-TriggerFn = Callable[[Document], List[TriggerContext]]
 
 
 def _trigger(
@@ -61,7 +59,7 @@ def trigger_in_practice_concreteness(
     doc: Document,
 ) -> List[TriggerContext]:
     """Flag In Practice sections that may lack concrete examples."""
-    section = doc.sections.get("In Practice", "")
+    section = doc.get_section_content("In Practice", "")
     if not section:
         return []
 
@@ -86,7 +84,7 @@ def trigger_pitfalls_completeness(
     doc: Document,
 ) -> List[TriggerContext]:
     """Flag Pitfalls sections that may be incomplete."""
-    section = doc.sections.get("Pitfalls", "")
+    section = doc.get_section_content("Pitfalls", "")
     if not section:
         return []
 
@@ -112,7 +110,7 @@ def trigger_overview_coverage_quality(
     doc: Document,
 ) -> List[TriggerContext]:
     """Flag overviews where What This Covers may be vague."""
-    section = doc.sections.get("What This Covers", "")
+    section = doc.get_section_content("What This Covers", "")
     if not section:
         return []
 
@@ -135,7 +133,7 @@ def trigger_overview_coverage_quality(
 
 def trigger_question_clarity(doc: Document) -> List[TriggerContext]:
     """Flag research questions that may be unclear."""
-    section = doc.sections.get("Question", "")
+    section = doc.get_section_content("Question", "")
     if not section:
         return []
 
@@ -156,7 +154,7 @@ def trigger_question_clarity(doc: Document) -> List[TriggerContext]:
 
 def trigger_finding_groundedness(doc: Document) -> List[TriggerContext]:
     """Flag findings that may not be well-grounded in sources."""
-    section = doc.sections.get("Findings", "")
+    section = doc.get_section_content("Findings", "")
     if not section:
         return []
 
@@ -180,7 +178,7 @@ def trigger_finding_groundedness(doc: Document) -> List[TriggerContext]:
 
 def trigger_step_specificity(doc: Document) -> List[TriggerContext]:
     """Flag plan steps that may be too vague."""
-    section = doc.sections.get("Steps", "")
+    section = doc.get_section_content("Steps", "")
     if not section:
         return []
 
@@ -208,7 +206,7 @@ def trigger_verification_completeness(
     doc: Document,
 ) -> List[TriggerContext]:
     """Flag verification sections that may be incomplete."""
-    section = doc.sections.get("Verification", "")
+    section = doc.get_section_content("Verification", "")
     if not section:
         return []
 
@@ -229,38 +227,13 @@ def trigger_verification_completeness(
     return []
 
 
-# ── Dispatch table ───────────────────────────────────────────────
-
-_SHARED_TRIGGERS: List[TriggerFn] = [
-    trigger_description_quality,
-]
-
-TIER2_TRIGGERS_BY_TYPE: Dict[DocumentType, List[TriggerFn]] = {
-    DocumentType.TOPIC: _SHARED_TRIGGERS + [
-        trigger_in_practice_concreteness,
-        trigger_pitfalls_completeness,
-    ],
-    DocumentType.OVERVIEW: _SHARED_TRIGGERS + [
-        trigger_overview_coverage_quality,
-    ],
-    DocumentType.RESEARCH: _SHARED_TRIGGERS + [
-        trigger_question_clarity,
-        trigger_finding_groundedness,
-    ],
-    DocumentType.PLAN: _SHARED_TRIGGERS + [
-        trigger_step_specificity,
-        trigger_verification_completeness,
-    ],
-    DocumentType.NOTE: [],
-}
+# ── Public API ───────────────────────────────────────────────────
 
 
 def run_triggers(doc: Document) -> List[TriggerContext]:
-    """Run all Tier 2 triggers for a document's type."""
-    triggers = TIER2_TRIGGERS_BY_TYPE.get(
-        doc.document_type, _SHARED_TRIGGERS
-    )
-    results: List[TriggerContext] = []
-    for trigger in triggers:
-        results.extend(trigger(doc))
-    return results
+    """Run all Tier 2 triggers for a document's type.
+
+    Delegates to doc.validate_content() which uses polymorphic
+    dispatch — each document subclass knows its own triggers.
+    """
+    return doc.validate_content()

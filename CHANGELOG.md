@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-02-20
+
+### Added
+
+- **Communication preferences** (`wos/preferences.py`): Capture user
+  communication preferences via five evidence-based dimensions (directness,
+  verbosity, depth, expertise, tone) and write them as structured LLM
+  instructions in CLAUDE.md using `<!-- wos:communication:begin/end -->`
+  markers. New `/wos:preferences` skill with freeform capture workflow.
+  Optional preferences step added to `/wos:create-context` initialization.
+  ([#22](https://github.com/bcbeidel/wos/issues/22))
+- **Progressive context scanner** (`scripts/scan_context.py`): Token-efficient
+  context discovery with three progressive subcommands: `index` (list all
+  documents, filterable by area/type), `outline` (section headings with word
+  counts), and `extract` (raw section content). Reduces typical context lookup
+  from ~8,500 tokens (4 Read calls) to ~700-1,000 tokens (2 Bash calls).
+  ([#12](https://github.com/bcbeidel/wos/issues/12))
+- **Discover skill** (`/wos:discover`): Routes agents through the progressive
+  index → outline → extract pattern for finding and accessing context.
+
+### Changed
+
+- **AGENTS.md is now the primary config file.** The context manifest (area
+  table between `<!-- wos:context:begin/end -->` markers) is written to
+  AGENTS.md instead of CLAUDE.md. CLAUDE.md becomes a thin pointer with an
+  `@AGENTS.md` reference so Claude Code loads it. Existing CLAUDE.md files
+  with old-style markers are automatically migrated on the next discovery run.
+  `check_manifest_sync` now validates AGENTS.md instead of CLAUDE.md.
+  ([#23](https://github.com/bcbeidel/wos/issues/23))
+- **Human-readable health output** is now the default. `scripts/check_health.py`
+  outputs formatted text with issues sorted by severity, one line per issue in
+  summary mode, or grouped by severity with suggestions in `--detailed` mode.
+  JSON output preserved via `--json` flag. Basic ANSI color auto-detected on
+  TTY, disabled with `--no-color`.
+  ([#15](https://github.com/bcbeidel/wos/issues/15))
+- Audit skill workflows simplified to show text output directly instead of
+  instructing the LLM to parse and format JSON.
+
 ## [0.1.8] - 2026-02-19
 
 ### Added
@@ -178,6 +216,7 @@ implemented with 229 tests passing.
 - Build roadmap with session protocol and dependency graph
 - 18 design principles across four layers
 
+[0.1.9]: https://github.com/bcbeidel/wos/releases/tag/v0.1.9
 [0.1.8]: https://github.com/bcbeidel/wos/releases/tag/v0.1.8
 [0.1.7]: https://github.com/bcbeidel/wos/releases/tag/v0.1.7
 [0.1.6]: https://github.com/bcbeidel/wos/releases/tag/v0.1.6

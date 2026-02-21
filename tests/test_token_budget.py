@@ -122,9 +122,9 @@ class TestThreshold:
         result = estimate_token_budget([doc], warning_threshold=1)
         assert result["over_budget"] is True
         issue = result["issue"]
-        assert issue["severity"] == "warn"
-        assert issue["validator"] == "token_budget"
-        assert "threshold" in issue["issue"].lower()
+        assert issue.severity == "warn"
+        assert issue.validator == "token_budget"
+        assert "threshold" in issue.issue.lower()
 
     def test_custom_threshold(self):
         """Custom threshold value is used and reported."""

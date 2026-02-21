@@ -4,13 +4,13 @@ Each render function produces a complete markdown document with correct
 YAML frontmatter and section headings derived from the SECTIONS dispatch
 table. Output passes parse_document() validation.
 
-TEMPLATES is the dispatch table keyed by DocumentType.
+Dispatch is handled by each document subclass's from_template() classmethod.
 """
 
 from __future__ import annotations
 
 from datetime import date
-from typing import Callable, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from wos.document_types import SECTIONS, DocumentType, Source
 
@@ -125,7 +125,6 @@ def render_plan(
     title: str,
     description: str,
     *,
-    status: str = "draft",
     section_content: Optional[Dict[str, str]] = None,
 ) -> str:
     """Render a plan document with valid frontmatter and sections."""
@@ -139,7 +138,6 @@ def render_plan(
         "document_type: plan\n"
         f'description: "{_escape_yaml(description)}"\n'
         f"last_updated: {today}\n"
-        f"status: {status}\n"
         "---\n"
         "\n"
         f"# {title}\n"
@@ -147,10 +145,6 @@ def render_plan(
         f"{sections}"
     )
 
-
-# ── Dispatch table ───────────────────────────────────────────────
-
-TemplateFn = Callable[..., str]
 
 def render_note(
     title: str,
@@ -169,15 +163,6 @@ def render_note(
         "\n"
         f"{body or '<!-- Add content -->'}\n"
     )
-
-
-TEMPLATES: Dict[DocumentType, TemplateFn] = {
-    DocumentType.TOPIC: render_topic,
-    DocumentType.OVERVIEW: render_overview,
-    DocumentType.RESEARCH: render_research,
-    DocumentType.PLAN: render_plan,
-    DocumentType.NOTE: render_note,
-}
 
 
 # ── Helpers ──────────────────────────────────────────────────────

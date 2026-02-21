@@ -15,8 +15,8 @@ import argparse
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Regenerate CLAUDE.md manifest, AGENTS.md, and rules file "
-        "from context documents on disk."
+        description="Regenerate AGENTS.md manifest, CLAUDE.md pointer, and rules "
+        "file from context documents on disk."
     )
     parser.add_argument(
         "--root",

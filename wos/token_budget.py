@@ -10,7 +10,7 @@ import re
 from collections import defaultdict
 from typing import Any, Dict, List
 
-from wos.document_types import Document
+from wos.document_types import Document, IssueSeverity, ValidationIssue
 
 _TOKEN_MULTIPLIER = 1.3
 _DEFAULT_WARNING_THRESHOLD = 40_000
@@ -57,21 +57,20 @@ def estimate_token_budget(
     }
 
     if over_budget:
-        result["issue"] = {
-            "file": "context/",
-            "issue": (
+        result["issue"] = ValidationIssue(
+            file="context/",
+            issue=(
                 f"Total context estimated at ~{total_tokens:,} tokens "
                 f"(threshold: {warning_threshold:,}). "
                 "Consider reducing content or splitting areas."
             ),
-            "severity": "warn",
-            "validator": "token_budget",
-            "section": None,
-            "suggestion": (
+            severity=IssueSeverity.WARN,
+            validator="token_budget",
+            suggestion=(
                 "Review per-area estimated token counts to identify"
                 " optimization targets."
             ),
-        }
+        )
 
     return result
 

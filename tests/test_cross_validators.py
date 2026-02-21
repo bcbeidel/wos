@@ -140,9 +140,9 @@ class TestCheckLinkGraph:
         )
         issues = check_link_graph(docs, str(tmp_path))
         assert len(issues) > 0
-        assert all(i["severity"] == "fail" for i in issues)
+        assert all(i.severity == "fail" for i in issues)
         assert all(
-            i["validator"] == "check_link_graph" for i in issues
+            i.validator == "check_link_graph" for i in issues
         )
 
     def test_valid_url_link(self, tmp_path: Path) -> None:
@@ -161,7 +161,7 @@ class TestCheckLinkGraph:
         issues = check_link_graph(docs, str(tmp_path))
         # Non-URL, non-existent file → fail
         assert len(issues) > 0
-        assert issues[0]["severity"] == "fail"
+        assert issues[0].severity == "fail"
 
 
 # ── check_overview_topic_sync ────────────────────────────────────
@@ -187,8 +187,8 @@ class TestCheckOverviewTopicSync:
         )
         issues = check_overview_topic_sync(docs, str(tmp_path))
         assert len(issues) == 1
-        assert issues[0]["severity"] == "fail"
-        assert "Testing" in issues[0]["issue"]
+        assert issues[0].severity == "fail"
+        assert "Testing" in issues[0].issue
 
     def test_filename_match(self, tmp_path: Path) -> None:
         """Overview can reference topics by filename stem."""
@@ -230,9 +230,9 @@ class TestCheckManifestSync:
 
         issues = check_manifest_sync(docs, str(tmp_path))
         assert len(issues) == 1
-        assert issues[0]["severity"] == "warn"
+        assert issues[0].severity == "warn"
 
-    def test_no_claude_md(self, tmp_path: Path) -> None:
+    def test_no_agents_md(self, tmp_path: Path) -> None:
         docs = _setup_project(tmp_path)
         issues = check_manifest_sync(docs, str(tmp_path))
         assert len(issues) == 0
@@ -296,9 +296,9 @@ class TestCheckSourceUrlReachability:
         ):
             issues = check_source_url_reachability(docs, str(tmp_path))
         assert len(issues) >= 1
-        assert issues[0]["severity"] == "warn"
-        assert issues[0]["validator"] == "check_source_url_reachability"
-        assert "404" in issues[0]["issue"]
+        assert issues[0].severity == "warn"
+        assert issues[0].validator == "check_source_url_reachability"
+        assert "404" in issues[0].issue
 
     def test_403_produces_info(self, tmp_path: Path) -> None:
         """403 URL produces an info-severity issue."""
@@ -316,7 +316,7 @@ class TestCheckSourceUrlReachability:
         ):
             issues = check_source_url_reachability(docs, str(tmp_path))
         assert len(issues) >= 1
-        assert issues[0]["severity"] == "info"
+        assert issues[0].severity == "info"
 
     def test_deduplicates_urls(self, tmp_path: Path) -> None:
         """Same URL in two files is checked once, issues emitted for both."""
@@ -353,7 +353,7 @@ class TestCheckSourceUrlReachability:
         # URL checked only once despite appearing in two docs
         mock_check.assert_called_once()
         # But issues emitted for both files
-        issue_files = [i["file"] for i in issues]
+        issue_files = [i.file for i in issues]
         assert "context/python/error-handling.md" in issue_files
         assert "context/python/testing.md" in issue_files
 

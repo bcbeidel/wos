@@ -10,8 +10,6 @@ from pathlib import Path
 from wos.discovery import (
     MARKER_BEGIN,
     MARKER_END,
-    AreaInfo,
-    TopicInfo,
     render_manifest,
     render_rules_file,
     run_discovery,
@@ -20,8 +18,49 @@ from wos.discovery import (
     update_claude_md,
     update_rules_file,
 )
+from wos.models.context_area import ContextArea
 
 # ── Helpers ──────────────────────────────────────────────────────
+
+
+def _make_area(
+    name: str,
+    *,
+    overview_desc: str | None = None,
+    topic_titles: list[str] | None = None,
+) -> ContextArea:
+    """Build a ContextArea from inline parsed documents (no filesystem)."""
+    from wos.document_types import parse_document
+
+    area = ContextArea(name=name)
+
+    if overview_desc is not None:
+        md = (
+            "---\n"
+            "document_type: overview\n"
+            f'description: "{overview_desc}"\n'
+            "last_updated: 2026-02-17\n"
+            "last_validated: 2026-02-17\n"
+            "---\n\n"
+            "# Title\n\n"
+            "## What This Covers\n\n"
+            "Coverage content for this area.\n\n"
+            "## Topics\n\n- topic\n\n"
+            "## Key Sources\n\n- source\n"
+        )
+        area.overview = parse_document(f"context/{name}/_overview.md", md)
+
+    if topic_titles:
+        for title in topic_titles:
+            slug = title.lower().replace(" ", "-")
+            area.topics.append(
+                parse_document(
+                    f"context/{name}/{slug}.md",
+                    _topic_md(title=title),
+                )
+            )
+
+    return area
 
 
 def _topic_md(
@@ -220,18 +259,10 @@ class TestRenderManifest:
 
     def test_single_area_with_overview(self) -> None:
         areas = [
-            AreaInfo(
-                name="python",
-                display_name="Python",
-                overview_path="context/python/_overview.md",
-                overview_description="Python concepts",
-                topics=[
-                    TopicInfo(
-                        path="context/python/error-handling.md",
-                        title="Error Handling",
-                        description="When and how to use exceptions",
-                    ),
-                ],
+            _make_area(
+                "python",
+                overview_desc="Python concepts",
+                topic_titles=["Error Handling"],
             ),
         ]
         manifest = render_manifest(areas)
@@ -244,52 +275,22 @@ class TestRenderManifest:
 
     def test_area_without_overview_links_to_directory(self) -> None:
         areas = [
-            AreaInfo(
-                name="python",
-                display_name="Python",
-                overview_path=None,
-                overview_description=None,
-                topics=[
-                    TopicInfo(
-                        path="context/python/error-handling.md",
-                        title="Error Handling",
-                        description="Exceptions guide",
-                    ),
-                ],
-            ),
+            _make_area("python", topic_titles=["Error Handling"]),
         ]
         manifest = render_manifest(areas)
         assert "[Python](context/python/)" in manifest
 
     def test_area_without_topics(self) -> None:
         areas = [
-            AreaInfo(
-                name="python",
-                display_name="Python",
-                overview_path="context/python/_overview.md",
-                overview_description="Python concepts",
-                topics=[],
-            ),
+            _make_area("python", overview_desc="Python concepts"),
         ]
         manifest = render_manifest(areas)
         assert "[Python](context/python/_overview.md)" in manifest
 
     def test_multiple_areas_in_order(self) -> None:
         areas = [
-            AreaInfo(
-                name="python",
-                display_name="Python",
-                overview_path="context/python/_overview.md",
-                overview_description="Python stuff",
-                topics=[],
-            ),
-            AreaInfo(
-                name="typescript",
-                display_name="Typescript",
-                overview_path="context/typescript/_overview.md",
-                overview_description="TS stuff",
-                topics=[],
-            ),
+            _make_area("python", overview_desc="Python programming concepts"),
+            _make_area("typescript", overview_desc="TypeScript development patterns"),
         ]
         manifest = render_manifest(areas)
         assert "| Area | Description |" in manifest
@@ -299,26 +300,12 @@ class TestRenderManifest:
 
     def test_compact_format_is_single_table(self) -> None:
         areas = [
-            AreaInfo(
-                name="python",
-                display_name="Python",
-                overview_path="context/python/_overview.md",
-                overview_description="Python concepts",
-                topics=[
-                    TopicInfo(
-                        path="context/python/error-handling.md",
-                        title="Error Handling",
-                        description="When and how to use exceptions",
-                    ),
-                ],
+            _make_area(
+                "python",
+                overview_desc="Python concepts",
+                topic_titles=["Error Handling"],
             ),
-            AreaInfo(
-                name="testing",
-                display_name="Testing",
-                overview_path="context/testing/_overview.md",
-                overview_description="Testing practices",
-                topics=[],
-            ),
+            _make_area("testing", overview_desc="Testing practices"),
         ]
         manifest = render_manifest(areas)
         lines = manifest.strip().split("\n")
@@ -330,18 +317,16 @@ class TestRenderManifest:
 
 
 class TestUpdateClaudeMd:
-    def test_creates_file_when_missing(self, tmp_path: Path) -> None:
+    def test_creates_file_with_agents_ref(self, tmp_path: Path) -> None:
         target = str(tmp_path / "CLAUDE.md")
-        update_claude_md(target, "### Python\n\nSome content")
+        update_claude_md(target)
 
         content = Path(target).read_text(encoding="utf-8")
-        assert "# CLAUDE.md" in content
-        assert "## Context" in content
-        assert MARKER_BEGIN in content
-        assert MARKER_END in content
-        assert "### Python" in content
+        assert "@AGENTS.md" in content
+        assert MARKER_BEGIN not in content
 
-    def test_replaces_between_markers(self, tmp_path: Path) -> None:
+    def test_strips_old_markers_and_adds_agents_ref(self, tmp_path: Path) -> None:
+        """Migration: old-style CLAUDE.md with markers gets cleaned up."""
         target = tmp_path / "CLAUDE.md"
         target.write_text(
             "# My Project\n"
@@ -349,18 +334,21 @@ class TestUpdateClaudeMd:
             "## Context\n"
             "\n"
             f"{MARKER_BEGIN}\n"
-            "old content\n"
+            "old manifest content\n"
             f"{MARKER_END}\n"
             "\n"
             "## Other Section\n",
             encoding="utf-8",
         )
 
-        update_claude_md(str(target), "### New Content")
+        update_claude_md(str(target))
         content = target.read_text(encoding="utf-8")
 
-        assert "### New Content" in content
-        assert "old content" not in content
+        assert MARKER_BEGIN not in content
+        assert MARKER_END not in content
+        assert "old manifest content" not in content
+        assert "@AGENTS.md" in content
+        assert "## Other Section" in content
 
     def test_preserves_content_outside_markers(self, tmp_path: Path) -> None:
         target = tmp_path / "CLAUDE.md"
@@ -372,7 +360,7 @@ class TestUpdateClaudeMd:
             "## Context\n"
             "\n"
             f"{MARKER_BEGIN}\n"
-            "will be replaced\n"
+            "will be removed\n"
             f"{MARKER_END}\n"
             "\n"
             "## Build & Test\n"
@@ -381,17 +369,17 @@ class TestUpdateClaudeMd:
             encoding="utf-8",
         )
 
-        update_claude_md(str(target), "### Updated")
+        update_claude_md(str(target))
         content = target.read_text(encoding="utf-8")
 
         assert "# My Project" in content
         assert "Important stuff here." in content
         assert "## Build & Test" in content
         assert "pytest" in content
-        assert "### Updated" in content
-        assert "will be replaced" not in content
+        assert "@AGENTS.md" in content
+        assert MARKER_BEGIN not in content
 
-    def test_adds_context_section_when_no_markers(self, tmp_path: Path) -> None:
+    def test_adds_agents_ref_to_existing_without_markers(self, tmp_path: Path) -> None:
         target = tmp_path / "CLAUDE.md"
         target.write_text(
             "# My Project\n"
@@ -400,71 +388,43 @@ class TestUpdateClaudeMd:
             encoding="utf-8",
         )
 
-        update_claude_md(str(target), "### Python")
+        update_claude_md(str(target))
         content = target.read_text(encoding="utf-8")
 
         assert "# My Project" in content
         assert "Some existing content." in content
-        assert "## Context" in content
-        assert MARKER_BEGIN in content
-        assert "### Python" in content
+        assert "@AGENTS.md" in content
 
-    def test_empty_manifest_between_markers(self, tmp_path: Path) -> None:
-        target = tmp_path / "CLAUDE.md"
-        target.write_text(
-            f"# Project\n\n{MARKER_BEGIN}\nold\n{MARKER_END}\n",
-            encoding="utf-8",
-        )
-
-        update_claude_md(str(target), "")
-        content = target.read_text(encoding="utf-8")
-
-        assert MARKER_BEGIN in content
-        assert MARKER_END in content
-        assert "old" not in content
-
-    def test_preserves_large_existing_file_without_markers(
-        self, tmp_path: Path
-    ) -> None:
+    def test_preserves_large_existing_file(self, tmp_path: Path) -> None:
         """Regression test for #3: large CLAUDE.md must not be overwritten."""
         target = tmp_path / "CLAUDE.md"
         lines = [f"Line {i}: important project guidance" for i in range(305)]
         original = "\n".join(lines) + "\n"
         target.write_text(original, encoding="utf-8")
 
-        update_claude_md(str(target), "| Area | Description |")
+        update_claude_md(str(target))
         content = target.read_text(encoding="utf-8")
 
         # All original lines preserved
         for i in range(0, 305, 50):
             assert f"Line {i}: important project guidance" in content
 
-        # Context section appended
-        assert "## Context" in content
-        assert MARKER_BEGIN in content
-        assert "| Area | Description |" in content
+        assert "@AGENTS.md" in content
 
-    def test_warns_on_append_to_existing(
-        self, tmp_path: Path, capsys: object
-    ) -> None:
+    def test_idempotent_does_not_duplicate_ref(self, tmp_path: Path) -> None:
         target = tmp_path / "CLAUDE.md"
-        target.write_text("# Project\n\nExisting content.\n", encoding="utf-8")
+        target.write_text("# Project\n\n@AGENTS.md\n", encoding="utf-8")
 
-        update_claude_md(str(target), "manifest")
-        captured = capsys.readouterr()  # type: ignore[attr-defined]
+        update_claude_md(str(target))
+        content = target.read_text(encoding="utf-8")
 
-        assert "exists without markers" in captured.err
-        assert "3 existing lines preserved" in captured.err
+        assert content.count("@AGENTS.md") == 1
 
-    def test_warns_on_create_from_template(
-        self, tmp_path: Path, capsys: object
-    ) -> None:
+    def test_warns_on_create(self, tmp_path: Path, capsys: object) -> None:
         target = str(tmp_path / "CLAUDE.md")
-
-        update_claude_md(target, "manifest")
+        update_claude_md(target)
         captured = capsys.readouterr()  # type: ignore[attr-defined]
-
-        assert "creating from template" in captured.err
+        assert "creating" in captured.err.lower()
 
 
 # ── update_agents_md ─────────────────────────────────────────────
@@ -542,11 +502,13 @@ class TestRunDiscovery:
         )
         rules = rules_path.read_text(encoding="utf-8")
 
-        # CLAUDE.md has compact manifest with area link
-        assert "[Python](context/python/_overview.md)" in claude_md
+        # CLAUDE.md is a thin pointer to AGENTS.md
+        assert "@AGENTS.md" in claude_md
+        assert MARKER_BEGIN not in claude_md
 
-        # AGENTS.md mirrors CLAUDE.md manifest
+        # AGENTS.md has the manifest with area link
         assert "[Python](context/python/_overview.md)" in agents_md
+        assert MARKER_BEGIN in agents_md
 
         # Rules file exists and is reasonable
         assert "Document Types" in rules
@@ -591,17 +553,21 @@ class TestRunDiscovery:
         assert "# My Project" in content
         assert "Custom instructions here." in content
         assert "make build" in content
-        assert "[Python](context/python/_overview.md)" in content
+        assert "@AGENTS.md" in content
+        # Manifest is in AGENTS.md, not CLAUDE.md
+        assert MARKER_BEGIN not in content
 
     def test_empty_context_produces_empty_manifest(self, tmp_path: Path) -> None:
         (tmp_path / "context").mkdir()
         run_discovery(str(tmp_path))
 
         claude_md = (tmp_path / "CLAUDE.md").read_text(encoding="utf-8")
-        assert MARKER_BEGIN in claude_md
-        assert MARKER_END in claude_md
+        agents_md = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
+        assert "@AGENTS.md" in claude_md
+        assert MARKER_BEGIN not in claude_md
+        assert MARKER_BEGIN in agents_md
 
-    def test_manifest_matches_between_claude_and_agents(self, tmp_path: Path) -> None:
+    def test_agents_md_has_manifest(self, tmp_path: Path) -> None:
         _setup_area(tmp_path)
         _setup_area(
             tmp_path,
@@ -614,13 +580,29 @@ class TestRunDiscovery:
         )
         run_discovery(str(tmp_path))
 
-        claude_md = (tmp_path / "CLAUDE.md").read_text(encoding="utf-8")
         agents_md = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
 
-        # Extract manifest content between markers from both files
-        def extract_manifest(content: str) -> str:
-            begin = content.index(MARKER_BEGIN) + len(MARKER_BEGIN)
-            end = content.index(MARKER_END)
-            return content[begin:end]
+        assert MARKER_BEGIN in agents_md
+        assert "[Python](context/python/_overview.md)" in agents_md
+        assert "Testing" in agents_md
 
-        assert extract_manifest(claude_md) == extract_manifest(agents_md)
+    def test_migrates_old_style_claude_md(self, tmp_path: Path) -> None:
+        """Old CLAUDE.md with markers gets migrated on discovery run."""
+        (tmp_path / "CLAUDE.md").write_text(
+            "# My Project\n"
+            "\n"
+            "## Context\n"
+            "\n"
+            f"{MARKER_BEGIN}\n"
+            "| old | manifest |\n"
+            f"{MARKER_END}\n",
+            encoding="utf-8",
+        )
+
+        _setup_area(tmp_path)
+        run_discovery(str(tmp_path))
+
+        claude_md = (tmp_path / "CLAUDE.md").read_text(encoding="utf-8")
+        assert "@AGENTS.md" in claude_md
+        assert MARKER_BEGIN not in claude_md
+        assert "old" not in claude_md

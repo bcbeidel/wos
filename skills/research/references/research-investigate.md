@@ -73,7 +73,7 @@ After evaluation:
 
 ## Phase 7: Produce Research Document
 
-Create the research document via `/wos:curate` with type=research:
+Create the research document via `/wos:create-document` with type=research:
 
 1. **Title:** Concise summary of the investigation
 2. **Description:** One-sentence summary of findings

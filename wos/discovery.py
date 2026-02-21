@@ -2,9 +2,9 @@
 
 Scans a project's /context/ directory, reads frontmatter from context
 documents (topics + overviews), and generates:
-  - CLAUDE.md manifest section (markdown between markers under ## Context)
+  - AGENTS.md with manifest section (markdown between markers under ## Context)
+  - CLAUDE.md with @AGENTS.md reference (thin pointer)
   - .claude/rules/wos-context.md (compact behavioral guide)
-  - AGENTS.md (mirrors the CLAUDE.md manifest)
 
 All outputs are deterministic — running twice produces identical results.
 """
@@ -13,11 +13,10 @@ from __future__ import annotations
 
 import os
 import sys
-from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
-from wos.document_types import DocumentType, parse_document
+from wos.models.context_area import ContextArea
 
 # ── Markers ──────────────────────────────────────────────────────
 
@@ -25,95 +24,22 @@ MARKER_BEGIN = "<!-- wos:context:begin -->"
 MARKER_END = "<!-- wos:context:end -->"
 
 
-# ── Data structures ──────────────────────────────────────────────
-
-
-@dataclass
-class TopicInfo:
-    """Metadata for a single topic document."""
-
-    path: str  # root-relative, e.g. "context/python/error-handling.md"
-    title: str
-    description: str
-
-
-@dataclass
-class AreaInfo:
-    """Metadata for a context area (directory under /context/)."""
-
-    name: str  # directory name, e.g. "python"
-    display_name: str  # title-cased for headings, e.g. "Python"
-    overview_path: Optional[str]  # root-relative path to _overview.md
-    overview_description: Optional[str]
-    topics: List[TopicInfo] = field(default_factory=list)
-
-
 # ── Step 1: Scan ─────────────────────────────────────────────────
 
 
-def scan_context(root: str) -> List[AreaInfo]:
-    """Walk /context/ and return structured metadata for each area.
+def scan_context(root: str) -> List[ContextArea]:
+    """Walk /context/ and return ContextArea for each area directory.
 
-    Skips files that fail to parse. Areas are sorted alphabetically.
-    Topics within each area are sorted alphabetically by filename.
+    Delegates to ContextArea.scan_all(). Skips files that fail to parse.
+    Areas are sorted alphabetically.
     """
-    context_dir = Path(root) / "context"
-    if not context_dir.is_dir():
-        return []
-
-    areas: List[AreaInfo] = []
-
-    for entry in sorted(context_dir.iterdir()):
-        if not entry.is_dir() or entry.name.startswith("."):
-            continue
-
-        area = AreaInfo(
-            name=entry.name,
-            display_name=_display_name(entry.name),
-            overview_path=None,
-            overview_description=None,
-        )
-
-        for md_file in sorted(entry.iterdir()):
-            if not md_file.is_file() or md_file.suffix != ".md":
-                continue
-
-            rel_path = str(md_file.relative_to(root))
-            try:
-                content = md_file.read_text(encoding="utf-8")
-                doc = parse_document(rel_path, content)
-            except Exception:
-                continue
-
-            if doc.document_type == DocumentType.OVERVIEW:
-                area.overview_path = rel_path
-                area.overview_description = doc.frontmatter.description
-            elif doc.document_type == DocumentType.TOPIC:
-                area.topics.append(
-                    TopicInfo(
-                        path=rel_path,
-                        title=doc.title or _display_name(md_file.stem),
-                        description=doc.frontmatter.description,
-                    )
-                )
-
-        areas.append(area)
-
-    return areas
-
-
-def _display_name(slug: str) -> str:
-    """Convert a hyphenated slug to a display name.
-
-    'python-basics' -> 'Python Basics'
-    """
-    return slug.replace("-", " ").title()
+    return ContextArea.scan_all(root)
 
 
 # ── Step 2: Render manifest ─────────────────────────────────────
 
 
-def render_manifest(areas: List[AreaInfo]) -> str:
+def render_manifest(areas: List[ContextArea]) -> str:
     """Generate a compact markdown manifest from scanned areas.
 
     Produces a single area-level table. Each area links to its _overview.md
@@ -131,12 +57,7 @@ def render_manifest(areas: List[AreaInfo]) -> str:
     ]
 
     for area in areas:
-        description = area.overview_description or ""
-        if area.overview_path:
-            link = f"[{area.display_name}]({area.overview_path})"
-        else:
-            link = f"[{area.display_name}](context/{area.name}/)"
-        parts.append(f"| {link} | {description} |")
+        parts.append(area.to_manifest_entry())
 
     return "\n".join(parts)
 
@@ -144,48 +65,78 @@ def render_manifest(areas: List[AreaInfo]) -> str:
 # ── Step 3: Update CLAUDE.md ────────────────────────────────────
 
 
-def update_claude_md(file_path: str, manifest_content: str) -> None:
-    """Update CLAUDE.md with the manifest between markers.
+AGENTS_REF = "@AGENTS.md"
 
-    If markers exist, replaces content between them.
-    If no markers exist, appends a ## Context section with markers.
-    If the file doesn't exist, creates it with a best-practices template.
+
+def update_claude_md(file_path: str) -> None:
+    """Ensure CLAUDE.md references AGENTS.md.
+
+    AGENTS.md is the primary config file for cross-tool compatibility.
+    CLAUDE.md just needs an @AGENTS.md reference so Claude Code loads it.
+
+    If the file doesn't exist, creates a thin pointer.
+    If old WOS markers exist, strips them (migration from pre-0.1.9).
+    Ensures @AGENTS.md reference is present.
     """
     path = Path(file_path)
 
-    if path.exists():
-        existing = path.read_text(encoding="utf-8")
-        if MARKER_BEGIN not in existing:
-            print(
-                f"  CLAUDE.md exists without markers — appending ## Context "
-                f"section ({len(existing.splitlines())} existing lines preserved)",
-                file=sys.stderr,
-            )
-    else:
-        existing = _claude_md_template()
+    if not path.exists():
+        path.write_text(_claude_md_template(), encoding="utf-8")
         print(
-            "  CLAUDE.md not found — creating from template",
+            "  CLAUDE.md not found — creating with @AGENTS.md reference",
             file=sys.stderr,
         )
+        return
 
-    updated = _replace_between_markers(existing, manifest_content)
-    path.write_text(updated, encoding="utf-8")
+    content = path.read_text(encoding="utf-8")
+    changed = False
+
+    # Migration: strip old marker section
+    if MARKER_BEGIN in content and MARKER_END in content:
+        content = _strip_marker_section(content)
+        changed = True
+
+    # Ensure @AGENTS.md reference
+    if AGENTS_REF not in content:
+        content = content.rstrip("\n") + "\n\n" + AGENTS_REF + "\n"
+        changed = True
+
+    if changed:
+        path.write_text(content, encoding="utf-8")
+
+
+def _strip_marker_section(content: str) -> str:
+    """Remove WOS context markers and content between them.
+
+    Also removes a preceding '## Context' heading if present.
+    """
+    begin_idx = content.find(MARKER_BEGIN)
+    end_idx = content.find(MARKER_END)
+    if begin_idx == -1 or end_idx == -1:
+        return content
+
+    end_idx += len(MARKER_END)
+
+    before = content[:begin_idx]
+    after = content[end_idx:]
+
+    # Try to also remove preceding ## Context heading
+    stripped_before = before.rstrip()
+    if stripped_before.endswith("## Context"):
+        before = stripped_before[: -len("## Context")]
+
+    # Clean up whitespace
+    result = before.rstrip("\n") + "\n"
+    after_stripped = after.lstrip("\n")
+    if after_stripped:
+        result += "\n" + after_stripped
+
+    return result
 
 
 def _claude_md_template() -> str:
-    """Best-practices CLAUDE.md template for new projects."""
-    return (
-        "# CLAUDE.md\n"
-        "\n"
-        "## Build & Test\n"
-        "\n"
-        "<!-- Add build and test commands here -->\n"
-        "\n"
-        "## Context\n"
-        "\n"
-        f"{MARKER_BEGIN}\n"
-        f"{MARKER_END}\n"
-    )
+    """Thin CLAUDE.md that references AGENTS.md."""
+    return f"{AGENTS_REF}\n"
 
 
 def _replace_between_markers(content: str, manifest: str) -> str:
@@ -243,17 +194,19 @@ and `last_updated`. Additional requirements by type:
 - **topic**: `sources` (list of url+title), `last_validated` (date)
 - **overview**: `last_validated` (date)
 - **research**: `sources` (list of url+title)
-- **plan**: `status` (draft|active|complete|abandoned)
+- **plan**: (optional `status` string)
 
 Optional on all types: `tags` (lowercase-hyphenated), `related` (file paths or URLs).
 
 ## Agent Guidelines
 
-- Context types (topic, overview) appear in the CLAUDE.md manifest
+- Use `/wos:discover` to find and access context before reading full files
+- Context types (topic, overview) appear in the AGENTS.md manifest
 - Artifact types (research, plan) are internal — reachable via `related` links
-- Use `/wos:curate` to create or update documents
-- Use `/wos:health` to check document validity
-- Use `/wos:maintain` to fix issues found by health
+- Use `/wos:create-document` to create new documents
+- Use `/wos:update-document` to update existing documents
+- Use `/wos:audit` to check document validity
+- Use `/wos:fix` to fix issues found by audit
 - `related` uses root-relative file paths (e.g., `context/python/error-handling.md`)
 - Never edit content between wos markers manually — auto-generated by discovery
 """
@@ -318,8 +271,8 @@ def run_discovery(root: str) -> None:
 
     manifest = render_manifest(areas)
 
-    update_claude_md(os.path.join(root, "CLAUDE.md"), manifest)
     update_agents_md(os.path.join(root, "AGENTS.md"), manifest)
+    update_claude_md(os.path.join(root, "CLAUDE.md"))
 
     rules = render_rules_file()
     update_rules_file(root, rules)

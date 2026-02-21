@@ -12,24 +12,31 @@ from wos.document_types import (
     parse_document,
 )
 from wos.templates import (
-    TEMPLATES,
     render_overview,
     render_plan,
     render_research,
     render_topic,
 )
 
-# ── Dispatch table ───────────────────────────────────────────────
+# ── Polymorphic dispatch ─────────────────────────────────────────
 
 
-class TestDispatchTable:
-    def test_all_types_have_templates(self) -> None:
-        for dt in DocumentType:
-            assert dt in TEMPLATES, f"{dt} missing from TEMPLATES"
+class TestFromTemplate:
+    def test_all_subclasses_have_from_template(self) -> None:
+        from wos.models.documents import (
+            NoteDocument,
+            OverviewDocument,
+            PlanDocument,
+            ResearchDocument,
+            TopicDocument,
+        )
 
-    def test_templates_are_callable(self) -> None:
-        for dt, fn in TEMPLATES.items():
-            assert callable(fn), f"TEMPLATES[{dt}] is not callable"
+        for cls in [
+            TopicDocument, OverviewDocument, ResearchDocument,
+            PlanDocument, NoteDocument,
+        ]:
+            assert hasattr(cls, "from_template")
+            assert callable(cls.from_template)
 
 
 # ── render_topic ─────────────────────────────────────────────────
@@ -57,7 +64,7 @@ class TestRenderTopic:
         md = render_topic("Test", "A test topic for validation", sources)
         doc = parse_document("context/test/test.md", md)
         required = {s.name for s in SECTIONS[DocumentType.TOPIC]}
-        assert required.issubset(set(doc.sections.keys()))
+        assert required.issubset(set(doc.section_names))
 
     def test_custom_section_content(self) -> None:
         sources = [
@@ -70,7 +77,7 @@ class TestRenderTopic:
             section_content={"Guidance": "Custom guidance content."},
         )
         doc = parse_document("context/test/test.md", md)
-        assert "Custom guidance content." in doc.sections["Guidance"]
+        assert "Custom guidance content." in doc.get_section_content("Guidance")
 
 
 # ── render_overview ──────────────────────────────────────────────
@@ -93,7 +100,7 @@ class TestRenderOverview:
         )
         doc = parse_document("context/python/_overview.md", md)
         required = {s.name for s in SECTIONS[DocumentType.OVERVIEW]}
-        assert required.issubset(set(doc.sections.keys()))
+        assert required.issubset(set(doc.section_names))
 
     def test_topics_list(self) -> None:
         md = render_overview(
@@ -102,8 +109,8 @@ class TestRenderOverview:
             topics=["Error Handling", "Testing"],
         )
         doc = parse_document("context/python/_overview.md", md)
-        assert "Error Handling" in doc.sections["Topics"]
-        assert "Testing" in doc.sections["Topics"]
+        assert "Error Handling" in doc.get_section_content("Topics")
+        assert "Testing" in doc.get_section_content("Topics")
 
     def test_what_this_covers_auto_generated(self) -> None:
         md = render_overview(
@@ -112,7 +119,7 @@ class TestRenderOverview:
         )
         doc = parse_document("context/python/_overview.md", md)
         # Auto-generated What This Covers should have enough words
-        words = len(doc.sections["What This Covers"].split())
+        words = len(doc.get_section_content("What This Covers").split())
         assert words >= 30
 
 
@@ -145,7 +152,7 @@ class TestRenderResearch:
         path = "artifacts/research/2026-02-17-test.md"
         doc = parse_document(path, md)
         required = {s.name for s in SECTIONS[DocumentType.RESEARCH]}
-        assert required.issubset(set(doc.sections.keys()))
+        assert required.issubset(set(doc.section_names))
 
     def test_no_last_validated(self) -> None:
         sources = [
@@ -171,17 +178,6 @@ class TestRenderPlan:
         path = "artifacts/plans/2026-02-17-improve-errors.md"
         doc = parse_document(path, md)
         assert doc.frontmatter.document_type == "plan"
-        assert doc.frontmatter.status.value == "draft"
-
-    def test_custom_status(self) -> None:
-        md = render_plan(
-            "Active Plan",
-            "A plan that is already in progress",
-            status="active",
-        )
-        path = "artifacts/plans/2026-02-17-active.md"
-        doc = parse_document(path, md)
-        assert doc.frontmatter.status.value == "active"
 
     def test_has_all_required_sections(self) -> None:
         md = render_plan(
@@ -191,7 +187,7 @@ class TestRenderPlan:
         path = "artifacts/plans/2026-02-17-test.md"
         doc = parse_document(path, md)
         required = {s.name for s in SECTIONS[DocumentType.PLAN]}
-        assert required.issubset(set(doc.sections.keys()))
+        assert required.issubset(set(doc.section_names))
 
     def test_no_last_validated(self) -> None:
         md = render_plan(
@@ -252,9 +248,10 @@ class TestRenderNote:
         doc = parse_document("notes/test.md", md)
         # Note: the template has a placeholder comment, but no H2 sections
         # So sections dict should be empty
-        assert doc.sections == {}
+        assert doc.sections == []
 
-    def test_dispatch_table_has_note(self):
-        from wos.templates import TEMPLATES
+    def test_note_has_from_template(self):
+        from wos.models.documents import NoteDocument
 
-        assert DocumentType.NOTE in TEMPLATES
+        assert hasattr(NoteDocument, "from_template")
+        assert callable(NoteDocument.from_template)
