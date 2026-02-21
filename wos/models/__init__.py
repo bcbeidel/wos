@@ -7,19 +7,20 @@ Re-exports all public symbols so callers can use either:
 
 from __future__ import annotations
 
-# ── Core types ──────────────────────────────────────────────────
-from wos.models.core import (
+# ── Enums & type groupings ─────────────────────────────────────
+from wos.models.enums import (
     ARTIFACT_TYPES,
     CONTEXT_TYPES,
     FRESHNESS_TRACKED_TYPES,
     SOURCE_GROUNDED_TYPES,
-    CitedSource,
-    DocumentSection,
     DocumentType,
     IssueSeverity,
-    Source,
-    ValidationIssue,
 )
+
+# ── Core value objects ─────────────────────────────────────────
+from wos.models.validation_issue import ValidationIssue
+from wos.models.section import DocumentSection
+from wos.models.cited_source import CitedSource, Source
 
 # ── Frontmatter models & dispatch tables ────────────────────────
 from wos.models.frontmatter import (
