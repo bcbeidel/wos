@@ -186,7 +186,7 @@ class TestCitedSourceValidation:
 # ── Builder tests ────────────────────────────────────────────────
 
 
-class TestBuilder:
+class TestCitedSourceBuilder:
     def test_builder_returns_valid(self):
         s = make_cited_source()
         assert isinstance(s, CitedSource)

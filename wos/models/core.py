@@ -123,12 +123,17 @@ class CitedSource(BaseModel):
     # ── YAML protocol ─────────────────────────────────────────────
 
     def to_yaml_entry(self) -> str:
-        """Return a YAML source entry (two lines: url and title)."""
-        return f'url: "{self.url}"\ntitle: "{self.title}"'
+        """Return a YAML source entry (two lines: url and title).
+
+        Values are YAML-escaped (backslashes and double-quotes).
+        """
+        esc_url = self.url.replace("\\", "\\\\").replace('"', '\\"')
+        esc_title = self.title.replace("\\", "\\\\").replace('"', '\\"')
+        return f'url: "{esc_url}"\ntitle: "{esc_title}"'
 
     # ── Validation protocol ───────────────────────────────────────
 
-    def validate_self(self, deep: bool = False) -> list:
+    def validate_self(self, deep: bool = False) -> List[ValidationIssue]:
         """Check internal consistency.
 
         Shallow (default): checks url scheme (http/https) and title not blank.
@@ -138,7 +143,7 @@ class CitedSource(BaseModel):
         """
         from urllib.parse import urlparse as _urlparse
 
-        issues: list = []
+        issues: List[ValidationIssue] = []
 
         # Check URL scheme
         parsed = _urlparse(self.url)
