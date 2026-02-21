@@ -133,6 +133,17 @@ def make_communication_preferences(**overrides):
     return CommunicationPreferences(**defaults)
 
 
+def make_project_context(**overrides):
+    """Build a ProjectContext aggregate with sensible defaults."""
+    from wos.models.project_context import ProjectContext
+    defaults = {
+        "root": "/tmp/test-project",
+        "areas": [],
+    }
+    defaults.update(overrides)
+    return ProjectContext(**defaults)
+
+
 def make_document(**overrides) -> BaseDocument:
     """Build a minimal valid document (note type -- simplest)."""
     from wos.models.parsing import parse_document

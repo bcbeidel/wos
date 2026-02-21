@@ -58,6 +58,9 @@ from wos.models.rules_file import RulesFile
 # ── Communication preferences ────────────────────────────────
 from wos.models.communication_preferences import CommunicationPreferences
 
+# ── Project context ────────────────────────────────────────────
+from wos.models.project_context import ProjectContext
+
 # ── Health report ──────────────────────────────────────────────
 from wos.models.health_report import HealthReport
 
@@ -114,6 +117,8 @@ __all__ = [
     "RulesFile",
     # Communication preferences
     "CommunicationPreferences",
+    # Project context
+    "ProjectContext",
     # Health report
     "HealthReport",
     # Protocol
