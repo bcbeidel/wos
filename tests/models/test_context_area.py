@@ -253,14 +253,14 @@ class TestGetEstimatedTokens:
         assert area.get_estimated_tokens() == 0
 
 
-# ── validate ────────────────────────────────────────────────────
+# ── validate_self ────────────────────────────────────────────────
 
 
 class TestValidate:
     def test_synced_overview_and_topics(self, tmp_path: Path) -> None:
         _setup_area(tmp_path)
         area = ContextArea.from_directory(str(tmp_path), "python")
-        issues = area.validate()
+        issues = area.validate_self()
         # No naming issues, overview mentions Error Handling
         sync_issues = [i for i in issues if i.validator == "check_overview_topic_sync"]
         assert len(sync_issues) == 0
@@ -275,7 +275,7 @@ class TestValidate:
             ],
         )
         area = ContextArea.from_directory(str(tmp_path), "python")
-        issues = area.validate()
+        issues = area.validate_self()
 
         sync_issues = [i for i in issues if i.validator == "check_overview_topic_sync"]
         assert len(sync_issues) == 1
@@ -284,7 +284,7 @@ class TestValidate:
     def test_no_overview_no_sync_issues(self, tmp_path: Path) -> None:
         _setup_area(tmp_path, with_overview=False)
         area = ContextArea.from_directory(str(tmp_path), "python")
-        issues = area.validate()
+        issues = area.validate_self()
         sync_issues = [i for i in issues if i.validator == "check_overview_topic_sync"]
         assert len(sync_issues) == 0
 
@@ -292,10 +292,23 @@ class TestValidate:
         _setup_area(tmp_path)
         area = ContextArea.from_directory(str(tmp_path), "python")
         naming_issues = [
-            i for i in area.validate()
+            i for i in area.validate_self()
             if i.validator == "check_naming_conventions"
         ]
         assert len(naming_issues) == 0
+
+    def test_validate_self_returns_list(self, tmp_path: Path) -> None:
+        """validate_self() replaces validate()."""
+        _setup_area(tmp_path)
+        area = ContextArea.from_directory(str(tmp_path), "python")
+        issues = area.validate_self()
+        assert isinstance(issues, list)
+
+    def test_is_valid_property(self, tmp_path: Path) -> None:
+        _setup_area(tmp_path)
+        area = ContextArea.from_directory(str(tmp_path), "python")
+        assert isinstance(area.is_valid, bool)
+        assert area.is_valid is True
 
 
 # ── to_index_records ────────────────────────────────────────────

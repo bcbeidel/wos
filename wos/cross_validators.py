@@ -77,7 +77,7 @@ def check_overview_topic_sync(
     """Check that overview Topics sections match actual topic files.
 
     A topic on disk that is not listed in its area's overview -> fail.
-    Delegates to ContextArea.validate() for the overview-topic sync check.
+    Delegates to ContextArea.validate_self() for the overview-topic sync check.
     """
     areas = _build_context_areas(docs)
     issues: List[ValidationIssue] = []
@@ -132,7 +132,7 @@ def check_naming_conventions(
 ) -> List[ValidationIssue]:
     """Check that file and directory names follow conventions.
 
-    Delegates to ContextArea.validate() for context docs.
+    Delegates to ContextArea.validate_self() for context docs.
     Non-context docs (notes, etc.) are skipped.
     """
     areas = _build_context_areas(docs)

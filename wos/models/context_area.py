@@ -112,12 +112,17 @@ class ContextArea(BaseModel):
 
     # ── Validation ──────────────────────────────────────────────
 
-    def validate(self) -> list[ValidationIssue]:
+    def validate_self(self, deep: bool = False) -> list[ValidationIssue]:
         """Run area-level validators (overview-topic sync, naming)."""
         issues: list[ValidationIssue] = []
         issues.extend(self._check_overview_topic_sync())
         issues.extend(self._check_naming_conventions())
         return issues
+
+    @property
+    def is_valid(self) -> bool:
+        """True when validate_self() returns no issues."""
+        return len(self.validate_self()) == 0
 
     def _check_overview_topic_sync(self) -> list[ValidationIssue]:
         """Check that overview Topics section lists all topic files."""
