@@ -45,16 +45,40 @@ class ResearchDocument(BaseDocument):
             issues.extend(validator(self))
         return issues
 
-    def validate_content(self) -> list:
-        from wos.tier2_triggers import (
-            trigger_finding_groundedness,
-            trigger_question_clarity,
-        )
+    def validate_content(self) -> list[ValidationIssue]:
+        from wos.models.enums import IssueSeverity
 
-        results = super().validate_content()
-        for trigger in [
-            trigger_question_clarity,
-            trigger_finding_groundedness,
-        ]:
-            results.extend(trigger(self))
-        return results
+        issues = super().validate_content()
+
+        # Check question clarity
+        question = self.get_section_content("Question", "")
+        if question and "?" not in question:
+            issues.append(
+                ValidationIssue(
+                    file=self.path,
+                    issue="Research question may not be clearly framed as a question",
+                    severity=IssueSeverity.INFO,
+                    validator="validate_content",
+                    section="Question",
+                    suggestion="Frame as a specific, answerable question",
+                    requires_llm=True,
+                )
+            )
+
+        # Check finding groundedness
+        findings = self.get_section_content("Findings", "")
+        has_links = "[" in findings and "](" in findings
+        if findings and not has_links and len(findings.split()) > 50:
+            issues.append(
+                ValidationIssue(
+                    file=self.path,
+                    issue="Findings may not be well-grounded in sources",
+                    severity=IssueSeverity.INFO,
+                    validator="validate_content",
+                    section="Findings",
+                    suggestion="Add citations or links to supporting sources",
+                    requires_llm=True,
+                )
+            )
+
+        return issues

@@ -42,9 +42,23 @@ class OverviewDocument(BaseDocument):
             issues.extend(validator(self))
         return issues
 
-    def validate_content(self) -> list:
-        from wos.tier2_triggers import trigger_overview_coverage_quality
+    def validate_content(self) -> list[ValidationIssue]:
+        from wos.models.enums import IssueSeverity
 
-        results = super().validate_content()
-        results.extend(trigger_overview_coverage_quality(self))
-        return results
+        issues = super().validate_content()
+
+        section = self.get_section_content("What This Covers", "")
+        if section and len(section.split()) < 50:
+            issues.append(
+                ValidationIssue(
+                    file=self.path,
+                    issue="What This Covers section may be too vague to define scope",
+                    severity=IssueSeverity.INFO,
+                    validator="validate_content",
+                    section="What This Covers",
+                    suggestion="Expand to clearly define scope and audience",
+                    requires_llm=True,
+                )
+            )
+
+        return issues

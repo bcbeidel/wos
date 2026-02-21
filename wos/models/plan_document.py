@@ -34,16 +34,49 @@ class PlanDocument(BaseDocument):
         issues.extend(check_date_prefix_matches(self))
         return issues
 
-    def validate_content(self) -> list:
-        from wos.tier2_triggers import (
-            trigger_step_specificity,
-            trigger_verification_completeness,
-        )
+    def validate_content(self) -> list[ValidationIssue]:
+        from wos.models.enums import IssueSeverity
 
-        results = super().validate_content()
-        for trigger in [
-            trigger_step_specificity,
-            trigger_verification_completeness,
-        ]:
-            results.extend(trigger(self))
-        return results
+        issues = super().validate_content()
+
+        # Check step specificity
+        steps = self.get_section_content("Steps", "")
+        if steps:
+            step_lines = [
+                line for line in steps.split("\n")
+                if line.strip() and line.strip()[0].isdigit()
+            ]
+            if len(step_lines) > 0 and len(steps.split()) / len(step_lines) < 10:
+                issues.append(
+                    ValidationIssue(
+                        file=self.path,
+                        issue="Plan steps may be too vague to execute",
+                        severity=IssueSeverity.INFO,
+                        validator="validate_content",
+                        section="Steps",
+                        suggestion="Add detail so steps are unambiguous",
+                        requires_llm=True,
+                    )
+                )
+
+        # Check verification completeness
+        verification = self.get_section_content("Verification", "")
+        if verification:
+            items = [
+                line for line in verification.split("\n")
+                if line.strip().startswith("-")
+            ]
+            if len(items) < 2:
+                issues.append(
+                    ValidationIssue(
+                        file=self.path,
+                        issue="Verification section may not have enough criteria",
+                        severity=IssueSeverity.INFO,
+                        validator="validate_content",
+                        section="Verification",
+                        suggestion="Add verification criteria for each objective",
+                        requires_llm=True,
+                    )
+                )
+
+        return issues
