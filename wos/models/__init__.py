@@ -41,15 +41,12 @@ from wos.models.frontmatter import (
 )
 
 # ── Document models ─────────────────────────────────────────────
-from wos.models.documents import (
-    BaseDocument,
-    Document,
-    NoteDocument,
-    OverviewDocument,
-    PlanDocument,
-    ResearchDocument,
-    TopicDocument,
-)
+from wos.models.base_document import BaseDocument, Document
+from wos.models.topic_document import TopicDocument
+from wos.models.overview_document import OverviewDocument
+from wos.models.research_document import ResearchDocument
+from wos.models.plan_document import PlanDocument
+from wos.models.note_document import NoteDocument
 
 # ── Context area ───────────────────────────────────────────────
 from wos.models.context_area import ContextArea
