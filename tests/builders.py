@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from wos.models.core import CitedSource, DocumentSection, IssueSeverity, ValidationIssue
 from wos.models.frontmatter import SectionSpec, SizeBounds
+from wos.source_verification import VerificationResult
 
 
 def make_cited_source(**overrides) -> CitedSource:
@@ -54,3 +55,17 @@ def make_size_bounds(**overrides) -> SizeBounds:
     }
     defaults.update(overrides)
     return SizeBounds(**defaults)
+
+
+def make_verification_result(**overrides) -> VerificationResult:
+    defaults = {
+        "url": "https://example.com",
+        "cited_title": "Example",
+        "http_status": 200,
+        "page_title": "Example Page",
+        "title_match": True,
+        "action": "ok",
+        "reason": "Title matches",
+    }
+    defaults.update(overrides)
+    return VerificationResult(**defaults)

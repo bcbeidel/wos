@@ -12,9 +12,10 @@ import re
 import sys
 from dataclasses import asdict, dataclass
 from html.parser import HTMLParser
-from typing import Optional
+from typing import List, Optional
 from urllib.parse import urlparse
 
+from pydantic import BaseModel, ConfigDict
 import requests
 
 
@@ -96,9 +97,10 @@ def extract_page_title(html: str) -> Optional[str]:
 # ── Verification result ───────────────────────────────────────────
 
 
-@dataclass
-class VerificationResult:
+class VerificationResult(BaseModel):
     """Result of verifying a single source URL."""
+
+    model_config = ConfigDict(frozen=True)
 
     url: str
     cited_title: str
@@ -107,6 +109,46 @@ class VerificationResult:
     title_match: Optional[bool]
     action: str  # "ok" | "removed" | "flagged"
     reason: str
+
+    def __str__(self) -> str:
+        return f"{self.action}: {self.url}"
+
+    def __repr__(self) -> str:
+        return f"VerificationResult(action={self.action!r}, url={self.url!r}, reason={self.reason!r})"
+
+    def to_json(self) -> dict:
+        """Serialize to a plain dict suitable for JSON."""
+        return self.model_dump(mode="json")
+
+    @classmethod
+    def from_json(cls, data: dict) -> VerificationResult:
+        """Construct from a plain dict (e.g. parsed JSON)."""
+        return cls.model_validate(data)
+
+    def validate_self(self) -> List:
+        """Check internal consistency.
+
+        Returns list[ValidationIssue] -- empty when this result is well-formed.
+        """
+        from wos.models.core import IssueSeverity, ValidationIssue
+
+        issues: list = []
+        if self.action not in ("ok", "removed", "flagged"):
+            issues.append(
+                ValidationIssue(
+                    file="<VerificationResult>",
+                    issue=f"Invalid action: {self.action!r}",
+                    severity=IssueSeverity.WARN,
+                    validator="VerificationResult.validate_self",
+                    suggestion="Action must be 'ok', 'removed', or 'flagged'",
+                )
+            )
+        return issues
+
+    @property
+    def is_valid(self) -> bool:
+        """Shortcut: True when validate_self() returns no issues."""
+        return len(self.validate_self()) == 0
 
 
 @dataclass
@@ -410,7 +452,7 @@ def main() -> None:
     summary = format_summary(results)
 
     output = {
-        "results": [asdict(r) for r in results],
+        "results": [r.to_json() for r in results],
         "summary": summary,
     }
     json.dump(output, sys.stdout, indent=2)

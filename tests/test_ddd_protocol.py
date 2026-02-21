@@ -17,10 +17,12 @@ from tests.builders import (
     make_section_spec,
     make_size_bounds,
     make_validation_issue,
+    make_verification_result,
 )
 from wos.models.core import CitedSource, DocumentSection, IssueSeverity, ValidationIssue
 from wos.models.frontmatter import SectionSpec, SizeBounds
 from wos.models.protocol import WosDomainObject
+from wos.source_verification import VerificationResult
 
 
 # ── Frozen / immutable / hashable / equality ─────────────────────
@@ -864,3 +866,149 @@ class TestSizeBoundsProtocol:
     def test_protocol_is_valid(self):
         sb = make_size_bounds()
         assert isinstance(sb.is_valid, bool)
+
+
+# ══════════════════════════════════════════════════════════════════
+# VerificationResult DDD protocol tests
+# ══════════════════════════════════════════════════════════════════
+
+
+class TestVerificationResultProtocol:
+    """DDD protocol tests for VerificationResult."""
+
+    # -- Frozen / immutable --
+
+    def test_frozen_rejects_assignment(self):
+        vr = make_verification_result()
+        with pytest.raises(ValidationError):
+            vr.url = "https://other.com"
+
+    def test_hashable(self):
+        vr = make_verification_result()
+        assert isinstance(hash(vr), int)
+
+    def test_hashable_in_set(self):
+        v1 = make_verification_result()
+        v2 = make_verification_result()
+        assert len({v1, v2}) == 1
+
+    def test_equality_same_values(self):
+        v1 = make_verification_result()
+        v2 = make_verification_result()
+        assert v1 == v2
+
+    def test_equality_different_values(self):
+        v1 = make_verification_result(url="https://a.com")
+        v2 = make_verification_result(url="https://b.com")
+        assert v1 != v2
+
+    # -- __str__ and __repr__ --
+
+    def test_str_format(self):
+        vr = make_verification_result(action="ok", url="https://example.com")
+        assert str(vr) == "ok: https://example.com"
+
+    def test_repr_format(self):
+        vr = make_verification_result(
+            action="ok", url="https://example.com", reason="Title matches"
+        )
+        assert repr(vr) == (
+            "VerificationResult(action='ok', url='https://example.com', "
+            "reason='Title matches')"
+        )
+
+    # -- to_json / from_json / round-trip --
+
+    def test_to_json_returns_dict(self):
+        vr = make_verification_result()
+        data = vr.to_json()
+        assert isinstance(data, dict)
+        assert data["url"] == "https://example.com"
+        assert data["cited_title"] == "Example"
+        assert data["http_status"] == 200
+        assert data["page_title"] == "Example Page"
+        assert data["title_match"] is True
+        assert data["action"] == "ok"
+        assert data["reason"] == "Title matches"
+
+    def test_from_json_constructs_instance(self):
+        data = {
+            "url": "https://example.com",
+            "cited_title": "Example",
+            "http_status": 200,
+            "page_title": "Example Page",
+            "title_match": True,
+            "action": "ok",
+            "reason": "Title matches",
+        }
+        vr = VerificationResult.from_json(data)
+        assert isinstance(vr, VerificationResult)
+        assert vr.url == "https://example.com"
+        assert vr.action == "ok"
+
+    def test_json_round_trip(self):
+        original = make_verification_result()
+        restored = VerificationResult.from_json(original.to_json())
+        assert restored == original
+
+    # -- validate_self / is_valid --
+
+    def test_validate_self_valid_result(self):
+        vr = make_verification_result()
+        issues = vr.validate_self()
+        assert issues == []
+
+    def test_validate_self_invalid_action(self):
+        vr = make_verification_result(action="invalid_action")
+        issues = vr.validate_self()
+        assert len(issues) == 1
+        assert issues[0].severity == IssueSeverity.WARN
+        assert "action" in issues[0].issue.lower() or "invalid" in issues[0].issue.lower()
+
+    def test_is_valid_true(self):
+        vr = make_verification_result()
+        assert vr.is_valid is True
+
+    def test_is_valid_false_bad_action(self):
+        vr = make_verification_result(action="unknown")
+        assert vr.is_valid is False
+
+    # -- WosDomainObject protocol conformance --
+
+    def test_protocol_conformance(self):
+        vr = make_verification_result()
+        assert isinstance(vr, WosDomainObject)
+
+    def test_protocol_str(self):
+        vr = make_verification_result()
+        assert isinstance(str(vr), str)
+
+    def test_protocol_repr(self):
+        vr = make_verification_result()
+        assert isinstance(repr(vr), str)
+
+    def test_protocol_to_json(self):
+        vr = make_verification_result()
+        assert isinstance(vr.to_json(), dict)
+
+    def test_protocol_from_json(self):
+        data = {
+            "url": "https://example.com",
+            "cited_title": "Test",
+            "http_status": 200,
+            "page_title": "Test Page",
+            "title_match": True,
+            "action": "ok",
+            "reason": "OK",
+        }
+        vr = VerificationResult.from_json(data)
+        assert isinstance(vr, WosDomainObject)
+
+    def test_protocol_validate_self(self):
+        vr = make_verification_result()
+        issues = vr.validate_self()
+        assert isinstance(issues, list)
+
+    def test_protocol_is_valid(self):
+        vr = make_verification_result()
+        assert isinstance(vr.is_valid, bool)
