@@ -8,6 +8,7 @@ from __future__ import annotations
 from wos.models.base_document import BaseDocument
 from wos.models.core import CitedSource, DocumentSection, IssueSeverity, ValidationIssue
 from wos.models.frontmatter import SectionSpec, SizeBounds
+from wos.models.rules_file import RulesFile
 from wos.source_verification import ReachabilityResult, VerificationResult
 
 
@@ -82,6 +83,15 @@ def make_reachability_result(**overrides) -> ReachabilityResult:
     }
     defaults.update(overrides)
     return ReachabilityResult(**defaults)
+
+
+def make_rules_file(**overrides) -> RulesFile:
+    """Build a RulesFile value object with sensible defaults."""
+    if not overrides:
+        return RulesFile.render()
+    defaults = {"content": RulesFile.render().content}
+    defaults.update(overrides)
+    return RulesFile(**defaults)
 
 
 def make_document(**overrides) -> BaseDocument:
