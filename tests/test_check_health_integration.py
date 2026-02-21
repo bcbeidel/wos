@@ -56,11 +56,11 @@ def _write_overview(area_dir: Path, area_name: str, topics: list[str]) -> None:
 
 
 def _run_health_script(tmp_path: str) -> subprocess.CompletedProcess:
-    """Run the health script as a subprocess with proper PYTHONPATH."""
+    """Run the health script as a subprocess with --json and proper PYTHONPATH."""
     env = os.environ.copy()
     env["PYTHONPATH"] = PROJECT_ROOT
     return subprocess.run(
-        [sys.executable, "scripts/check_health.py", "--root", tmp_path],
+        [sys.executable, "scripts/check_health.py", "--root", tmp_path, "--json"],
         capture_output=True,
         text=True,
         cwd=PROJECT_ROOT,
@@ -159,7 +159,7 @@ class TestHealthScriptSourceReachability:
         result = subprocess.run(
             [
                 sys.executable, "scripts/check_health.py",
-                "--root", str(tmp_path), "--tier2",
+                "--root", str(tmp_path), "--tier2", "--json",
             ],
             capture_output=True,
             text=True,
@@ -169,3 +169,77 @@ class TestHealthScriptSourceReachability:
         report = json.loads(result.stdout)
         # Script completes successfully with --tier2 flag
         assert "issues" in report
+
+
+def _run_health_script_with_flags(
+    tmp_path: str, *flags: str
+) -> subprocess.CompletedProcess:
+    """Run health script with extra flags."""
+    env = os.environ.copy()
+    env["PYTHONPATH"] = PROJECT_ROOT
+    return subprocess.run(
+        [sys.executable, "scripts/check_health.py", "--root", tmp_path, *flags],
+        capture_output=True,
+        text=True,
+        cwd=PROJECT_ROOT,
+        env=env,
+    )
+
+
+class TestHealthOutputFormats:
+    def test_default_is_text(self, tmp_path: Path) -> None:
+        """Default output is human-readable text, not JSON."""
+        area = tmp_path / "context" / "python"
+        area.mkdir(parents=True)
+        _write_topic(area, "error-handling")
+        _write_overview(area, "python", ["error-handling"])
+
+        result = _run_health_script_with_flags(str(tmp_path))
+        assert result.stdout.startswith("Health:")
+
+    def test_json_flag_preserves_current_behavior(self, tmp_path: Path) -> None:
+        """--json outputs valid JSON matching existing schema."""
+        area = tmp_path / "context" / "python"
+        area.mkdir(parents=True)
+        _write_topic(area, "error-handling")
+        _write_overview(area, "python", ["error-handling"])
+
+        result = _run_health_script_with_flags(str(tmp_path), "--json")
+        report = json.loads(result.stdout)
+        assert "status" in report
+        assert "files_checked" in report
+        assert "issues" in report
+        assert "token_budget" in report
+
+    def test_detailed_flag(self, tmp_path: Path) -> None:
+        """--detailed outputs grouped text with suggestions."""
+        area = tmp_path / "context" / "python"
+        area.mkdir(parents=True)
+        _write_topic(area, "error-handling")
+        _write_overview(area, "python", ["error-handling"])
+
+        result = _run_health_script_with_flags(str(tmp_path), "--detailed")
+        assert result.stdout.startswith("Health:")
+        assert "Token budget:" in result.stdout
+
+    def test_no_color_flag(self, tmp_path: Path) -> None:
+        """--no-color suppresses ANSI codes."""
+        area = tmp_path / "context" / "python"
+        area.mkdir(parents=True)
+        _write_topic(area, "error-handling")
+        _write_overview(area, "python", ["error-handling"])
+
+        result = _run_health_script_with_flags(str(tmp_path), "--no-color")
+        assert "\033[" not in result.stdout
+
+    def test_exit_code_unchanged(self, tmp_path: Path) -> None:
+        """Exit code 0 for pass, regardless of format."""
+        area = tmp_path / "context" / "python"
+        area.mkdir(parents=True)
+        _write_topic(area, "error-handling")
+        _write_overview(area, "python", ["error-handling"])
+
+        text_result = _run_health_script_with_flags(str(tmp_path))
+        json_result = _run_health_script_with_flags(str(tmp_path), "--json")
+        assert text_result.returncode == 0
+        assert json_result.returncode == 0
