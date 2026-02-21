@@ -5,7 +5,7 @@ Override any field via keyword arguments.
 """
 from __future__ import annotations
 
-from wos.models.core import CitedSource, IssueSeverity, ValidationIssue
+from wos.models.core import CitedSource, DocumentSection, IssueSeverity, ValidationIssue
 
 
 def make_cited_source(**overrides) -> CitedSource:
@@ -26,3 +26,12 @@ def make_validation_issue(**overrides) -> ValidationIssue:
     }
     defaults.update(overrides)
     return ValidationIssue(**defaults)
+
+
+def make_document_section(**overrides) -> DocumentSection:
+    defaults = {
+        "name": "Guidance",
+        "content": "Use these guidelines for effective implementation.",
+    }
+    defaults.update(overrides)
+    return DocumentSection(**defaults)
