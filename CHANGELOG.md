@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-02-20
+
+### Added
+
+- **Communication preferences** (`wos/preferences.py`): Capture user
+  communication preferences via five evidence-based dimensions (directness,
+  verbosity, depth, expertise, tone) and write them as structured LLM
+  instructions in CLAUDE.md using `<!-- wos:communication:begin/end -->`
+  markers. New `/wos:preferences` skill with freeform capture workflow.
+  Optional preferences step added to `/wos:create-context` initialization.
+  ([#22](https://github.com/bcbeidel/wos/issues/22))
+
 ## [0.1.8] - 2026-02-19
 
 ### Added
@@ -178,6 +190,7 @@ implemented with 229 tests passing.
 - Build roadmap with session protocol and dependency graph
 - 18 design principles across four layers
 
+[0.1.9]: https://github.com/bcbeidel/wos/releases/tag/v0.1.9
 [0.1.8]: https://github.com/bcbeidel/wos/releases/tag/v0.1.8
 [0.1.7]: https://github.com/bcbeidel/wos/releases/tag/v0.1.7
 [0.1.6]: https://github.com/bcbeidel/wos/releases/tag/v0.1.6
