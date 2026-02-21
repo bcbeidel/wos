@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from typing import Optional
 
 import yaml
 from pydantic import TypeAdapter, ValidationError
@@ -33,10 +34,10 @@ _SUBCLASS_BY_TYPE = {
 
 def _split_markdown(
     content: str,
-) -> tuple[dict, str, list[DocumentSection], str]:
+) -> tuple[dict, str, list[DocumentSection], str, int, Optional[int]]:
     """Parse YAML frontmatter, title, and sections from markdown.
 
-    Returns (frontmatter_dict, title, sections, raw_content).
+    Returns (frontmatter_dict, title, sections, raw_content, fm_line_end, title_line).
 
     Raises ValidationError if no YAML frontmatter is found.
     Sections are keyed by H2 heading name; H3+ headings are content
@@ -60,11 +61,25 @@ def _split_markdown(
     frontmatter_yaml = fm_match.group(1)
     frontmatter_dict = yaml.safe_load(frontmatter_yaml) or {}
 
+    # Line number of the closing --- delimiter (1-indexed).
+    # The regex captures: ---\n(yaml)\n---\s*\n — group(1) is the YAML body.
+    # The closing --- starts one char after the end of group(1) (the \n).
+    closing_delim_pos = fm_match.start(1) + len(fm_match.group(1)) + 1
+    fm_line_end = content[:closing_delim_pos].count("\n") + 1
+
     body = content[fm_match.end() :]
+    # body_start_line: the line number where body text begins (after all
+    # newlines consumed by the frontmatter regex, including any blank line).
+    body_start_line = content[: fm_match.end()].count("\n") + 1
 
     # Extract title from first H1
     h1_match = _H1_RE.search(body)
     title = h1_match.group(1).strip() if h1_match else ""
+    title_line: Optional[int] = (
+        body_start_line + body[: h1_match.start()].count("\n")
+        if h1_match
+        else None
+    )
 
     # Extract sections by H2 headings
     sections: list[DocumentSection] = []
@@ -73,11 +88,16 @@ def _split_markdown(
         section_name = m.group(1).strip()
         start = m.end()
         end = h2_matches[i + 1].start() if i + 1 < len(h2_matches) else len(body)
+        section_line_start = body_start_line + body[: m.start()].count("\n")
         sections.append(
-            DocumentSection(name=section_name, content=body[start:end].strip())
+            DocumentSection(
+                name=section_name,
+                content=body[start:end].strip(),
+                line_start=section_line_start,
+            )
         )
 
-    return frontmatter_dict, title, sections, content
+    return frontmatter_dict, title, sections, content, fm_line_end, title_line
 
 
 def parse_document(path: str, content: str) -> BaseDocument:
@@ -93,7 +113,9 @@ def parse_document(path: str, content: str) -> BaseDocument:
     - Invalid dates, empty sources, bad status values
     - Type-specific field violations
     """
-    frontmatter_dict, title, sections, raw = _split_markdown(content)
+    frontmatter_dict, title, sections, raw, fm_line_end, title_line = _split_markdown(
+        content
+    )
 
     # Validate frontmatter via discriminated union
     adapter = TypeAdapter(Frontmatter)
@@ -109,4 +131,6 @@ def parse_document(path: str, content: str) -> BaseDocument:
         title=title,
         sections=sections,
         raw_content=raw,
+        frontmatter_line_end=fm_line_end,
+        title_line=title_line,
     )

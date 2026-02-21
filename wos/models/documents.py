@@ -29,6 +29,8 @@ class BaseDocument(BaseModel):
     title: str
     sections: List[DocumentSection]
     raw_content: str
+    frontmatter_line_end: Optional[int] = None
+    title_line: Optional[int] = None
 
     @property
     def document_type(self) -> DocumentType:
