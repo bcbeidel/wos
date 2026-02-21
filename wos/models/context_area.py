@@ -84,7 +84,7 @@ class ContextArea(BaseModel):
     # ── Representations ─────────────────────────────────────────
 
     def to_manifest_entry(self) -> str:
-        """Single table row for the CLAUDE.md manifest."""
+        """Single table row for the AGENTS.md manifest."""
         description = self.overview_description or ""
         if self.overview_path:
             link = f"[{self.display_name}]({self.overview_path})"

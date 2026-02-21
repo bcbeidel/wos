@@ -29,14 +29,14 @@ Check whether the project already has a `/context/` directory:
 - `context/` directory with one or more area subdirectories
 - `artifacts/research/` and `artifacts/plans/` directories
 - `_overview.md` in each area (valid overview frontmatter)
-- CLAUDE.md with `## Context` manifest (via discovery)
-- AGENTS.md mirroring the manifest
+- AGENTS.md with `## Context` manifest (via discovery)
+- CLAUDE.md with `@AGENTS.md` reference
 - `.claude/rules/wos-context.md` rules file
 
 **Add area** creates:
 - `context/{area-name}/` directory
 - `_overview.md` with valid overview frontmatter
-- Updates CLAUDE.md and AGENTS.md manifests (via discovery)
+- Updates AGENTS.md manifest and CLAUDE.md pointer (via discovery)
 
 ## Implementation
 

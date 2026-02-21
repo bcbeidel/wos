@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **AGENTS.md is now the primary config file.** The context manifest (area
+  table between `<!-- wos:context:begin/end -->` markers) is written to
+  AGENTS.md instead of CLAUDE.md. CLAUDE.md becomes a thin pointer with an
+  `@AGENTS.md` reference so Claude Code loads it. Existing CLAUDE.md files
+  with old-style markers are automatically migrated on the next discovery run.
+  `check_manifest_sync` now validates AGENTS.md instead of CLAUDE.md.
+  ([#23](https://github.com/bcbeidel/wos/issues/23))
 - **Human-readable health output** is now the default. `scripts/check_health.py`
   outputs formatted text with issues sorted by severity, one line per issue in
   summary mode, or grouped by severity with suggestions in `--detailed` mode.

@@ -1,12 +1,12 @@
 # Fix Regenerate Workflow
 
-Regenerate discovery artifacts (CLAUDE.md manifest, rules file, AGENTS.md)
-to match the current state of files on disk.
+Regenerate discovery artifacts (AGENTS.md manifest, CLAUDE.md pointer, rules
+file) to match the current state of files on disk.
 
 ## Steps
 
 1. **Show current manifest state**
-   - Read CLAUDE.md between the wos markers
+   - Read AGENTS.md between the wos markers
    - Show the current manifest content
 
 2. **Scan disk for actual state**
@@ -14,9 +14,9 @@ to match the current state of files on disk.
    python3 scripts/run_discovery.py --root .
    ```
    Discovery scans `/context/`, reads frontmatter, and regenerates:
-   - CLAUDE.md manifest (between markers)
+   - AGENTS.md manifest (between markers)
+   - CLAUDE.md with `@AGENTS.md` reference
    - `.claude/rules/wos-context.md`
-   - AGENTS.md (mirrors CLAUDE.md manifest)
 
 3. **Show what changed**
    - If manifest is already in sync: "Already up to date."
