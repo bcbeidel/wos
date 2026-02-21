@@ -114,6 +114,25 @@ def make_claude_md(**overrides):
     return ClaudeMd(**defaults)
 
 
+def make_communication_preferences(**overrides):
+    """Build a CommunicationPreferences value object with sensible defaults."""
+    from wos.models.communication_preferences import CommunicationPreferences
+    defaults = {
+        "dimensions": {
+            "directness": "balanced",
+            "verbosity": "moderate",
+            "depth": "context-when-useful",
+            "expertise": "intermediate",
+            "tone": "neutral",
+        }
+    }
+    if "dimensions" in overrides:
+        defaults["dimensions"] = overrides["dimensions"]
+    else:
+        defaults.update(overrides)
+    return CommunicationPreferences(**defaults)
+
+
 def make_document(**overrides) -> BaseDocument:
     """Build a minimal valid document (note type -- simplest)."""
     from wos.models.parsing import parse_document

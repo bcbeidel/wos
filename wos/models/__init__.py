@@ -55,6 +55,9 @@ from wos.models.context_area import ContextArea
 from wos.models.agents_md import AgentsMd
 from wos.models.rules_file import RulesFile
 
+# ── Communication preferences ────────────────────────────────
+from wos.models.communication_preferences import CommunicationPreferences
+
 # ── Health report ──────────────────────────────────────────────
 from wos.models.health_report import HealthReport
 
@@ -109,6 +112,8 @@ __all__ = [
     # File entities
     "AgentsMd",
     "RulesFile",
+    # Communication preferences
+    "CommunicationPreferences",
     # Health report
     "HealthReport",
     # Protocol
