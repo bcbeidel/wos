@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Communication preferences** (`wos/preferences.py`): Capture user
+  communication preferences via five evidence-based dimensions (directness,
+  verbosity, depth, expertise, tone) and write them as structured LLM
+  instructions in CLAUDE.md using `<!-- wos:communication:begin/end -->`
+  markers. New `/wos:preferences` skill with freeform capture workflow.
+  Optional preferences step added to `/wos:create-context` initialization.
+  ([#22](https://github.com/bcbeidel/wos/issues/22))
 - **Progressive context scanner** (`scripts/scan_context.py`): Token-efficient
   context discovery with three progressive subcommands: `index` (list all
   documents, filterable by area/type), `outline` (section headings with word

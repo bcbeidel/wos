@@ -21,11 +21,18 @@ Use this workflow when `/context/` does not exist in the project root.
    ```
    This generates the AGENTS.md manifest, CLAUDE.md pointer, and rules file.
 
-4. **Present summary**
+4. **Offer communication preferences** (optional)
+   Ask: "Would you like to set communication preferences? This controls how
+   AI assistants interact with you in this project (directness, verbosity, etc.)"
+
+   If yes, follow the `/wos:preferences` capture workflow.
+
+5. **Present summary**
    Show the user what was created:
    - Directory tree
    - Number of areas initialized
    - Location of AGENTS.md manifest
+   - Whether communication preferences were set
    - Next step: use `/wos:create-document` to add content
 
 ## Error Handling
