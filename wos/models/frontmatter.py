@@ -241,10 +241,73 @@ OPTIONAL_SECTIONS: Dict[DocumentType, Dict[str, Dict[str, str]]] = {
 
 
 class SizeBounds(BaseModel):
-    """Min/max line counts for a document type."""
+    """Min/max line counts for a document type.
+
+    Value object — immutable and hashable via frozen=True.
+    """
+
+    model_config = ConfigDict(frozen=True)
 
     min_lines: int
     max_lines: Optional[int] = None  # None = no upper bound
+
+    # ── String representations ────────────────────────────────────
+
+    def __str__(self) -> str:
+        if self.max_lines is not None:
+            return f"{self.min_lines}-{self.max_lines} lines"
+        return f"{self.min_lines}+ lines"
+
+    def __repr__(self) -> str:
+        return f"SizeBounds(min_lines={self.min_lines}, max_lines={self.max_lines})"
+
+    # ── JSON protocol ─────────────────────────────────────────────
+
+    def to_json(self) -> dict:
+        """Serialize to a plain dict suitable for JSON."""
+        return self.model_dump(mode="json")
+
+    @classmethod
+    def from_json(cls, data: dict) -> SizeBounds:
+        """Construct from a plain dict (e.g. parsed JSON)."""
+        return cls.model_validate(data)
+
+    # ── Validation protocol ───────────────────────────────────────
+
+    def validate_self(self) -> list:
+        """Check internal consistency.
+
+        Returns list[ValidationIssue] — empty when this bounds is well-formed.
+        """
+        from wos.models.core import ValidationIssue, IssueSeverity
+
+        issues = []
+        if self.min_lines < 1:
+            issues.append(
+                ValidationIssue(
+                    file="<SizeBounds>",
+                    issue=f"min_lines ({self.min_lines}) must be >= 1",
+                    severity=IssueSeverity.WARN,
+                    validator="SizeBounds.validate_self",
+                    suggestion="Set min_lines to at least 1",
+                )
+            )
+        if self.max_lines is not None and self.max_lines < self.min_lines:
+            issues.append(
+                ValidationIssue(
+                    file="<SizeBounds>",
+                    issue=f"max_lines ({self.max_lines}) < min_lines ({self.min_lines})",
+                    severity=IssueSeverity.WARN,
+                    validator="SizeBounds.validate_self",
+                    suggestion="Set max_lines >= min_lines or None for no upper bound",
+                )
+            )
+        return issues
+
+    @property
+    def is_valid(self) -> bool:
+        """Shortcut: True when validate_self() returns no issues."""
+        return len(self.validate_self()) == 0
 
 
 SIZE_BOUNDS: Dict[DocumentType, SizeBounds] = {

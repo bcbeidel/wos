@@ -15,10 +15,11 @@ from tests.builders import (
     make_cited_source,
     make_document_section,
     make_section_spec,
+    make_size_bounds,
     make_validation_issue,
 )
 from wos.models.core import CitedSource, DocumentSection, IssueSeverity, ValidationIssue
-from wos.models.frontmatter import SectionSpec
+from wos.models.frontmatter import SectionSpec, SizeBounds
 from wos.models.protocol import WosDomainObject
 
 
@@ -719,3 +720,147 @@ class TestSectionSpecProtocol:
     def test_protocol_is_valid(self):
         spec = make_section_spec()
         assert isinstance(spec.is_valid, bool)
+
+
+# ══════════════════════════════════════════════════════════════════
+# SizeBounds DDD protocol tests
+# ══════════════════════════════════════════════════════════════════
+
+
+class TestSizeBoundsProtocol:
+    """DDD protocol tests for SizeBounds."""
+
+    # -- Frozen / immutable --
+
+    def test_frozen_rejects_assignment(self):
+        sb = make_size_bounds()
+        with pytest.raises(ValidationError):
+            sb.min_lines = 20
+
+    def test_hashable(self):
+        sb = make_size_bounds()
+        assert isinstance(hash(sb), int)
+
+    def test_hashable_in_set(self):
+        s1 = make_size_bounds()
+        s2 = make_size_bounds()
+        assert len({s1, s2}) == 1
+
+    def test_equality_same_values(self):
+        s1 = make_size_bounds()
+        s2 = make_size_bounds()
+        assert s1 == s2
+
+    def test_equality_different_values(self):
+        s1 = make_size_bounds(min_lines=10)
+        s2 = make_size_bounds(min_lines=20)
+        assert s1 != s2
+
+    # -- __str__ and __repr__ --
+
+    def test_str_format_with_max(self):
+        sb = make_size_bounds(min_lines=10, max_lines=500)
+        assert str(sb) == "10-500 lines"
+
+    def test_str_format_without_max(self):
+        sb = make_size_bounds(min_lines=10, max_lines=None)
+        assert str(sb) == "10+ lines"
+
+    def test_repr_format(self):
+        sb = make_size_bounds(min_lines=10, max_lines=500)
+        assert repr(sb) == "SizeBounds(min_lines=10, max_lines=500)"
+
+    def test_repr_format_no_max(self):
+        sb = make_size_bounds(min_lines=10, max_lines=None)
+        assert repr(sb) == "SizeBounds(min_lines=10, max_lines=None)"
+
+    # -- to_json / from_json / round-trip --
+
+    def test_to_json_returns_dict(self):
+        sb = make_size_bounds()
+        data = sb.to_json()
+        assert isinstance(data, dict)
+        assert data["min_lines"] == 10
+        assert data["max_lines"] == 500
+
+    def test_from_json_constructs_instance(self):
+        data = {"min_lines": 20, "max_lines": 300}
+        sb = SizeBounds.from_json(data)
+        assert isinstance(sb, SizeBounds)
+        assert sb.min_lines == 20
+        assert sb.max_lines == 300
+
+    def test_json_round_trip(self):
+        original = make_size_bounds()
+        restored = SizeBounds.from_json(original.to_json())
+        assert restored == original
+
+    def test_json_round_trip_no_max(self):
+        original = make_size_bounds(max_lines=None)
+        restored = SizeBounds.from_json(original.to_json())
+        assert restored == original
+
+    # -- validate_self / is_valid --
+
+    def test_validate_self_valid(self):
+        sb = make_size_bounds()
+        issues = sb.validate_self()
+        assert issues == []
+
+    def test_validate_self_min_lines_less_than_1(self):
+        sb = make_size_bounds(min_lines=0)
+        issues = sb.validate_self()
+        assert len(issues) == 1
+        assert issues[0].severity == IssueSeverity.WARN
+        assert "min_lines" in issues[0].issue.lower()
+
+    def test_validate_self_max_less_than_min(self):
+        sb = make_size_bounds(min_lines=100, max_lines=50)
+        issues = sb.validate_self()
+        assert len(issues) == 1
+        assert issues[0].severity == IssueSeverity.WARN
+        assert "max_lines" in issues[0].issue.lower()
+
+    def test_is_valid_true(self):
+        sb = make_size_bounds()
+        assert sb.is_valid is True
+
+    def test_is_valid_false_bad_min(self):
+        sb = make_size_bounds(min_lines=-1)
+        assert sb.is_valid is False
+
+    def test_is_valid_false_max_less_than_min(self):
+        sb = make_size_bounds(min_lines=100, max_lines=10)
+        assert sb.is_valid is False
+
+    # -- WosDomainObject protocol conformance --
+
+    def test_protocol_conformance(self):
+        sb = make_size_bounds()
+        assert isinstance(sb, WosDomainObject)
+
+    def test_protocol_str(self):
+        sb = make_size_bounds()
+        assert isinstance(str(sb), str)
+
+    def test_protocol_repr(self):
+        sb = make_size_bounds()
+        assert isinstance(repr(sb), str)
+
+    def test_protocol_to_json(self):
+        sb = make_size_bounds()
+        assert isinstance(sb.to_json(), dict)
+
+    def test_protocol_from_json(self):
+        data = {"min_lines": 5, "max_lines": 100}
+        sb = SizeBounds.from_json(data)
+        assert isinstance(sb, WosDomainObject)
+
+    def test_protocol_validate_self(self):
+        sb = make_size_bounds()
+        issues = sb.validate_self()
+        assert isinstance(issues, list)
+
+    def test_protocol_is_valid(self):
+        sb = make_size_bounds()
+        assert isinstance(sb.is_valid, bool)

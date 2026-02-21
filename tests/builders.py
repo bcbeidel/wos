@@ -6,7 +6,7 @@ Override any field via keyword arguments.
 from __future__ import annotations
 
 from wos.models.core import CitedSource, DocumentSection, IssueSeverity, ValidationIssue
-from wos.models.frontmatter import SectionSpec
+from wos.models.frontmatter import SectionSpec, SizeBounds
 
 
 def make_cited_source(**overrides) -> CitedSource:
@@ -45,3 +45,12 @@ def make_section_spec(**overrides) -> SectionSpec:
     }
     defaults.update(overrides)
     return SectionSpec(**defaults)
+
+
+def make_size_bounds(**overrides) -> SizeBounds:
+    defaults = {
+        "min_lines": 10,
+        "max_lines": 500,
+    }
+    defaults.update(overrides)
+    return SizeBounds(**defaults)
