@@ -51,6 +51,10 @@ from wos.models.note_document import NoteDocument
 # ── Context area ───────────────────────────────────────────────
 from wos.models.context_area import ContextArea
 
+# ── File entities ─────────────────────────────────────────────
+from wos.models.agents_md import AgentsMd
+from wos.models.rules_file import RulesFile
+
 # ── Health report ──────────────────────────────────────────────
 from wos.models.health_report import HealthReport
 
@@ -102,6 +106,9 @@ __all__ = [
     "NoteDocument",
     # Context area
     "ContextArea",
+    # File entities
+    "AgentsMd",
+    "RulesFile",
     # Health report
     "HealthReport",
     # Protocol

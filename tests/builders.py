@@ -94,6 +94,16 @@ def make_rules_file(**overrides) -> RulesFile:
     return RulesFile(**defaults)
 
 
+def make_agents_md(**overrides):
+    """Build an AgentsMd entity with sensible defaults."""
+    from wos.models.agents_md import AgentsMd
+    if not overrides:
+        return AgentsMd.from_template("AGENTS.md")
+    defaults = {"path": "AGENTS.md", "content": AgentsMd.from_template("AGENTS.md").content}
+    defaults.update(overrides)
+    return AgentsMd(**defaults)
+
+
 def make_document(**overrides) -> BaseDocument:
     """Build a minimal valid document (note type -- simplest)."""
     from wos.models.parsing import parse_document
