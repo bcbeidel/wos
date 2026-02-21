@@ -41,6 +41,25 @@ class ContextArea(BaseModel):
     # ── Construction ────────────────────────────────────────────
 
     @classmethod
+    def from_documents(cls, docs: list) -> List[ContextArea]:
+        """Group parsed documents into ContextArea objects by area directory."""
+        area_map: dict[str, ContextArea] = {}
+        for doc in docs:
+            if doc.document_type not in {DocumentType.TOPIC, DocumentType.OVERVIEW}:
+                continue
+            area_name = doc.area_name
+            if not area_name:
+                continue
+            if area_name not in area_map:
+                area_map[area_name] = cls(name=area_name)
+            area = area_map[area_name]
+            if doc.document_type == DocumentType.OVERVIEW:
+                area.overview = doc
+            elif doc.document_type == DocumentType.TOPIC:
+                area.topics.append(doc)
+        return sorted(area_map.values(), key=lambda a: a.name)
+
+    @classmethod
     def from_directory(cls, root: str, area_name: str) -> ContextArea:
         """Parse all context documents in an area directory."""
         from wos.models.parsing import parse_document
@@ -82,6 +101,23 @@ class ContextArea(BaseModel):
         return areas
 
     # ── Representations ─────────────────────────────────────────
+
+    def __str__(self) -> str:
+        return f"{self.display_name} ({len(self.topics)} topics)"
+
+    def __repr__(self) -> str:
+        return f"ContextArea(name={self.name!r}, topics={len(self.topics)})"
+
+    def __len__(self) -> int:
+        return len(self.topics)
+
+    def __iter__(self):
+        return iter(self.topics)
+
+    def __contains__(self, item: object) -> bool:
+        if isinstance(item, str):
+            return any(t.title == item for t in self.topics)
+        return item in self.topics
 
     def to_manifest_entry(self) -> str:
         """Single table row for the AGENTS.md manifest."""

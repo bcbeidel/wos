@@ -330,3 +330,148 @@ class TestToIndexRecords:
         area = ContextArea.from_directory(str(tmp_path), "python")
         records = area.to_index_records()
         assert len(records) == 1
+
+
+# ── from_documents ─────────────────────────────────────────────
+
+
+class TestFromDocuments:
+    def test_groups_by_area(self):
+        from wos.models.parsing import parse_document
+
+        topic_md = (
+            "---\n"
+            "document_type: topic\n"
+            'description: "Test topic document"\n'
+            "last_updated: 2026-02-17\n"
+            "last_validated: 2026-02-17\n"
+            "sources:\n"
+            '  - url: "https://example.com"\n'
+            '    title: "Example"\n'
+            "---\n\n# Topic\n\n## Guidance\n\nContent.\n\n## Context\n\nContent.\n"
+            "\n## In Practice\n\n- Do.\n\n## Pitfalls\n\nAvoid.\n"
+            "\n## Go Deeper\n\n- [L](https://e.com)\n"
+        )
+        overview_md = (
+            "---\n"
+            "document_type: overview\n"
+            'description: "Test overview"\n'
+            "last_updated: 2026-02-17\n"
+            "last_validated: 2026-02-17\n"
+            "---\n\n# Testing\n\n## What This Covers\n\nScope.\n"
+            "\n## Topics\n\n- Topic\n\n## Key Sources\n\n- [S](https://e.com)\n"
+        )
+        docs = [
+            parse_document("context/testing/topic.md", topic_md),
+            parse_document("context/testing/_overview.md", overview_md),
+        ]
+        areas = ContextArea.from_documents(docs)
+        assert len(areas) == 1
+        assert areas[0].name == "testing"
+        assert areas[0].overview is not None
+        assert len(areas[0].topics) == 1
+
+    def test_skips_non_context_docs(self):
+        from wos.models.parsing import parse_document
+
+        plan_md = (
+            "---\n"
+            "document_type: plan\n"
+            'description: "A plan for testing non-context document filtering"\n'
+            "last_updated: 2026-02-17\n"
+            "---\n\n# Plan\n\n## Objective\n\nGoal.\n"
+            "\n## Context\n\nBG.\n\n## Steps\n\n1. Do.\n\n## Verification\n\n- Check.\n"
+        )
+        docs = [parse_document("artifacts/plans/2026-02-17-test.md", plan_md)]
+        areas = ContextArea.from_documents(docs)
+        assert len(areas) == 0
+
+    def test_multiple_areas_sorted(self):
+        from wos.models.parsing import parse_document
+
+        topic_a = (
+            "---\n"
+            "document_type: topic\n"
+            'description: "Topic in area B"\n'
+            "last_updated: 2026-02-17\n"
+            "last_validated: 2026-02-17\n"
+            "sources:\n"
+            '  - url: "https://example.com"\n'
+            '    title: "Example"\n'
+            "---\n\n# Topic B\n\n## Guidance\n\nContent.\n\n## Context\n\nContent.\n"
+            "\n## In Practice\n\n- Do.\n\n## Pitfalls\n\nAvoid.\n"
+            "\n## Go Deeper\n\n- [L](https://e.com)\n"
+        )
+        topic_b = (
+            "---\n"
+            "document_type: topic\n"
+            'description: "Topic in area A"\n'
+            "last_updated: 2026-02-17\n"
+            "last_validated: 2026-02-17\n"
+            "sources:\n"
+            '  - url: "https://example.com"\n'
+            '    title: "Example"\n'
+            "---\n\n# Topic A\n\n## Guidance\n\nContent.\n\n## Context\n\nContent.\n"
+            "\n## In Practice\n\n- Do.\n\n## Pitfalls\n\nAvoid.\n"
+            "\n## Go Deeper\n\n- [L](https://e.com)\n"
+        )
+        docs = [
+            parse_document("context/zulu/topic.md", topic_a),
+            parse_document("context/alpha/topic.md", topic_b),
+        ]
+        areas = ContextArea.from_documents(docs)
+        assert len(areas) == 2
+        assert areas[0].name == "alpha"
+        assert areas[1].name == "zulu"
+
+
+# ── Collection protocol ────────────────────────────────────────
+
+
+class TestCollectionProtocol:
+    def test_str(self):
+        area = ContextArea(name="testing")
+        assert "Testing" in str(area)
+
+    def test_str_with_topics(self, tmp_path: Path):
+        _setup_area(tmp_path)
+        area = ContextArea.from_directory(str(tmp_path), "python")
+        s = str(area)
+        assert "Python" in s
+        assert "1" in s  # 1 topic
+
+    def test_repr(self):
+        area = ContextArea(name="testing")
+        assert "ContextArea" in repr(area)
+        assert "testing" in repr(area)
+
+    def test_len_empty(self):
+        area = ContextArea(name="testing")
+        assert len(area) == 0
+
+    def test_len_with_topics(self, tmp_path: Path):
+        _setup_area(tmp_path)
+        area = ContextArea.from_directory(str(tmp_path), "python")
+        assert len(area) == 1
+
+    def test_iter(self):
+        area = ContextArea(name="testing")
+        assert list(area) == []
+
+    def test_iter_yields_topics(self, tmp_path: Path):
+        _setup_area(tmp_path)
+        area = ContextArea.from_directory(str(tmp_path), "python")
+        topics = list(area)
+        assert len(topics) == 1
+        assert topics[0].title == "Error Handling"
+
+    def test_contains_string(self, tmp_path: Path):
+        _setup_area(tmp_path)
+        area = ContextArea.from_directory(str(tmp_path), "python")
+        assert "Error Handling" in area
+        assert "Nonexistent" not in area
+
+    def test_contains_topic_object(self, tmp_path: Path):
+        _setup_area(tmp_path)
+        area = ContextArea.from_directory(str(tmp_path), "python")
+        assert area.topics[0] in area
