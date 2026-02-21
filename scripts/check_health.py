@@ -2,9 +2,10 @@
 """Run health checks on project documents.
 
 Usage:
-    python3 scripts/check_health.py [--root ROOT] [--tier2]
+    python3 scripts/check_health.py [--root ROOT] [--tier2] [--json] [--detailed] [--no-color]
 
-Outputs JSON report. Exit code 1 if any issue has severity: fail.
+Outputs human-readable text by default. Use --json for machine-readable output.
+Exit code 1 if any issue has severity: fail.
 """
 
 from __future__ import annotations
@@ -29,7 +30,25 @@ def main() -> None:
         action="store_true",
         help="Include Tier 2 LLM trigger pre-screening",
     )
+    parser.add_argument(
+        "--detailed",
+        action="store_true",
+        help="Show detailed output grouped by severity with suggestions",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output JSON (machine-readable)",
+    )
+    parser.add_argument(
+        "--no-color",
+        action="store_true",
+        help="Disable ANSI color in text output",
+    )
     args = parser.parse_args()
+
+    if args.detailed and args.json:
+        parser.error("--detailed and --json are mutually exclusive")
 
     from wos.cross_validators import check_source_url_reachability, run_cross_validators
     from wos.document_types import IssueSeverity, ValidationIssue, parse_document
@@ -60,11 +79,14 @@ def main() -> None:
             triggers=[],
             token_budget=estimate_token_budget([]),
         )
-        output = report.to_json()
-        output["message"] = (
-            "No documents found. Use /wos:create-context to initialize your project."
-        )
-        print(json.dumps(output, indent=2))
+        if args.json:
+            output = report.to_json()
+            output["message"] = (
+                "No documents found. Use /wos:create-context to initialize your project."
+            )
+            print(json.dumps(output, indent=2))
+        else:
+            print("No documents found. Use /wos:create-context to initialize your project.")
         sys.exit(0)
 
     for md_file in sorted(md_files):
@@ -127,7 +149,18 @@ def main() -> None:
         token_budget=budget_output,
     )
 
-    print(json.dumps(report.to_json(), indent=2))
+    if args.json:
+        print(json.dumps(report.to_json(), indent=2))
+    else:
+        from wos.formatting import format_detailed, format_summary
+
+        use_color = not args.no_color and sys.stdout.isatty()
+        report_dict = report.to_json()
+        if args.detailed:
+            print(format_detailed(report_dict, color=use_color), end="")
+        else:
+            print(format_summary(report_dict, color=use_color), end="")
+
     sys.exit(1 if report.status == IssueSeverity.FAIL else 0)
 
 

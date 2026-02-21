@@ -6,15 +6,16 @@ Run deterministic validation across all documents.
 
 1. **Run the health check script**
    ```bash
-   python3 scripts/check_health.py --root .
+   python3 scripts/check_health.py --root . --no-color
    ```
 
-2. **Parse the JSON output** — group issues by severity
+2. **Show the output** directly to the user — the script formats results as
+   human-readable text with issues sorted by severity.
 
-3. **Present results** to the user:
-   - Count of files checked
-   - Issues grouped by severity (fail first, then warn, then info)
-   - For each issue: file path, validator name, description, suggestion
+3. **If the user wants more detail**, re-run with `--detailed`:
+   ```bash
+   python3 scripts/check_health.py --root . --detailed --no-color
+   ```
 
 4. **Suggest next steps**:
    - If failures exist: recommend specific fixes or `/wos:fix`

@@ -2,9 +2,9 @@
 
 Scans a project's /context/ directory, reads frontmatter from context
 documents (topics + overviews), and generates:
-  - CLAUDE.md manifest section (markdown between markers under ## Context)
+  - AGENTS.md with manifest section (markdown between markers under ## Context)
+  - CLAUDE.md with @AGENTS.md reference (thin pointer)
   - .claude/rules/wos-context.md (compact behavioral guide)
-  - AGENTS.md (mirrors the CLAUDE.md manifest)
 
 All outputs are deterministic — running twice produces identical results.
 """
@@ -65,48 +65,78 @@ def render_manifest(areas: List[ContextArea]) -> str:
 # ── Step 3: Update CLAUDE.md ────────────────────────────────────
 
 
-def update_claude_md(file_path: str, manifest_content: str) -> None:
-    """Update CLAUDE.md with the manifest between markers.
+AGENTS_REF = "@AGENTS.md"
 
-    If markers exist, replaces content between them.
-    If no markers exist, appends a ## Context section with markers.
-    If the file doesn't exist, creates it with a best-practices template.
+
+def update_claude_md(file_path: str) -> None:
+    """Ensure CLAUDE.md references AGENTS.md.
+
+    AGENTS.md is the primary config file for cross-tool compatibility.
+    CLAUDE.md just needs an @AGENTS.md reference so Claude Code loads it.
+
+    If the file doesn't exist, creates a thin pointer.
+    If old WOS markers exist, strips them (migration from pre-0.1.9).
+    Ensures @AGENTS.md reference is present.
     """
     path = Path(file_path)
 
-    if path.exists():
-        existing = path.read_text(encoding="utf-8")
-        if MARKER_BEGIN not in existing:
-            print(
-                f"  CLAUDE.md exists without markers — appending ## Context "
-                f"section ({len(existing.splitlines())} existing lines preserved)",
-                file=sys.stderr,
-            )
-    else:
-        existing = _claude_md_template()
+    if not path.exists():
+        path.write_text(_claude_md_template(), encoding="utf-8")
         print(
-            "  CLAUDE.md not found — creating from template",
+            "  CLAUDE.md not found — creating with @AGENTS.md reference",
             file=sys.stderr,
         )
+        return
 
-    updated = _replace_between_markers(existing, manifest_content)
-    path.write_text(updated, encoding="utf-8")
+    content = path.read_text(encoding="utf-8")
+    changed = False
+
+    # Migration: strip old marker section
+    if MARKER_BEGIN in content and MARKER_END in content:
+        content = _strip_marker_section(content)
+        changed = True
+
+    # Ensure @AGENTS.md reference
+    if AGENTS_REF not in content:
+        content = content.rstrip("\n") + "\n\n" + AGENTS_REF + "\n"
+        changed = True
+
+    if changed:
+        path.write_text(content, encoding="utf-8")
+
+
+def _strip_marker_section(content: str) -> str:
+    """Remove WOS context markers and content between them.
+
+    Also removes a preceding '## Context' heading if present.
+    """
+    begin_idx = content.find(MARKER_BEGIN)
+    end_idx = content.find(MARKER_END)
+    if begin_idx == -1 or end_idx == -1:
+        return content
+
+    end_idx += len(MARKER_END)
+
+    before = content[:begin_idx]
+    after = content[end_idx:]
+
+    # Try to also remove preceding ## Context heading
+    stripped_before = before.rstrip()
+    if stripped_before.endswith("## Context"):
+        before = stripped_before[: -len("## Context")]
+
+    # Clean up whitespace
+    result = before.rstrip("\n") + "\n"
+    after_stripped = after.lstrip("\n")
+    if after_stripped:
+        result += "\n" + after_stripped
+
+    return result
 
 
 def _claude_md_template() -> str:
-    """Best-practices CLAUDE.md template for new projects."""
-    return (
-        "# CLAUDE.md\n"
-        "\n"
-        "## Build & Test\n"
-        "\n"
-        "<!-- Add build and test commands here -->\n"
-        "\n"
-        "## Context\n"
-        "\n"
-        f"{MARKER_BEGIN}\n"
-        f"{MARKER_END}\n"
-    )
+    """Thin CLAUDE.md that references AGENTS.md."""
+    return f"{AGENTS_REF}\n"
 
 
 def _replace_between_markers(content: str, manifest: str) -> str:
@@ -241,8 +271,8 @@ def run_discovery(root: str) -> None:
 
     manifest = render_manifest(areas)
 
-    update_claude_md(os.path.join(root, "CLAUDE.md"), manifest)
     update_agents_md(os.path.join(root, "AGENTS.md"), manifest)
+    update_claude_md(os.path.join(root, "CLAUDE.md"))
 
     rules = render_rules_file()
     update_rules_file(root, rules)
