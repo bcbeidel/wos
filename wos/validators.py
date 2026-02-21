@@ -1,7 +1,7 @@
 """Per-file validators — standalone functions called by document subclasses.
 
 Each validator function takes a Document and returns list[ValidationIssue].
-Dispatch is handled by each document subclass's validate_structure() method.
+Dispatch is handled by each document subclass's validate_self() method.
 """
 
 from __future__ import annotations
@@ -405,7 +405,7 @@ def check_date_prefix_matches(doc: Document) -> List[ValidationIssue]:
 def validate_document(doc: Document) -> List[ValidationIssue]:
     """Run all validators for a document's type.
 
-    Delegates to doc.validate_structure() which uses polymorphic
+    Delegates to doc.validate_self() which uses polymorphic
     dispatch — each document subclass knows its own validators.
     """
-    return doc.validate_structure()
+    return doc.validate_self()

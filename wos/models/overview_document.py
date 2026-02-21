@@ -28,13 +28,13 @@ class OverviewDocument(BaseDocument):
             topics=topics, section_content=section_content,
         )
 
-    def validate_structure(self) -> list[ValidationIssue]:
+    def validate_self(self, deep: bool = False) -> list[ValidationIssue]:
         from wos.validators import (
             check_last_validated,
             check_what_this_covers_length,
         )
 
-        issues = super().validate_structure()
+        issues = super().validate_self(deep=deep)
         for validator in [
             check_last_validated,
             check_what_this_covers_length,

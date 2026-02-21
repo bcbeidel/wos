@@ -22,7 +22,7 @@ class NoteDocument(BaseDocument):
 
         return render_note(title, description, body=body)
 
-    def validate_structure(self) -> list[ValidationIssue]:
+    def validate_self(self, deep: bool = False) -> list[ValidationIssue]:
         from wos.validators import check_title_heading
 
         issues: list[ValidationIssue] = []

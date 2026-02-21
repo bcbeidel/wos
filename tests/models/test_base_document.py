@@ -2,7 +2,7 @@
 
 Covers: __str__, __repr__, __len__, __iter__, __contains__,
 area_name property, from_markdown, to_json/from_json, to_markdown,
-validate_self, validate_structure alias, is_valid, and builder.
+validate_self, is_valid, and builder.
 """
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ TOPIC_MD = (
     "\n"
     "## Go Deeper\n"
     "\n"
-    "Learn more.\n"
+    "- [Example Resource](https://example.com/resource)\n"
 )
 
 
@@ -177,24 +177,6 @@ class TestBaseDocumentProtocol:
         doc = self._make_topic_doc()
         issues = doc.validate_self()
         assert isinstance(issues, list)
-
-    # -- validate_structure alias --
-
-    def test_validate_structure_alias(self):
-        # Use a note document (no subclass override of validate_structure)
-        # to confirm the BaseDocument alias works correctly
-        note_md = (
-            "---\n"
-            "document_type: note\n"
-            'description: "Test note document"\n'
-            "---\n"
-            "\n"
-            "# Test Note\n"
-            "\n"
-            "Some content here.\n"
-        )
-        doc = parse_document("context/testing/note.md", note_md)
-        assert doc.validate_structure() == doc.validate_self()
 
     # -- is_valid --
 

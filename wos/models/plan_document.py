@@ -27,10 +27,10 @@ class PlanDocument(BaseDocument):
             section_content=section_content,
         )
 
-    def validate_structure(self) -> list[ValidationIssue]:
+    def validate_self(self, deep: bool = False) -> list[ValidationIssue]:
         from wos.validators import check_date_prefix_matches
 
-        issues = super().validate_structure()
+        issues = super().validate_self(deep=deep)
         issues.extend(check_date_prefix_matches(self))
         return issues
 

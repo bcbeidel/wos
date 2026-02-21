@@ -218,11 +218,9 @@ class BaseDocument(BaseModel):
     def validate_self(self, deep: bool = False) -> list[ValidationIssue]:
         """Run structural validators for this document type.
 
-        This is the primary validation entry point. The ``deep`` parameter
-        is accepted for protocol consistency but not yet used at the base level.
-
-        Subclasses override ``validate_structure()`` to add type-specific
-        validators; that method delegates here for the base checks.
+        Subclasses override to add type-specific validators via
+        ``super().validate_self()``. The ``deep`` parameter is accepted
+        for protocol consistency but not yet used at the base level.
         """
         from wos.validators import (
             check_date_fields,
@@ -248,15 +246,6 @@ class BaseDocument(BaseModel):
         ]:
             issues.extend(validator(self))
         return issues
-
-    def validate_structure(self) -> list[ValidationIssue]:
-        """Run structural validators — alias for validate_self().
-
-        Subclasses override this method and call super().validate_structure()
-        to add type-specific validators. The base implementation delegates
-        to validate_self().
-        """
-        return self.validate_self()
 
     @property
     def is_valid(self) -> bool:

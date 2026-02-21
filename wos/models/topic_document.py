@@ -30,14 +30,14 @@ class TopicDocument(BaseDocument):
             area=area, section_content=section_content,
         )
 
-    def validate_structure(self) -> list[ValidationIssue]:
+    def validate_self(self, deep: bool = False) -> list[ValidationIssue]:
         from wos.validators import (
             check_go_deeper_links,
             check_last_validated,
             check_source_diversity,
         )
 
-        issues = super().validate_structure()
+        issues = super().validate_self(deep=deep)
         for validator in [
             check_last_validated,
             check_source_diversity,

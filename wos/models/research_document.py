@@ -29,14 +29,14 @@ class ResearchDocument(BaseDocument):
             section_content=section_content,
         )
 
-    def validate_structure(self) -> list[ValidationIssue]:
+    def validate_self(self, deep: bool = False) -> list[ValidationIssue]:
         from wos.validators import (
             check_date_prefix_matches,
             check_question_nonempty,
             check_source_diversity,
         )
 
-        issues = super().validate_structure()
+        issues = super().validate_self(deep=deep)
         for validator in [
             check_source_diversity,
             check_question_nonempty,
