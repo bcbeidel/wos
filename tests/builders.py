@@ -104,6 +104,16 @@ def make_agents_md(**overrides):
     return AgentsMd(**defaults)
 
 
+def make_claude_md(**overrides):
+    """Build a ClaudeMd entity with sensible defaults."""
+    from wos.models.claude_md import ClaudeMd
+    if not overrides:
+        return ClaudeMd.from_template("CLAUDE.md")
+    defaults = {"path": "CLAUDE.md", "content": ClaudeMd.from_template("CLAUDE.md").content}
+    defaults.update(overrides)
+    return ClaudeMd(**defaults)
+
+
 def make_document(**overrides) -> BaseDocument:
     """Build a minimal valid document (note type -- simplest)."""
     from wos.models.parsing import parse_document
