@@ -85,6 +85,8 @@ Every domain object implements these capabilities:
 Documents also gain:
 - `from_markdown(cls, path, content)` -- wraps parse_document, returns correct subclass
 - `to_markdown()` -- renders full document with frontmatter (absorbs templates.py)
+- `area_name -> Optional[str]` -- property extracting area from path (replaces 3 regex duplicates)
+- `apply_fix(issue) -> Optional[BaseDocument]` -- absorbs auto_fix.py logic
 - `__len__` -- number of sections
 - `__iter__` -- iterate over sections
 - `__contains__` -- check section name membership
@@ -93,8 +95,70 @@ Documents also gain:
 
 | Object | Construction | Representations | Collection |
 |---|---|---|---|
-| `ContextArea` | `from_directory(cls, root, name)` (exists) | `to_manifest_entry()` (exists), `to_json()` | `__len__` = topic count, `__iter__` = topics, `__contains__` = topic name |
+| `ContextArea` | `from_directory(cls, root, name)` (exists), `from_documents(cls, docs)` (new) | `to_manifest_entry()` (exists), `to_json()` | `__len__` = topic count, `__iter__` = topics, `__contains__` = topic name |
 | `HealthReport` | `from_project(cls, root, **opts)` (new factory) | `__str__` = summary line, `format_detailed()` absorbs formatting.py | `__len__` = issue count, `__iter__` = issues, `__contains__` = issue |
+
+## Line Number Tracking
+
+The parsing layer (`_split_markdown`) uses character offsets internally but
+discards positional information. Adding line numbers enables LLMs to selectively
+read specific sections of large documents and produces better error messages.
+
+### Changes
+
+**`DocumentSection`** gains:
+- `line_start: Optional[int]` -- 1-indexed line where `## Heading` appears
+- `line_end: Optional[int]` -- 1-indexed last line of section content
+
+**`BaseDocument`** gains:
+- `frontmatter_line_start: int` -- always 1 (first `---`)
+- `frontmatter_line_end: int` -- line of closing `---`
+- `title_line: Optional[int]` -- line of `# Title` heading
+
+**`_split_markdown()`** updated to compute line numbers from character positions:
+```python
+line_number = content[:char_offset].count('\n') + 1
+```
+
+### Use Cases
+
+- **LLM selective reading:** "Read lines 45-67 for the Pitfalls section"
+- **Precise error messages:** "Issue on line 52" vs "in section Pitfalls"
+- **Auto-fix targeting:** Fix functions can target exact line ranges
+- **Token-aware partial loading:** Skip sections that exceed token budget
+
+## Additional Absorptions
+
+### `BaseDocument.area_name` property
+
+Three separate places extract area name from `doc.path` via
+`re.match(r"context/([^/]+)/", path)`:
+- `token_budget._extract_area()`
+- `cross_validators._build_context_areas()`
+- `cross_validators.check_overview_topic_sync()`
+
+Becomes: `BaseDocument.area_name -> Optional[str]` property.
+
+### `ContextArea.from_documents(docs)` factory
+
+`cross_validators._build_context_areas()` groups parsed documents into
+ContextArea objects by regex. This is a second construction path that belongs
+as a classmethod on ContextArea.
+
+### `CitedSource.to_yaml_entry()`
+
+`templates._render_sources_yaml()` serializes sources to YAML. This belongs
+on the CitedSource object: `source.to_yaml_entry() -> str`.
+
+### `BaseDocument.apply_fix(issue)` method
+
+`auto_fix.py` takes raw markdown + issue, re-parses internally. Should take a
+BaseDocument and return a new BaseDocument (or None if no fix applies).
+
+### Duplicate `_display_name()` in scaffold.py
+
+Same logic as `ContextArea.display_name` property. Scaffold should import and
+use the ContextArea method instead.
 
 ## Modules Absorbed
 
@@ -109,9 +173,9 @@ Documents also gain:
 ## Implementation Order (Bottom-Up)
 
 ### Phase 1: Value Objects
-1. `CitedSource` -- add frozen, str, repr, validate_self(deep), from_json, to_json, to_markdown, from_markdown_link; builder
+1. `CitedSource` -- add frozen, str, repr, validate_self(deep), from_json, to_json, to_markdown, from_markdown_link, to_yaml_entry; builder
 2. `ValidationIssue` -- add frozen, str, repr, validate_self, from_json, to_json, to_markdown; builder
-3. `DocumentSection` -- add frozen, str, repr, validate_self, from_json, to_json, to_markdown; builder
+3. `DocumentSection` -- add frozen, str, repr, validate_self, from_json, to_json, to_markdown, line_start/line_end fields; builder
 4. `SectionSpec` -- add frozen, str, repr, validate_self, from_json, to_json; builder
 5. `SizeBounds` -- add frozen, str, repr, validate_self, from_json, to_json; builder
 
@@ -119,23 +183,31 @@ Documents also gain:
 6. `VerificationResult` -- migrate from dataclass to Pydantic, add protocol; builder
 7. `ReachabilityResult` -- migrate from dataclass to Pydantic, add protocol; builder
 
-### Phase 3: Document Hierarchy
-8. `BaseDocument` -- add from_markdown, to_markdown, validate_self, str, repr, collection; builder
-9. `TopicDocument` -- absorb topic validators + template; builder
-10. `OverviewDocument` -- absorb overview validators + template; builder
-11. `ResearchDocument` -- absorb research validators + template; builder
-12. `PlanDocument` -- absorb plan validators + template; builder
-13. `NoteDocument` -- absorb note template; builder
+### Phase 3: Line Number Tracking
+8. Update `_split_markdown()` to compute and store line numbers
+9. Add `frontmatter_line_end`, `title_line` to BaseDocument
+10. Update DocumentSection to populate `line_start`/`line_end` during parsing
 
-### Phase 4: Aggregates
-14. `ContextArea` -- add str, repr, validate_self, to_json, collection; builder
-15. `HealthReport` -- add from_project factory, absorb formatting, collection; builder
+### Phase 4: Document Hierarchy
+11. `BaseDocument` -- add from_markdown, to_markdown, validate_self, str, repr, collection, area_name property, apply_fix; builder
+12. `TopicDocument` -- absorb topic validators + template; builder
+13. `OverviewDocument` -- absorb overview validators + template; builder
+14. `ResearchDocument` -- absorb research validators + template; builder
+15. `PlanDocument` -- absorb plan validators + template; builder
+16. `NoteDocument` -- absorb note template; builder
 
-### Phase 5: Cleanup
-16. Thin out validators.py (backward compat wrappers only)
-17. Delete or thin formatting.py
-18. Thin out templates.py
-19. Update CLAUDE.md with Domain Model Conventions section
+### Phase 5: Aggregates
+17. `ContextArea` -- add str, repr, validate_self, to_json, collection, from_documents factory; builder
+18. `HealthReport` -- add from_project factory, absorb formatting, collection; builder
+
+### Phase 6: Cleanup & Deduplication
+19. Thin out validators.py (backward compat wrappers only)
+20. Delete or thin formatting.py
+21. Thin out templates.py
+22. Remove duplicate `_display_name()` from scaffold.py
+23. Remove `_extract_area()` from token_budget.py (use doc.area_name)
+24. Remove `_build_context_areas()` from cross_validators.py (use ContextArea.from_documents)
+25. Update CLAUDE.md Domain Model Conventions section
 
 ## Convention Guard (CLAUDE.md Addition)
 
