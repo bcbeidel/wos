@@ -168,7 +168,7 @@ class SectionSpec(BaseModel):
 
     # ── Validation protocol ───────────────────────────────────────
 
-    def validate_self(self) -> List:
+    def validate_self(self, deep: bool = False) -> List:
         """Check internal consistency.
 
         Returns list[ValidationIssue] — empty when this spec is well-formed.
@@ -274,7 +274,7 @@ class SizeBounds(BaseModel):
 
     # ── Validation protocol ───────────────────────────────────────
 
-    def validate_self(self) -> list:
+    def validate_self(self, deep: bool = False) -> list:
         """Check internal consistency.
 
         Returns list[ValidationIssue] — empty when this bounds is well-formed.

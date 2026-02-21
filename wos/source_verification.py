@@ -124,7 +124,7 @@ class VerificationResult(BaseModel):
         """Construct from a plain dict (e.g. parsed JSON)."""
         return cls.model_validate(data)
 
-    def validate_self(self) -> List:
+    def validate_self(self, deep: bool = False) -> List:
         """Check internal consistency.
 
         Returns list[ValidationIssue] -- empty when this result is well-formed.
@@ -177,7 +177,7 @@ class ReachabilityResult(BaseModel):
         """Construct from a plain dict (e.g. parsed JSON)."""
         return cls.model_validate(data)
 
-    def validate_self(self) -> List:
+    def validate_self(self, deep: bool = False) -> List:
         """Check internal consistency.
 
         Returns list[ValidationIssue] -- empty when this result is well-formed.

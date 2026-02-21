@@ -59,7 +59,7 @@ class ValidationIssue(BaseModel):
 
     # ── Validation protocol ───────────────────────────────────────
 
-    def validate_self(self) -> List[ValidationIssue]:
+    def validate_self(self, deep: bool = False) -> List[ValidationIssue]:
         """Check internal consistency.
 
         Returns list[ValidationIssue] — empty when this issue is well-formed.

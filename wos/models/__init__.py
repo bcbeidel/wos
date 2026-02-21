@@ -53,6 +53,7 @@ from wos.models.context_area import ContextArea
 
 # ── File entities ─────────────────────────────────────────────
 from wos.models.agents_md import AgentsMd
+from wos.models.claude_md import ClaudeMd
 from wos.models.rules_file import RulesFile
 
 # ── Communication preferences ────────────────────────────────
@@ -114,6 +115,7 @@ __all__ = [
     "ContextArea",
     # File entities
     "AgentsMd",
+    "ClaudeMd",
     "RulesFile",
     # Communication preferences
     "CommunicationPreferences",

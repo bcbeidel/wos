@@ -144,6 +144,18 @@ def make_project_context(**overrides):
     return ProjectContext(**defaults)
 
 
+def make_context_area(**overrides):
+    """Build a ContextArea aggregate with sensible defaults."""
+    from wos.models.context_area import ContextArea
+    defaults = {
+        "name": "test-area",
+        "overview": None,
+        "topics": [],
+    }
+    defaults.update(overrides)
+    return ContextArea(**defaults)
+
+
 def make_document(**overrides) -> BaseDocument:
     """Build a minimal valid document (note type -- simplest)."""
     from wos.models.parsing import parse_document
