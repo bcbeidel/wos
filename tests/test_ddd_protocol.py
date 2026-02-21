@@ -3,7 +3,7 @@
 Covers: frozen/immutable, hashable, equality, __str__, __repr__,
 to_json, from_json, json round-trip, to_markdown, from_markdown_link,
 markdown round-trip, to_yaml_entry, validate_self, is_valid,
-and builder usage.
+builder usage, and WosDomainObject protocol conformance.
 """
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ from pydantic import ValidationError
 
 from tests.builders import make_cited_source
 from wos.models.core import CitedSource, IssueSeverity
+from wos.models.protocol import WosDomainObject
 
 
 # ── Frozen / immutable / hashable / equality ─────────────────────
@@ -205,3 +206,38 @@ class TestBuilder:
         s = make_cited_source(url="https://custom.com", title="Custom")
         assert s.url == "https://custom.com"
         assert s.title == "Custom"
+
+
+# ── WosDomainObject protocol conformance ──────────────────────
+
+
+class TestCitedSourceProtocolConformance:
+    def test_isinstance_check(self):
+        s = make_cited_source()
+        assert isinstance(s, WosDomainObject)
+
+    def test_protocol_str(self):
+        s = make_cited_source()
+        assert isinstance(str(s), str)
+
+    def test_protocol_repr(self):
+        s = make_cited_source()
+        assert isinstance(repr(s), str)
+
+    def test_protocol_to_json(self):
+        s = make_cited_source()
+        assert isinstance(s.to_json(), dict)
+
+    def test_protocol_from_json(self):
+        data = {"url": "https://example.com", "title": "Test"}
+        s = CitedSource.from_json(data)
+        assert isinstance(s, WosDomainObject)
+
+    def test_protocol_validate_self(self):
+        s = make_cited_source()
+        issues = s.validate_self()
+        assert isinstance(issues, list)
+
+    def test_protocol_is_valid(self):
+        s = make_cited_source()
+        assert isinstance(s.is_valid, bool)

@@ -56,6 +56,9 @@ from wos.models.context_area import ContextArea
 # ── Health report ──────────────────────────────────────────────
 from wos.models.health_report import HealthReport
 
+# ── Protocol ──────────────────────────────────────────────────
+from wos.models.protocol import WosDomainObject
+
 # ── Parsing ─────────────────────────────────────────────────────
 from wos.models.parsing import parse_document
 
@@ -103,6 +106,8 @@ __all__ = [
     "ContextArea",
     # Health report
     "HealthReport",
+    # Protocol
+    "WosDomainObject",
     # Parsing
     "parse_document",
 ]
