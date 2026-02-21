@@ -2,1150 +2,1279 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Enrich every domain object in `wos/models/` with a standard DDD protocol (constructors, equality, representations, self-validation, collection interfaces, token estimation, test builders) and absorb helper modules into the domain objects they serve.
+**Goal:** Absorb helper modules into domain objects, add `auto_fix()` / `validate_content()` to document subclasses, create new domain objects (AgentsMd, ClaudeMd, RulesFile, CommunicationPreferences), and introduce the ProjectContext aggregate root.
 
-**Architecture:** Bottom-up enrichment. Start with leaf value objects (CitedSource, ValidationIssue, DocumentSection), then work up to documents and aggregates. Each phase builds on the previous. Value objects get `frozen=True`. Documents absorb validators and templates. Aggregates absorb formatting and orchestration.
+**Architecture:** Bottom-up enrichment — enrich existing leaf objects first (ValidationIssue, document subclasses), then composites (ContextArea), then new domain objects, then the ProjectContext aggregate root. Each task is independently testable.
 
-**Tech Stack:** Python 3.9, Pydantic v2, pytest. `from __future__ import annotations` everywhere. `Optional[X]` for runtime expressions.
+**Tech Stack:** Python 3.9, Pydantic v2, pytest. `from __future__ import annotations` everywhere. Tests use inline markdown strings and `tests/builders.py`.
 
-**Design doc:** `docs/plans/2026-02-20-ddd-domain-model-enrichment-design.md`
+**Important context:**
+- Design doc: `docs/plans/2026-02-20-ddd-domain-model-enrichment-design.md`
+- CLAUDE.md documents the DDD protocol — read it before starting
+- Working directory: `/Users/bbeidel/Documents/GitHub/work-os/.worktrees/phase-ddd-enrichment`
+- Branch: `phase/ddd-domain-model-enrichment`
+- Run tests: `python3 -m pytest tests/ -v`
+- All 583 tests currently pass
 
 ---
 
-## Phase 1: Value Objects
+## Phase A: Absorb into Existing Objects
 
-### Task 1: Create tests/builders.py module and enrich CitedSource
+### Task 1: Add `requires_llm` field to ValidationIssue
 
 **Files:**
-- Create: `tests/builders.py`
-- Modify: `wos/models/core.py:76-108`
-- Test: `tests/test_ddd_protocol.py` (new)
+- Modify: `wos/models/validation_issue.py`
+- Modify: `tests/models/test_validation_issue.py`
 
-**Step 1: Create test file with CitedSource protocol tests**
+**Step 1: Write the failing test**
 
-Create `tests/test_ddd_protocol.py`:
-
-```python
-"""Tests for DDD protocol on domain objects.
-
-Each domain object is tested for: construction, equality, str/repr,
-to_json/from_json round-trip, to_markdown (where applicable),
-validate_self, is_valid, and test builder.
-"""
-
-from __future__ import annotations
-
-from wos.models.core import CitedSource, IssueSeverity
-
-
-# ── CitedSource ──────────────────────────────────────────────
-
-
-class TestCitedSourceProtocol:
-    def test_frozen_immutable(self):
-        s = CitedSource(url="https://example.com", title="Example")
-        import pytest
-        with pytest.raises(Exception):
-            s.url = "https://other.com"
-
-    def test_frozen_hashable(self):
-        s = CitedSource(url="https://example.com", title="Example")
-        assert hash(s) == hash(CitedSource(url="https://example.com", title="Example"))
-        assert s in {s}
-
-    def test_equality(self):
-        a = CitedSource(url="https://a.com", title="A")
-        b = CitedSource(url="https://a.com", title="A")
-        c = CitedSource(url="https://b.com", title="B")
-        assert a == b
-        assert a != c
-
-    def test_str(self):
-        s = CitedSource(url="https://example.com/article", title="Example Article")
-        assert str(s) == "[Example Article](https://example.com/article)"
-
-    def test_repr(self):
-        s = CitedSource(url="https://example.com", title="Example")
-        r = repr(s)
-        assert "CitedSource" in r
-        assert "example.com" in r
-
-    def test_to_json(self):
-        s = CitedSource(url="https://example.com", title="Example")
-        d = s.to_json()
-        assert d == {"url": "https://example.com", "title": "Example"}
-
-    def test_from_json(self):
-        d = {"url": "https://example.com", "title": "Example"}
-        s = CitedSource.from_json(d)
-        assert s.url == "https://example.com"
-        assert s.title == "Example"
-
-    def test_json_round_trip(self):
-        original = CitedSource(url="https://example.com", title="Example")
-        restored = CitedSource.from_json(original.to_json())
-        assert restored == original
-
-    def test_to_markdown(self):
-        s = CitedSource(url="https://example.com", title="Example")
-        assert s.to_markdown() == "[Example](https://example.com)"
-
-    def test_from_markdown_link(self):
-        s = CitedSource.from_markdown_link("[Example](https://example.com)")
-        assert s.url == "https://example.com"
-        assert s.title == "Example"
-
-    def test_markdown_round_trip(self):
-        original = CitedSource(url="https://example.com", title="Example")
-        restored = CitedSource.from_markdown_link(original.to_markdown())
-        assert restored == original
-
-    def test_from_markdown_link_invalid(self):
-        import pytest
-        with pytest.raises(ValueError, match="markdown link"):
-            CitedSource.from_markdown_link("not a link")
-
-    def test_to_yaml_entry(self):
-        s = CitedSource(url="https://example.com", title="Example")
-        yaml = s.to_yaml_entry()
-        assert '  - url: "https://example.com"' in yaml
-        assert '    title: "Example"' in yaml
-
-    def test_validate_self_valid(self):
-        s = CitedSource(url="https://example.com", title="Example")
-        assert s.validate_self() == []
-
-    def test_validate_self_bad_scheme(self):
-        s = CitedSource(url="ftp://example.com", title="Example")
-        issues = s.validate_self()
-        assert len(issues) == 1
-        assert issues[0].severity == IssueSeverity.FAIL
-        assert "scheme" in issues[0].issue.lower()
-
-    def test_validate_self_empty_title(self):
-        s = CitedSource(url="https://example.com", title="   ")
-        issues = s.validate_self()
-        assert any("title" in i.issue.lower() for i in issues)
-
-    def test_is_valid_true(self):
-        s = CitedSource(url="https://example.com", title="Example")
-        assert s.is_valid is True
-
-    def test_is_valid_false(self):
-        s = CitedSource(url="not-a-url", title="Example")
-        assert s.is_valid is False
-```
-
-**Step 2: Create test builder module**
-
-Create `tests/builders.py`:
+Add to `tests/models/test_validation_issue.py`:
 
 ```python
-"""Test builders for WOS domain objects.
+def test_requires_llm_default_false():
+    issue = make_validation_issue()
+    assert issue.requires_llm is False
 
-Each make_*() function returns a valid domain object with sensible defaults.
-Override any field via keyword arguments.
-"""
+def test_requires_llm_explicit_true():
+    issue = make_validation_issue(requires_llm=True)
+    assert issue.requires_llm is True
 
-from __future__ import annotations
+def test_to_json_includes_requires_llm():
+    issue = make_validation_issue(requires_llm=True)
+    data = issue.to_json()
+    assert data["requires_llm"] is True
 
-from wos.models.core import CitedSource
+def test_from_json_round_trip_with_requires_llm():
+    issue = make_validation_issue(requires_llm=True)
+    restored = ValidationIssue.from_json(issue.to_json())
+    assert restored.requires_llm is True
 
-
-def make_cited_source(**overrides) -> CitedSource:
-    """Build a valid CitedSource with sensible defaults."""
-    defaults = {
-        "url": "https://example.com/article",
-        "title": "Example Article",
-    }
-    defaults.update(overrides)
-    return CitedSource(**defaults)
+def test_to_markdown_llm_review():
+    issue = make_validation_issue(requires_llm=True, severity=IssueSeverity.INFO)
+    md = issue.to_markdown()
+    assert "LLM-REVIEW" in md
 ```
 
-**Step 3: Add builder test**
+**Step 2: Run tests to verify they fail**
 
-Append to `tests/test_ddd_protocol.py`:
+Run: `python3 -m pytest tests/models/test_validation_issue.py -v -k "requires_llm"`
+Expected: FAIL — `requires_llm` attribute doesn't exist
+
+**Step 3: Add the field to ValidationIssue**
+
+In `wos/models/validation_issue.py`, add field after `suggestion`:
 
 ```python
-class TestCitedSourceBuilder:
-    def test_builder_returns_valid(self):
-        from tests.builders import make_cited_source
-        s = make_cited_source()
-        assert s.is_valid
-
-    def test_builder_override(self):
-        from tests.builders import make_cited_source
-        s = make_cited_source(url="https://custom.com")
-        assert s.url == "https://custom.com"
-        assert s.title == "Example Article"  # default preserved
+requires_llm: bool = False
 ```
 
-**Step 4: Run tests to verify they fail**
-
-Run: `python3 -m pytest tests/test_ddd_protocol.py -v`
-Expected: FAIL — `CitedSource` has no `frozen`, `__str__`, `to_json`, etc.
-
-**Step 5: Implement CitedSource DDD protocol**
-
-Modify `wos/models/core.py:76-108` — replace the `CitedSource` class:
+Update `to_markdown()`:
 
 ```python
-class CitedSource(BaseModel):
-    """A cited source with URL and title."""
-
-    model_config = ConfigDict(frozen=True)
-
-    url: str
-    title: str
-
-    # ── Representations ─────────────────────────────────────
-
-    def __str__(self) -> str:
-        return f"[{self.title}]({self.url})"
-
-    def __repr__(self) -> str:
-        return f"CitedSource(url={self.url!r}, title={self.title!r})"
-
-    def to_json(self) -> dict:
-        """JSON-serializable dict."""
-        return self.model_dump(mode="json")
-
-    def to_markdown(self) -> str:
-        """Markdown link format: [title](url)"""
-        return f"[{self.title}]({self.url})"
-
-    def to_yaml_entry(self) -> str:
-        """YAML list entry for frontmatter sources block."""
-        escaped_url = self.url.replace("\\", "\\\\").replace('"', '\\"')
-        escaped_title = self.title.replace("\\", "\\\\").replace('"', '\\"')
-        return f'  - url: "{escaped_url}"\n    title: "{escaped_title}"'
-
-    # ── Construction ────────────────────────────────────────
-
-    @classmethod
-    def from_json(cls, data: dict) -> CitedSource:
-        """Construct from a JSON-compatible dict."""
-        return cls.model_validate(data)
-
-    @classmethod
-    def from_markdown_link(cls, md_link: str) -> CitedSource:
-        """Parse from markdown link format: [title](url)"""
-        match = re.match(r"\[(.+?)\]\((.+?)\)", md_link)
-        if not match:
-            raise ValueError(f"Not a valid markdown link: {md_link}")
-        return cls(url=match.group(2), title=match.group(1))
-
-    # ── Validation ──────────────────────────────────────────
-
-    def validate_self(self, deep: bool = False) -> list:
-        """Check internal validity. deep=True adds URL reachability."""
-        from wos.models.core import ValidationIssue, IssueSeverity
-
-        issues: list[ValidationIssue] = []
-        if not self.url.startswith(("http://", "https://")):
-            issues.append(ValidationIssue(
-                file="",
-                issue=f"URL '{self.url}' missing http(s) scheme",
-                severity=IssueSeverity.FAIL,
-                validator="cited_source_url_scheme",
-            ))
-        if not self.title.strip():
-            issues.append(ValidationIssue(
-                file="",
-                issue="Source title is blank",
-                severity=IssueSeverity.FAIL,
-                validator="cited_source_title",
-            ))
-        if deep and not issues:
-            result = self.check_reachability()
-            if not result.reachable:
-                issues.append(ValidationIssue(
-                    file="",
-                    issue=f"URL unreachable: {self.url} — {result.reason}",
-                    severity=IssueSeverity.WARN,
-                    validator="cited_source_reachability",
-                ))
-        return issues
-
-    @property
-    def is_valid(self) -> bool:
-        """True if validate_self() returns no issues."""
-        return len(self.validate_self()) == 0
-
-    # ── Existing methods (unchanged) ────────────────────────
-
-    def normalize_title(self) -> str:
-        """Lowercase, strip punctuation, collapse whitespace."""
-        text = self.title.lower()
-        text = text.replace("\u2013", " ").replace("\u2014", " ")
-        text = re.sub(r"[^a-z0-9 ]", "", text)
-        text = re.sub(r"\s+", " ", text).strip()
-        return text
-
-    def get_estimated_tokens(self) -> int:
-        """Estimate token cost of this source citation."""
-        return len(self.url) // 3 + len(self.title) // 4 + 5
-
-    def check_reachability(self):
-        """HTTP HEAD check. Returns ReachabilityResult."""
-        from wos.source_verification import check_url_reachability
-
-        return check_url_reachability(self.url)
-
-    def verify(self):
-        """Full verification — reachability + title match. Returns VerificationResult."""
-        from wos.source_verification import verify_source
-
-        return verify_source(self.url, self.title)
+def to_markdown(self) -> str:
+    """Return markdown list item: - **SEVERITY** `file`: issue."""
+    label = "LLM-REVIEW" if self.requires_llm else self.severity.value.upper()
+    parts = [f"- **{label}** `{self.file}`: {self.issue}"]
+    if self.suggestion:
+        parts.append(f"  - {self.suggestion}")
+    return "\n".join(parts)
 ```
 
-Also add the import at top of `wos/models/core.py`:
-
-```python
-from pydantic import BaseModel, ConfigDict
-```
-
-**Step 6: Run tests to verify they pass**
-
-Run: `python3 -m pytest tests/test_ddd_protocol.py -v`
-Expected: ALL PASS
-
-**Step 7: Run full test suite to check for regressions**
+**Step 4: Run all tests**
 
 Run: `python3 -m pytest tests/ -v`
-Expected: ALL PASS (frozen=True may cause regressions if any test mutates CitedSource — fix by using model_copy)
+Expected: ALL PASS
 
-**Step 8: Commit**
+**Step 5: Commit**
 
 ```bash
-git add wos/models/core.py tests/test_ddd_protocol.py tests/builders.py
-git commit -m "feat: enrich CitedSource with DDD protocol (frozen, str, json, markdown, validate_self)"
+git add wos/models/validation_issue.py tests/models/test_validation_issue.py
+git commit -m "feat: add requires_llm field to ValidationIssue"
 ```
 
 ---
 
-### Task 2: Enrich ValidationIssue
+### Task 2: Inline `validate_content()` on BaseDocument — return ValidationIssue
+
+Currently `BaseDocument.validate_content()` returns `list` (of TriggerContext dicts). Change it to return `list[ValidationIssue]` with `requires_llm=True`.
 
 **Files:**
-- Modify: `wos/models/core.py:44-52`
-- Modify: `tests/test_ddd_protocol.py` (append)
-- Modify: `tests/builders.py` (append)
+- Modify: `wos/models/base_document.py:255-265`
+- Modify: `tests/models/test_base_document.py`
 
-**Step 1: Add ValidationIssue protocol tests**
+**Step 1: Write the failing test**
 
-Append to `tests/test_ddd_protocol.py`:
-
-```python
-from wos.models.core import ValidationIssue, IssueSeverity
-
-
-class TestValidationIssueProtocol:
-    def test_frozen_immutable(self):
-        import pytest
-        vi = ValidationIssue(
-            file="test.md", issue="broken", severity=IssueSeverity.FAIL,
-            validator="test_validator",
-        )
-        with pytest.raises(Exception):
-            vi.file = "other.md"
-
-    def test_frozen_hashable(self):
-        vi = ValidationIssue(
-            file="test.md", issue="broken", severity=IssueSeverity.FAIL,
-            validator="test_validator",
-        )
-        assert vi in {vi}
-
-    def test_equality(self):
-        a = ValidationIssue(
-            file="a.md", issue="broken", severity=IssueSeverity.FAIL,
-            validator="v",
-        )
-        b = ValidationIssue(
-            file="a.md", issue="broken", severity=IssueSeverity.FAIL,
-            validator="v",
-        )
-        assert a == b
-
-    def test_str(self):
-        vi = ValidationIssue(
-            file="context/test.md", issue="Missing section",
-            severity=IssueSeverity.FAIL, validator="check",
-        )
-        s = str(vi)
-        assert "FAIL" in s
-        assert "context/test.md" in s
-        assert "Missing section" in s
-
-    def test_repr(self):
-        vi = ValidationIssue(
-            file="test.md", issue="broken", severity=IssueSeverity.FAIL,
-            validator="v",
-        )
-        assert "ValidationIssue" in repr(vi)
-
-    def test_to_json(self):
-        vi = ValidationIssue(
-            file="test.md", issue="broken", severity=IssueSeverity.FAIL,
-            validator="v", section="Guidance",
-        )
-        d = vi.to_json()
-        assert d["file"] == "test.md"
-        assert d["severity"] == "fail"
-
-    def test_from_json(self):
-        d = {
-            "file": "test.md", "issue": "broken", "severity": "fail",
-            "validator": "v",
-        }
-        vi = ValidationIssue.from_json(d)
-        assert vi.severity == IssueSeverity.FAIL
-
-    def test_json_round_trip(self):
-        vi = ValidationIssue(
-            file="test.md", issue="broken", severity=IssueSeverity.FAIL,
-            validator="v", section="Guidance", suggestion="Fix it",
-        )
-        restored = ValidationIssue.from_json(vi.to_json())
-        assert restored == vi
-
-    def test_to_markdown(self):
-        vi = ValidationIssue(
-            file="test.md", issue="Missing section",
-            severity=IssueSeverity.FAIL, validator="check",
-        )
-        md = vi.to_markdown()
-        assert "**FAIL**" in md
-        assert "test.md" in md
-        assert "Missing section" in md
-
-    def test_validate_self_valid(self):
-        vi = ValidationIssue(
-            file="test.md", issue="broken", severity=IssueSeverity.FAIL,
-            validator="v",
-        )
-        assert vi.validate_self() == []
-
-    def test_validate_self_empty_file(self):
-        vi = ValidationIssue(
-            file="", issue="broken", severity=IssueSeverity.FAIL,
-            validator="v",
-        )
-        issues = vi.validate_self()
-        assert len(issues) >= 1
-
-    def test_is_valid(self):
-        vi = ValidationIssue(
-            file="test.md", issue="broken", severity=IssueSeverity.FAIL,
-            validator="v",
-        )
-        assert vi.is_valid is True
-```
-
-**Step 2: Add builder**
-
-Append to `tests/builders.py`:
+Add to `tests/models/test_base_document.py`:
 
 ```python
-from wos.models.core import IssueSeverity, ValidationIssue
-
-
-def make_validation_issue(**overrides) -> ValidationIssue:
-    """Build a valid ValidationIssue with sensible defaults."""
-    defaults = {
-        "file": "context/test/example.md",
-        "issue": "Example validation issue",
-        "severity": IssueSeverity.WARN,
-        "validator": "test_validator",
-    }
-    defaults.update(overrides)
-    return ValidationIssue(**defaults)
+def test_validate_content_returns_validation_issues(self):
+    """validate_content() returns ValidationIssue objects, not raw dicts."""
+    short_desc_md = (
+        "---\n"
+        "document_type: topic\n"
+        'description: "Short"\n'
+        "last_updated: 2026-02-17\n"
+        "last_validated: 2026-02-17\n"
+        "sources:\n"
+        '  - url: "https://example.com"\n'
+        '    title: "Example"\n'
+        "---\n"
+        "\n"
+        "# Short Topic\n"
+        "\n"
+        "## Guidance\n\nContent.\n"
+        "\n"
+        "## Context\n\nContent.\n"
+        "\n"
+        "## In Practice\n\n- Do this.\n"
+        "\n"
+        "## Pitfalls\n\nAvoid that.\n"
+        "\n"
+        "## Go Deeper\n\n- [Link](https://example.com)\n"
+    )
+    doc = parse_document("context/testing/example.md", short_desc_md)
+    issues = doc.validate_content()
+    assert len(issues) > 0
+    for issue in issues:
+        assert isinstance(issue, ValidationIssue)
+        assert issue.requires_llm is True
 ```
 
-**Step 3: Run tests to verify they fail**
+**Step 2: Run test to verify it fails**
 
-Run: `python3 -m pytest tests/test_ddd_protocol.py::TestValidationIssueProtocol -v`
+Run: `python3 -m pytest tests/models/test_base_document.py::TestBaseDocumentProtocol::test_validate_content_returns_validation_issues -v`
+Expected: FAIL — returns TriggerContext dicts, not ValidationIssue objects
+
+**Step 3: Rewrite `validate_content()` on BaseDocument**
+
+In `wos/models/base_document.py`, replace the current `validate_content()` (lines 255-265):
+
+```python
+def validate_content(self) -> list[ValidationIssue]:
+    """Run content quality checks that require LLM review.
+
+    Returns ValidationIssue objects with requires_llm=True.
+    Subclasses override to add type-specific content checks.
+    """
+    from wos.models.enums import IssueSeverity
+
+    issues: list[ValidationIssue] = []
+
+    # Shared: check description quality
+    desc = self.frontmatter.description
+    if len(desc) < 20:
+        issues.append(
+            ValidationIssue(
+                file=self.path,
+                issue="Description may be too short for agents to assess relevance",
+                severity=IssueSeverity.INFO,
+                validator="validate_content",
+                suggestion="Expand the description to be more informative",
+                requires_llm=True,
+            )
+        )
+
+    return issues
+```
+
+Remove the `from wos.tier2_triggers import trigger_description_quality` import.
+
+**Step 4: Run all tests**
+
+Run: `python3 -m pytest tests/ -v`
+Expected: ALL PASS. Check `tests/test_tier2_triggers.py` — those tests call the trigger functions directly, not via `validate_content()`, so they should still pass.
+
+**Step 5: Commit**
+
+```bash
+git add wos/models/base_document.py tests/models/test_base_document.py
+git commit -m "feat: BaseDocument.validate_content() returns ValidationIssue with requires_llm"
+```
+
+---
+
+### Task 3: Inline `validate_content()` on TopicDocument
+
+Move the trigger logic from `tier2_triggers.py` into `TopicDocument.validate_content()`.
+
+**Files:**
+- Modify: `wos/models/topic_document.py:49-61`
+- Create: `tests/models/test_topic_document.py`
+
+**Step 1: Write the failing test**
+
+Create `tests/models/test_topic_document.py`:
+
+```python
+"""Tests for TopicDocument validate_content()."""
+from __future__ import annotations
+
+from wos.models.parsing import parse_document
+from wos.models.validation_issue import ValidationIssue
+
+
+def _make_topic(
+    in_practice="- Do this step.\n- Then this.\n",
+    pitfalls="Watch out for these common mistakes that developers make when working with this pattern.\n",
+    go_deeper="- [Link](https://example.com)\n",
+):
+    md = (
+        "---\n"
+        "document_type: topic\n"
+        'description: "A test topic with enough words to pass quality"\n'
+        "last_updated: 2026-02-17\n"
+        "last_validated: 2026-02-17\n"
+        "sources:\n"
+        '  - url: "https://example.com"\n'
+        '    title: "Example"\n'
+        "---\n"
+        "\n"
+        "# Test Topic\n"
+        "\n"
+        "## Guidance\n\nFollow these steps.\n"
+        "\n"
+        "## Context\n\nBackground info.\n"
+        "\n"
+        f"## In Practice\n\n{in_practice}"
+        "\n"
+        f"## Pitfalls\n\n{pitfalls}"
+        "\n"
+        f"## Go Deeper\n\n{go_deeper}"
+    )
+    return parse_document("context/testing/example.md", md)
+
+
+class TestTopicValidateContent:
+    def test_good_topic_no_content_issues(self):
+        doc = _make_topic()
+        issues = doc.validate_content()
+        section_issues = [i for i in issues if i.section in ("In Practice", "Pitfalls")]
+        assert len(section_issues) == 0
+
+    def test_in_practice_no_code_or_list_flags_review(self):
+        doc = _make_topic(in_practice="Just some prose without examples.\n")
+        issues = doc.validate_content()
+        in_practice = [i for i in issues if i.section == "In Practice"]
+        assert len(in_practice) > 0
+        assert all(i.requires_llm for i in in_practice)
+
+    def test_pitfalls_too_short_flags_review(self):
+        doc = _make_topic(pitfalls="Be careful.\n")
+        issues = doc.validate_content()
+        pitfall = [i for i in issues if i.section == "Pitfalls"]
+        assert len(pitfall) > 0
+        assert all(i.requires_llm for i in pitfall)
+
+    def test_all_content_issues_are_validation_issues(self):
+        doc = _make_topic(in_practice="Prose only.\n", pitfalls="Short.\n")
+        issues = doc.validate_content()
+        for issue in issues:
+            assert isinstance(issue, ValidationIssue)
+            assert issue.requires_llm is True
+```
+
+**Step 2: Run tests to verify they fail**
+
+Run: `python3 -m pytest tests/models/test_topic_document.py -v`
+Expected: FAIL — current `validate_content()` returns TriggerContext dicts
+
+**Step 3: Rewrite `validate_content()` on TopicDocument**
+
+In `wos/models/topic_document.py`, replace the `validate_content()` method:
+
+```python
+def validate_content(self) -> list[ValidationIssue]:
+    from wos.models.enums import IssueSeverity
+
+    issues = super().validate_content()
+
+    # Check In Practice concreteness
+    section = self.get_section_content("In Practice", "")
+    if section:
+        has_code = "```" in section or "    " in section
+        has_list = "- " in section or "1. " in section
+        if not has_code and not has_list:
+            issues.append(
+                ValidationIssue(
+                    file=self.path,
+                    issue="In Practice section may lack concrete examples",
+                    severity=IssueSeverity.INFO,
+                    validator="validate_content",
+                    section="In Practice",
+                    suggestion="Add code blocks, bullet lists, or step-by-step examples",
+                    requires_llm=True,
+                )
+            )
+
+    # Check Pitfalls completeness
+    pitfalls = self.get_section_content("Pitfalls", "")
+    if pitfalls and len(pitfalls.split()) < 20:
+        issues.append(
+            ValidationIssue(
+                file=self.path,
+                issue="Pitfalls section may be incomplete",
+                severity=IssueSeverity.INFO,
+                validator="validate_content",
+                section="Pitfalls",
+                suggestion="Add more common pitfalls and how to avoid them",
+                requires_llm=True,
+            )
+        )
+
+    return issues
+```
+
+**Step 4: Run all tests**
+
+Run: `python3 -m pytest tests/ -v`
+Expected: ALL PASS
+
+**Step 5: Commit**
+
+```bash
+git add wos/models/topic_document.py tests/models/test_topic_document.py
+git commit -m "feat: inline validate_content() on TopicDocument"
+```
+
+---
+
+### Task 4: Inline `validate_content()` on OverviewDocument, ResearchDocument, PlanDocument
+
+Same pattern as Task 3 for the remaining subclasses.
+
+**Files:**
+- Modify: `wos/models/overview_document.py:45-50`
+- Modify: `wos/models/research_document.py:48-60`
+- Modify: `wos/models/plan_document.py:37-49`
+- Create: `tests/models/test_overview_document.py`
+- Create: `tests/models/test_research_document.py`
+- Create: `tests/models/test_plan_document.py`
+
+**Step 1: Write the failing tests**
+
+Create `tests/models/test_overview_document.py`:
+
+```python
+"""Tests for OverviewDocument validate_content()."""
+from __future__ import annotations
+
+from wos.models.parsing import parse_document
+from wos.models.validation_issue import ValidationIssue
+
+
+def _make_overview(what_this_covers="This area covers a wide range of topics " * 5):
+    md = (
+        "---\n"
+        "document_type: overview\n"
+        'description: "Test overview with enough words"\n'
+        "last_updated: 2026-02-17\n"
+        "last_validated: 2026-02-17\n"
+        "---\n"
+        "\n"
+        "# Test Overview\n"
+        "\n"
+        f"## What This Covers\n\n{what_this_covers}\n"
+        "\n"
+        "## Topics\n\n- Topic A\n"
+        "\n"
+        "## Key Sources\n\n- [Source](https://example.com)\n"
+    )
+    return parse_document("context/testing/_overview.md", md)
+
+
+class TestOverviewValidateContent:
+    def test_short_coverage_flags_review(self):
+        doc = _make_overview(what_this_covers="Brief.")
+        issues = doc.validate_content()
+        coverage = [i for i in issues if i.section == "What This Covers"]
+        assert len(coverage) > 0
+        assert all(isinstance(i, ValidationIssue) for i in coverage)
+        assert all(i.requires_llm for i in coverage)
+
+    def test_adequate_coverage_no_issue(self):
+        doc = _make_overview()
+        issues = doc.validate_content()
+        coverage = [i for i in issues if i.section == "What This Covers"]
+        assert len(coverage) == 0
+```
+
+Create `tests/models/test_research_document.py`:
+
+```python
+"""Tests for ResearchDocument validate_content()."""
+from __future__ import annotations
+
+from wos.models.parsing import parse_document
+from wos.models.validation_issue import ValidationIssue
+
+
+def _make_research(
+    question="What is the best approach?",
+    findings="Based on [Source](https://example.com), the approach works well.\n",
+):
+    md = (
+        "---\n"
+        "document_type: research\n"
+        'description: "Test research document"\n'
+        "last_updated: 2026-02-17\n"
+        "sources:\n"
+        '  - url: "https://example.com"\n'
+        '    title: "Example"\n'
+        "---\n"
+        "\n"
+        "# Test Research\n"
+        "\n"
+        f"## Question\n\n{question}\n"
+        "\n"
+        f"## Findings\n\n{findings}"
+        "\n"
+        "## Implications\n\nThis means we should do X.\n"
+    )
+    return parse_document("artifacts/research/2026-02-17-test.md", md)
+
+
+class TestResearchValidateContent:
+    def test_question_no_question_mark_flags_review(self):
+        doc = _make_research(question="Investigate the pattern")
+        issues = doc.validate_content()
+        q_issues = [i for i in issues if i.section == "Question"]
+        assert len(q_issues) > 0
+        assert all(i.requires_llm for i in q_issues)
+
+    def test_findings_no_links_flags_review(self):
+        long_text = "The results show that this approach works. " * 10
+        doc = _make_research(findings=long_text)
+        issues = doc.validate_content()
+        f_issues = [i for i in issues if i.section == "Findings"]
+        assert len(f_issues) > 0
+        assert all(i.requires_llm for i in f_issues)
+
+    def test_good_research_no_content_issues(self):
+        doc = _make_research()
+        issues = doc.validate_content()
+        section_issues = [i for i in issues if i.section in ("Question", "Findings")]
+        assert len(section_issues) == 0
+```
+
+Create `tests/models/test_plan_document.py`:
+
+```python
+"""Tests for PlanDocument validate_content()."""
+from __future__ import annotations
+
+from wos.models.parsing import parse_document
+from wos.models.validation_issue import ValidationIssue
+
+
+def _make_plan(
+    steps="1. Do first thing in detail with clear instructions.\n2. Do second thing with all needed context.\n",
+    verification="- Check output matches expected.\n- Verify no regressions.\n",
+):
+    md = (
+        "---\n"
+        "document_type: plan\n"
+        'description: "Test plan document"\n'
+        "last_updated: 2026-02-17\n"
+        "---\n"
+        "\n"
+        "# Test Plan\n"
+        "\n"
+        "## Objective\n\nAccomplish the goal.\n"
+        "\n"
+        "## Context\n\nBackground info here.\n"
+        "\n"
+        f"## Steps\n\n{steps}"
+        "\n"
+        f"## Verification\n\n{verification}"
+    )
+    return parse_document("artifacts/plans/2026-02-17-test.md", md)
+
+
+class TestPlanValidateContent:
+    def test_vague_steps_flags_review(self):
+        doc = _make_plan(steps="1. Do it.\n2. Test.\n3. Ship.\n")
+        issues = doc.validate_content()
+        step_issues = [i for i in issues if i.section == "Steps"]
+        assert len(step_issues) > 0
+        assert all(i.requires_llm for i in step_issues)
+
+    def test_sparse_verification_flags_review(self):
+        doc = _make_plan(verification="- Works.\n")
+        issues = doc.validate_content()
+        v_issues = [i for i in issues if i.section == "Verification"]
+        assert len(v_issues) > 0
+        assert all(i.requires_llm for i in v_issues)
+
+    def test_good_plan_no_content_issues(self):
+        doc = _make_plan()
+        issues = doc.validate_content()
+        section_issues = [i for i in issues if i.section in ("Steps", "Verification")]
+        assert len(section_issues) == 0
+```
+
+**Step 2: Run tests to verify they fail**
+
+Run: `python3 -m pytest tests/models/test_overview_document.py tests/models/test_research_document.py tests/models/test_plan_document.py -v`
 Expected: FAIL
 
-**Step 4: Implement ValidationIssue DDD protocol**
+**Step 3: Rewrite `validate_content()` on each subclass**
 
-Modify `wos/models/core.py:44-52`:
+**OverviewDocument** (`wos/models/overview_document.py`) — replace `validate_content()`:
 
 ```python
-class ValidationIssue(BaseModel):
-    """A single validation issue found during document health checks."""
+def validate_content(self) -> list[ValidationIssue]:
+    from wos.models.enums import IssueSeverity
 
-    model_config = ConfigDict(frozen=True)
+    issues = super().validate_content()
 
-    file: str
-    issue: str
-    severity: IssueSeverity
-    validator: str
-    section: Optional[str] = None
-    suggestion: Optional[str] = None
-
-    def __str__(self) -> str:
-        return f"[{self.severity.value.upper()}] {self.file}: {self.issue}"
-
-    def __repr__(self) -> str:
-        return (
-            f"ValidationIssue(file={self.file!r}, issue={self.issue!r}, "
-            f"severity={self.severity.value!r}, validator={self.validator!r})"
+    section = self.get_section_content("What This Covers", "")
+    if section and len(section.split()) < 50:
+        issues.append(
+            ValidationIssue(
+                file=self.path,
+                issue="What This Covers section may be too vague to define scope",
+                severity=IssueSeverity.INFO,
+                validator="validate_content",
+                section="What This Covers",
+                suggestion="Expand to clearly define scope and audience",
+                requires_llm=True,
+            )
         )
 
-    def to_json(self) -> dict:
-        return self.model_dump(mode="json")
-
-    @classmethod
-    def from_json(cls, data: dict) -> ValidationIssue:
-        return cls.model_validate(data)
-
-    def to_markdown(self) -> str:
-        parts = [f"- **{self.severity.value.upper()}** `{self.file}`: {self.issue}"]
-        if self.suggestion:
-            parts.append(f"  - {self.suggestion}")
-        return "\n".join(parts)
-
-    def validate_self(self) -> list:
-        issues: list[ValidationIssue] = []
-        if not self.file and self.file != "":
-            pass  # file can be empty string for non-file-specific issues
-        if not self.issue.strip():
-            issues.append(ValidationIssue(
-                file="", issue="ValidationIssue has empty issue text",
-                severity=IssueSeverity.FAIL, validator="validation_issue_self",
-            ))
-        return issues
-
-    @property
-    def is_valid(self) -> bool:
-        return len(self.validate_self()) == 0
+    return issues
 ```
 
-**Step 5: Run tests to verify pass**
+**ResearchDocument** (`wos/models/research_document.py`) — replace `validate_content()`:
 
-Run: `python3 -m pytest tests/test_ddd_protocol.py -v`
-Expected: ALL PASS
+```python
+def validate_content(self) -> list[ValidationIssue]:
+    from wos.models.enums import IssueSeverity
 
-**Step 6: Run full suite, commit**
+    issues = super().validate_content()
+
+    # Check question clarity
+    question = self.get_section_content("Question", "")
+    if question and "?" not in question:
+        issues.append(
+            ValidationIssue(
+                file=self.path,
+                issue="Research question may not be clearly framed as a question",
+                severity=IssueSeverity.INFO,
+                validator="validate_content",
+                section="Question",
+                suggestion="Frame as a specific, answerable question",
+                requires_llm=True,
+            )
+        )
+
+    # Check finding groundedness
+    findings = self.get_section_content("Findings", "")
+    has_links = "[" in findings and "](" in findings
+    if findings and not has_links and len(findings.split()) > 50:
+        issues.append(
+            ValidationIssue(
+                file=self.path,
+                issue="Findings may not be well-grounded in sources",
+                severity=IssueSeverity.INFO,
+                validator="validate_content",
+                section="Findings",
+                suggestion="Add citations or links to supporting sources",
+                requires_llm=True,
+            )
+        )
+
+    return issues
+```
+
+**PlanDocument** (`wos/models/plan_document.py`) — replace `validate_content()`:
+
+```python
+def validate_content(self) -> list[ValidationIssue]:
+    from wos.models.enums import IssueSeverity
+
+    issues = super().validate_content()
+
+    # Check step specificity
+    steps = self.get_section_content("Steps", "")
+    if steps:
+        step_lines = [
+            line for line in steps.split("\n")
+            if line.strip() and line.strip()[0].isdigit()
+        ]
+        if len(step_lines) > 0 and len(steps.split()) / len(step_lines) < 10:
+            issues.append(
+                ValidationIssue(
+                    file=self.path,
+                    issue="Plan steps may be too vague to execute",
+                    severity=IssueSeverity.INFO,
+                    validator="validate_content",
+                    section="Steps",
+                    suggestion="Add detail so steps are unambiguous",
+                    requires_llm=True,
+                )
+            )
+
+    # Check verification completeness
+    verification = self.get_section_content("Verification", "")
+    if verification:
+        items = [
+            line for line in verification.split("\n")
+            if line.strip().startswith("-")
+        ]
+        if len(items) < 2:
+            issues.append(
+                ValidationIssue(
+                    file=self.path,
+                    issue="Verification section may not have enough criteria",
+                    severity=IssueSeverity.INFO,
+                    validator="validate_content",
+                    section="Verification",
+                    suggestion="Add verification criteria for each objective",
+                    requires_llm=True,
+                )
+            )
+
+    return issues
+```
+
+**Step 4: Run all tests**
 
 Run: `python3 -m pytest tests/ -v`
+Expected: ALL PASS
+
+**Step 5: Commit**
 
 ```bash
-git add wos/models/core.py tests/test_ddd_protocol.py tests/builders.py
-git commit -m "feat: enrich ValidationIssue with DDD protocol (frozen, str, json, markdown, validate_self)"
+git add wos/models/overview_document.py wos/models/research_document.py wos/models/plan_document.py tests/models/test_overview_document.py tests/models/test_research_document.py tests/models/test_plan_document.py
+git commit -m "feat: inline validate_content() on Overview, Research, Plan documents"
 ```
 
 ---
 
-### Task 3: Enrich DocumentSection (with line number fields)
+### Task 5: Add `auto_fix()` to BaseDocument
+
+Absorb `auto_fix.py` logic into domain objects. `auto_fix()` returns fixed markdown string or None.
 
 **Files:**
-- Modify: `wos/models/core.py:58-70`
-- Modify: `tests/test_ddd_protocol.py` (append)
-- Modify: `tests/builders.py` (append)
+- Modify: `wos/models/base_document.py`
+- Modify: `tests/models/test_base_document.py`
 
-**Step 1: Add DocumentSection protocol tests**
+**Step 1: Write the failing test**
 
-Append to `tests/test_ddd_protocol.py`:
-
-```python
-from wos.models.core import DocumentSection
-
-
-class TestDocumentSectionProtocol:
-    def test_frozen_immutable(self):
-        import pytest
-        s = DocumentSection(name="Guidance", content="Use guidelines.")
-        with pytest.raises(Exception):
-            s.name = "Other"
-
-    def test_frozen_hashable(self):
-        s = DocumentSection(name="Guidance", content="Use guidelines.")
-        assert s in {s}
-
-    def test_equality(self):
-        a = DocumentSection(name="Guidance", content="Use guidelines.")
-        b = DocumentSection(name="Guidance", content="Use guidelines.")
-        assert a == b
-
-    def test_str(self):
-        s = DocumentSection(name="Guidance", content="Use these guidelines for work.")
-        result = str(s)
-        assert "Guidance" in result
-        assert "words" in result.lower()
-
-    def test_to_json(self):
-        s = DocumentSection(name="Guidance", content="Content here.")
-        d = s.to_json()
-        assert d["name"] == "Guidance"
-        assert d["content"] == "Content here."
-
-    def test_from_json(self):
-        d = {"name": "Guidance", "content": "Content here."}
-        s = DocumentSection.from_json(d)
-        assert s.name == "Guidance"
-
-    def test_json_round_trip(self):
-        original = DocumentSection(name="Guidance", content="Content here.")
-        restored = DocumentSection.from_json(original.to_json())
-        assert restored == original
-
-    def test_to_markdown(self):
-        s = DocumentSection(name="Guidance", content="Use guidelines.")
-        md = s.to_markdown()
-        assert md.startswith("## Guidance")
-        assert "Use guidelines." in md
-
-    def test_line_number_fields_default_none(self):
-        s = DocumentSection(name="Guidance", content="Content.")
-        assert s.line_start is None
-        assert s.line_end is None
-
-    def test_line_number_fields_populated(self):
-        s = DocumentSection(
-            name="Guidance", content="Content.",
-            line_start=10, line_end=15,
-        )
-        assert s.line_start == 10
-        assert s.line_end == 15
-
-    def test_validate_self_valid(self):
-        s = DocumentSection(name="Guidance", content="Has content.")
-        assert s.validate_self() == []
-
-    def test_is_valid(self):
-        s = DocumentSection(name="Guidance", content="Has content.")
-        assert s.is_valid is True
-
-    def test_get_estimated_tokens(self):
-        s = DocumentSection(name="Guidance", content="Some content here.")
-        tokens = s.get_estimated_tokens()
-        assert isinstance(tokens, int)
-        assert tokens > 0
-```
-
-**Step 2: Add builder**
-
-Append to `tests/builders.py`:
+Add to `tests/models/test_base_document.py`:
 
 ```python
-from wos.models.core import DocumentSection
+# -- auto_fix --
 
+def test_auto_fix_reorders_sections(self):
+    """auto_fix() should fix section ordering issues."""
+    bad_order_md = (
+        "---\n"
+        "document_type: topic\n"
+        'description: "Test topic document"\n'
+        "last_updated: 2026-02-17\n"
+        "last_validated: 2026-02-17\n"
+        "sources:\n"
+        '  - url: "https://example.com"\n'
+        '    title: "Example"\n'
+        "---\n"
+        "\n"
+        "# Test Topic\n"
+        "\n"
+        "## Context\n\nBackground info.\n"
+        "\n"
+        "## Guidance\n\nFollow these steps.\n"
+        "\n"
+        "## In Practice\n\n- Do this.\n"
+        "\n"
+        "## Pitfalls\n\nAvoid that.\n"
+        "\n"
+        "## Go Deeper\n\n- [Link](https://example.com)\n"
+    )
+    doc = parse_document("context/testing/example.md", bad_order_md)
+    fixed = doc.auto_fix()
+    assert fixed is not None
+    assert fixed.index("## Guidance") < fixed.index("## Context")
 
-def make_document_section(**overrides) -> DocumentSection:
-    """Build a valid DocumentSection with sensible defaults."""
-    defaults = {
-        "name": "Guidance",
-        "content": "Use these guidelines for effective implementation.",
-    }
-    defaults.update(overrides)
-    return DocumentSection(**defaults)
+def test_auto_fix_returns_none_when_valid(self):
+    """auto_fix() returns None for a valid document."""
+    doc = self._make_topic_doc()
+    fixed = doc.auto_fix()
+    assert fixed is None
 ```
 
-**Step 3: Run tests to verify they fail**
+**Step 2: Run tests to verify they fail**
 
-Run: `python3 -m pytest tests/test_ddd_protocol.py::TestDocumentSectionProtocol -v`
+Run: `python3 -m pytest tests/models/test_base_document.py -v -k "auto_fix"`
+Expected: FAIL — `auto_fix` doesn't exist
 
-**Step 4: Implement DocumentSection DDD protocol**
+**Step 3: Add `auto_fix()` to BaseDocument**
 
-Modify `wos/models/core.py:58-70`:
+In `wos/models/base_document.py`, add after `validate_content()`. The implementation should:
 
-```python
-class DocumentSection(BaseModel):
-    """A single H2 section within a document."""
+1. Call `self.validate_self()` to get issues
+2. For each issue, check if a fix is available by validator name
+3. Apply fixes sequentially to the raw content
+4. Return the fixed content, or None if no fixes applied
+5. Validate the fixed content by re-parsing before returning
 
-    model_config = ConfigDict(frozen=True)
+Key fix handlers to port from `auto_fix.py`:
+- `check_section_ordering` → `_fix_section_ordering(content)` — reorder H2 sections to canonical order
+- `check_section_presence` → `_fix_missing_section(content, section_name)` — add TODO placeholder
 
-    name: str
-    content: str
-    line_start: Optional[int] = None
-    line_end: Optional[int] = None
+See `wos/auto_fix.py` for the complete regex-based implementation of each fix function. Port the logic into private methods `_fix_section_ordering()` and `_fix_missing_section()` on BaseDocument.
 
-    def __str__(self) -> str:
-        return f"## {self.name} ({self.word_count} words)"
+**Step 4: Run all tests**
 
-    def __repr__(self) -> str:
-        lines = f", lines {self.line_start}-{self.line_end}" if self.line_start else ""
-        return f"DocumentSection(name={self.name!r}, words={self.word_count}{lines})"
+Run: `python3 -m pytest tests/ -v`
+Expected: ALL PASS
 
-    @property
-    def word_count(self) -> int:
-        return len(self.content.split())
-
-    @property
-    def line_count(self) -> int:
-        return self.content.count("\n") + 1 if self.content else 0
-
-    def to_json(self) -> dict:
-        return self.model_dump(mode="json")
-
-    @classmethod
-    def from_json(cls, data: dict) -> DocumentSection:
-        return cls.model_validate(data)
-
-    def to_markdown(self) -> str:
-        return f"## {self.name}\n\n{self.content}"
-
-    def get_estimated_tokens(self) -> int:
-        return len(self.name) // 4 + 2 + len(self.content) // 4
-
-    def validate_self(self) -> list:
-        from wos.models.core import ValidationIssue, IssueSeverity
-        issues: list[ValidationIssue] = []
-        if not self.name.strip():
-            issues.append(ValidationIssue(
-                file="", issue="Section name is blank",
-                severity=IssueSeverity.FAIL, validator="document_section_name",
-            ))
-        return issues
-
-    @property
-    def is_valid(self) -> bool:
-        return len(self.validate_self()) == 0
-```
-
-**Step 5: Run tests, verify pass, run full suite**
-
-Run: `python3 -m pytest tests/test_ddd_protocol.py -v && python3 -m pytest tests/ -v`
-
-**Step 6: Commit**
+**Step 5: Commit**
 
 ```bash
-git add wos/models/core.py tests/test_ddd_protocol.py tests/builders.py
-git commit -m "feat: enrich DocumentSection with DDD protocol (frozen, line numbers, str, json, markdown)"
+git add wos/models/base_document.py tests/models/test_base_document.py
+git commit -m "feat: add auto_fix() to BaseDocument"
 ```
 
 ---
 
-### Task 4: Enrich SectionSpec
+### Task 6: Rename `ContextArea.validate()` to `validate_self()`, add `is_valid`
 
 **Files:**
-- Modify: `wos/models/frontmatter.py:138-143`
-- Modify: `tests/test_ddd_protocol.py` (append)
-- Modify: `tests/builders.py` (append)
+- Modify: `wos/models/context_area.py:115-120`
+- Modify: `tests/models/test_context_area.py`
+- Modify: any callers of `area.validate()` (search codebase)
 
-**Follow the same TDD pattern as Tasks 1-3:**
+**Step 1: Write the failing test**
 
-1. Write tests for: frozen, hashable, equality, `__str__` (format: `"Guidance @1"`), `__repr__`, `to_json`, `from_json`, json round-trip, `validate_self` (position > 0), `is_valid`, builder
-2. Add `make_section_spec()` to `tests/builders.py` with defaults `name="Guidance", position=1`
-3. Run tests, verify fail
-4. Implement: add `model_config = ConfigDict(frozen=True)`, add `__str__`, `__repr__`, `to_json`, `from_json`, `validate_self`, `is_valid` to `SectionSpec` in `wos/models/frontmatter.py`
-5. Add `from pydantic import BaseModel, ConfigDict, Field, field_validator` to frontmatter.py imports
-6. Run tests, verify pass, run full suite
-7. Commit: `"feat: enrich SectionSpec with DDD protocol"`
-
-**`__str__` format:** `f"{self.name} @{self.position}"` (e.g., "Guidance @1")
-
-**`validate_self` checks:** position >= 1, name not blank
-
----
-
-### Task 5: Enrich SizeBounds
-
-**Files:**
-- Modify: `wos/models/frontmatter.py:182-186`
-- Modify: `tests/test_ddd_protocol.py` (append)
-- Modify: `tests/builders.py` (append)
-
-**Follow the same TDD pattern:**
-
-1. Tests for: frozen, hashable, equality, `__str__` (format: `"10-500 lines"` or `"10+ lines"` if no max), `__repr__`, `to_json`, `from_json`, `validate_self` (min > 0, max >= min if set), `is_valid`, builder
-2. Builder defaults: `min_lines=10, max_lines=500`
-3. Implement on `SizeBounds` in `wos/models/frontmatter.py`
-4. Commit: `"feat: enrich SizeBounds with DDD protocol"`
-
-**`__str__` format:** `f"{self.min_lines}-{self.max_lines} lines"` or `f"{self.min_lines}+ lines"` if `max_lines is None`
-
----
-
-## Phase 2: Verification Result Types
-
-### Task 6: Migrate VerificationResult to Pydantic
-
-**Files:**
-- Modify: `wos/source_verification.py:99-119`
-- Modify: `tests/test_ddd_protocol.py` (append)
-- Modify: `tests/builders.py` (append)
-- Modify: `tests/test_source_verification.py` (fix any `asdict()` calls)
-
-**Step 1: Add protocol tests**
-
-Test: frozen, hashable, equality, `__str__` (format: `"ok: https://example.com"`), `__repr__`, `to_json`/`from_json` round-trip, `validate_self`, `is_valid`, builder.
-
-**Step 2: Add builder**
-
-`make_verification_result()` with defaults: `url="https://example.com", cited_title="Example", http_status=200, page_title="Example Page", title_match=True, action="ok", reason="Title matches"`
-
-**Step 3: Migrate from `@dataclass` to Pydantic `BaseModel`**
-
-Replace in `wos/source_verification.py`:
+Add to `tests/models/test_context_area.py`:
 
 ```python
-class VerificationResult(BaseModel):
-    """Result of verifying a single source URL."""
+def test_validate_self_returns_list(self):
+    """validate_self() replaces validate()."""
+    area = ContextArea(name="testing")
+    issues = area.validate_self()
+    assert isinstance(issues, list)
 
-    model_config = ConfigDict(frozen=True)
-
-    url: str
-    cited_title: str
-    http_status: Optional[int]
-    page_title: Optional[str]
-    title_match: Optional[bool]
-    action: str  # "ok" | "removed" | "flagged"
-    reason: str
-
-    def __str__(self) -> str:
-        return f"{self.action}: {self.url}"
-
-    def __repr__(self) -> str:
-        return f"VerificationResult(action={self.action!r}, url={self.url!r}, reason={self.reason!r})"
-
-    def to_json(self) -> dict:
-        return self.model_dump(mode="json")
-
-    @classmethod
-    def from_json(cls, data: dict) -> VerificationResult:
-        return cls.model_validate(data)
-
-    def validate_self(self) -> list:
-        from wos.models.core import ValidationIssue, IssueSeverity
-        issues: list[ValidationIssue] = []
-        if self.action not in ("ok", "removed", "flagged"):
-            issues.append(ValidationIssue(
-                file="", issue=f"Invalid action: {self.action}",
-                severity=IssueSeverity.FAIL, validator="verification_result_action",
-            ))
-        return issues
-
-    @property
-    def is_valid(self) -> bool:
-        return len(self.validate_self()) == 0
+def test_is_valid_property(self):
+    area = ContextArea(name="testing")
+    assert isinstance(area.is_valid, bool)
 ```
 
-**Step 4: Fix callers**
+**Step 2: Run tests to verify they fail**
 
-In `wos/source_verification.py`, replace `from dataclasses import asdict, dataclass` with `from pydantic import BaseModel, ConfigDict`. Change `asdict(r)` calls (line ~413) to `r.to_json()`.
+Run: `python3 -m pytest tests/models/test_context_area.py -v -k "validate_self or is_valid"`
+Expected: FAIL
 
-**Step 5: Run full test suite, fix regressions, commit**
+**Step 3: Rename and add `is_valid`**
+
+In `wos/models/context_area.py`, rename `validate()` to `validate_self()`:
+
+```python
+def validate_self(self, deep: bool = False) -> list[ValidationIssue]:
+    """Run area-level validators (overview-topic sync, naming)."""
+    issues: list[ValidationIssue] = []
+    issues.extend(self._check_overview_topic_sync())
+    issues.extend(self._check_naming_conventions())
+    return issues
+
+@property
+def is_valid(self) -> bool:
+    return len(self.validate_self()) == 0
+```
+
+Search for callers of `.validate()` on ContextArea and update them. Check:
+- `scripts/check_health.py`
+- `tests/models/test_context_area.py`
+
+**Step 4: Run all tests**
+
+Run: `python3 -m pytest tests/ -v`
+Expected: ALL PASS
+
+**Step 5: Commit**
 
 ```bash
-git commit -m "feat: migrate VerificationResult to Pydantic with DDD protocol"
+git add wos/models/context_area.py tests/models/test_context_area.py
+git commit -m "feat: rename ContextArea.validate() to validate_self(), add is_valid"
 ```
 
 ---
 
-### Task 7: Migrate ReachabilityResult to Pydantic
-
-**Files:**
-- Modify: `wos/source_verification.py:113-120`
-- Modify: `tests/test_ddd_protocol.py` (append)
-- Modify: `tests/builders.py` (append)
-
-**Same pattern as Task 6.** Replace `@dataclass` with Pydantic `BaseModel` + `frozen=True`.
-
-**`__str__` format:** `f"{'reachable' if self.reachable else 'unreachable'}: {self.url}"`
-
-Builder defaults: `url="https://example.com", http_status=200, reachable=True, reason="OK", final_url="https://example.com"`
-
-Commit: `"feat: migrate ReachabilityResult to Pydantic with DDD protocol"`
-
----
-
-## Phase 3: Line Number Tracking
-
-### Task 8: Update _split_markdown to compute line numbers
-
-**Files:**
-- Modify: `wos/models/parsing.py:34-80`
-- Modify: `wos/models/documents.py:24-31` (add frontmatter_line_end, title_line fields)
-- Modify: `tests/test_ddd_protocol.py` (append)
-
-**Step 1: Add line number tests**
-
-```python
-from wos.models.parsing import parse_document
-
-
-class TestLineNumberTracking:
-    def test_frontmatter_line_end(self):
-        md = (
-            "---\n"                  # line 1
-            "document_type: plan\n"  # line 2
-            'description: "Implementation plan for a four-type document system"\n'
-            "last_updated: 2026-02-17\n"
-            "---\n"                  # line 5
-            "\n"
-            "# My Plan\n"           # line 7
-            "\n"
-            "## Objective\n"        # line 9
-            "\n"
-            "Goal here.\n"
-            "\n"
-            "## Context\n"          # line 13
-            "\n"
-            "Background.\n"
-            "\n"
-            "## Steps\n"            # line 17
-            "\n"
-            "1. Do stuff.\n"
-            "\n"
-            "## Verification\n"     # line 21
-            "\n"
-            "- It works.\n"
-        )
-        doc = parse_document("artifacts/plans/2026-02-17-plan.md", md)
-        assert doc.frontmatter_line_end == 5
-        assert doc.title_line == 7
-
-    def test_section_line_numbers(self):
-        md = (
-            "---\n"
-            "document_type: plan\n"
-            'description: "Implementation plan for a four-type document system"\n'
-            "last_updated: 2026-02-17\n"
-            "---\n"
-            "\n"
-            "# My Plan\n"
-            "\n"
-            "## Objective\n"        # line 9
-            "\n"
-            "Goal here.\n"
-            "\n"
-            "## Context\n"          # line 13
-            "\n"
-            "Background.\n"
-            "\n"
-            "## Steps\n"            # line 17
-            "\n"
-            "1. Do stuff.\n"
-            "\n"
-            "## Verification\n"     # line 21
-            "\n"
-            "- It works.\n"
-        )
-        doc = parse_document("artifacts/plans/2026-02-17-plan.md", md)
-        objective = doc.get_section("Objective")
-        assert objective is not None
-        assert objective.line_start == 9
-
-        verification = doc.get_section("Verification")
-        assert verification is not None
-        assert verification.line_start == 21
-```
-
-**Step 2: Run tests, verify fail**
-
-**Step 3: Implement line number tracking**
-
-In `wos/models/documents.py`, add fields to `BaseDocument`:
-
-```python
-class BaseDocument(BaseModel):
-    path: str
-    frontmatter: Frontmatter
-    title: str
-    sections: List[DocumentSection]
-    raw_content: str
-    frontmatter_line_end: Optional[int] = None
-    title_line: Optional[int] = None
-```
-
-In `wos/models/parsing.py`, update `_split_markdown()`:
-
-```python
-def _split_markdown(content):
-    # ... existing frontmatter extraction ...
-
-    fm_line_end = content[:fm_match.end()].count('\n')
-
-    body = content[fm_match.end():]
-    body_start_line = fm_line_end + 1
-
-    # Extract title
-    h1_match = _H1_RE.search(body)
-    title = h1_match.group(1).strip() if h1_match else ""
-    title_line = body_start_line + body[:h1_match.start()].count('\n') if h1_match else None
-
-    # Extract sections with line numbers
-    sections = []
-    h2_matches = list(_H2_RE.finditer(body))
-    for i, m in enumerate(h2_matches):
-        section_name = m.group(1).strip()
-        start = m.end()
-        end = h2_matches[i + 1].start() if i + 1 < len(h2_matches) else len(body)
-        line_start = body_start_line + body[:m.start()].count('\n')
-        line_end = body_start_line + body[:end].rstrip().count('\n')
-        sections.append(DocumentSection(
-            name=section_name,
-            content=body[start:end].strip(),
-            line_start=line_start,
-            line_end=line_end,
-        ))
-
-    return frontmatter_dict, title, sections, content, fm_line_end, title_line
-```
-
-Update `parse_document()` to pass the new fields through.
-
-**Step 4: Run tests, fix, commit**
-
-```bash
-git commit -m "feat: add line number tracking to DocumentSection and BaseDocument"
-```
-
----
-
-## Phase 4: Document Hierarchy
-
-### Task 9: Enrich BaseDocument with DDD protocol
-
-**Files:**
-- Modify: `wos/models/documents.py:24-133`
-- Modify: `tests/test_ddd_protocol.py` (append)
-- Modify: `tests/builders.py` (append)
-
-**Add to BaseDocument:**
-
-1. `__str__` — `f"{self.title} ({self.document_type.value})"`
-2. `__repr__` — `f"BaseDocument(path={self.path!r}, type={self.document_type.value!r})"`
-3. `__len__` — `len(self.sections)`
-4. `__iter__` — `iter(self.sections)`
-5. `__contains__` — `item in self.section_names` (for strings) or `item in self.sections` (for DocumentSection)
-6. `area_name` property — extracts area from path via `re.match(r"context/([^/]+)/", self.path)`
-7. `from_markdown(cls, path, content)` classmethod — wraps `parse_document()`
-8. `to_markdown()` — renders full document with YAML frontmatter + title + sections
-9. Rename `validate_structure()` to `validate_self()` (keep `validate_structure` as alias for backward compat)
-10. Add `is_valid` property
-
-**Builder:** `make_document()` in `tests/builders.py` that builds a minimal valid plan document (simplest type). Uses inline markdown string and `parse_document()`.
-
-**Commit:** `"feat: enrich BaseDocument with DDD protocol (str, collection, area_name, from/to_markdown)"`
-
----
-
-### Tasks 10-14: Enrich Document Subclasses
-
-Each document subclass (TopicDocument, OverviewDocument, ResearchDocument, PlanDocument, NoteDocument) follows the same pattern:
-
-1. Override `to_markdown()` to render type-specific frontmatter (absorb from `templates.py`)
-2. Rename `validate_structure()` to `validate_self()` (keep alias)
-3. Add type-specific builder to `tests/builders.py`
-4. Add protocol tests
-
-**Task 10:** TopicDocument — absorb `templates.render_topic()`, `make_topic_document()` builder
-**Task 11:** OverviewDocument — absorb `templates.render_overview()`, `make_overview_document()` builder
-**Task 12:** ResearchDocument — absorb `templates.render_research()`, `make_research_document()` builder
-**Task 13:** PlanDocument — absorb `templates.render_plan()`, `make_plan_document()` builder
-**Task 14:** NoteDocument — absorb `templates.render_note()`, `make_note_document()` builder
-
-Each commit: `"feat: enrich {TypeName} with DDD protocol (to_markdown, validate_self, builder)"`
-
----
-
-## Phase 5: Aggregates
-
-### Task 15: Enrich ContextArea
+### Task 7: Add `from_documents()` factory and collection protocol to ContextArea
 
 **Files:**
 - Modify: `wos/models/context_area.py`
-- Modify: `tests/test_ddd_protocol.py` (append)
-- Modify: `tests/builders.py` (append)
+- Modify: `tests/models/test_context_area.py`
 
-**Add:**
-1. `__str__` — `f"{self.display_name} ({len(self.topics)} topics)"`
-2. `__repr__` — `f"ContextArea(name={self.name!r}, topics={len(self.topics)})"`
-3. `__len__` — `len(self.topics)`
-4. `__iter__` — `iter(self.topics)`
-5. `__contains__` — check topic name or title
-6. `from_documents(cls, docs)` classmethod — absorbs `_build_context_areas()` logic
-7. `to_json()` — dict with name, overview_path, topics list
-8. Rename `validate()` to `validate_self()` (keep alias)
-9. `is_valid` property
-10. `make_context_area()` builder
+**Step 1: Write the failing tests**
 
-Commit: `"feat: enrich ContextArea with DDD protocol (collection, from_documents, validate_self)"`
+```python
+def test_from_documents_groups_by_area(self):
+    from wos.models.parsing import parse_document
+
+    topic_md = (
+        "---\n"
+        "document_type: topic\n"
+        'description: "Test topic"\n'
+        "last_updated: 2026-02-17\n"
+        "last_validated: 2026-02-17\n"
+        "sources:\n"
+        '  - url: "https://example.com"\n'
+        '    title: "Example"\n'
+        "---\n\n# Topic\n\n## Guidance\n\nContent.\n\n## Context\n\nContent.\n"
+        "\n## In Practice\n\n- Do.\n\n## Pitfalls\n\nAvoid.\n"
+        "\n## Go Deeper\n\n- [L](https://e.com)\n"
+    )
+    overview_md = (
+        "---\n"
+        "document_type: overview\n"
+        'description: "Test overview"\n'
+        "last_updated: 2026-02-17\n"
+        "last_validated: 2026-02-17\n"
+        "---\n\n# Testing\n\n## What This Covers\n\nScope.\n"
+        "\n## Topics\n\n- Topic\n\n## Key Sources\n\n- [S](https://e.com)\n"
+    )
+    docs = [
+        parse_document("context/testing/topic.md", topic_md),
+        parse_document("context/testing/_overview.md", overview_md),
+    ]
+    areas = ContextArea.from_documents(docs)
+    assert len(areas) == 1
+    assert areas[0].name == "testing"
+    assert areas[0].overview is not None
+    assert len(areas[0].topics) == 1
+
+def test_str(self):
+    area = ContextArea(name="testing")
+    assert "Testing" in str(area)
+
+def test_repr(self):
+    area = ContextArea(name="testing")
+    assert "ContextArea" in repr(area)
+
+def test_len(self):
+    area = ContextArea(name="testing")
+    assert len(area) == 0
+
+def test_iter(self):
+    area = ContextArea(name="testing")
+    assert list(area) == []
+
+def test_contains(self):
+    area = ContextArea(name="testing")
+    assert "nonexistent" not in area
+```
+
+**Step 2: Run tests to verify they fail**
+
+**Step 3: Add `from_documents()` and collection protocol**
+
+In `wos/models/context_area.py`:
+
+```python
+@classmethod
+def from_documents(cls, docs: list) -> List[ContextArea]:
+    """Group parsed documents into ContextArea objects by area directory."""
+    area_map: dict[str, ContextArea] = {}
+    for doc in docs:
+        if doc.document_type not in {DocumentType.TOPIC, DocumentType.OVERVIEW}:
+            continue
+        area_name = doc.area_name
+        if not area_name:
+            continue
+        if area_name not in area_map:
+            area_map[area_name] = cls(name=area_name)
+        area = area_map[area_name]
+        if doc.document_type == DocumentType.OVERVIEW:
+            area.overview = doc
+        elif doc.document_type == DocumentType.TOPIC:
+            area.topics.append(doc)
+    return sorted(area_map.values(), key=lambda a: a.name)
+
+def __str__(self) -> str:
+    return f"{self.display_name} ({len(self.topics)} topics)"
+
+def __repr__(self) -> str:
+    return f"ContextArea(name={self.name!r}, topics={len(self.topics)})"
+
+def __len__(self) -> int:
+    return len(self.topics)
+
+def __iter__(self):
+    return iter(self.topics)
+
+def __contains__(self, item: object) -> bool:
+    if isinstance(item, str):
+        return any(t.title == item for t in self.topics)
+    return item in self.topics
+```
+
+**Step 4: Run all tests**
+
+Run: `python3 -m pytest tests/ -v`
+Expected: ALL PASS
+
+**Step 5: Commit**
+
+```bash
+git add wos/models/context_area.py tests/models/test_context_area.py
+git commit -m "feat: add from_documents(), collection protocol to ContextArea"
+```
 
 ---
 
-### Task 16: Enrich HealthReport
+## Phase B: New Domain Objects
+
+### Task 8: Create RulesFile value object
 
 **Files:**
-- Modify: `wos/models/health_report.py`
-- Modify: `tests/test_ddd_protocol.py` (append)
-- Modify: `tests/builders.py` (append)
+- Create: `wos/models/rules_file.py`
+- Create: `tests/models/test_rules_file.py`
+- Modify: `tests/builders.py` — add `make_rules_file()`
 
-**Add:**
-1. `__str__` — absorbs `format_summary()` from `formatting.py` (without ANSI colors)
-2. `__repr__` — `f"HealthReport(status={self.status.value!r}, files={self.files_checked}, issues={len(self.issues)})"`
-3. `format_detailed(color=False)` — absorbs `format_detailed()` from `formatting.py`
-4. `format_summary(color=False)` — absorbs `format_summary()` from `formatting.py`
-5. `__len__` — `len(self.issues)`
-6. `__iter__` — `iter(self.issues)`
-7. `__contains__` — check if ValidationIssue is in issues
-8. `from_json(cls, data)` classmethod
-9. `is_valid` property (True if status is PASS)
-10. `make_health_report()` builder
+**Step 1: Write the failing test**
 
-Commit: `"feat: enrich HealthReport with DDD protocol (absorb formatting, collection)"`
+Create `tests/models/test_rules_file.py`:
+
+```python
+"""Tests for RulesFile value object."""
+from __future__ import annotations
+
+from wos.models.rules_file import RulesFile
+from wos.models.validation_issue import ValidationIssue
+
+
+class TestRulesFile:
+    def test_render_produces_content(self):
+        rf = RulesFile.render()
+        assert isinstance(rf, RulesFile)
+        assert "Document Types" in rf.content
+
+    def test_to_markdown(self):
+        rf = RulesFile.render()
+        assert isinstance(rf.to_markdown(), str)
+        assert rf.to_markdown() == rf.content
+
+    def test_validate_self_valid(self):
+        rf = RulesFile.render()
+        assert rf.validate_self() == []
+
+    def test_is_valid(self):
+        rf = RulesFile.render()
+        assert rf.is_valid is True
+
+    def test_str(self):
+        rf = RulesFile.render()
+        assert "lines" in str(rf).lower() or "RulesFile" in str(rf)
+
+    def test_empty_content_not_valid(self):
+        rf = RulesFile(content="")
+        assert rf.is_valid is False
+
+    def test_frozen(self):
+        import pytest
+        rf = RulesFile.render()
+        with pytest.raises(Exception):
+            rf.content = "changed"
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `python3 -m pytest tests/models/test_rules_file.py -v`
+Expected: FAIL — module doesn't exist
+
+**Step 3: Create `wos/models/rules_file.py`**
+
+```python
+"""RulesFile — value object for .claude/rules/wos-context.md."""
+from __future__ import annotations
+
+from typing import List
+
+from pydantic import BaseModel, ConfigDict
+
+from wos.models.enums import IssueSeverity
+from wos.models.validation_issue import ValidationIssue
+
+
+class RulesFile(BaseModel):
+    """The behavioral guide for agents (.claude/rules/wos-context.md)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    content: str
+
+    def __str__(self) -> str:
+        lines = self.content.count("\n")
+        return f"RulesFile ({lines} lines)"
+
+    def __repr__(self) -> str:
+        return f"RulesFile(content_length={len(self.content)})"
+
+    def to_markdown(self) -> str:
+        return self.content
+
+    def to_json(self) -> dict:
+        return {"content": self.content}
+
+    @classmethod
+    def from_json(cls, data: dict) -> RulesFile:
+        return cls(**data)
+
+    def validate_self(self) -> List[ValidationIssue]:
+        issues: List[ValidationIssue] = []
+        if not self.content.strip():
+            issues.append(
+                ValidationIssue(
+                    file=".claude/rules/wos-context.md",
+                    issue="Rules file is empty",
+                    severity=IssueSeverity.WARN,
+                    validator="RulesFile.validate_self",
+                    suggestion="Generate rules file via discovery",
+                )
+            )
+        return issues
+
+    @property
+    def is_valid(self) -> bool:
+        return len(self.validate_self()) == 0
+
+    @classmethod
+    def render(cls) -> RulesFile:
+        """Generate the standard rules file content."""
+        # Port content from discovery.render_rules_file()
+        content = """\
+# WOS Context Rules
+
+## Document Types
+
+| Type | Directory | Purpose |
+|------|-----------|---------|
+| topic | `context/{area}/{slug}.md` | Actionable guidance with citations |
+| overview | `context/{area}/_overview.md` | Area orientation and topic index |
+| research | `artifacts/research/{date}-{slug}.md` | Investigation snapshot |
+| plan | `artifacts/plans/{date}-{slug}.md` | Actionable work plan |
+
+## Frontmatter Requirements
+
+All documents require YAML frontmatter with `document_type`, `description`,
+and `last_updated`. Additional requirements by type:
+
+- **topic**: `sources` (list of url+title), `last_validated` (date)
+- **overview**: `last_validated` (date)
+- **research**: `sources` (list of url+title)
+- **plan**: (optional `status` string)
+
+Optional on all types: `tags` (lowercase-hyphenated), `related` (file paths or URLs).
+
+## Agent Guidelines
+
+- Use `/wos:discover` to find and access context before reading full files
+- Context types (topic, overview) appear in the AGENTS.md manifest
+- Artifact types (research, plan) are internal \u2014 reachable via `related` links
+- Use `/wos:create-document` to create new documents
+- Use `/wos:update-document` to update existing documents
+- Use `/wos:audit` to check document validity
+- Use `/wos:fix` to fix issues found by audit
+- `related` uses root-relative file paths (e.g., `context/python/error-handling.md`)
+- Never edit content between wos markers manually \u2014 auto-generated by discovery
+"""
+        return cls(content=content)
+```
+
+**Step 4: Run all tests**
+
+Run: `python3 -m pytest tests/ -v`
+Expected: ALL PASS
+
+**Step 5: Commit**
+
+```bash
+git add wos/models/rules_file.py tests/models/test_rules_file.py
+git commit -m "feat: add RulesFile value object"
+```
 
 ---
 
-## Phase 6: Cleanup & Deduplication
-
-### Task 17: Thin out validators.py
+### Task 9: Create AgentsMd entity
 
 **Files:**
-- Modify: `wos/validators.py`
+- Create: `wos/models/agents_md.py`
+- Create: `tests/models/test_agents_md.py`
+- Modify: `tests/builders.py` — add `make_agents_md()`
 
-Make `validate_document(doc)` delegate to `doc.validate_self()`. Keep as backward compat wrapper. Remove standalone validator functions that are now inline in document subclasses.
+This entity owns the AGENTS.md file. Port logic from `discovery.py`: `_replace_between_markers()`, `render_manifest()`, `_agents_md_template()`.
 
-Commit: `"refactor: thin validators.py to backward compat wrapper around doc.validate_self()"`
+Key methods:
+- `from_content(cls, path, content)` — parse existing file
+- `from_template(cls, path)` — create new from template
+- `update_manifest(areas: list[ContextArea])` — re-render manifest between markers, return new AgentsMd
+- `to_markdown()` — full content
+- `validate_self()` — check markers exist, content not empty
+- `is_valid`, `__str__`, `__repr__`
+
+Follow same TDD pattern: write tests first, verify fail, implement, verify pass, commit.
+
+Commit: `git commit -m "feat: add AgentsMd entity"`
 
 ---
 
-### Task 18: Thin out formatting.py
+### Task 10: Create ClaudeMd entity
 
 **Files:**
-- Modify: `wos/formatting.py`
-- Modify: `scripts/check_health.py`
+- Create: `wos/models/claude_md.py`
+- Create: `tests/models/test_claude_md.py`
+- Modify: `tests/builders.py` — add `make_claude_md()`
 
-Make `format_summary()` and `format_detailed()` accept either dict or HealthReport. Delegate to HealthReport methods when given an object. Update `check_health.py` to call `report.format_summary()` directly.
+Port logic from `discovery.py`: `update_claude_md()`, `_strip_marker_section()`, `_claude_md_template()`.
 
-Commit: `"refactor: thin formatting.py, check_health.py uses HealthReport methods directly"`
+Key methods:
+- `from_content(cls, path, content)` — parse existing file
+- `ensure_agents_ref()` — add @AGENTS.md reference if missing, return new ClaudeMd
+- `strip_old_markers()` — remove old WOS context markers
+- `to_markdown()`, `validate_self()`, `is_valid`, `__str__`, `__repr__`
+
+Commit: `git commit -m "feat: add ClaudeMd entity"`
 
 ---
 
-### Task 19: Thin out templates.py
+### Task 11: Create CommunicationPreferences value object
 
 **Files:**
-- Modify: `wos/templates.py`
+- Create: `wos/models/communication_preferences.py`
+- Create: `tests/models/test_communication_preferences.py`
+- Modify: `tests/builders.py` — add `make_communication_preferences()`
 
-Make `render_*()` functions delegate to document subclass `to_markdown()`. Keep as backward compat wrappers.
+Port from `preferences.py`: `DIMENSIONS`, `DIMENSION_INSTRUCTIONS`, `render_preferences()`.
 
-Commit: `"refactor: thin templates.py to backward compat wrappers around doc.to_markdown()"`
+Key:
+- `dimensions: dict[str, str]` — e.g. `{"directness": "blunt", "tone": "casual"}`
+- `render_section()` — render as markdown instructions
+- `validate_self()` — check all dimension keys/values are valid
+- `is_valid`, `__str__`, `__repr__`
+- Frozen value object
+
+Commit: `git commit -m "feat: add CommunicationPreferences value object"`
 
 ---
 
-### Task 20: Remove duplicates
+## Phase C: ProjectContext Aggregate
+
+### Task 12: Create ProjectContext aggregate root
 
 **Files:**
-- Modify: `wos/scaffold.py:115-120` — remove `_display_name()`, import from ContextArea
-- Modify: `wos/token_budget.py:78-81` — remove `_extract_area()`, use `doc.area_name`
-- Modify: `wos/cross_validators.py:220-246` — remove `_build_context_areas()`, use `ContextArea.from_documents()`
+- Create: `wos/models/project_context.py`
+- Create: `tests/models/test_project_context.py`
+- Modify: `tests/builders.py` — add `make_project_context()`
 
-Commit: `"refactor: remove duplicate utility functions, use domain object methods"`
+Start with construction and basic protocol:
+
+```python
+class ProjectContext(BaseModel):
+    root: str
+    areas: List[ContextArea] = []
+    agents_md: Optional[AgentsMd] = None
+    claude_md: Optional[ClaudeMd] = None
+    rules_file: Optional[RulesFile] = None
+```
+
+Methods:
+- `from_directory(cls, root: str)` — scan areas, read files
+- `__len__`, `__iter__`, `__contains__` — over areas
+- `__str__`, `__repr__`
+- `validate_self(deep=False)` — delegates to each area's `validate_self()` + cross-area checks
+- `is_valid`
+
+Commit: `git commit -m "feat: add ProjectContext aggregate root"`
 
 ---
 
-### Task 21: Final CLAUDE.md update
+### Task 13: Add `scaffold()` and `add_area()` to ProjectContext
+
+Absorb `scaffold.py` logic into ProjectContext methods.
 
 **Files:**
-- Modify: `CLAUDE.md`
+- Modify: `wos/models/project_context.py`
+- Modify: `tests/models/test_project_context.py`
 
-Verify the Domain Model Conventions section is accurate and reflects the actual implementation. Update any conventions that changed during implementation.
+Commit: `git commit -m "feat: add scaffold() and add_area() to ProjectContext"`
 
-Commit: `"docs: finalize Domain Model Conventions in CLAUDE.md"`
+---
+
+### Task 14: Add `discover()` to ProjectContext
+
+Absorb `discovery.run_discovery()` logic.
+
+**Files:**
+- Modify: `wos/models/project_context.py`
+- Modify: `tests/models/test_project_context.py`
+
+Commit: `git commit -m "feat: add discover() to ProjectContext"`
+
+---
+
+## Phase D: Thin Out Modules
+
+### Task 15: Thin `discovery.py` to CLI adapter
+
+Replace functions with delegations to `ProjectContext` and its owned objects.
+
+**Files:**
+- Modify: `wos/discovery.py`
+- Verify: `tests/test_discovery.py` still passes
+
+Commit: `git commit -m "refactor: thin discovery.py to ProjectContext adapter"`
+
+---
+
+### Task 16: Thin `scaffold.py` to CLI adapter
+
+**Files:**
+- Modify: `wos/scaffold.py`
+- Verify: `tests/test_scaffold.py` still passes
+
+Commit: `git commit -m "refactor: thin scaffold.py to ProjectContext adapter"`
+
+---
+
+### Task 17: Update `cross_validators.py` to use domain methods
+
+Replace `_build_context_areas()` with `ContextArea.from_documents()`.
+Replace `_extract_area()` calls with `doc.area_name`.
+
+**Files:**
+- Modify: `wos/cross_validators.py`
+- Verify: `tests/test_cross_validators.py` still passes
+
+Commit: `git commit -m "refactor: cross_validators uses domain methods"`
+
+---
+
+### Task 18: Delete absorbed modules
+
+Delete `wos/tier2_triggers.py` (logic inlined into `validate_content()`).
+Update remaining imports. Delete or update `tests/test_tier2_triggers.py`.
+
+Note: `wos/auto_fix.py` stays for now — it's still used by `scripts/run_auto_fix.py` and the `/wos:fix` skill. It can be thinned to delegate to `doc.auto_fix()` but doesn't need to be deleted yet.
+
+**Files:**
+- Delete: `wos/tier2_triggers.py`
+- Modify or delete: `tests/test_tier2_triggers.py`
+- Modify: any remaining imports of `tier2_triggers`
+
+Commit: `git commit -m "refactor: delete tier2_triggers.py (absorbed into domain objects)"`
+
+---
+
+### Task 19: Final cleanup and CLAUDE.md update
+
+- Update `wos/models/__init__.py` to export new types
+- Add missing builders to `tests/builders.py`
+- Verify all tests pass
+- Update CLAUDE.md architecture section to reflect new structure
+
+Commit: `git commit -m "chore: final cleanup and CLAUDE.md update"`
 
 ---
 
@@ -1154,12 +1283,11 @@ Commit: `"docs: finalize Domain Model Conventions in CLAUDE.md"`
 After all tasks:
 
 1. `python3 -m pytest tests/ -v` — all tests pass
-2. `ruff check wos/ tests/ scripts/` — no lint errors (if ruff available)
-3. Every domain object has: `__str__`, `__repr__`, `to_json`, `from_json`, `validate_self`, `is_valid`
-4. Value objects have `frozen=True` and are hashable
-5. `tests/builders.py` has `make_*()` for every domain object
-6. `tests/test_ddd_protocol.py` covers the full DDD protocol for every object
-7. `formatting.py` functions are thin wrappers or deleted
-8. `validators.py` `validate_document()` delegates to `doc.validate_self()`
-9. `templates.py` render functions delegate to `doc.to_markdown()`
-10. No duplicate utility functions remain
+2. Every domain object has: `validate_self()`, `is_valid`, `__str__`, `__repr__`
+3. `validate_content()` returns `ValidationIssue` with `requires_llm=True` on all document subclasses
+4. `auto_fix()` on BaseDocument handles section ordering and missing sections
+5. New domain objects created: RulesFile, AgentsMd, ClaudeMd, CommunicationPreferences, ProjectContext
+6. `ContextArea` has `validate_self()`, `is_valid`, `from_documents()`, collection protocol
+7. `tier2_triggers.py` deleted
+8. `tests/builders.py` has `make_*()` for every domain object
+9. CLAUDE.md documents the updated architecture
