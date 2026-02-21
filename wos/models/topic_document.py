@@ -46,16 +46,42 @@ class TopicDocument(BaseDocument):
             issues.extend(validator(self))
         return issues
 
-    def validate_content(self) -> list:
-        from wos.tier2_triggers import (
-            trigger_in_practice_concreteness,
-            trigger_pitfalls_completeness,
-        )
+    def validate_content(self) -> list[ValidationIssue]:
+        from wos.models.enums import IssueSeverity
 
-        results = super().validate_content()
-        for trigger in [
-            trigger_in_practice_concreteness,
-            trigger_pitfalls_completeness,
-        ]:
-            results.extend(trigger(self))
-        return results
+        issues = super().validate_content()
+
+        # Check In Practice concreteness
+        section = self.get_section_content("In Practice", "")
+        if section:
+            has_code = "```" in section or "    " in section
+            has_list = "- " in section or "1. " in section
+            if not has_code and not has_list:
+                issues.append(
+                    ValidationIssue(
+                        file=self.path,
+                        issue="In Practice section may lack concrete examples",
+                        severity=IssueSeverity.INFO,
+                        validator="validate_content",
+                        section="In Practice",
+                        suggestion="Add code blocks, bullet lists, or step-by-step examples",
+                        requires_llm=True,
+                    )
+                )
+
+        # Check Pitfalls completeness
+        pitfalls = self.get_section_content("Pitfalls", "")
+        if pitfalls and len(pitfalls.split()) < 20:
+            issues.append(
+                ValidationIssue(
+                    file=self.path,
+                    issue="Pitfalls section may be incomplete",
+                    severity=IssueSeverity.INFO,
+                    validator="validate_content",
+                    section="Pitfalls",
+                    suggestion="Add more common pitfalls and how to avoid them",
+                    requires_llm=True,
+                )
+            )
+
+        return issues
