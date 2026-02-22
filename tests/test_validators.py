@@ -5,7 +5,7 @@ All tests use inline markdown strings.
 
 from __future__ import annotations
 
-from wos.document_types import DocumentType, parse_document
+from wos.document_types import parse_document
 from wos.validators import (
     check_date_prefix_matches,
     check_directory_placement,
@@ -139,10 +139,10 @@ def _parse(md: str, path: str = "context/python/error-handling.md"):
 
 
 class TestPolymorphicDispatch:
-    """Verify each document type's validate_structure() runs correct validators."""
+    """Verify each document type's validate_self() runs correct validators."""
 
-    def test_all_types_have_validate_structure(self) -> None:
-        """Every document subclass has validate_structure()."""
+    def test_all_types_have_validate_self(self) -> None:
+        """Every document subclass has validate_self()."""
         from wos.models.documents import (
             NoteDocument,
             OverviewDocument,
@@ -155,13 +155,12 @@ class TestPolymorphicDispatch:
             TopicDocument, OverviewDocument, ResearchDocument,
             PlanDocument, NoteDocument,
         ]:
-            assert hasattr(cls, "validate_structure")
+            assert hasattr(cls, "validate_self")
 
     def test_topic_runs_last_validated(self) -> None:
         doc = _parse(_topic_md())
         # Stale date would trigger check_last_validated
         issues = validate_document(doc)
-        validators_run = {i.validator for i in issues}
         # Clean doc has no issues, but the method exists and runs
         assert isinstance(issues, list)
 
@@ -182,7 +181,7 @@ class TestPolymorphicDispatch:
         assert all(i.validator != "check_last_validated" for i in issues)
 
     def test_note_only_checks_title(self) -> None:
-        """Note validate_structure() only runs check_title_heading."""
+        """Note validate_self() only runs check_title_heading."""
         md = (
             "---\n"
             "document_type: note\n"

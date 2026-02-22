@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from wos.models.core import IssueSeverity, ValidationIssue
+from wos.models import IssueSeverity, ValidationIssue
 from wos.models.health_report import HealthReport
-
 
 # ── Helpers ──────────────────────────────────────────────────────
 

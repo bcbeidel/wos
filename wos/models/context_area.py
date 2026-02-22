@@ -20,8 +20,8 @@ class ContextArea(BaseModel):
     """A context area (directory under /context/) with its documents."""
 
     name: str  # directory name, e.g. "python"
-    overview: Optional["OverviewDocument"] = None
-    topics: List["TopicDocument"] = []
+    overview: Optional["OverviewDocument"] = None  # noqa: F821
+    topics: List["TopicDocument"] = []  # noqa: F821
 
     @property
     def display_name(self) -> str:
@@ -39,6 +39,25 @@ class ContextArea(BaseModel):
         return self.overview.frontmatter.description if self.overview else None
 
     # ── Construction ────────────────────────────────────────────
+
+    @classmethod
+    def from_documents(cls, docs: list) -> List[ContextArea]:
+        """Group parsed documents into ContextArea objects by area directory."""
+        area_map: dict[str, ContextArea] = {}
+        for doc in docs:
+            if doc.document_type not in {DocumentType.TOPIC, DocumentType.OVERVIEW}:
+                continue
+            area_name = doc.area_name
+            if not area_name:
+                continue
+            if area_name not in area_map:
+                area_map[area_name] = cls(name=area_name)
+            area = area_map[area_name]
+            if doc.document_type == DocumentType.OVERVIEW:
+                area.overview = doc
+            elif doc.document_type == DocumentType.TOPIC:
+                area.topics.append(doc)
+        return sorted(area_map.values(), key=lambda a: a.name)
 
     @classmethod
     def from_directory(cls, root: str, area_name: str) -> ContextArea:
@@ -83,6 +102,23 @@ class ContextArea(BaseModel):
 
     # ── Representations ─────────────────────────────────────────
 
+    def __str__(self) -> str:
+        return f"{self.display_name} ({len(self.topics)} topics)"
+
+    def __repr__(self) -> str:
+        return f"ContextArea(name={self.name!r}, topics={len(self.topics)})"
+
+    def __len__(self) -> int:
+        return len(self.topics)
+
+    def __iter__(self):
+        return iter(self.topics)
+
+    def __contains__(self, item: object) -> bool:
+        if isinstance(item, str):
+            return any(t.title == item for t in self.topics)
+        return item in self.topics
+
     def to_manifest_entry(self) -> str:
         """Single table row for the AGENTS.md manifest."""
         description = self.overview_description or ""
@@ -112,12 +148,17 @@ class ContextArea(BaseModel):
 
     # ── Validation ──────────────────────────────────────────────
 
-    def validate(self) -> list[ValidationIssue]:
+    def validate_self(self, deep: bool = False) -> list[ValidationIssue]:
         """Run area-level validators (overview-topic sync, naming)."""
         issues: list[ValidationIssue] = []
         issues.extend(self._check_overview_topic_sync())
         issues.extend(self._check_naming_conventions())
         return issues
+
+    @property
+    def is_valid(self) -> bool:
+        """True when validate_self() returns no issues."""
+        return len(self.validate_self()) == 0
 
     def _check_overview_topic_sync(self) -> list[ValidationIssue]:
         """Check that overview Topics section lists all topic files."""
@@ -188,7 +229,7 @@ class ContextArea(BaseModel):
 
 # Resolve forward references after OverviewDocument/TopicDocument are defined
 def _rebuild_model() -> None:
-    from wos.models.documents import OverviewDocument, TopicDocument  # noqa: F811
+    from wos.models.documents import OverviewDocument, TopicDocument  # noqa: F401
 
     ContextArea.model_rebuild()
 

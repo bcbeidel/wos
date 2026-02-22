@@ -1,19 +1,36 @@
-# DDD Domain Model Enrichment
+# DDD Domain Model Enrichment — Design
 
 ## Problem
 
 The WOS domain model uses Pydantic but doesn't fully leverage DDD principles.
-Domain logic is spread across helper modules (validators.py, formatting.py,
-templates.py, token_budget.py) rather than living on the objects themselves.
-This creates indirection, dict-based interfaces, and objects that are data
-containers rather than rich domain models.
+Domain logic is spread across helper modules (validators.py, auto_fix.py,
+tier2_triggers.py, token_budget.py, discovery.py, scaffold.py) rather than
+living on the objects themselves. This creates indirection, dict-based
+interfaces, and objects that are data containers rather than rich domain models.
+
+The project structure itself (areas, AGENTS.md, CLAUDE.md, rules file) lacks
+first-class domain representation.
 
 ## Goals
 
 1. Every domain object implements a standard DDD protocol
 2. Helper modules are absorbed into the domain objects they serve
-3. Test builders provide easy construction of valid test objects
-4. CLAUDE.md documents the protocol so future work stays consistent
+3. New domain objects model the project structure (ProjectContext, AgentsMd, etc.)
+4. Three-tier validation: structural, content quality (LLM), reachability
+5. Auto-fix as explicit user-initiated method, not constructor normalization
+6. Object graph supports future CRUD CLI strategy for agent interaction
+7. Test builders provide easy construction of valid test objects
+
+## Future Direction: CRUD CLI
+
+Long-term, skills will mirror CRUD operations on documents:
+- **Create:** `from_template()`, `from_markdown()`
+- **Read:** `to_json()`, `to_markdown()`, property access to frontmatter/sections
+- **Update:** `auto_fix()`, section-level mutations
+- **Delete:** `ProjectContext` collection management
+
+Python CLI entry points will wrap these to minimize agent token consumption.
+The domain model designed here supports this strategy without changes.
 
 ## DDD Protocol
 
@@ -37,11 +54,21 @@ Every domain object implements these capabilities:
 - `to_json() -> dict` -- JSON-serializable dict
 - `to_markdown() -> str` -- markdown rendering (where applicable)
 
-### Validation
+### Validation (Three Tiers)
+
+| Tier | Method | Resolver | Example |
+|------|--------|----------|---------|
+| Structural | `validate_self()` | Machine / user | Missing section, bad ordering, size bounds |
+| Content quality | `validate_content()` | LLM | Vague description, weak examples, unclear question |
+| Reachability | `validate_self(deep=True)` | User | Broken URL, missing linked file |
 
 - `validate_self(deep=False) -> list[ValidationIssue]` -- non-throwing consistency check
+- `validate_content() -> list[ValidationIssue]` -- LLM-resolvable quality checks
 - `is_valid -> bool` -- shortcut property (`not self.validate_self()`)
 - `deep=True` enables I/O checks (e.g., URL reachability)
+- `auto_fix() -> Self` -- fix machine-resolvable issues, user-initiated (never on construction)
+
+`ValidationIssue` gains `requires_llm: bool` to distinguish structural vs content issues.
 
 ### Collection (composite objects only)
 
@@ -55,194 +82,173 @@ Every domain object implements these capabilities:
 
 ### Test Builders (tests/builders.py)
 
-- `make_*(​**overrides) -> T` -- plain functions returning valid default objects
+- `make_*(**overrides) -> T` -- plain functions returning valid default objects
 
-## Per-Object Protocol
+## Complete Object Graph
 
-### Value Objects (frozen=True)
+### ProjectContext (aggregate root, NEW)
+
+```
+ProjectContext
+├── root: str
+├── areas: list[ContextArea]
+├── agents_md: AgentsMd
+├── claude_md: ClaudeMd
+├── rules_file: RulesFile
+│
+├── scaffold(areas: list[str])        # from scaffold.py
+├── add_area(name: str)               # factory → ContextArea
+├── discover()                        # scan → render → update files
+├── validate_self(deep=False)         # cross-area checks (from cross_validators.py)
+├── auto_fix()
+├── is_valid
+├── __len__, __iter__, __contains__   # over areas
+```
+
+### ContextArea (entity, ENRICH)
+
+```
+ContextArea
+├── ... existing fields ...
+├── validate_self(deep=False)         # absorbs cross_validators
+├── auto_fix()
+├── is_valid
+├── get_estimated_tokens()            # from token_budget.py
+```
+
+### BaseDocument + Subclasses (entity, ENRICH)
+
+```
+BaseDocument
+├── ... existing DDD protocol ...
+├── validate_self(deep=False)         # structural (existing)
+├── validate_content()                # LLM-resolvable quality (absorbs tier2_triggers)
+├── auto_fix()                        # absorbs auto_fix.py
+├── from_template()                   # absorbs templates.py (already started)
+│
+├── TopicDocument    → + validate_content() inlines concreteness, pitfalls checks
+├── OverviewDocument → + validate_content() inlines coverage quality check
+├── ResearchDocument → + validate_content() inlines question clarity, groundedness
+├── PlanDocument     → + validate_content() inlines step specificity, verification
+├── NoteDocument     → minimal (title check only)
+```
+
+### New Domain Objects
+
+```
+AgentsMd (entity, NEW)
+├── path, content
+├── update_manifest(areas)            # render between markers
+├── validate_self(), is_valid
+├── from_markdown(), to_markdown()
+
+ClaudeMd (entity, NEW)
+├── path, content
+├── ensure_agents_ref()               # add @AGENTS.md, strip old markers
+├── validate_self(), is_valid
+├── from_markdown(), to_markdown()
+
+RulesFile (value object, NEW)
+├── content
+├── render()                          # generate behavioral guide
+├── validate_self(), is_valid, to_markdown()
+
+CommunicationPreferences (value object, NEW)
+├── dimensions: dict
+├── render_section()                  # from preferences.py
+├── validate_self(), is_valid
+```
+
+### Value Objects (frozen=True, already enriched)
 
 | Object | `__str__` | json | markdown | validate_self | tokens |
 |---|---|---|---|---|---|
 | `CitedSource` | `[title](url)` | yes | `[t](u)` | url scheme, title; deep: reachability | yes |
-| `ValidationIssue` | `[FAIL] file: msg` | yes | `- **FAIL** file: msg` | severity valid, file set | no |
+| `ValidationIssue` | `[FAIL] file: msg` | yes | `- **FAIL** file: msg` | severity valid, file set; `requires_llm` field | no |
 | `DocumentSection` | `## Name (N words)` | yes | `## Name\n\ncontent` | content not empty | yes |
 | `SectionSpec` | `Guidance @1` | yes | no | position > 0 | no |
 | `SizeBounds` | `10-500 lines` | yes | no | min <= max | no |
 | `VerificationResult` | `ok: url` | yes | no | http_status valid | no |
 | `ReachabilityResult` | `reachable: url` | yes | no | url format valid | no |
 
-### Documents (mutable -- not frozen)
-
-| Object | validate_self absorbs | to_markdown absorbs |
-|---|---|---|
-| `BaseDocument` | validators.py shared checks | parse_document inverse |
-| `TopicDocument` | topic-specific validators | templates.render_topic |
-| `OverviewDocument` | overview-specific validators | templates.render_overview |
-| `ResearchDocument` | research-specific validators | templates.render_research |
-| `PlanDocument` | plan-specific validators | templates.render_plan |
-| `NoteDocument` | title heading check | templates.render_note |
-
-Documents also gain:
-- `from_markdown(cls, path, content)` -- wraps parse_document, returns correct subclass
-- `to_markdown()` -- renders full document with frontmatter (absorbs templates.py)
-- `area_name -> Optional[str]` -- property extracting area from path (replaces 3 regex duplicates)
-- `apply_fix(issue) -> Optional[BaseDocument]` -- absorbs auto_fix.py logic
-- `__len__` -- number of sections
-- `__iter__` -- iterate over sections
-- `__contains__` -- check section name membership
-
-### Aggregates
-
-| Object | Construction | Representations | Collection |
-|---|---|---|---|
-| `ContextArea` | `from_directory(cls, root, name)` (exists), `from_documents(cls, docs)` (new) | `to_manifest_entry()` (exists), `to_json()` | `__len__` = topic count, `__iter__` = topics, `__contains__` = topic name |
-| `HealthReport` | `from_project(cls, root, **opts)` (new factory) | `__str__` = summary line, `format_detailed()` absorbs formatting.py | `__len__` = issue count, `__iter__` = issues, `__contains__` = issue |
-
-## Line Number Tracking
-
-The parsing layer (`_split_markdown`) uses character offsets internally but
-discards positional information. Adding line numbers enables LLMs to selectively
-read specific sections of large documents and produces better error messages.
-
-### Changes
-
-**`DocumentSection`** gains:
-- `line_start: Optional[int]` -- 1-indexed line where `## Heading` appears
-- `line_end: Optional[int]` -- 1-indexed last line of section content
-
-**`BaseDocument`** gains:
-- `frontmatter_line_start: int` -- always 1 (first `---`)
-- `frontmatter_line_end: int` -- line of closing `---`
-- `title_line: Optional[int]` -- line of `# Title` heading
-
-**`_split_markdown()`** updated to compute line numbers from character positions:
-```python
-line_number = content[:char_offset].count('\n') + 1
-```
-
-### Use Cases
-
-- **LLM selective reading:** "Read lines 45-67 for the Pitfalls section"
-- **Precise error messages:** "Issue on line 52" vs "in section Pitfalls"
-- **Auto-fix targeting:** Fix functions can target exact line ranges
-- **Token-aware partial loading:** Skip sections that exceed token budget
-
-## Additional Absorptions
-
-### `BaseDocument.area_name` property
-
-Three separate places extract area name from `doc.path` via
-`re.match(r"context/([^/]+)/", path)`:
-- `token_budget._extract_area()`
-- `cross_validators._build_context_areas()`
-- `cross_validators.check_overview_topic_sync()`
-
-Becomes: `BaseDocument.area_name -> Optional[str]` property.
-
-### `ContextArea.from_documents(docs)` factory
-
-`cross_validators._build_context_areas()` groups parsed documents into
-ContextArea objects by regex. This is a second construction path that belongs
-as a classmethod on ContextArea.
-
-### `CitedSource.to_yaml_entry()`
-
-`templates._render_sources_yaml()` serializes sources to YAML. This belongs
-on the CitedSource object: `source.to_yaml_entry() -> str`.
-
-### `BaseDocument.apply_fix(issue)` method
-
-`auto_fix.py` takes raw markdown + issue, re-parses internally. Should take a
-BaseDocument and return a new BaseDocument (or None if no fix applies).
-
-### Duplicate `_display_name()` in scaffold.py
-
-Same logic as `ContextArea.display_name` property. Scaffold should import and
-use the ContextArea method instead.
-
 ## Modules Absorbed
 
 | Module | Absorbed into | What remains |
 |---|---|---|
-| `validators.py` | Document subclass `validate_self()` methods | `validate_document()` becomes thin wrapper calling `doc.validate_self()` |
-| `formatting.py` | `HealthReport.__str__` and `HealthReport.format_detailed()` | Deleted or re-exported for backward compat |
-| `templates.py` | Document subclass `to_markdown()` methods | Helper functions `_render_sections()`, `_escape_yaml()` may stay as private utils |
-| `token_budget.py` | `HealthReport.from_project()` or stays as utility | TBD -- may stay if budget logic is complex enough to warrant separation |
-| `source_verification.py` | Result types become Pydantic models | Verification logic stays; only types change |
+| `auto_fix.py` | `auto_fix()` on BaseDocument + subclasses | Deleted |
+| `tier2_triggers.py` | `validate_content()` on each subclass | Deleted |
+| `token_budget.py` | `get_estimated_tokens()` on ContextArea | Deleted |
+| `templates.py` | `from_template()` on each subclass | Private utils may stay |
+| `cross_validators.py` | `validate_self()` on ContextArea + ProjectContext | Deleted |
+| `discovery.py` | `ProjectContext.discover()` | Thin CLI adapter |
+| `scaffold.py` | `ProjectContext.scaffold()` / `.add_area()` | Thin CLI adapter |
 
-## Implementation Order (Bottom-Up)
+## Modules That Stay
 
-### Phase 1: Value Objects
-1. `CitedSource` -- add frozen, str, repr, validate_self(deep), from_json, to_json, to_markdown, from_markdown_link, to_yaml_entry; builder
-2. `ValidationIssue` -- add frozen, str, repr, validate_self, from_json, to_json, to_markdown; builder
-3. `DocumentSection` -- add frozen, str, repr, validate_self, from_json, to_json, to_markdown, line_start/line_end fields; builder
-4. `SectionSpec` -- add frozen, str, repr, validate_self, from_json, to_json; builder
-5. `SizeBounds` -- add frozen, str, repr, validate_self, from_json, to_json; builder
+| Module | Reason |
+|---|---|
+| `formatting.py` | CLI presentation layer (not domain logic) |
+| `validators.py` | Validator function library (called by `validate_self()`) |
 
-### Phase 2: Verification Result Types
-6. `VerificationResult` -- migrate from dataclass to Pydantic, add protocol; builder
-7. `ReachabilityResult` -- migrate from dataclass to Pydantic, add protocol; builder
+## Line Number Tracking (already implemented)
 
-### Phase 3: Line Number Tracking
-8. Update `_split_markdown()` to compute and store line numbers
-9. Add `frontmatter_line_end`, `title_line` to BaseDocument
-10. Update DocumentSection to populate `line_start`/`line_end` during parsing
+`DocumentSection` has `line_start`/`line_end` fields populated during parsing.
+`BaseDocument` has `frontmatter_line_end` and `title_line` properties.
 
-### Phase 4: Document Hierarchy
-11. `BaseDocument` -- add from_markdown, to_markdown, validate_self, str, repr, collection, area_name property, apply_fix; builder
-12. `TopicDocument` -- absorb topic validators + template; builder
-13. `OverviewDocument` -- absorb overview validators + template; builder
-14. `ResearchDocument` -- absorb research validators + template; builder
-15. `PlanDocument` -- absorb plan validators + template; builder
-16. `NoteDocument` -- absorb note template; builder
+## Implementation Sequencing
 
-### Phase 5: Aggregates
-17. `ContextArea` -- add str, repr, validate_self, to_json, collection, from_documents factory; builder
-18. `HealthReport` -- add from_project factory, absorb formatting, collection; builder
+Bottom-up: leaf objects first, composites next, aggregates last.
 
-### Phase 6: Cleanup & Deduplication
-19. Thin out validators.py (backward compat wrappers only)
-20. Delete or thin formatting.py
-21. Thin out templates.py
-22. Remove duplicate `_display_name()` from scaffold.py
-23. Remove `_extract_area()` from token_budget.py (use doc.area_name)
-24. Remove `_build_context_areas()` from cross_validators.py (use ContextArea.from_documents)
-25. Update CLAUDE.md Domain Model Conventions section
+### Phase A: Absorb into existing objects
 
-## Convention Guard (CLAUDE.md Addition)
+1. `ValidationIssue` — add `requires_llm: bool` field
+2. `BaseDocument.auto_fix()` — absorb shared fixes from `auto_fix.py`
+3. Each subclass `auto_fix()` — absorb type-specific fixes
+4. Each subclass `validate_content()` — inline tier2 trigger logic, return `ValidationIssue(requires_llm=True)`
+5. `ContextArea.validate_self()` — absorb relevant cross-validators
+6. `ContextArea.get_estimated_tokens()` — absorb token_budget logic
 
-After implementation, CLAUDE.md gains a "Domain Model Conventions" section:
+### Phase B: New domain objects
 
-```
-## Domain Model Conventions
+7. `RulesFile` — value object, simplest new object
+8. `AgentsMd` — entity, owns manifest + marker logic
+9. `ClaudeMd` — entity, owns @AGENTS.md reference + migration
+10. `CommunicationPreferences` — value object from preferences.py
 
-All domain objects in `wos/models/` follow a standard DDD protocol:
+### Phase C: ProjectContext aggregate
 
-- **Value objects** use `frozen=True` (immutable, hashable)
-- **Construction:** `from_json(cls, dict)`, `from_markdown(cls, str)` where applicable
-- **Representations:** `__str__`, `__repr__`, `to_json()`, `to_markdown()` where applicable
-- **Validation:** `validate_self(deep=False) -> list[ValidationIssue]`, `is_valid` property
-- **Collection:** composites implement `__len__`, `__iter__`, `__contains__`
-- **Tokens:** `get_estimated_tokens()` where meaningful
-- **Test builders:** `tests/builders.py` provides `make_*(**overrides)` for each type
+11. `ProjectContext` — aggregate root, owns areas + file objects
+12. `ProjectContext.scaffold()` — absorb scaffold.py
+13. `ProjectContext.discover()` — absorb discovery.py orchestration
+14. `ProjectContext.validate_self()` — absorb remaining cross-validators
 
-New domain objects must implement this protocol. Do not add standalone
-validator/formatter/template modules -- put behavior on the domain objects.
-```
+### Phase D: Thin out modules
+
+15. `discovery.py` → thin CLI adapter calling `ProjectContext.discover()`
+16. `scaffold.py` → thin CLI adapter calling `ProjectContext.scaffold()`
+17. Delete `auto_fix.py`, `tier2_triggers.py`, `token_budget.py`
+
+Each phase has its own branch. Tests mirror source structure in `tests/models/`.
 
 ## Design Decisions
 
-- **Bottom-up order:** Leaf types first (CitedSource, ValidationIssue), then
-  composites (BaseDocument, HealthReport). Each PR is small and keeps tests green.
-- **`validate_self(deep=False)`:** Fast local checks by default. `deep=True`
-  enables I/O (HTTP reachability, file existence). Keeps validation fast in CI.
+- **Bottom-up order:** Leaf types first, then composites, then aggregates.
+  Each phase is small and keeps tests green.
+- **Three-tier validation:** `validate_self()` for structural, `validate_content()`
+  for LLM-resolvable, `deep=True` for I/O. Clear resolution paths.
+- **`auto_fix()` is user-initiated:** Parse faithfully, validate later. Auto-fix
+  is an explicit action, not constructor normalization.
+- **No backward compatibility aliases:** Rename directly (e.g., `validate_structure`
+  → `validate_self`). No shims.
 - **`frozen=True` on value objects only:** Documents need mutation for auto-fix.
   Value objects (CitedSource, ValidationIssue, etc.) are immutable.
-- **Test builders are plain functions, not fixtures:** `tests/builders.py` with
-  `make_*(**overrides)` functions. No pytest magic, importable from any test.
-- **Backward compat wrappers:** validators.py and formatting.py get thin
-  wrappers that delegate to domain methods. Removed in a follow-up if no
-  external callers depend on them.
+- **Test builders are plain functions:** `tests/builders.py` with
+  `make_*(**overrides)`. No pytest magic, importable from any test.
+- **`validators.py` stays as function library:** Subclasses import and call
+  individual validators. No dispatch tables needed.
+- **`formatting.py` stays separate:** CLI presentation is not domain logic.
+- **`ProjectContext` as aggregate root:** Ties together areas, AGENTS.md,
+  CLAUDE.md, rules file. Absorbs scaffold + discovery orchestration.
 
 ## References
 

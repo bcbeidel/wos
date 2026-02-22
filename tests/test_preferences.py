@@ -6,7 +6,6 @@ from pathlib import Path
 
 import pytest
 
-
 # ── Dimension mapping ────────────────────────────────────────────
 
 
@@ -130,11 +129,17 @@ class TestUpdatePreferences:
         assert first == second
 
     def test_preserves_content_around_markers(self, tmp_path: Path) -> None:
-        from wos.preferences import COMM_MARKER_BEGIN, COMM_MARKER_END, update_preferences
+        from wos.preferences import (
+            COMM_MARKER_BEGIN,
+            COMM_MARKER_END,
+            update_preferences,
+        )
 
         claude_md = tmp_path / "CLAUDE.md"
         claude_md.write_text(
-            f"# Header\n\nBefore.\n\n{COMM_MARKER_BEGIN}\nold stuff\n{COMM_MARKER_END}\n\nAfter.\n",
+            f"# Header\n\nBefore.\n\n"
+            f"{COMM_MARKER_BEGIN}\nold stuff\n"
+            f"{COMM_MARKER_END}\n\nAfter.\n",
             encoding="utf-8",
         )
 

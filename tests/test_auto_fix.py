@@ -381,8 +381,10 @@ class TestSafetyGuards:
         md = _plan()
         issues = [
             ValidationIssue(
-                file="artifacts/plans/2026-02-17-test.md", issue="Sections out of order",
-                severity=IssueSeverity.WARN, validator="check_section_ordering",
+                file="artifacts/plans/2026-02-17-test.md",
+                issue="Sections out of order",
+                severity=IssueSeverity.WARN,
+                validator="check_section_ordering",
             ),
         ]
         result = get_fixed_content(

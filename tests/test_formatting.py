@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 from wos.formatting import (
-    _colorize,
-    _status_line,
     _SEVERITY_ORDER,
+    _colorize,
+    _format_token_budget,
+    _status_line,
+    format_detailed,
+    format_summary,
 )
 
 
@@ -56,8 +59,6 @@ class TestStatusLine:
         assert "\033[" in line
         assert "FAIL" in line
 
-
-from wos.formatting import _format_token_budget
 
 
 class TestFormatTokenBudget:
@@ -111,8 +112,6 @@ class TestFormatTokenBudget:
         assert "\033[33m" in result  # yellow for warn
 
 
-from wos.formatting import format_summary
-
 
 def _make_report(
     issues=None,
@@ -154,8 +153,8 @@ class TestFormatSummary:
         result = format_summary(report, color=False)
         lines = result.strip().split("\n")
         issue_lines = [
-            l for l in lines
-            if l.strip().startswith(("FAIL", "WARN", "INFO"))
+            line for line in lines
+            if line.strip().startswith(("FAIL", "WARN", "INFO"))
         ]
         assert len(issue_lines) == 3
         assert "FAIL" in issue_lines[0]
@@ -172,7 +171,8 @@ class TestFormatSummary:
         report = _make_report(issues=issues, status="warn", files_checked=2)
         result = format_summary(report, color=False)
         lines = [
-            l for l in result.split("\n") if l.strip().startswith("WARN")
+            line for line in result.split("\n")
+            if line.strip().startswith("WARN")
         ]
         assert "a.md" in lines[0]
         assert "z.md" in lines[1]
@@ -182,8 +182,6 @@ class TestFormatSummary:
         result = format_summary(report, color=False)
         assert "\n\n\n" not in result
 
-
-from wos.formatting import format_detailed
 
 
 class TestFormatDetailed:
@@ -229,7 +227,10 @@ class TestFormatDetailed:
         result = format_detailed(report, color=False)
         # File path appears once as a header, both issues underneath
         lines = result.split("\n")
-        file_lines = [l for l in lines if "a.md" in l and not l.startswith("    ")]
+        file_lines = [
+            line for line in lines
+            if "a.md" in line and not line.startswith("    ")
+        ]
         assert len(file_lines) == 1
 
     def test_detailed_token_budget_shows_areas(self) -> None:

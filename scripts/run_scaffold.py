@@ -57,15 +57,19 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    from wos.scaffold import scaffold_area, scaffold_project
+    from wos.models.project_context import ProjectContext
 
     if args.command == "init":
         areas = [a.strip() for a in args.areas.split(",") if a.strip()]
-        result = scaffold_project(args.root, areas, args.purpose)
+        ctx = ProjectContext.scaffold(args.root, areas, args.purpose)
+        print(json.dumps({
+            "created_areas": [a.name for a in ctx.areas],
+            "root": ctx.root,
+        }, indent=2))
     else:
-        result = scaffold_area(args.root, args.name, args.description)
-
-    print(json.dumps(result, indent=2))
+        ctx = ProjectContext(root=args.root)
+        result = ctx.add_area(args.name, args.description)
+        print(json.dumps(result, indent=2))
 
 
 if __name__ == "__main__":

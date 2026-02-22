@@ -7,6 +7,19 @@ Re-exports all public symbols so callers can use either:
 
 from __future__ import annotations
 
+# ── File entities ─────────────────────────────────────────────
+from wos.models.agents_md import AgentsMd
+
+# ── Document models ─────────────────────────────────────────────
+from wos.models.base_document import BaseDocument, Document
+from wos.models.claude_md import ClaudeMd
+
+# ── Communication preferences ────────────────────────────────
+from wos.models.communication_preferences import CommunicationPreferences
+
+# ── Context area ───────────────────────────────────────────────
+from wos.models.context_area import ContextArea
+
 # ── Core types ──────────────────────────────────────────────────
 from wos.models.core import (
     ARTIFACT_TYPES,
@@ -19,6 +32,7 @@ from wos.models.core import (
     IssueSeverity,
     Source,
     ValidationIssue,
+    WosDomainObject,
 )
 
 # ── Frontmatter models & dispatch tables ────────────────────────
@@ -39,25 +53,20 @@ from wos.models.frontmatter import (
     TopicFrontmatter,
 )
 
-# ── Document models ─────────────────────────────────────────────
-from wos.models.documents import (
-    BaseDocument,
-    Document,
-    NoteDocument,
-    OverviewDocument,
-    PlanDocument,
-    ResearchDocument,
-    TopicDocument,
-)
-
-# ── Context area ───────────────────────────────────────────────
-from wos.models.context_area import ContextArea
-
 # ── Health report ──────────────────────────────────────────────
 from wos.models.health_report import HealthReport
+from wos.models.note_document import NoteDocument
+from wos.models.overview_document import OverviewDocument
 
 # ── Parsing ─────────────────────────────────────────────────────
 from wos.models.parsing import parse_document
+from wos.models.plan_document import PlanDocument
+
+# ── Project context ────────────────────────────────────────────
+from wos.models.project_context import ProjectContext
+from wos.models.research_document import ResearchDocument
+from wos.models.rules_file import RulesFile
+from wos.models.topic_document import TopicDocument
 
 __all__ = [
     # Enums
@@ -101,8 +110,18 @@ __all__ = [
     "NoteDocument",
     # Context area
     "ContextArea",
+    # File entities
+    "AgentsMd",
+    "ClaudeMd",
+    "RulesFile",
+    # Communication preferences
+    "CommunicationPreferences",
+    # Project context
+    "ProjectContext",
     # Health report
     "HealthReport",
+    # Protocol
+    "WosDomainObject",
     # Parsing
     "parse_document",
 ]
