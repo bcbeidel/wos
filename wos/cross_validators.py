@@ -6,7 +6,6 @@ with external state (AGENTS.md manifest, file system).
 
 from __future__ import annotations
 
-import re
 import time
 from pathlib import Path
 from typing import Dict, List
@@ -17,7 +16,6 @@ from wos.document_types import (
     SOURCE_GROUNDED_TYPES,
     ContextArea,
     Document,
-    DocumentType,
     IssueSeverity,
     ValidationIssue,
 )
@@ -79,7 +77,7 @@ def check_overview_topic_sync(
     A topic on disk that is not listed in its area's overview -> fail.
     Delegates to ContextArea.validate_self() for the overview-topic sync check.
     """
-    areas = _build_context_areas(docs)
+    areas = ContextArea.from_documents(docs)
     issues: List[ValidationIssue] = []
     for area in areas:
         issues.extend(area._check_overview_topic_sync())
@@ -135,7 +133,7 @@ def check_naming_conventions(
     Delegates to ContextArea.validate_self() for context docs.
     Non-context docs (notes, etc.) are skipped.
     """
-    areas = _build_context_areas(docs)
+    areas = ContextArea.from_documents(docs)
     issues: List[ValidationIssue] = []
     for area in areas:
         issues.extend(area._check_naming_conventions())
@@ -215,35 +213,6 @@ def check_source_url_reachability(
             )
 
     return issues
-
-
-def _build_context_areas(docs: List[Document]) -> List[ContextArea]:
-    """Group parsed documents into ContextArea objects by area directory.
-
-    Only includes context-type docs (topic, overview). Used by
-    check_overview_topic_sync and check_naming_conventions.
-    """
-    area_map: Dict[str, ContextArea] = {}
-
-    for doc in docs:
-        if doc.document_type not in {DocumentType.TOPIC, DocumentType.OVERVIEW}:
-            continue
-
-        match = re.match(r"context/([^/]+)/", doc.path)
-        if not match:
-            continue
-
-        area_name = match.group(1)
-        if area_name not in area_map:
-            area_map[area_name] = ContextArea(name=area_name)
-
-        area = area_map[area_name]
-        if doc.document_type == DocumentType.OVERVIEW:
-            area.overview = doc
-        elif doc.document_type == DocumentType.TOPIC:
-            area.topics.append(doc)
-
-    return list(area_map.values())
 
 
 def run_cross_validators(
