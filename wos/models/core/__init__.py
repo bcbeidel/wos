@@ -6,13 +6,14 @@ Actual implementations live in focused modules:
   - validation_issue.py: ValidationIssue
   - section.py: DocumentSection
   - cited_source.py: CitedSource (+ Source alias)
+  - protocol.py: WosDomainObject
 """
 
 from __future__ import annotations
 
 # ── Re-exports ────────────────────────────────────────────────────
 
-from wos.models.enums import (  # noqa: F401
+from wos.models.core.enums import (  # noqa: F401
     ARTIFACT_TYPES,
     CONTEXT_TYPES,
     FRESHNESS_TRACKED_TYPES,
@@ -20,6 +21,7 @@ from wos.models.enums import (  # noqa: F401
     DocumentType,
     IssueSeverity,
 )
-from wos.models.validation_issue import ValidationIssue  # noqa: F401
-from wos.models.section import DocumentSection  # noqa: F401
-from wos.models.cited_source import CitedSource, Source  # noqa: F401
+from wos.models.core.validation_issue import ValidationIssue  # noqa: F401
+from wos.models.core.section import DocumentSection  # noqa: F401
+from wos.models.core.cited_source import CitedSource, Source  # noqa: F401
+from wos.models.core.protocol import WosDomainObject  # noqa: F401

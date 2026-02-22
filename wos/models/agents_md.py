@@ -10,8 +10,7 @@ from typing import List
 
 from pydantic import BaseModel
 
-from wos.models.enums import IssueSeverity
-from wos.models.validation_issue import ValidationIssue
+from wos.models.core import IssueSeverity, ValidationIssue
 
 MARKER_BEGIN = "<!-- wos:context:begin -->"
 MARKER_END = "<!-- wos:context:end -->"

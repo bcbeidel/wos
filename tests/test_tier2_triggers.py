@@ -73,7 +73,7 @@ class TestPolymorphicDispatch:
             assert hasattr(cls, "validate_content")
 
     def test_shared_trigger_runs_for_topic(self) -> None:
-        from wos.models.validation_issue import ValidationIssue
+        from wos.models.core import ValidationIssue
 
         doc = parse_document(
             "context/python/topic.md",

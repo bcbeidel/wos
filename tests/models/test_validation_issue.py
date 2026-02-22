@@ -10,9 +10,7 @@ import pytest
 from pydantic import ValidationError
 
 from tests.builders import make_validation_issue
-from wos.models.enums import IssueSeverity
-from wos.models.protocol import WosDomainObject
-from wos.models.validation_issue import ValidationIssue
+from wos.models import IssueSeverity, ValidationIssue, WosDomainObject
 
 
 class TestValidationIssueProtocol:

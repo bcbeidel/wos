@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Dict, Optional
 
 from wos.models.base_document import BaseDocument
-from wos.models.validation_issue import ValidationIssue
+from wos.models.core import IssueSeverity, ValidationIssue
 
 
 class PlanDocument(BaseDocument):
@@ -35,8 +35,6 @@ class PlanDocument(BaseDocument):
         return issues
 
     def validate_content(self) -> list[ValidationIssue]:
-        from wos.models.enums import IssueSeverity
-
         issues = super().validate_content()
 
         # Check step specificity

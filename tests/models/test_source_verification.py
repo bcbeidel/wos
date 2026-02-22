@@ -13,8 +13,7 @@ import pytest
 from pydantic import ValidationError
 
 from tests.builders import make_reachability_result, make_verification_result
-from wos.models.enums import IssueSeverity
-from wos.models.protocol import WosDomainObject
+from wos.models import IssueSeverity, WosDomainObject
 from wos.source_verification import ReachabilityResult, VerificationResult
 
 

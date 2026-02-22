@@ -7,9 +7,9 @@ from tests.builders import (
     make_project_context,
     make_rules_file,
 )
+from wos.models import ValidationIssue
 from wos.models.context_area import ContextArea
 from wos.models.project_context import ProjectContext
-from wos.models.validation_issue import ValidationIssue
 
 
 class TestProjectContextProtocol:

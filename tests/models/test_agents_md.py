@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from wos.models.agents_md import AgentsMd
-from wos.models.validation_issue import ValidationIssue
+from wos.models.core import ValidationIssue
 
 
 class TestAgentsMd:

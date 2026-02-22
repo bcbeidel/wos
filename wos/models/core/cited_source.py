@@ -7,8 +7,8 @@ from typing import List
 
 from pydantic import BaseModel, ConfigDict
 
-from wos.models.enums import IssueSeverity
-from wos.models.validation_issue import ValidationIssue
+from wos.models.core.enums import IssueSeverity
+from wos.models.core.validation_issue import ValidationIssue
 
 
 class CitedSource(BaseModel):

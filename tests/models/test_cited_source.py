@@ -11,9 +11,7 @@ import pytest
 from pydantic import ValidationError
 
 from tests.builders import make_cited_source
-from wos.models.cited_source import CitedSource
-from wos.models.enums import IssueSeverity
-from wos.models.protocol import WosDomainObject
+from wos.models import CitedSource, IssueSeverity, WosDomainObject
 
 
 # ── Frozen / immutable / hashable / equality ─────────────────────

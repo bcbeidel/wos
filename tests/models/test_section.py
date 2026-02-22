@@ -11,9 +11,7 @@ import pytest
 from pydantic import ValidationError
 
 from tests.builders import make_document_section
-from wos.models.enums import IssueSeverity
-from wos.models.protocol import WosDomainObject
-from wos.models.section import DocumentSection
+from wos.models import DocumentSection, IssueSeverity, WosDomainObject
 
 
 class TestDocumentSectionProtocol:
