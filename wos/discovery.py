@@ -261,18 +261,17 @@ def _agents_md_template() -> str:
 
 
 def run_discovery(root: str) -> None:
-    """Full discovery pipeline: scan → render → update all files."""
-    root = os.path.abspath(root)
+    """Full discovery pipeline: scan → render → update all files.
 
+    Delegates to ProjectContext.discover() — the domain method that
+    owns the orchestration logic.
+    """
+    from wos.models.project_context import ProjectContext
+
+    root = os.path.abspath(root)
     print(f"Discovery root: {root}", file=sys.stderr)
 
-    areas = scan_context(root)
-    print(f"Found {len(areas)} context area(s)", file=sys.stderr)
+    ctx = ProjectContext(root=root)
+    ctx.discover()
 
-    manifest = render_manifest(areas)
-
-    update_agents_md(os.path.join(root, "AGENTS.md"), manifest)
-    update_claude_md(os.path.join(root, "CLAUDE.md"))
-
-    rules = render_rules_file()
-    update_rules_file(root, rules)
+    print(f"Found {len(ctx.areas)} context area(s)", file=sys.stderr)
