@@ -21,7 +21,6 @@ from wos.document_types import (
     ValidationIssue,
 )
 
-
 # ── Shared validators (all types) ───────────────────────────────
 
 

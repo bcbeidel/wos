@@ -16,7 +16,6 @@ from tests.builders import make_reachability_result, make_verification_result
 from wos.models import IssueSeverity, WosDomainObject
 from wos.source_verification import ReachabilityResult, VerificationResult
 
-
 # ══════════════════════════════════════════════════════════════════
 # VerificationResult DDD protocol tests
 # ══════════════════════════════════════════════════════════════════
@@ -112,7 +111,8 @@ class TestVerificationResultProtocol:
         issues = vr.validate_self()
         assert len(issues) == 1
         assert issues[0].severity == IssueSeverity.WARN
-        assert "action" in issues[0].issue.lower() or "invalid" in issues[0].issue.lower()
+        msg = issues[0].issue.lower()
+        assert "action" in msg or "invalid" in msg
 
     def test_is_valid_true(self):
         vr = make_verification_result()

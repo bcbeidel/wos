@@ -13,7 +13,6 @@ from pydantic import ValidationError
 from tests.builders import make_cited_source
 from wos.models import CitedSource, IssueSeverity, WosDomainObject
 
-
 # ── Frozen / immutable / hashable / equality ─────────────────────
 
 

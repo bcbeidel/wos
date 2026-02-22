@@ -20,8 +20,8 @@ class ContextArea(BaseModel):
     """A context area (directory under /context/) with its documents."""
 
     name: str  # directory name, e.g. "python"
-    overview: Optional["OverviewDocument"] = None
-    topics: List["TopicDocument"] = []
+    overview: Optional["OverviewDocument"] = None  # noqa: F821
+    topics: List["TopicDocument"] = []  # noqa: F821
 
     @property
     def display_name(self) -> str:
@@ -229,7 +229,7 @@ class ContextArea(BaseModel):
 
 # Resolve forward references after OverviewDocument/TopicDocument are defined
 def _rebuild_model() -> None:
-    from wos.models.documents import OverviewDocument, TopicDocument  # noqa: F811
+    from wos.models.documents import OverviewDocument, TopicDocument  # noqa: F401
 
     ContextArea.model_rebuild()
 

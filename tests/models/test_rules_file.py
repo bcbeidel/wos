@@ -4,7 +4,6 @@ from __future__ import annotations
 import pytest
 
 from wos.models.rules_file import RulesFile
-from wos.models.core import ValidationIssue
 
 
 class TestRulesFile:

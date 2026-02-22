@@ -11,8 +11,9 @@ Actual implementations live in focused modules:
 
 from __future__ import annotations
 
-# ── Re-exports ────────────────────────────────────────────────────
+from wos.models.core.cited_source import CitedSource, Source  # noqa: F401
 
+# ── Re-exports ────────────────────────────────────────────────────
 from wos.models.core.enums import (  # noqa: F401
     ARTIFACT_TYPES,
     CONTEXT_TYPES,
@@ -21,7 +22,6 @@ from wos.models.core.enums import (  # noqa: F401
     DocumentType,
     IssueSeverity,
 )
-from wos.models.core.validation_issue import ValidationIssue  # noqa: F401
-from wos.models.core.section import DocumentSection  # noqa: F401
-from wos.models.core.cited_source import CitedSource, Source  # noqa: F401
 from wos.models.core.protocol import WosDomainObject  # noqa: F401
+from wos.models.core.section import DocumentSection  # noqa: F401
+from wos.models.core.validation_issue import ValidationIssue  # noqa: F401

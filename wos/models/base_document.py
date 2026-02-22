@@ -7,7 +7,12 @@ from typing import Dict, Iterator, List, Optional, Tuple
 
 from pydantic import BaseModel
 
-from wos.models.core import DocumentSection, DocumentType, IssueSeverity, ValidationIssue
+from wos.models.core import (
+    DocumentSection,
+    DocumentType,
+    IssueSeverity,
+    ValidationIssue,
+)
 from wos.models.frontmatter import (
     SECTIONS,
     SIZE_BOUNDS,

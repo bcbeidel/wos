@@ -1,13 +1,17 @@
 """Tests for TopicDocument validate_content()."""
 from __future__ import annotations
 
-from wos.models.parsing import parse_document
 from wos.models.core import ValidationIssue
+from wos.models.parsing import parse_document
 
 
 def _make_topic(
     in_practice="- Do this step.\n- Then this.\n",
-    pitfalls="Watch out for these common mistakes that developers make when working with this pattern. Avoid premature optimization and always measure before tuning.\n",
+    pitfalls=(
+        "Watch out for these common mistakes that developers "
+        "make when working with this pattern. "
+        "Avoid premature optimization and always measure.\n"
+    ),
     go_deeper="- [Link](https://example.com)\n",
 ):
     md = (

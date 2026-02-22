@@ -13,7 +13,6 @@ from tests.builders import make_section_spec, make_size_bounds
 from wos.models import IssueSeverity, WosDomainObject
 from wos.models.frontmatter import SectionSpec, SizeBounds
 
-
 # ══════════════════════════════════════════════════════════════════
 # SectionSpec DDD protocol tests
 # ══════════════════════════════════════════════════════════════════
@@ -91,7 +90,8 @@ class TestSectionSpecProtocol:
         issues = spec.validate_self()
         assert len(issues) == 1
         assert issues[0].severity == IssueSeverity.WARN
-        assert "position" in issues[0].issue.lower() or "less than 1" in issues[0].issue.lower()
+        msg = issues[0].issue.lower()
+        assert "position" in msg or "less than 1" in msg
 
     def test_validate_self_blank_name(self):
         spec = make_section_spec(name="   ")

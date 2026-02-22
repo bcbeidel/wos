@@ -5,7 +5,7 @@ All tests use inline markdown strings.
 
 from __future__ import annotations
 
-from wos.document_types import DocumentType, parse_document
+from wos.document_types import parse_document
 from wos.validators import (
     check_date_prefix_matches,
     check_directory_placement,
@@ -161,7 +161,6 @@ class TestPolymorphicDispatch:
         doc = _parse(_topic_md())
         # Stale date would trigger check_last_validated
         issues = validate_document(doc)
-        validators_run = {i.validator for i in issues}
         # Clean doc has no issues, but the method exists and runs
         assert isinstance(issues, list)
 

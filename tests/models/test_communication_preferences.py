@@ -4,7 +4,6 @@ from __future__ import annotations
 import pytest
 
 from wos.models.communication_preferences import CommunicationPreferences
-from wos.models.core import ValidationIssue
 
 
 class TestCommunicationPreferences:

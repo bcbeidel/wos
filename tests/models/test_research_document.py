@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from wos.models.parsing import parse_document
-from wos.models.core import ValidationIssue
 
 
 def _make_research(

@@ -2,11 +2,15 @@
 from __future__ import annotations
 
 from wos.models.parsing import parse_document
-from wos.models.core import ValidationIssue
 
 
 def _make_plan(
-    steps="1. Do first thing in detail with clear instructions and make sure all prerequisites are met before continuing.\n2. Do second thing with all needed context and verify the output matches the expected format before proceeding.\n",
+    steps=(
+        "1. Do first thing in detail with clear instructions "
+        "and make sure all prerequisites are met.\n"
+        "2. Do second thing with all needed context "
+        "and verify the output matches expected format.\n"
+    ),
     verification="- Check output matches expected.\n- Verify no regressions.\n",
 ):
     md = (

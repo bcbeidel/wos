@@ -14,8 +14,8 @@ from html.parser import HTMLParser
 from typing import List, Optional
 from urllib.parse import urlparse
 
-from pydantic import BaseModel, ConfigDict
 import requests
+from pydantic import BaseModel, ConfigDict
 
 
 def normalize_title(title: str) -> str:
@@ -113,7 +113,10 @@ class VerificationResult(BaseModel):
         return f"{self.action}: {self.url}"
 
     def __repr__(self) -> str:
-        return f"VerificationResult(action={self.action!r}, url={self.url!r}, reason={self.reason!r})"
+        return (
+            f"VerificationResult(action={self.action!r}, "
+            f"url={self.url!r}, reason={self.reason!r})"
+        )
 
     def to_json(self) -> dict:
         """Serialize to a plain dict suitable for JSON."""
@@ -166,7 +169,10 @@ class ReachabilityResult(BaseModel):
         return f"{status}: {self.url}"
 
     def __repr__(self) -> str:
-        return f"ReachabilityResult(reachable={self.reachable!r}, url={self.url!r}, reason={self.reason!r})"
+        return (
+            f"ReachabilityResult(reachable={self.reachable!r}, "
+            f"url={self.url!r}, reason={self.reason!r})"
+        )
 
     def to_json(self) -> dict:
         """Serialize to a plain dict suitable for JSON."""

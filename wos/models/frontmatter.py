@@ -14,11 +14,9 @@ from typing import Annotated, Dict, List, Literal, Optional, Union
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from wos.models.core import (
-    CitedSource,
     DocumentType,
     Source,
 )
-
 
 # ── Shared base ─────────────────────────────────────────────────
 
@@ -173,7 +171,7 @@ class SectionSpec(BaseModel):
 
         Returns list[ValidationIssue] — empty when this spec is well-formed.
         """
-        from wos.models.core import ValidationIssue, IssueSeverity
+        from wos.models.core import IssueSeverity, ValidationIssue
 
         issues = []
         if not self.name.strip():
@@ -279,7 +277,7 @@ class SizeBounds(BaseModel):
 
         Returns list[ValidationIssue] — empty when this bounds is well-formed.
         """
-        from wos.models.core import ValidationIssue, IssueSeverity
+        from wos.models.core import IssueSeverity, ValidationIssue
 
         issues = []
         if self.min_lines < 1:
@@ -296,7 +294,10 @@ class SizeBounds(BaseModel):
             issues.append(
                 ValidationIssue(
                     file="<SizeBounds>",
-                    issue=f"max_lines ({self.max_lines}) < min_lines ({self.min_lines})",
+                    issue=(
+                        f"max_lines ({self.max_lines}) "
+                        f"< min_lines ({self.min_lines})"
+                    ),
                     severity=IssueSeverity.WARN,
                     validator="SizeBounds.validate_self",
                     suggestion="Set max_lines >= min_lines or None for no upper bound",

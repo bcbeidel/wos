@@ -15,8 +15,8 @@ from pydantic import BaseModel
 from wos.models.agents_md import AgentsMd
 from wos.models.claude_md import ClaudeMd
 from wos.models.context_area import ContextArea
-from wos.models.rules_file import RulesFile
 from wos.models.core import ValidationIssue
+from wos.models.rules_file import RulesFile
 
 
 class ProjectContext(BaseModel):

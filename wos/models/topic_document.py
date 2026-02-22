@@ -61,7 +61,10 @@ class TopicDocument(BaseDocument):
                         severity=IssueSeverity.INFO,
                         validator="validate_content",
                         section="In Practice",
-                        suggestion="Add code blocks, bullet lists, or step-by-step examples",
+                        suggestion=(
+                            "Add code blocks, bullet lists, "
+                            "or step-by-step examples"
+                        ),
                         requires_llm=True,
                     )
                 )

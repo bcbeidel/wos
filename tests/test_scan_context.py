@@ -7,15 +7,16 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
-
 PROJECT_ROOT = str(Path(__file__).resolve().parent.parent)
 
 
 # ── Helpers ──────────────────────────────────────────────────────
 
 
-def _topic_md(title: str = "Error Handling", description: str = "How to handle errors") -> str:
+def _topic_md(
+    title: str = "Error Handling",
+    description: str = "How to handle errors",
+) -> str:
     return f"""\
 ---
 document_type: topic

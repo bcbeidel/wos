@@ -99,7 +99,8 @@ def make_agents_md(**overrides):
     from wos.models.agents_md import AgentsMd
     if not overrides:
         return AgentsMd.from_template("AGENTS.md")
-    defaults = {"path": "AGENTS.md", "content": AgentsMd.from_template("AGENTS.md").content}
+    tpl = AgentsMd.from_template("AGENTS.md")
+    defaults = {"path": "AGENTS.md", "content": tpl.content}
     defaults.update(overrides)
     return AgentsMd(**defaults)
 
@@ -109,7 +110,8 @@ def make_claude_md(**overrides):
     from wos.models.claude_md import ClaudeMd
     if not overrides:
         return ClaudeMd.from_template("CLAUDE.md")
-    defaults = {"path": "CLAUDE.md", "content": ClaudeMd.from_template("CLAUDE.md").content}
+    tpl = ClaudeMd.from_template("CLAUDE.md")
+    defaults = {"path": "CLAUDE.md", "content": tpl.content}
     defaults.update(overrides)
     return ClaudeMd(**defaults)
 
@@ -208,7 +210,9 @@ def make_topic_document(**overrides) -> BaseDocument:
             "# Error Handling\n\n"
             "## Guidance\n\nDetailed guidance here.\n\n"
             "## Context\n\nBackground context.\n\n"
-            "## In Practice\n\n```python\ntry:\n    pass\nexcept ValueError:\n    pass\n```\n\n"
+            "## In Practice\n\n"
+            "```python\ntry:\n    pass\n"
+            "except ValueError:\n    pass\n```\n\n"
             "## Pitfalls\n\nCommon mistakes to avoid in error handling.\n\n"
             "## Go Deeper\n\n- [Link](https://example.com)\n"
         )

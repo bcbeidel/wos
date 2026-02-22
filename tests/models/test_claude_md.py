@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from wos.models.claude_md import ClaudeMd
-from wos.models.core import ValidationIssue
 
 
 class TestClaudeMd:

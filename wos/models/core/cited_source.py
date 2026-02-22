@@ -151,7 +151,7 @@ class CitedSource(BaseModel):
         return check_url_reachability(self.url)
 
     def verify(self):
-        """Full verification — reachability + title match. Returns VerificationResult."""
+        """Full verification — reachability + title match."""
         from wos.source_verification import verify_source
 
         return verify_source(self.url, self.title)

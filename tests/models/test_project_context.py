@@ -314,7 +314,7 @@ class TestProjectContextScaffold:
         assert (tmp_path / "artifacts" / "plans").is_dir()
 
     def test_scaffold_creates_overviews(self, tmp_path):
-        ctx = ProjectContext.scaffold(str(tmp_path), ["python"])
+        ProjectContext.scaffold(str(tmp_path), ["python"])
         overview = tmp_path / "context" / "python" / "_overview.md"
         assert overview.exists()
 
@@ -335,7 +335,7 @@ class TestProjectContextScaffold:
         overview = tmp_path / "context" / "python" / "_overview.md"
         overview.write_text("custom content", encoding="utf-8")
 
-        ctx = ProjectContext.scaffold(str(tmp_path), ["python"])
+        ProjectContext.scaffold(str(tmp_path), ["python"])
         assert overview.read_text(encoding="utf-8") == "custom content"
 
     def test_scaffold_areas_have_overviews(self, tmp_path):

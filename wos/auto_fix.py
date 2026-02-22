@@ -17,7 +17,6 @@ import yaml
 
 from wos.document_types import (
     SECTIONS,
-    DocumentType,
     ValidationIssue,
     parse_document,
 )

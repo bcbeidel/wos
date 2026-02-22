@@ -1,8 +1,8 @@
 """Tests for OverviewDocument validate_content()."""
 from __future__ import annotations
 
-from wos.models.parsing import parse_document
 from wos.models.core import ValidationIssue
+from wos.models.parsing import parse_document
 
 
 def _make_overview(what_this_covers="This area covers a wide range of topics " * 7):

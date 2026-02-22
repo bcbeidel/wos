@@ -1,4 +1,5 @@
-"""Markdown parsing: frontmatter extraction, section splitting, document construction."""
+"""Markdown parsing: frontmatter extraction, section splitting,
+document construction."""
 
 from __future__ import annotations
 

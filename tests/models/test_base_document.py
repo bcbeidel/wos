@@ -7,9 +7,8 @@ validate_self, is_valid, and builder.
 from __future__ import annotations
 
 from wos.models.base_document import BaseDocument
-from wos.models.parsing import parse_document
 from wos.models.core import ValidationIssue
-
+from wos.models.parsing import parse_document
 
 TOPIC_MD = (
     "---\n"
@@ -63,7 +62,8 @@ class TestBaseDocumentProtocol:
     def test_repr_representation(self):
         doc = self._make_topic_doc()
         # parse_document returns the appropriate subclass (TopicDocument)
-        expected = f"{type(doc).__name__}(path='context/testing/example.md', type='topic')"
+        cls_name = type(doc).__name__
+        expected = f"{cls_name}(path='context/testing/example.md', type='topic')"
         assert repr(doc) == expected
 
     # -- __len__ --
