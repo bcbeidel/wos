@@ -8,7 +8,7 @@ and mutations should go through this object.
 """
 from __future__ import annotations
 
-from typing import Iterator, List, Optional
+from typing import Dict, Iterator, List, Optional
 
 from pydantic import BaseModel
 
@@ -132,6 +132,58 @@ class ProjectContext(BaseModel):
             claude_md=claude_md,
             rules_file=rules_file,
         )
+
+    # ── Scaffolding ───────────────────────────────────────────────
+
+    @classmethod
+    def scaffold(
+        cls,
+        root: str,
+        areas: List[str],
+        purpose: Optional[str] = None,
+    ) -> ProjectContext:
+        """Initialize a new project with structured context.
+
+        Creates directory structure and overview files, then returns
+        a populated ProjectContext with the areas loaded.
+        """
+        from wos.scaffold import scaffold_project
+
+        scaffold_project(root, areas, purpose)
+
+        # Load the created areas
+        loaded_areas = ContextArea.scan_all(root)
+
+        return cls(root=root, areas=loaded_areas)
+
+    def add_area(
+        self,
+        area_name: str,
+        description: Optional[str] = None,
+    ) -> Dict[str, List[str]]:
+        """Add a single domain area to this project.
+
+        Creates the area directory and overview file on disk, then
+        appends a ContextArea to self.areas.
+
+        Returns dict with 'created' and 'skipped' file lists.
+        """
+        from wos.scaffold import scaffold_area
+
+        result = scaffold_area(self.root, area_name, description)
+
+        # Load the created area
+        from wos.scaffold import normalize_area_name
+
+        normalized = normalize_area_name(area_name)
+
+        # Check if area already exists in self.areas
+        existing = [a for a in self.areas if a.name == normalized]
+        if not existing:
+            area = ContextArea.from_directory(self.root, normalized)
+            self.areas.append(area)
+
+        return result
 
     # ── Token estimation ──────────────────────────────────────────
 

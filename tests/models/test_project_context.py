@@ -300,3 +300,83 @@ class TestProjectContextBuilder:
         rules = make_rules_file()
         ctx = make_project_context(rules_file=rules)
         assert ctx.rules_file is not None
+
+
+class TestProjectContextScaffold:
+    def test_scaffold_creates_directories(self, tmp_path):
+        ctx = ProjectContext.scaffold(str(tmp_path), ["python", "testing"])
+        assert isinstance(ctx, ProjectContext)
+        assert (tmp_path / "context" / "python").is_dir()
+        assert (tmp_path / "context" / "testing").is_dir()
+        assert (tmp_path / "artifacts" / "research").is_dir()
+        assert (tmp_path / "artifacts" / "plans").is_dir()
+
+    def test_scaffold_creates_overviews(self, tmp_path):
+        ctx = ProjectContext.scaffold(str(tmp_path), ["python"])
+        overview = tmp_path / "context" / "python" / "_overview.md"
+        assert overview.exists()
+
+    def test_scaffold_returns_populated_context(self, tmp_path):
+        ctx = ProjectContext.scaffold(str(tmp_path), ["python", "testing"])
+        assert ctx.root == str(tmp_path)
+        assert len(ctx.areas) == 2
+        area_names = [a.name for a in ctx.areas]
+        assert "python" in area_names
+        assert "testing" in area_names
+
+    def test_scaffold_normalizes_area_names(self, tmp_path):
+        ctx = ProjectContext.scaffold(str(tmp_path), ["Python Basics"])
+        assert ctx.areas[0].name == "python-basics"
+
+    def test_scaffold_does_not_overwrite_existing(self, tmp_path):
+        ProjectContext.scaffold(str(tmp_path), ["python"])
+        overview = tmp_path / "context" / "python" / "_overview.md"
+        overview.write_text("custom content", encoding="utf-8")
+
+        ctx = ProjectContext.scaffold(str(tmp_path), ["python"])
+        assert overview.read_text(encoding="utf-8") == "custom content"
+
+    def test_scaffold_areas_have_overviews(self, tmp_path):
+        ctx = ProjectContext.scaffold(str(tmp_path), ["python"])
+        assert ctx.areas[0].overview is not None
+
+
+class TestProjectContextAddArea:
+    def test_add_area_creates_directory(self, tmp_path):
+        ctx = ProjectContext(root=str(tmp_path))
+        result = ctx.add_area("python")
+        assert (tmp_path / "context" / "python").is_dir()
+        assert len(result["created"]) > 0
+
+    def test_add_area_appends_to_areas(self, tmp_path):
+        ctx = ProjectContext(root=str(tmp_path))
+        ctx.add_area("python")
+        assert len(ctx.areas) == 1
+        assert ctx.areas[0].name == "python"
+
+    def test_add_area_with_description(self, tmp_path):
+        ctx = ProjectContext(root=str(tmp_path))
+        ctx.add_area("python", description="Python programming essentials")
+        overview = tmp_path / "context" / "python" / "_overview.md"
+        content = overview.read_text(encoding="utf-8")
+        assert "Python programming essentials" in content
+
+    def test_add_area_normalizes_name(self, tmp_path):
+        ctx = ProjectContext(root=str(tmp_path))
+        ctx.add_area("Python Basics")
+        assert ctx.areas[0].name == "python-basics"
+
+    def test_add_area_does_not_overwrite(self, tmp_path):
+        ctx = ProjectContext(root=str(tmp_path))
+        ctx.add_area("python")
+        overview = tmp_path / "context" / "python" / "_overview.md"
+        overview.write_text("custom", encoding="utf-8")
+
+        result = ctx.add_area("python")
+        assert overview.read_text(encoding="utf-8") == "custom"
+        assert "context/python/_overview.md" in result["skipped"]
+
+    def test_add_area_has_overview(self, tmp_path):
+        ctx = ProjectContext(root=str(tmp_path))
+        ctx.add_area("python")
+        assert ctx.areas[0].overview is not None
