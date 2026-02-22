@@ -18,9 +18,9 @@
 
 ---
 
-## Phase A: Absorb into Existing Objects
+## Phase A: Absorb into Existing Objects ✅ COMPLETE
 
-### Task 1: Add `requires_llm` field to ValidationIssue
+### Task 1: Add `requires_llm` field to ValidationIssue ✅
 
 **Files:**
 - Modify: `wos/models/validation_issue.py`
@@ -94,7 +94,7 @@ git commit -m "feat: add requires_llm field to ValidationIssue"
 
 ---
 
-### Task 2: Inline `validate_content()` on BaseDocument — return ValidationIssue
+### Task 2: Inline `validate_content()` on BaseDocument — return ValidationIssue ✅
 
 Currently `BaseDocument.validate_content()` returns `list` (of TriggerContext dicts). Change it to return `list[ValidationIssue]` with `requires_llm=True`.
 
@@ -193,7 +193,7 @@ git commit -m "feat: BaseDocument.validate_content() returns ValidationIssue wit
 
 ---
 
-### Task 3: Inline `validate_content()` on TopicDocument
+### Task 3: Inline `validate_content()` on TopicDocument ✅
 
 Move the trigger logic from `tier2_triggers.py` into `TopicDocument.validate_content()`.
 
@@ -338,7 +338,7 @@ git commit -m "feat: inline validate_content() on TopicDocument"
 
 ---
 
-### Task 4: Inline `validate_content()` on OverviewDocument, ResearchDocument, PlanDocument
+### Task 4: Inline `validate_content()` on OverviewDocument, ResearchDocument, PlanDocument ✅
 
 Same pattern as Task 3 for the remaining subclasses.
 
@@ -651,7 +651,7 @@ git commit -m "feat: inline validate_content() on Overview, Research, Plan docum
 
 ---
 
-### Task 5: Add `auto_fix()` to BaseDocument
+### Task 5: Add `auto_fix()` to BaseDocument ✅
 
 Absorb `auto_fix.py` logic into domain objects. `auto_fix()` returns fixed markdown string or None.
 
@@ -738,7 +738,7 @@ git commit -m "feat: add auto_fix() to BaseDocument"
 
 ---
 
-### Task 6: Rename `ContextArea.validate()` to `validate_self()`, add `is_valid`
+### Task 6: Rename `ContextArea.validate()` to `validate_self()`, add `is_valid` ✅
 
 **Files:**
 - Modify: `wos/models/context_area.py:115-120`
@@ -801,7 +801,7 @@ git commit -m "feat: rename ContextArea.validate() to validate_self(), add is_va
 
 ---
 
-### Task 7: Add `from_documents()` factory and collection protocol to ContextArea
+### Task 7: Add `from_documents()` factory and collection protocol to ContextArea ✅
 
 **Files:**
 - Modify: `wos/models/context_area.py`
@@ -924,9 +924,9 @@ git commit -m "feat: add from_documents(), collection protocol to ContextArea"
 
 ---
 
-## Phase B: New Domain Objects
+## Phase B: New Domain Objects ✅ COMPLETE
 
-### Task 8: Create RulesFile value object
+### Task 8: Create RulesFile value object ✅
 
 **Files:**
 - Create: `wos/models/rules_file.py`
@@ -1097,7 +1097,7 @@ git commit -m "feat: add RulesFile value object"
 
 ---
 
-### Task 9: Create AgentsMd entity
+### Task 9: Create AgentsMd entity ✅
 
 **Files:**
 - Create: `wos/models/agents_md.py`
@@ -1120,7 +1120,7 @@ Commit: `git commit -m "feat: add AgentsMd entity"`
 
 ---
 
-### Task 10: Create ClaudeMd entity
+### Task 10: Create ClaudeMd entity ✅
 
 **Files:**
 - Create: `wos/models/claude_md.py`
@@ -1139,7 +1139,7 @@ Commit: `git commit -m "feat: add ClaudeMd entity"`
 
 ---
 
-### Task 11: Create CommunicationPreferences value object
+### Task 11: Create CommunicationPreferences value object ✅
 
 **Files:**
 - Create: `wos/models/communication_preferences.py`
@@ -1161,7 +1161,7 @@ Commit: `git commit -m "feat: add CommunicationPreferences value object"`
 
 ## Phase C: ProjectContext Aggregate
 
-### Task 12: Create ProjectContext aggregate root
+### Task 12: Create ProjectContext aggregate root ✅
 
 **Files:**
 - Create: `wos/models/project_context.py`
@@ -1251,7 +1251,7 @@ Commit: `git commit -m "refactor: cross_validators uses domain methods"`
 
 ---
 
-### Task 18: Delete absorbed modules
+### Task 18: Delete absorbed modules ✅
 
 Delete `wos/tier2_triggers.py` (logic inlined into `validate_content()`).
 Update remaining imports. Delete or update `tests/test_tier2_triggers.py`.
@@ -1267,7 +1267,7 @@ Commit: `git commit -m "refactor: delete tier2_triggers.py (absorbed into domain
 
 ---
 
-### Task 19: Final cleanup and CLAUDE.md update
+### Task 19: Final cleanup and CLAUDE.md update ✅
 
 - Update `wos/models/__init__.py` to export new types
 - Add missing builders to `tests/builders.py`

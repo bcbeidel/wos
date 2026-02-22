@@ -33,24 +33,34 @@ Version bump requires updating all three: `pyproject.toml`,
 ### Package Structure
 
 - `wos/` — importable Python package with core logic
-  - **Core:** `document_types.py` (models, dispatch tables, `parse_document()`),
-    `validators.py` (per-file), `cross_validators.py` (multi-file),
-    `templates.py`, `discovery.py`, `scaffold.py`
-  - **Extended:** `auto_fix.py`, `token_budget.py`, `tier2_triggers.py`,
-    `source_verification.py`
-- `scripts/` — thin CLI entry points with argparse that import from `wos`
-- `skills/` — skill definitions (SKILL.md + workflows/) auto-discovered by
+  - **Domain models:** `wos/models/` — DDD-style domain objects (see Domain Model below)
+  - **Validation:** `validators.py` (per-file), `cross_validators.py` (multi-file)
+  - **Infrastructure:** `templates.py`, `discovery.py`, `scaffold.py`,
+    `auto_fix.py`, `token_budget.py`, `source_verification.py`
+  - **Legacy shim:** `document_types.py` — re-exports from `wos/models/` for
+    backward compatibility
+- `scripts/` — thin CLI entry points with argparse that delegate to domain objects
+- `skills/` — skill definitions (SKILL.md + references/) auto-discovered by
   Claude Code
-- `tests/` — pytest tests using inline markdown strings
+- `tests/` — pytest tests using inline markdown strings and `tests/builders.py`
 
-### Schema-First Design
+### Domain Model (`wos/models/`)
 
-Everything derives from the Pydantic document type models in
-`wos/document_types.py`. The models define four document types (topic,
-overview, research, plan) and dispatch tables that control templates, validators,
-sections, size bounds, and directory patterns.
+The domain model follows DDD conventions (see Domain Model Conventions below).
 
-**Adding a new document type:** Add a model, add dispatch table entries. No
+- **Core value objects** (`wos/models/core/`): `ValidationIssue`, `DocumentSection`,
+  `CitedSource`, `IssueSeverity`, `DocumentType`, `WosDomainObject` protocol
+- **Document hierarchy:** `BaseDocument` → `TopicDocument`, `OverviewDocument`,
+  `ResearchDocument`, `PlanDocument`, `NoteDocument` — each owns its
+  `validate_content()` and `auto_fix()` behavior
+- **Composites:** `ContextArea` (area with overview + topics), `ProjectContext`
+  (aggregate root owning areas + AGENTS.md + CLAUDE.md + rules file)
+- **File entities:** `AgentsMd`, `ClaudeMd`, `RulesFile`
+- **Supporting:** `HealthReport`, `CommunicationPreferences`
+- **Parsing:** `parse_document()` in `wos/models/parsing.py`
+
+**Adding a new document type:** Add a document subclass in `wos/models/`,
+add frontmatter + dispatch table entries in `wos/models/frontmatter.py`. No
 skill routing changes needed.
 
 ### Skills
@@ -80,7 +90,9 @@ products, reachable via `related` links.
 
 ### Key Entry Points
 
-- `wos/document_types.py` — schema foundation; start here for new document types
+- `wos/models/` — domain model package; start here for new types or behavior
+- `wos/models/project_context.py` — aggregate root; `scaffold()`, `discover()`, `validate_self()`
+- `wos/models/parsing.py` — `parse_document()` dispatches markdown to typed document objects
 - `wos/validators.py` — per-file validators dispatched by `VALIDATORS_BY_TYPE`
 - `wos/cross_validators.py` — multi-file validators (link graph, manifest sync, naming)
 - `scripts/check_health.py` — CLI that wires validators into `/wos:audit` output

@@ -21,6 +21,28 @@ class HealthReport(BaseModel):
     triggers: List[Dict[str, Any]]
     token_budget: Optional[Dict[str, Any]] = None
 
+    # ── String representations ─────────────────────────────────────
+
+    def __str__(self) -> str:
+        return self.to_summary()
+
+    def __repr__(self) -> str:
+        return (
+            f"HealthReport(files={self.files_checked}, "
+            f"issues={len(self.issues)}, status={self.status.value})"
+        )
+
+    # ── Validation protocol ────────────────────────────────────────
+
+    def validate_self(self, deep: bool = False) -> List[ValidationIssue]:
+        """HealthReport is always valid — it's a read-only aggregate."""
+        return []
+
+    @property
+    def is_valid(self) -> bool:
+        """Always True — HealthReport is a read-only value."""
+        return True
+
     @property
     def status(self) -> IssueSeverity:
         """Overall status derived from issue severities."""

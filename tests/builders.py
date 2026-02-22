@@ -156,6 +156,18 @@ def make_context_area(**overrides):
     return ContextArea(**defaults)
 
 
+def make_health_report(**overrides):
+    """Build a HealthReport with sensible defaults."""
+    from wos.models.health_report import HealthReport
+    defaults = {
+        "files_checked": 3,
+        "issues": [],
+        "triggers": [],
+    }
+    defaults.update(overrides)
+    return HealthReport(**defaults)
+
+
 def make_document(**overrides) -> BaseDocument:
     """Build a minimal valid document (note type -- simplest)."""
     from wos.models.parsing import parse_document
@@ -171,6 +183,124 @@ def make_document(**overrides) -> BaseDocument:
             "\n"
             "# Test Document\n"
             "\n"
+            "Some content here.\n"
+        )
+    return parse_document(path, content)
+
+
+def make_topic_document(**overrides) -> BaseDocument:
+    """Build a valid TopicDocument via parse_document()."""
+    from wos.models.parsing import parse_document
+
+    path = overrides.pop("path", "context/python/error-handling.md")
+    content = overrides.pop("content", None)
+    if content is None:
+        content = (
+            "---\n"
+            "document_type: topic\n"
+            'description: "When and how to use exceptions in Python"\n'
+            "last_updated: 2026-02-17\n"
+            "last_validated: 2026-02-17\n"
+            "sources:\n"
+            '  - url: "https://example.com"\n'
+            '    title: "Example"\n'
+            "---\n\n"
+            "# Error Handling\n\n"
+            "## Guidance\n\nDetailed guidance here.\n\n"
+            "## Context\n\nBackground context.\n\n"
+            "## In Practice\n\n```python\ntry:\n    pass\nexcept ValueError:\n    pass\n```\n\n"
+            "## Pitfalls\n\nCommon mistakes to avoid in error handling.\n\n"
+            "## Go Deeper\n\n- [Link](https://example.com)\n"
+        )
+    return parse_document(path, content)
+
+
+def make_overview_document(**overrides) -> BaseDocument:
+    """Build a valid OverviewDocument via parse_document()."""
+    from wos.models.parsing import parse_document
+
+    path = overrides.pop("path", "context/python/_overview.md")
+    content = overrides.pop("content", None)
+    if content is None:
+        content = (
+            "---\n"
+            "document_type: overview\n"
+            'description: "Overview of Python conventions"\n'
+            "last_updated: 2026-02-17\n"
+            "last_validated: 2026-02-17\n"
+            "---\n\n"
+            "# Python\n\n"
+            "## What This Covers\n\n"
+            "This area covers Python conventions, patterns, and best practices "
+            "for writing idiomatic Python code in production systems. "
+            "It includes guidance on error handling, testing, and more.\n\n"
+            "## Topics\n\n- error-handling\n"
+        )
+    return parse_document(path, content)
+
+
+def make_research_document(**overrides) -> BaseDocument:
+    """Build a valid ResearchDocument via parse_document()."""
+    from wos.models.parsing import parse_document
+
+    path = overrides.pop("path", "artifacts/research/2026-02-17-test-research.md")
+    content = overrides.pop("content", None)
+    if content is None:
+        content = (
+            "---\n"
+            "document_type: research\n"
+            'description: "Research into best practices"\n'
+            "last_updated: 2026-02-17\n"
+            "sources:\n"
+            '  - url: "https://example.com"\n'
+            '    title: "Example"\n'
+            "---\n\n"
+            "# Test Research\n\n"
+            "## Question\n\nWhat are the best practices?\n\n"
+            "## Findings\n\nThe [findings](https://example.com) show that "
+            "best practices include testing and documentation.\n\n"
+            "## Implications\n\nApply these findings to improve quality.\n"
+        )
+    return parse_document(path, content)
+
+
+def make_plan_document(**overrides) -> BaseDocument:
+    """Build a valid PlanDocument via parse_document()."""
+    from wos.models.parsing import parse_document
+
+    path = overrides.pop("path", "artifacts/plans/2026-02-17-test-plan.md")
+    content = overrides.pop("content", None)
+    if content is None:
+        content = (
+            "---\n"
+            "document_type: plan\n"
+            'description: "Plan to improve error handling"\n'
+            "last_updated: 2026-02-17\n"
+            "status: active\n"
+            "---\n\n"
+            "# Test Plan\n\n"
+            "## Objective\n\nImprove error handling.\n\n"
+            "## Context\n\nCurrent state needs improvement.\n\n"
+            "## Steps\n\n1. Audit existing code and identify patterns.\n"
+            "2. Refactor error handling to follow conventions.\n\n"
+            "## Verification\n\n- All tests pass.\n- Linting clean.\n"
+        )
+    return parse_document(path, content)
+
+
+def make_note_document(**overrides) -> BaseDocument:
+    """Build a valid NoteDocument via parse_document()."""
+    from wos.models.parsing import parse_document
+
+    path = overrides.pop("path", "notes/test-note.md")
+    content = overrides.pop("content", None)
+    if content is None:
+        content = (
+            "---\n"
+            "document_type: note\n"
+            'description: "Personal notes on a specific topic"\n'
+            "---\n\n"
+            "# Test Note\n\n"
             "Some content here.\n"
         )
     return parse_document(path, content)
