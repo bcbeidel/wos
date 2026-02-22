@@ -1,6 +1,8 @@
 """Tests for ProjectContext aggregate root."""
 from __future__ import annotations
 
+from pathlib import Path
+
 from tests.builders import (
     make_agents_md,
     make_claude_md,
@@ -380,3 +382,78 @@ class TestProjectContextAddArea:
         ctx = ProjectContext(root=str(tmp_path))
         ctx.add_area("python")
         assert ctx.areas[0].overview is not None
+
+
+class TestProjectContextDiscover:
+    def _setup_project(self, tmp_path: Path) -> str:
+        """Create a minimal project with one area for discovery tests."""
+        root = str(tmp_path)
+        ProjectContext.scaffold(root, ["python"])
+        return root
+
+    def test_discover_populates_areas(self, tmp_path):
+        root = self._setup_project(tmp_path)
+        ctx = ProjectContext(root=root)
+        ctx.discover()
+        assert len(ctx.areas) >= 1
+        assert any(a.name == "python" for a in ctx.areas)
+
+    def test_discover_creates_agents_md(self, tmp_path):
+        root = self._setup_project(tmp_path)
+        ctx = ProjectContext(root=root)
+        ctx.discover()
+        assert ctx.agents_md is not None
+        assert (tmp_path / "AGENTS.md").exists()
+
+    def test_discover_creates_claude_md(self, tmp_path):
+        root = self._setup_project(tmp_path)
+        ctx = ProjectContext(root=root)
+        ctx.discover()
+        assert ctx.claude_md is not None
+        assert (tmp_path / "CLAUDE.md").exists()
+
+    def test_discover_creates_rules_file(self, tmp_path):
+        root = self._setup_project(tmp_path)
+        ctx = ProjectContext(root=root)
+        ctx.discover()
+        assert ctx.rules_file is not None
+        rules_path = tmp_path / ".claude" / "rules" / "wos-context.md"
+        assert rules_path.exists()
+
+    def test_discover_agents_md_has_manifest(self, tmp_path):
+        root = self._setup_project(tmp_path)
+        ctx = ProjectContext(root=root)
+        ctx.discover()
+        content = ctx.agents_md.to_markdown()
+        assert "Python" in content or "python" in content
+
+    def test_discover_claude_md_refs_agents(self, tmp_path):
+        root = self._setup_project(tmp_path)
+        ctx = ProjectContext(root=root)
+        ctx.discover()
+        content = ctx.claude_md.to_markdown()
+        assert "@AGENTS.md" in content
+
+    def test_discover_idempotent(self, tmp_path):
+        root = self._setup_project(tmp_path)
+        ctx = ProjectContext(root=root)
+        ctx.discover()
+
+        agents_content_1 = ctx.agents_md.to_markdown()
+
+        # Run again
+        ctx.discover()
+        agents_content_2 = ctx.agents_md.to_markdown()
+        assert agents_content_1 == agents_content_2
+
+    def test_discover_preserves_existing_claude_md(self, tmp_path):
+        root = self._setup_project(tmp_path)
+        claude_path = tmp_path / "CLAUDE.md"
+        claude_path.write_text("# My Project\n\nCustom content.\n", encoding="utf-8")
+
+        ctx = ProjectContext(root=root)
+        ctx.discover()
+
+        content = claude_path.read_text(encoding="utf-8")
+        assert "Custom content" in content
+        assert "@AGENTS.md" in content

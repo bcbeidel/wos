@@ -185,6 +185,52 @@ class ProjectContext(BaseModel):
 
         return result
 
+    # ── Discovery ──────────────────────────────────────────────────
+
+    def discover(self) -> None:
+        """Full discovery pipeline: scan areas, update all managed files.
+
+        Scans the project's context/ directory, renders the manifest,
+        and creates/updates AGENTS.md, CLAUDE.md, and the rules file.
+        Mutates self in place.
+        """
+        import os
+
+        from wos.discovery import (
+            render_manifest,
+            render_rules_file,
+            update_agents_md,
+            update_claude_md,
+            update_rules_file,
+        )
+
+        root = os.path.abspath(self.root)
+
+        # 1. Scan areas
+        self.areas = ContextArea.scan_all(root)
+
+        # 2. Render manifest and update AGENTS.md
+        manifest = render_manifest(self.areas)
+        agents_path = os.path.join(root, "AGENTS.md")
+        update_agents_md(agents_path, manifest)
+        self.agents_md = AgentsMd.from_content(
+            "AGENTS.md",
+            open(agents_path, encoding="utf-8").read(),
+        )
+
+        # 3. Update CLAUDE.md
+        claude_path = os.path.join(root, "CLAUDE.md")
+        update_claude_md(claude_path)
+        self.claude_md = ClaudeMd.from_content(
+            "CLAUDE.md",
+            open(claude_path, encoding="utf-8").read(),
+        )
+
+        # 4. Generate and write rules file
+        rules_content = render_rules_file()
+        update_rules_file(root, rules_content)
+        self.rules_file = RulesFile(content=rules_content)
+
     # ── Token estimation ──────────────────────────────────────────
 
     def get_estimated_tokens(self) -> int:
