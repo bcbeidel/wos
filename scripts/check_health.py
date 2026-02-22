@@ -53,7 +53,6 @@ def main() -> None:
     from wos.cross_validators import check_source_url_reachability, run_cross_validators
     from wos.document_types import IssueSeverity, ValidationIssue, parse_document
     from wos.models.health_report import HealthReport
-    from wos.tier2_triggers import run_triggers
     from wos.token_budget import estimate_token_budget
     from wos.validators import validate_document
 
@@ -136,12 +135,8 @@ def main() -> None:
                 if i.file == doc.path and i.severity == IssueSeverity.FAIL
             ]
             if not doc_failures:
-                results = run_triggers(doc)
-                for r in results:
-                    if isinstance(r, ValidationIssue):
-                        all_issues.append(r)
-                    else:
-                        all_triggers.append(r)
+                content_issues = doc.validate_content()
+                all_issues.extend(content_issues)
 
     # Strip the issue from the budget dict (it's already in all_issues)
     budget_output = {k: v for k, v in token_budget.items() if k != "issue"}
