@@ -11,7 +11,6 @@ import requests
 
 from wos.url_checker import UrlCheckResult, check_url, check_urls
 
-
 # ── UrlCheckResult dataclass ─────────────────────────────────────
 
 

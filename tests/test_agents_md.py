@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 # ── render_wos_section ──────────────────────────────────────────
 
 
