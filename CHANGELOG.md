@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Architecture simplification.** Replaced 23-class DDD hierarchy with a
+  single `Document` dataclass. Reduced 18 validators to 5 essential checks.
+  Merged 11 skills into 6. Replaced hand-curated `_overview.md` with
+  auto-generated `_index.md`. Net: +2,239 / -14,000 lines.
+  ([#38](https://github.com/bcbeidel/wos/pull/38))
+
+### Removed
+
+- `wos/models/` directory (23 classes, DDD hierarchy)
+- `wos/cross_validators.py`, `wos/templates.py`, `wos/auto_fix.py`,
+  `wos/token_budget.py`, `wos/discovery.py`, `wos/scaffold.py`,
+  `wos/document_types.py`, `wos/formatting.py`
+- Skills: `create-context`, `create-document`, `discover`, `fix`,
+  `update-context`, `update-document`, `health`, `observe`
+- Document type subclasses, section ordering validation, size bounds,
+  staleness tracking, auto-fix engine, token budget estimation
+- Old `scripts/check_health.py`, `scripts/scan_context.py`,
+  `scripts/create_document.py`, `scripts/update_discovery.py`,
+  `scripts/create_context.py`
+
+### Added
+
+- `wos/document.py` — single `Document` dataclass + `parse_document()`
+- `wos/index.py` — `_index.md` generation + sync checking
+- `wos/validators.py` — 5 validation checks (frontmatter, research sources,
+  URLs, related paths, index sync)
+- `wos/url_checker.py` — HTTP HEAD/GET URL reachability
+- `wos/agents_md.py` — marker-based AGENTS.md section management
+- `scripts/audit.py` — CLI for validation with `--fix` for index regeneration
+- `scripts/reindex.py` — CLI for `_index.md` regeneration
+- `/wos:create` — unified skill (replaces create-context + create-document)
+- `/wos:audit` — rewritten to use 5-check system
+
 ## [0.1.9] - 2026-02-20
 
 ### Added
