@@ -1,6 +1,6 @@
 # Report-Issue Submit Workflow
 
-Gather context, draft a GitHub issue, preview, and submit.
+Gather context, draft a GitHub issue, and submit.
 
 ## Phase 1: Check Prerequisites
 
@@ -20,7 +20,7 @@ If `gh` is not installed or not authenticated, respond with:
 
 Do NOT proceed until `gh auth status` succeeds.
 
-## Phase 2: Gather Context
+## Phase 2: Gather Context & Classify
 
 Ask the user what happened. Collect:
 
@@ -28,7 +28,6 @@ Ask the user what happened. Collect:
 - **What was expected** (for bugs) — what should have happened
 - **Steps to reproduce** (for bugs) — how to trigger it
 - **Error messages** — any error output
-- **Relevant files** — paths or document types involved
 
 Auto-gather (do not ask the user for these):
 
@@ -43,8 +42,6 @@ python3 --version
 uname -s -r -m
 ```
 
-## Phase 3: Classify Issue Type
-
 Based on the user's description, classify as one of:
 
 | Type | Label | Signal words |
@@ -56,7 +53,7 @@ Based on the user's description, classify as one of:
 If ambiguous, ask: "Should I file this as a **bug report** or a
 **feature request**?"
 
-## Phase 4: Draft the Issue
+## Phase 3: Draft & Preview
 
 Use the appropriate template from `references/issue-templates.md`.
 
@@ -65,72 +62,21 @@ Fill in:
 - **Body**: From the template, with gathered context
 - **Labels**: From classification above
 
-### Framing Rule
+**Framing rule:** Write issues from the WOS tool author's perspective.
+Use "a WOS user" instead of "I" or "my vault". Replace vault-specific
+details with generic examples. Describe solutions in terms of WOS's
+internal architecture.
 
-Write issues from the WOS tool author's perspective, not the consumer's.
-The reader is the WOS maintainer who needs to understand, reproduce, and
-fix the issue.
+Verify the issue is self-contained and uses generic framing before
+showing the preview.
 
-- Replace vault-specific details with generic examples
-- Use "a WOS user" or "a project with N context files" instead of "I"
-  or "my vault"
-- Describe solutions in terms of WOS's internal architecture (scripts,
-  validators, skills)
-- If the user provides consumer-specific context, extract the generic
-  pattern
-
-**Consumer-specific details to catch and generalize:**
-- References to specific vault files or directory structures
-- Exact file counts or token numbers from a specific deployment
-- "During my recent X" narratives tied to a particular workflow
-- Vault-specific template names, area names, or project structures
-
-## Phase 5: Preview and Quality Check
-
-Before showing the preview, evaluate the draft against the quality
-checklist below. Show results alongside the draft.
-
-### Quality Checklist
-
-Apply the checks relevant to the issue type:
-
-| Check | Applies to | Pass criteria |
-|---|---|---|
-| Generic framing | All types | No vault-specific paths, file counts, or "my vault" language |
-| Self-contained | All types | Understandable without reading prior conversations or external context |
-| Has evaluation criteria | Feature requests | Test fixtures table and pass criteria table are present and filled in |
-| Has MRE | Bug reports | Minimum reproducible example section is present with fixture + command + error |
-| Has before/after examples | Features changing existing behavior | Current vs proposed output shown |
-| Has scope/non-goals | Feature requests | Scope and Non-Goals subsections are present and filled in |
-
-### Preview Format
-
-Show the user the complete issue draft with quality check results:
-
-```
-──────────────────────────────────────
-Title: [issue title]
-Labels: [labels]
-Repo: bcbeidel/wos
-──────────────────────────────────────
-[full issue body]
-──────────────────────────────────────
-
-Quality Checks:
-  ✓ Generic framing
-  ✓ Self-contained
-  ⚠ [any checks that didn't fully pass — explain briefly]
-```
-
-All checks are **advisory**. The user can approve and submit even if
-some checks show warnings.
-
-Ask: "Does this look right? I can edit any part before submitting."
+Show the user the complete draft and ask: "Does this look right? I can
+edit any part before submitting."
 
 Wait for explicit approval. If the user requests changes, apply them
 and preview again.
 
-## Phase 6: Submit
+## Phase 4: Submit
 
 Only after explicit approval:
 

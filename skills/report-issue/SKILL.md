@@ -17,7 +17,7 @@ source repository via GitHub Issues.
 ## Workflow
 
 This is a linear workflow — no routing needed. All requests follow
-the same gather → classify → draft → preview → submit pipeline.
+the same gather → draft → submit pipeline.
 
 Follow the steps in `references/report-issue-submit.md`.
 
