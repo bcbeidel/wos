@@ -94,6 +94,7 @@ Prefix: `/wos:` (e.g., `/wos:create`, `/wos:audit`). 6 skills:
 ## Reference
 
 - Design doc: [Simplification Design](artifacts/plans/2026-02-22-simplification-design.md)
+- Design principles: [WOS Design Principles](artifacts/research/2026-02-22-design-principles.md)
 
 ## Plans
 
