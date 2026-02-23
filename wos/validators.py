@@ -17,7 +17,6 @@ from wos.document import Document, parse_document
 from wos.index import check_index_sync
 from wos.url_checker import check_urls
 
-
 # ── Individual checks ──────────────────────────────────────────
 
 

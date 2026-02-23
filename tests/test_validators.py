@@ -7,7 +7,6 @@ from unittest.mock import patch
 
 from wos.document import Document
 
-
 # ── Helpers ─────────────────────────────────────────────────────
 
 
@@ -216,7 +215,9 @@ class TestCheckAllIndexes:
         area.mkdir(parents=True)
         topic = area / "unit-tests.md"
         topic.write_text(
-            "---\nname: Unit Tests\ndescription: Unit testing guide\n---\n# Unit Tests\n"
+            "---\nname: Unit Tests\n"
+            "description: Unit testing guide\n"
+            "---\n# Unit Tests\n"
         )
         index = area / "_index.md"
         index.write_text(generate_index(area))
@@ -235,7 +236,9 @@ class TestCheckAllIndexes:
         area.mkdir(parents=True)
         topic = area / "unit-tests.md"
         topic.write_text(
-            "---\nname: Unit Tests\ndescription: Unit testing guide\n---\n# Unit Tests\n"
+            "---\nname: Unit Tests\n"
+            "description: Unit testing guide\n"
+            "---\n# Unit Tests\n"
         )
 
         issues = check_all_indexes(tmp_path / "context")
@@ -267,7 +270,8 @@ class TestValidateFile:
         issues = validate_file(md_file, tmp_path, check_urls=False)
         assert len(issues) == 1
         assert issues[0]["severity"] == "fail"
-        assert "parse" in issues[0]["issue"].lower() or "frontmatter" in issues[0]["issue"].lower()
+        msg = issues[0]["issue"].lower()
+        assert "parse" in msg or "frontmatter" in msg
 
 
 # ── validate_project ───────────────────────────────────────────

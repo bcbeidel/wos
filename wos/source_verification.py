@@ -11,7 +11,7 @@ import json
 import re
 import sys
 from html.parser import HTMLParser
-from typing import List, Optional
+from typing import Optional
 from urllib.parse import urlparse
 
 import requests
