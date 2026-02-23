@@ -25,12 +25,11 @@ with SIFT intensity varying by mode (see research-modes.md).
 Run mechanical URL verification on all gathered sources before SIFT evaluation.
 See `references/source-verification.md` for full instructions.
 
-1. Format all gathered sources as JSON: `[{"url": "...", "title": "..."}, ...]`
-2. Run: `echo '<json>' | python3 -m wos.source_verification`
+1. Collect all source URLs into a list
+2. Use `wos.url_checker.check_urls()` to verify reachability (see `references/source-verification.md`)
 3. Review the results:
-   - Remove sources with action `removed` from your list
-   - For sources with action `flagged`: update cited titles if mismatched,
-     note access issues for paywalled sources
+   - Remove sources where `reachable=False` with status 404 or 0 (dead/DNS failure)
+   - Keep sources where `reachable=False` with status 403/5xx but note access issues
 4. If all sources were removed, gather new sources before proceeding
 5. Report verification results to the user before continuing
 

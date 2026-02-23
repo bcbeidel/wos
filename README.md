@@ -42,7 +42,6 @@ wos/
   validators.py        # 5 validation checks
   url_checker.py       # HTTP HEAD/GET URL reachability
   agents_md.py         # Marker-based AGENTS.md section management
-  source_verification.py  # Full source verification with title matching
   preferences.py       # Communication preferences capture
 scripts/
   audit.py             # CLI: run validation, offer fixes

@@ -38,7 +38,6 @@ Version bump requires updating all three: `pyproject.toml`,
   - `validators.py` — 5 validation checks (frontmatter, research sources, URLs, related paths, index sync)
   - `url_checker.py` — HTTP HEAD/GET URL reachability
   - `agents_md.py` — marker-based AGENTS.md section management
-  - `source_verification.py` — full source verification with title matching (pre-simplification module, kept for research skill Phase 3)
   - `preferences.py` — communication preferences capture
 - `scripts/` — thin CLI entry points with argparse
   - `audit.py` — run validation checks (`--root`, `--no-urls`, `--json`, `--fix`)

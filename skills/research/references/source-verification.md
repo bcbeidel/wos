@@ -1,7 +1,7 @@
 # Source Verification Reference
 
-Mechanical URL verification to catch hallucinated sources, dead links, and
-title mismatches. Run this after gathering sources and before SIFT evaluation.
+Mechanical URL verification to catch dead links and hallucinated sources.
+Run this after gathering sources and before SIFT evaluation.
 
 ## When to Run
 
@@ -11,56 +11,34 @@ before entering the SIFT pipeline.
 
 ## How to Run
 
-1. Format your collected sources as a JSON array:
+Use `wos.url_checker.check_urls()` to verify source URLs are reachable:
 
-   ```json
-   [
-     {"url": "https://example.com/page", "title": "Page Title"},
-     {"url": "https://other.com/article", "title": "Article Title"}
-   ]
-   ```
+```python
+from wos.url_checker import check_urls
 
-2. Pipe the JSON to the verification module:
+results = check_urls([
+    "https://example.com/page",
+    "https://other.com/article",
+])
 
-   ```bash
-   echo '[{"url": "...", "title": "..."}]' | python3 -m wos.source_verification
-   ```
+for r in results:
+    print(f"{r.url}: reachable={r.reachable}, status={r.status}, reason={r.reason}")
+```
 
-3. Read the JSON output from stdout. Each result has an `action` field:
-   - `ok` -- source verified, keep it
-   - `removed` -- source is dead (404, DNS failure, timeout), drop it
-   - `flagged` -- source has an issue (title mismatch, paywall, redirect), review it
+Each result has:
+- `reachable` — `True` if the URL returned 2xx/3xx, `False` otherwise
+- `status` — HTTP status code (0 for connection/DNS failures)
+- `reason` — human-readable explanation when `reachable=False`
 
 ## What to Do with Results
 
-**`removed` sources:** Drop them from your source list. Do not include them
-in the research document. Note in your investigation that N sources were
-removed during verification.
+**Unreachable sources (status 404, 0, DNS failure):** Drop them from your
+source list. Do not include them in the research document. Note in your
+investigation that N sources were removed during verification.
 
-**`flagged` sources with title mismatch:** The cited title doesn't match the
-actual page title. Update the cited title to match the page title, or
-investigate whether the source is actually relevant.
+**Unreachable sources (status 403, 5xx):** The source exists but is
+temporarily unavailable or paywalled. Keep the source but note the access
+issue.
 
-**`flagged` sources with redirect:** The URL redirected to a different domain.
-Check if the redirected destination is still the intended source. Update the
-URL if needed.
-
-**`flagged` sources with 403/5xx:** The source exists but is temporarily
-unavailable or paywalled. Keep the source but note the access issue.
-
-**All sources removed:** If verification removes every source, stop and inform
-the user. Do not proceed with empty sources -- gather new ones instead.
-
-## Example Output
-
-```
-Source verification (4 sources):
-  ✓ https://peps.python.org/pep-0008/ — 200 OK, title matches
-  ✓ https://effectivepython.com/ — 200 OK (no title to compare)
-  ✗ https://fakeblog.example/post — 404 Not Found (REMOVED)
-  ⚠ https://arxiv.org/abs/2509.21361 — Title mismatch —
-      cited: "The Maximum Effective Context Window...",
-      actual: "Context Is What You Need..." (FLAGGED)
-
-Summary: 2 ok, 1 removed, 1 flagged
-```
+**All sources unreachable:** If verification removes every source, stop and
+inform the user. Do not proceed with empty sources — gather new ones instead.
