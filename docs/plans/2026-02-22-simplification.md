@@ -12,7 +12,7 @@
 
 **Branch:** `phase/simplification`
 
-**PR:** TBD
+**PR:** https://github.com/bcbeidel/wos/pull/38
 
 ---
 

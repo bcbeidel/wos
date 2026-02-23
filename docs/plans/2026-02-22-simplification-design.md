@@ -2,8 +2,8 @@
 
 **Date:** 2026-02-22
 **Status:** Approved
-**Branch:** TBD
-**PR:** TBD
+**Branch:** `phase/simplification`
+**PR:** https://github.com/bcbeidel/wos/pull/38
 
 ## Problem
 
