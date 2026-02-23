@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-02-23
+
+### Removed
+
+- `wos/source_verification.py` and `tests/test_source_verification.py` — 1,021
+  lines of dead code. Module was unused by any production import and duplicated
+  `url_checker.py`. Research skill references updated to use `url_checker`.
+
+### Added
+
+- `wos/markers.py` — shared `replace_marker_section()` utility extracted from
+  duplicated logic in `agents_md.py` and `preferences.py`.
+- `tests/test_version.py` — version consistency test asserting `pyproject.toml`,
+  `plugin.json`, and `marketplace.json` all have matching versions.
+
+### Changed
+
+- `wos/index.py` now uses `document.parse_document()` for frontmatter extraction
+  instead of its own independent YAML parsing.
+- Renamed `check_urls` parameter to `verify_urls` in `validators.py` to avoid
+  shadowing the imported `check_urls` function from `url_checker.py`.
+- `/wos:report-issue` skill simplified from 6 phases to 4. Merged Classify into
+  Gather Context, merged Preview into Draft. Trimmed feature request template
+  (removed Evaluation, Alternatives Considered, Why This Matters sections).
+
 ## [0.2.0] - 2026-02-22
 
 ### Changed
@@ -253,6 +278,7 @@ implemented with 229 tests passing.
 - Build roadmap with session protocol and dependency graph
 - 18 design principles across four layers
 
+[0.2.1]: https://github.com/bcbeidel/wos/releases/tag/v0.2.1
 [0.2.0]: https://github.com/bcbeidel/wos/releases/tag/v0.2.0
 [0.1.9]: https://github.com/bcbeidel/wos/releases/tag/v0.1.9
 [0.1.8]: https://github.com/bcbeidel/wos/releases/tag/v0.1.8
