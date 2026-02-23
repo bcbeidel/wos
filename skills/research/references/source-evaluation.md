@@ -44,15 +44,18 @@ was not available.
 
 ## Authority Annotation Format
 
-When including sources in a research document, annotate each with its tier:
+Sources in the frontmatter are flat URL lists. Include authority tier
+annotations in the document body, not the frontmatter:
 
 ```yaml
 sources:
-  - url: "https://docs.python.org/3/library/asyncio.html"
-    title: "Python asyncio documentation (T1: official docs)"
-  - url: "https://martinfowler.com/articles/microservices.html"
-    title: "Microservices by Martin Fowler (T4: expert practitioner)"
+  - https://docs.python.org/3/library/asyncio.html
+  - https://martinfowler.com/articles/microservices.html
 ```
+
+In the document body, annotate each source with its tier:
+- https://docs.python.org/3/library/asyncio.html (T1: official docs)
+- https://martinfowler.com/articles/microservices.html (T4: expert practitioner)
 
 ## Red Flags
 

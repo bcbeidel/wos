@@ -1,0 +1,284 @@
+"""Tests for wos/document.py — Document dataclass and parse_document()."""
+
+from __future__ import annotations
+
+import pytest
+
+# ── Document dataclass ──────────────────────────────────────────
+
+
+class TestDocument:
+    def test_minimal_fields(self) -> None:
+        from wos.document import Document
+
+        doc = Document(
+            path="context/testing/unit-tests.md",
+            name="Unit Tests",
+            description="Guide to writing unit tests",
+            content="# Unit Tests\n\nSome content here.\n",
+        )
+        assert doc.path == "context/testing/unit-tests.md"
+        assert doc.name == "Unit Tests"
+        assert doc.description == "Guide to writing unit tests"
+        assert doc.content == "# Unit Tests\n\nSome content here.\n"
+        assert doc.type is None
+        assert doc.sources == []
+        assert doc.related == []
+        assert doc.extra == {}
+
+    def test_all_fields(self) -> None:
+        from wos.document import Document
+
+        doc = Document(
+            path="artifacts/research/2026-02-20-api-review.md",
+            name="API Review",
+            description="Research on REST API patterns",
+            content="# API Review\n\nFindings.\n",
+            type="research",
+            sources=[
+                "https://example.com/rest-guide",
+                "https://example.com/api-design",
+            ],
+            related=[
+                "context/api/authentication.md",
+                "https://github.com/org/repo/issues/42",
+            ],
+            extra={"status": "complete", "author": "bbeidel"},
+        )
+        assert doc.type == "research"
+        assert len(doc.sources) == 2
+        assert "https://example.com/rest-guide" in doc.sources
+        assert len(doc.related) == 2
+        assert "context/api/authentication.md" in doc.related
+        assert doc.extra["status"] == "complete"
+        assert doc.extra["author"] == "bbeidel"
+
+
+# ── parse_document ──────────────────────────────────────────────
+
+
+class TestParseDocument:
+    def test_minimal_frontmatter(self) -> None:
+        from wos.document import parse_document
+
+        text = (
+            "---\n"
+            "name: Unit Tests\n"
+            "description: Guide to writing unit tests\n"
+            "---\n"
+            "# Unit Tests\n"
+            "\n"
+            "Content here.\n"
+        )
+        doc = parse_document("context/testing/unit-tests.md", text)
+        assert doc.path == "context/testing/unit-tests.md"
+        assert doc.name == "Unit Tests"
+        assert doc.description == "Guide to writing unit tests"
+        assert doc.type is None
+        assert doc.sources == []
+        assert doc.related == []
+        assert doc.extra == {}
+
+    def test_research_doc_with_type_and_sources(self) -> None:
+        from wos.document import parse_document
+
+        text = (
+            "---\n"
+            "name: API Review\n"
+            "description: Research on REST API patterns\n"
+            "type: research\n"
+            "sources:\n"
+            "  - https://example.com/rest-guide\n"
+            "  - https://example.com/api-design\n"
+            "---\n"
+            "# API Review\n"
+            "\n"
+            "Research findings.\n"
+        )
+        doc = parse_document("artifacts/research/2026-02-20-api-review.md", text)
+        assert doc.type == "research"
+        assert doc.sources == [
+            "https://example.com/rest-guide",
+            "https://example.com/api-design",
+        ]
+
+    def test_related_field(self) -> None:
+        from wos.document import parse_document
+
+        text = (
+            "---\n"
+            "name: Authentication\n"
+            "description: Auth patterns\n"
+            "related:\n"
+            "  - context/api/tokens.md\n"
+            "  - https://github.com/org/repo/issues/42\n"
+            "---\n"
+            "# Authentication\n"
+        )
+        doc = parse_document("context/api/authentication.md", text)
+        assert doc.related == [
+            "context/api/tokens.md",
+            "https://github.com/org/repo/issues/42",
+        ]
+
+    def test_extra_fields_preserved(self) -> None:
+        from wos.document import parse_document
+
+        text = (
+            "---\n"
+            "name: Custom Doc\n"
+            "description: A document with extra fields\n"
+            "status: draft\n"
+            "priority: high\n"
+            "tags:\n"
+            "  - python\n"
+            "  - testing\n"
+            "---\n"
+            "# Custom Doc\n"
+        )
+        doc = parse_document("context/misc/custom.md", text)
+        assert doc.extra["status"] == "draft"
+        assert doc.extra["priority"] == "high"
+        assert doc.extra["tags"] == ["python", "testing"]
+        # Known fields should NOT be in extra
+        assert "name" not in doc.extra
+        assert "description" not in doc.extra
+
+    def test_raises_on_no_frontmatter(self) -> None:
+        from wos.document import parse_document
+
+        text = "# Just a heading\n\nNo frontmatter here.\n"
+        with pytest.raises(ValueError, match="frontmatter"):
+            parse_document("docs/no-frontmatter.md", text)
+
+    def test_raises_on_missing_name(self) -> None:
+        from wos.document import parse_document
+
+        text = (
+            "---\n"
+            "description: Has description but no name\n"
+            "---\n"
+            "# Content\n"
+        )
+        with pytest.raises(ValueError, match="name"):
+            parse_document("docs/missing-name.md", text)
+
+    def test_raises_on_missing_description(self) -> None:
+        from wos.document import parse_document
+
+        text = (
+            "---\n"
+            "name: Has name but no description\n"
+            "---\n"
+            "# Content\n"
+        )
+        with pytest.raises(ValueError, match="description"):
+            parse_document("docs/missing-desc.md", text)
+
+    def test_content_excludes_frontmatter(self) -> None:
+        from wos.document import parse_document
+
+        text = (
+            "---\n"
+            "name: Test Doc\n"
+            "description: Testing content separation\n"
+            "---\n"
+            "# Body\n"
+            "\n"
+            "This is the body.\n"
+        )
+        doc = parse_document("test.md", text)
+        assert "---" not in doc.content
+        assert "name:" not in doc.content
+        assert "description:" not in doc.content
+        assert "# Body" in doc.content
+        assert "This is the body." in doc.content
+
+    def test_raises_on_empty_frontmatter(self) -> None:
+        from wos.document import parse_document
+
+        text = "---\n---\n# Content\n"
+        with pytest.raises(ValueError, match="name"):
+            parse_document("docs/empty-fm.md", text)
+
+    def test_content_with_no_body(self) -> None:
+        """Document with frontmatter but no content after it."""
+        from wos.document import parse_document
+
+        text = (
+            "---\n"
+            "name: Empty Body\n"
+            "description: No content after frontmatter\n"
+            "---\n"
+        )
+        doc = parse_document("test.md", text)
+        assert doc.content == ""
+
+    def test_content_preserves_leading_newline(self) -> None:
+        """Content starts exactly after the closing --- delimiter."""
+        from wos.document import parse_document
+
+        text = (
+            "---\n"
+            "name: Test\n"
+            "description: Desc\n"
+            "---\n"
+            "\n"
+            "Paragraph.\n"
+        )
+        doc = parse_document("test.md", text)
+        assert doc.content.startswith("\n")
+
+    def test_yaml_null_sources_and_related_default_to_empty_list(self) -> None:
+        """sources: and related: with no value parse as YAML null (None).
+
+        The parser should coerce None to [] rather than propagating it.
+        """
+        from wos.document import parse_document
+
+        text = (
+            "---\n"
+            "name: Null Fields\n"
+            "description: Sources and related are YAML null\n"
+            "sources:\n"
+            "related:\n"
+            "---\n"
+            "# Content\n"
+        )
+        doc = parse_document("test.md", text)
+        assert doc.sources == []
+        assert doc.related == []
+
+    def test_raises_valueerror_on_invalid_yaml(self) -> None:
+        """Syntactically invalid YAML must raise ValueError, not yaml.YAMLError."""
+        from wos.document import parse_document
+
+        text = (
+            "---\n"
+            "name: Bad YAML\n"
+            "description: This has a tab character problem\n"
+            "broken:\n"
+            "  - item1\n"
+            " bad_indent: true\n"
+            "---\n"
+            "# Content\n"
+        )
+        with pytest.raises(ValueError, match="invalid YAML frontmatter"):
+            parse_document("test.md", text)
+
+    def test_numeric_name_and_description_coerced_to_str(self) -> None:
+        """name: 42 and description: 100 should be coerced to strings."""
+        from wos.document import parse_document
+
+        text = (
+            "---\n"
+            "name: 42\n"
+            "description: 100\n"
+            "---\n"
+            "# Content\n"
+        )
+        doc = parse_document("test.md", text)
+        assert doc.name == "42"
+        assert doc.description == "100"
+        assert isinstance(doc.name, str)
+        assert isinstance(doc.description, str)

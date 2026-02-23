@@ -6,62 +6,103 @@ description: >
   "review documents", "check coverage", "check freshness",
   "run health check", or "what needs attention".
 argument-hint: "[check|audit|review|coverage|freshness]"
+user-invocable: true
 ---
 
 # Audit Skill
 
 Observe and report on project content quality. Read-only -- reports but
-does not modify any files.
+does not modify any files (unless `--fix` is used for index regeneration).
 
-## Routing
-
-Route by keyword in the user's request:
-
-| Keyword | Workflow | What it does |
-|---------|----------|-------------|
-| check / validate | audit-check | Tier 1 deterministic validation |
-| audit | audit-full | Tier 1 + Tier 2 LLM assessment |
-| review | audit-review | Full T1+T2+T3 with human Q&A |
-| coverage | audit-coverage | Gap analysis |
-| freshness | audit-freshness | Staleness report |
-
-Default (no keyword): run **audit-check**.
-
-## Implementation
-
-All validation runs through the CLI script:
+## How to Run
 
 ```bash
-# Tier 1 only (default, CI-friendly)
-python3 scripts/check_health.py --root .
+# Default: run all checks including URL reachability
+python3 scripts/audit.py --root .
 
-# Detailed output with suggestions
-python3 scripts/check_health.py --root . --detailed
-
-# Tier 1 + Tier 2 triggers
-python3 scripts/check_health.py --root . --tier2
+# Skip URL reachability checks (fast, offline-friendly)
+python3 scripts/audit.py --root . --no-urls
 
 # JSON output for programmatic use
-python3 scripts/check_health.py --root . --json
+python3 scripts/audit.py --root . --json
+
+# Auto-fix out-of-sync or missing _index.md files
+python3 scripts/audit.py --root . --fix
 ```
 
-Default output is human-readable text. Use `--json` for machine-parseable output.
+Exit code: 0 if no issues, 1 if any issues found.
 
-Exit code: 0 if no `severity: fail`, 1 otherwise.
+## The 5 Checks
 
-## Severity Levels
+### 1. Frontmatter Validation
 
-| Severity | Meaning | CI behavior |
-|----------|---------|------------|
-| `fail` | Must fix -- structural or correctness problem | Exit 1 |
-| `warn` | Should fix -- quality or consistency concern | Exit 0 |
-| `info` | Advisory -- staleness or minor suggestion | Exit 0 |
+Verifies that every document has non-empty `name` and `description` fields
+in its YAML frontmatter.
+
+**Failure:** `Frontmatter 'name' is empty` or `Frontmatter 'description' is empty`
+**Fix:** Add or fill in the missing frontmatter field.
+
+### 2. Research Sources
+
+Verifies that documents with `type: research` have a non-empty `sources` list.
+
+**Failure:** `Research document has no sources`
+**Fix:** Add a `sources:` list with at least one verified URL to the frontmatter.
+
+### 3. Source URL Reachability
+
+Checks that every URL in a document's `sources` list is reachable via HTTP.
+Skipped when `--no-urls` is passed.
+
+**Failure:** `Source URL unreachable: <url> (<reason>)`
+**Fix:** Replace the dead URL with a working one, or remove it if the source
+no longer exists.
+
+### 4. Related Path Validation
+
+Checks that every local file path in a document's `related` list exists on
+disk. URLs (http/https) are skipped -- only file paths are validated.
+
+**Failure:** `Related path does not exist: <path>`
+**Fix:** Correct the path, or remove the entry if the related file was deleted.
+
+### 5. Index Sync
+
+Checks that every directory containing markdown files has an `_index.md` that
+accurately lists all files and subdirectories.
+
+**Failure:** `_index.md missing` or `_index.md out of sync`
+**Fix:** Run `python3 scripts/audit.py --root . --fix` to regenerate, or
+run `python3 scripts/reindex.py --root .` to regenerate all indexes.
+
+## Interpreting Results
+
+Each issue is reported as:
+
+```
+[FAIL] <file>: <issue description>
+```
+
+With `--json`, output is a JSON array of objects:
+
+```json
+[
+  {
+    "file": "context/area/topic.md",
+    "issue": "Frontmatter 'name' is empty",
+    "severity": "fail"
+  }
+]
+```
+
+All issues have severity `fail`. A clean project produces:
+
+```
+All checks passed.
+```
 
 ## Key Rules
 
-- Audit is read-only -- use `/wos:fix` to act on findings
-- Research documents are NOT checked for `last_validated` staleness
-- Broken `related` file paths are always `severity: fail`
-- Related URLs are format-checked only (no HTTP fetch)
-- Overview-topic sync mismatches are `severity: fail`
-- Empty project exits 0 with a message suggesting `/wos:create-context`
+- Audit is read-only (except `--fix` which only regenerates `_index.md` files)
+- Use `/wos:create` to create missing documents
+- Empty project (no `context/` or `artifacts/`) exits 0 with no issues

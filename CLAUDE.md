@@ -32,104 +32,83 @@ Version bump requires updating all three: `pyproject.toml`,
 
 ### Package Structure
 
-- `wos/` — importable Python package with core logic
-  - **Domain models:** `wos/models/` — DDD-style domain objects (see Domain Model below)
-  - **Validation:** `validators.py` (per-file), `cross_validators.py` (multi-file)
-  - **Infrastructure:** `templates.py`, `discovery.py`, `scaffold.py`,
-    `auto_fix.py`, `token_budget.py`, `source_verification.py`
-  - **Legacy shim:** `document_types.py` — re-exports from `wos/models/` for
-    backward compatibility
-- `scripts/` — thin CLI entry points with argparse that delegate to domain objects
-- `skills/` — skill definitions (SKILL.md + references/) auto-discovered by
-  Claude Code
-- `tests/` — pytest tests using inline markdown strings and `tests/builders.py`
+- `wos/` — importable Python package (~5 modules)
+  - `document.py` — `Document` dataclass + `parse_document()` (YAML frontmatter parser)
+  - `index.py` — `_index.md` generation + sync checking
+  - `validators.py` — 5 validation checks (frontmatter, research sources, URLs, related paths, index sync)
+  - `url_checker.py` — HTTP HEAD/GET URL reachability
+  - `agents_md.py` — marker-based AGENTS.md section management
+  - `source_verification.py` — full source verification with title matching (used by research skill)
+  - `preferences.py` — communication preferences capture
+- `scripts/` — thin CLI entry points with argparse
+  - `audit.py` — run validation checks (`--root`, `--no-urls`, `--json`, `--fix`)
+  - `reindex.py` — regenerate all `_index.md` files
+- `skills/` — skill definitions (SKILL.md + references/) auto-discovered by Claude Code
+- `tests/` — pytest tests
 
-### Domain Model (`wos/models/`)
+### Document Model
 
-The domain model follows DDD conventions (see Domain Model Conventions below).
+One `Document` dataclass. No subclasses, no inheritance.
 
-- **Core value objects** (`wos/models/core/`): `ValidationIssue`, `DocumentSection`,
-  `CitedSource`, `IssueSeverity`, `DocumentType`, `WosDomainObject` protocol
-- **Document hierarchy:** `BaseDocument` → `TopicDocument`, `OverviewDocument`,
-  `ResearchDocument`, `PlanDocument`, `NoteDocument` — each owns its
-  `validate_content()` and `auto_fix()` behavior
-- **Composites:** `ContextArea` (area with overview + topics), `ProjectContext`
-  (aggregate root owning areas + AGENTS.md + CLAUDE.md + rules file)
-- **File entities:** `AgentsMd`, `ClaudeMd`, `RulesFile`
-- **Supporting:** `HealthReport`, `CommunicationPreferences`
-- **Parsing:** `parse_document()` in `wos/models/parsing.py`
+Required frontmatter: `name`, `description`
+Optional frontmatter: `type` (semantic tag), `sources` (URLs), `related` (file paths), plus any extra fields.
 
-**Adding a new document type:** Add a document subclass in `wos/models/`,
-add frontmatter + dispatch table entries in `wos/models/frontmatter.py`. No
-skill routing changes needed.
+`type: research` triggers source requirements (sources must be non-empty, URLs verified).
+
+### Navigation
+
+Each directory under `context/` and `artifacts/` has an auto-generated `_index.md`
+listing files with descriptions from frontmatter. AGENTS.md contains a WOS-managed
+section (between `<!-- wos:begin -->` / `<!-- wos:end -->` markers) with navigation
+instructions, areas table, metadata format, and communication preferences.
 
 ### Skills
 
-Prefix: `/wos:` (e.g., `/wos:create-context`, `/wos:audit`). Each skill has
-`SKILL.md` (routing) and optionally `references/`.
+Prefix: `/wos:` (e.g., `/wos:create`, `/wos:audit`). 6 skills:
 
-### Key Separation
+| Skill | Purpose |
+|-------|---------|
+| `/wos:create` | Create project context, areas, or documents |
+| `/wos:audit` | Validate project health (5 checks + auto-fix) |
+| `/wos:research` | SIFT-based research with source verification |
+| `/wos:consider` | Mental models for problem analysis |
+| `/wos:report-issue` | File GitHub issues against WOS repo |
+| `/wos:preferences` | Capture communication preferences |
 
-- **Audit** is read-only — observes and reports, can run in CI
-- **Fix** is write — acts on audit findings, requires approval
-- **Create-document / Update-document** — document lifecycle
-- **Create-context / Update-context** — project and area scaffolding
+### Validation (5 checks)
 
-### Document Types
-
-| Type | Location | Purpose |
-|------|----------|---------|
-| `topic` | `/context/{area}/{topic}.md` | Actionable guidance with citations |
-| `overview` | `/context/{area}/_overview.md` | Area orientation and topic index |
-| `research` | `/artifacts/research/{date}-{slug}.md` | Investigation snapshot |
-| `plan` | `/artifacts/plans/{date}-{slug}.md` | Actionable work plan |
-
-Context types (topic, overview) are agent-facing — they appear in the CLAUDE.md
-manifest under `## Context`. Artifact types (research, plan) are internal work
-products, reachable via `related` links.
+1. Every `.md` (except `_index.md`) has `name` and `description` in frontmatter
+2. `type: research` documents have non-empty `sources` list
+3. All URLs in `sources` are programmatically reachable
+4. File paths in `related` frontmatter exist on disk
+5. Each `_index.md` matches its directory contents
 
 ### Key Entry Points
 
-- `wos/models/` — domain model package; start here for new types or behavior
-- `wos/models/project_context.py` — aggregate root; `scaffold()`, `discover()`, `validate_self()`
-- `wos/models/parsing.py` — `parse_document()` dispatches markdown to typed document objects
-- `wos/validators.py` — per-file validators dispatched by `VALIDATORS_BY_TYPE`
-- `wos/cross_validators.py` — multi-file validators (link graph, manifest sync, naming)
-- `scripts/check_health.py` — CLI that wires validators into `/wos:audit` output
+- `wos/document.py` — Document dataclass and `parse_document()`
+- `wos/validators.py` — `validate_project()` runs all 5 checks
+- `wos/index.py` — `generate_index()` and `check_index_sync()`
+- `scripts/audit.py` — CLI for validation
+- `scripts/reindex.py` — CLI for index regeneration
 
 ## Reference
 
-- Architecture & design: [2026-02-18-architecture-snapshot.md](artifacts/research/2026-02-18-architecture-snapshot.md)
+- Design doc: [Simplification Design](docs/plans/2026-02-22-simplification-design.md)
 
-## Domain Model Conventions
+## Plans
 
-All domain objects in `wos/models/` follow a standard DDD protocol:
-
-- **Value objects** use `ConfigDict(frozen=True)` (immutable, hashable)
-- **Construction:** `from_json(cls, dict)`, `from_markdown(cls, str)` where applicable
-- **Representations:** `__str__`, `__repr__`, `to_json()`, `to_markdown()` where applicable
-- **Validation:** `validate_self(deep=False) -> list[ValidationIssue]`, `is_valid` property.
-  `deep=True` enables I/O checks (e.g., URL reachability)
-- **Collection:** composites implement `__len__`, `__iter__`, `__contains__`
-- **Tokens:** `get_estimated_tokens()` where meaningful
-- **Test builders:** `tests/builders.py` provides `make_*(**overrides)` for each type
-
-New domain objects must implement this protocol. Put behavior on domain objects,
-not in standalone helper modules.
-
-Design doc: [DDD Domain Model Enrichment](docs/plans/2026-02-20-ddd-domain-model-enrichment-design.md)
+- Plans MUST be detailed lists of individual tasks
+- Plans MUST be stored as markdown in `/docs/plans`
+- Plans MUST include checkboxes to indicate progress, marking things off as completed
+- Plans MUST indicate the branch, and pull-request associated with the work
+- Plans MUST be implemented on a branch, and merged only after human review of a pull-request
 
 ## Conventions
 
 - Python 3.9 — use `from __future__ import annotations` for type hints,
   `Optional[X]` for runtime expressions
-- CLI scripts handle both `python` and `python3` invocations gracefully
 - CLI scripts default to CWD as root; accept `--root` for override
-- Both per-file validators (`validators.py`) and cross-validators
-  (`cross_validators.py`) return `list[dict]` with keys: file, issue, severity,
-  validator, section, suggestion
-- All document operations validate via `parse_document()` before writing
+- Validators return `list[dict]` with keys: `file`, `issue`, `severity`
 - Skills use free-text intake — users describe intent, Claude routes
-- Pydantic `ValidationError` + stdlib exceptions only (no custom exception hierarchy)
-- Tests use inline markdown strings and `tests/builders.py` for domain object construction
-
+- `ValueError` + stdlib exceptions only (no custom exception hierarchy)
+- Tests use inline markdown strings and `tmp_path` fixtures

@@ -40,6 +40,37 @@ A **deep dive** (comprehensive), **options comparison**, or
 All modes follow the same workflow with varying SIFT intensity.
 See `references/research-investigate.md` for the full multi-phase process.
 
+## Output Document Format
+
+The final research document is placed at `artifacts/research/{date}-{slug}.md`
+with simplified YAML frontmatter:
+
+```yaml
+---
+name: "Title of the investigation"
+description: "One-sentence summary of findings"
+type: research
+sources:
+  - https://example.com/primary-source
+  - https://example.com/another-source
+related:
+  - artifacts/research/2026-01-15-related-topic.md
+---
+```
+
+Use `/wos:create` to produce the final document.
+
+## Document Structure Convention
+
+**LLMs lose attention in the middle of long documents.** Structure the research
+document so that:
+- **Top:** Summary with key findings and actionable insights
+- **Middle:** Detailed analysis, evidence, source evaluation, counter-evidence
+- **Bottom:** Key takeaways, limitations, and suggested follow-up questions
+
+The first and last sections are what an agent is most likely to retain. Write
+for that.
+
 ## Key Rules
 
 - **SIFT every source.** No source enters the document unverified.
@@ -48,7 +79,7 @@ See `references/research-investigate.md` for the full multi-phase process.
   See `references/source-evaluation.md`.
 - **Counter-evidence is required** for deep-dive, options, and technical modes.
   Actively search for disagreement.
-- **Output is a research document.** Use `/wos:create-document` to create the final
-  artifact with `document_type: research`.
+- **Output is a research document.** Use `/wos:create` to produce the final
+  artifact with `type: research`.
 - **Authority annotations.** Each source in the final document should note
   its tier in the source hierarchy.
