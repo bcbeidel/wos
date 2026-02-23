@@ -73,14 +73,26 @@ After evaluation:
 
 ## Phase 7: Produce Research Document
 
-Create the research document via `/wos:create-document` with type=research:
+Create the research document via `/wos:create` with the following frontmatter:
 
-1. **Title:** Concise summary of the investigation
-2. **Description:** One-sentence summary of findings
-3. **Sources:** All verified sources with authority tier annotations
-4. **Question section:** The framed question and sub-questions
-5. **Findings section:** Synthesized results organized by sub-question
-6. **Implications section:** Actionable insights and limitations
+```yaml
+---
+name: "Concise summary of the investigation"
+description: "One-sentence summary of findings"
+type: research
+sources:
+  - https://verified-source-1.example.com
+  - https://verified-source-2.example.com
+related:
+  - artifacts/research/related-doc.md
+---
+```
+
+Structure the document for LLM consumption (lost-in-the-middle convention):
+
+1. **Top:** Summary with key findings and actionable insights
+2. **Middle:** Detailed analysis by sub-question, evidence, counter-evidence
+3. **Bottom:** Key takeaways, limitations, and follow-up questions
 
 The document will be placed at `artifacts/research/{date}-{slug}.md`.
 
