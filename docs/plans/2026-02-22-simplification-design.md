@@ -112,6 +112,7 @@ Each directory has an `_index.md` listing all files with descriptions.
 
 Each `.md` file starts with YAML metadata (between `---` lines).
 Read the `description` field before reading the full file.
+Documents put key insights first and last; supplemental detail in the middle.
 
 ### Areas
 | Area | Path |
@@ -197,6 +198,25 @@ scripts/
   with `_index.md`
 - "Create a research doc about X" -- creates file with frontmatter, verifies
   source URLs, updates `_index.md`
+
+## Lost-in-the-Middle Writing Convention
+
+AGENTS.md includes a brief cue: "Documents put key insights first and last;
+supplemental detail in the middle." The `/wos:create` and `/wos:research`
+skills include detailed guidance for the LLM when producing documents:
+
+> **Document structure:** LLMs lose attention in the middle of long documents.
+> Structure files so that:
+> - The top contains a summary with key insights and actionable guidance
+> - The middle contains detailed explanation, examples, and context for human
+>   readers
+> - The bottom restates key takeaways or provides a quick-reference summary
+>
+> The first and last sections are what an agent is most likely to retain.
+> Write for that.
+
+This is convention, not enforcement -- no validation checks verify document
+structure.
 
 ## What Gets Deleted
 
