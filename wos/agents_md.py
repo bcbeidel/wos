@@ -109,18 +109,7 @@ def update_agents_md(
     Returns:
         Updated AGENTS.md content with the new WOS section.
     """
+    from wos.markers import replace_marker_section
+
     section = render_wos_section(areas, preferences)
-
-    begin_idx = content.find(BEGIN_MARKER)
-    end_idx = content.find(END_MARKER)
-
-    if begin_idx != -1 and end_idx != -1:
-        # Replace between markers (inclusive)
-        end_idx += len(END_MARKER)
-        # Consume trailing newline if present
-        if end_idx < len(content) and content[end_idx] == "\n":
-            end_idx += 1
-        return content[:begin_idx] + section + content[end_idx:]
-
-    # Append
-    return content.rstrip("\n") + "\n\n" + section
+    return replace_marker_section(content, BEGIN_MARKER, END_MARKER, section)

@@ -142,23 +142,12 @@ def update_preferences(file_path: str, prefs: Dict[str, str]) -> None:
         f"{COMM_MARKER_END}\n"
     )
 
+    from wos.markers import replace_marker_section
+
     if not path.exists():
         path.write_text(section, encoding="utf-8")
         return
 
     content = path.read_text(encoding="utf-8")
-    begin_idx = content.find(COMM_MARKER_BEGIN)
-    end_idx = content.find(COMM_MARKER_END)
-
-    if begin_idx != -1 and end_idx != -1:
-        # Replace between markers (inclusive)
-        end_idx += len(COMM_MARKER_END)
-        # Consume trailing newline if present
-        if end_idx < len(content) and content[end_idx] == "\n":
-            end_idx += 1
-        updated = content[:begin_idx] + section + content[end_idx:]
-    else:
-        # Append
-        updated = content.rstrip("\n") + "\n\n" + section
-
+    updated = replace_marker_section(content, COMM_MARKER_BEGIN, COMM_MARKER_END, section)
     path.write_text(updated, encoding="utf-8")
