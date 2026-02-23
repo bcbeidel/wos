@@ -74,7 +74,10 @@ def parse_document(path: str, text: str) -> Document:
 
     # ── Parse YAML ─────────────────────────────────────────────
     yaml_text = text[4:yaml_end]  # skip opening "---\n"
-    fm = yaml.safe_load(yaml_text)
+    try:
+        fm = yaml.safe_load(yaml_text)
+    except yaml.YAMLError as exc:
+        raise ValueError(f"{path}: invalid YAML frontmatter: {exc}") from exc
 
     if not isinstance(fm, dict):
         # empty or non-mapping frontmatter
@@ -89,11 +92,11 @@ def parse_document(path: str, text: str) -> Document:
         )
 
     # ── Extract known fields ───────────────────────────────────
-    name: str = fm["name"]
-    description: str = fm["description"]
+    name: str = str(fm["name"])
+    description: str = str(fm["description"])
     doc_type: Optional[str] = fm.get("type")
-    sources: List[str] = fm.get("sources", [])
-    related: List[str] = fm.get("related", [])
+    sources: List[str] = fm.get("sources") or []
+    related: List[str] = fm.get("related") or []
 
     # Everything else goes into extra
     extra: Dict[str, Any] = {

@@ -228,3 +228,57 @@ class TestParseDocument:
         )
         doc = parse_document("test.md", text)
         assert doc.content.startswith("\n")
+
+    def test_yaml_null_sources_and_related_default_to_empty_list(self) -> None:
+        """sources: and related: with no value parse as YAML null (None).
+
+        The parser should coerce None to [] rather than propagating it.
+        """
+        from wos.document import parse_document
+
+        text = (
+            "---\n"
+            "name: Null Fields\n"
+            "description: Sources and related are YAML null\n"
+            "sources:\n"
+            "related:\n"
+            "---\n"
+            "# Content\n"
+        )
+        doc = parse_document("test.md", text)
+        assert doc.sources == []
+        assert doc.related == []
+
+    def test_raises_valueerror_on_invalid_yaml(self) -> None:
+        """Syntactically invalid YAML must raise ValueError, not yaml.YAMLError."""
+        from wos.document import parse_document
+
+        text = (
+            "---\n"
+            "name: Bad YAML\n"
+            "description: This has a tab character problem\n"
+            "broken:\n"
+            "  - item1\n"
+            " bad_indent: true\n"
+            "---\n"
+            "# Content\n"
+        )
+        with pytest.raises(ValueError, match="invalid YAML frontmatter"):
+            parse_document("test.md", text)
+
+    def test_numeric_name_and_description_coerced_to_str(self) -> None:
+        """name: 42 and description: 100 should be coerced to strings."""
+        from wos.document import parse_document
+
+        text = (
+            "---\n"
+            "name: 42\n"
+            "description: 100\n"
+            "---\n"
+            "# Content\n"
+        )
+        doc = parse_document("test.md", text)
+        assert doc.name == "42"
+        assert doc.description == "100"
+        assert isinstance(doc.name, str)
+        assert isinstance(doc.description, str)
