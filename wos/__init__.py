@@ -1,1 +1,1 @@
-"""wos: Claude Code plugin for structured knowledge bases."""
+"""wos: Claude Code plugin for structured project context."""
