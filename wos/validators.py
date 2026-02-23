@@ -153,7 +153,7 @@ def check_all_indexes(directory: Path) -> List[dict]:
 
 
 def validate_file(
-    path: Path, root: Path, check_urls: bool = True
+    path: Path, root: Path, verify_urls: bool = True
 ) -> List[dict]:
     """Validate a single markdown file.
 
@@ -164,7 +164,7 @@ def validate_file(
     Args:
         path: Path to the .md file.
         root: Project root directory.
-        check_urls: If False, skip source URL reachability check.
+        verify_urls: If False, skip source URL reachability check.
 
     Returns:
         List of issue dicts.
@@ -190,14 +190,14 @@ def validate_file(
     issues: List[dict] = []
     issues.extend(check_frontmatter(doc))
     issues.extend(check_research_sources(doc))
-    if check_urls:
+    if verify_urls:
         issues.extend(check_source_urls(doc))
     issues.extend(check_related_paths(doc, root))
     return issues
 
 
 def validate_project(
-    root: Path, check_urls: bool = True
+    root: Path, verify_urls: bool = True
 ) -> List[dict]:
     """Validate all markdown files in a project.
 
@@ -207,7 +207,7 @@ def validate_project(
 
     Args:
         root: Project root directory.
-        check_urls: If False, skip source URL reachability checks.
+        verify_urls: If False, skip source URL reachability checks.
 
     Returns:
         List of all issue dicts found.
@@ -230,6 +230,6 @@ def validate_project(
                 if not filename.endswith(".md"):
                     continue
                 file_path = Path(dirpath) / filename
-                issues.extend(validate_file(file_path, root, check_urls=check_urls))
+                issues.extend(validate_file(file_path, root, verify_urls=verify_urls))
 
     return issues

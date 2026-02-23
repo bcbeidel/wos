@@ -44,7 +44,7 @@ def main() -> None:
     from wos.validators import validate_project
 
     root = Path(args.root).resolve()
-    issues = validate_project(root, check_urls=not args.no_urls)
+    issues = validate_project(root, verify_urls=not args.no_urls)
 
     # --fix: regenerate _index.md files that are out of sync or missing
     if args.fix:

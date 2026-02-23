@@ -257,7 +257,7 @@ class TestValidateFile:
         md_file.parent.mkdir(parents=True)
         md_file.write_text(_md("Unit Tests", "Guide to unit tests"))
 
-        issues = validate_file(md_file, tmp_path, check_urls=False)
+        issues = validate_file(md_file, tmp_path, verify_urls=False)
         assert issues == []
 
     def test_file_without_frontmatter(self, tmp_path: Path) -> None:
@@ -267,7 +267,7 @@ class TestValidateFile:
         md_file.parent.mkdir(parents=True)
         md_file.write_text("# No Frontmatter\n\nJust content.\n")
 
-        issues = validate_file(md_file, tmp_path, check_urls=False)
+        issues = validate_file(md_file, tmp_path, verify_urls=False)
         assert len(issues) == 1
         assert issues[0]["severity"] == "fail"
         msg = issues[0]["issue"].lower()
@@ -294,5 +294,5 @@ class TestValidateProject:
             generate_index(tmp_path / "context")
         )
 
-        issues = validate_project(tmp_path, check_urls=False)
+        issues = validate_project(tmp_path, verify_urls=False)
         assert issues == []
