@@ -49,7 +49,7 @@ scripts/
   reindex.py           # CLI: regenerate all _index.md files
 skills/                # Skill definitions (SKILL.md + references/)
 tests/                 # pytest tests
-docs/plans/            # Design docs and implementation plans
+artifacts/plans/       # Design docs and implementation plans
 ```
 
 ## Usage

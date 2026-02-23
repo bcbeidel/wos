@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.9, stdlib `dataclasses`, `pyyaml`, `requests`. Pydantic kept as dependency only for `wos/preferences.py` (unchanged). Tests via `pytest`.
 
-**Design doc:** `docs/plans/2026-02-22-simplification-design.md`
+**Design doc:** `artifacts/plans/2026-02-22-simplification-design.md`
 
 **Branch:** `phase/simplification`
 
@@ -1937,7 +1937,7 @@ Reflects new flat package structure, 5 validation checks, 6 skills."
 
 **Step 7: Update design doc with branch and PR info**
 
-Update `docs/plans/2026-02-22-simplification-design.md` header with branch
+Update `artifacts/plans/2026-02-22-simplification-design.md` header with branch
 name and PR number once created.
 
 ---

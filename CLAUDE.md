@@ -93,12 +93,12 @@ Prefix: `/wos:` (e.g., `/wos:create`, `/wos:audit`). 6 skills:
 
 ## Reference
 
-- Design doc: [Simplification Design](docs/plans/2026-02-22-simplification-design.md)
+- Design doc: [Simplification Design](artifacts/plans/2026-02-22-simplification-design.md)
 
 ## Plans
 
 - Plans MUST be detailed lists of individual tasks
-- Plans MUST be stored as markdown in `/docs/plans`
+- Plans MUST be stored as markdown in `/artifacts/plans`
 - Plans MUST include checkboxes to indicate progress, marking things off as completed
 - Plans MUST indicate the branch, and pull-request associated with the work
 - Plans MUST be implemented on a branch, and merged only after human review of a pull-request
