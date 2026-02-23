@@ -3,10 +3,6 @@
 Provides generate_index() to create _index.md content from directory
 contents and frontmatter, and check_index_sync() to verify an existing
 _index.md is up to date.
-
-This module is intentionally independent of wos.document — it uses
-yaml.safe_load directly so it can be used without the full document
-parsing pipeline.
 """
 
 from __future__ import annotations
@@ -14,7 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import List, Optional
 
-import yaml
+from wos.document import parse_document
 
 
 def _extract_description(file_path: Path) -> Optional[str]:
@@ -32,29 +28,12 @@ def _extract_description(file_path: Path) -> Optional[str]:
     except OSError:
         return None
 
-    if not text.startswith("---\n"):
-        return None
-
-    close_idx = text.find("\n---\n", 3)
-    if close_idx == -1:
-        close_idx = text.find("\n---", 3)
-        if close_idx == -1 or close_idx + 4 < len(text):
-            return None
-
-    yaml_text = text[4:close_idx]
     try:
-        fm = yaml.safe_load(yaml_text)
-    except yaml.YAMLError:
+        doc = parse_document(str(file_path), text)
+    except ValueError:
         return None
 
-    if not isinstance(fm, dict):
-        return None
-
-    desc = fm.get("description")
-    if desc is None:
-        return None
-
-    return str(desc)
+    return doc.description if doc.description else None
 
 
 def _directory_display_name(directory: Path) -> str:
