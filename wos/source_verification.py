@@ -127,32 +127,6 @@ class VerificationResult(BaseModel):
         """Construct from a plain dict (e.g. parsed JSON)."""
         return cls.model_validate(data)
 
-    def validate_self(self, deep: bool = False) -> List:
-        """Check internal consistency.
-
-        Returns list[ValidationIssue] -- empty when this result is well-formed.
-        """
-        from wos.models.core import IssueSeverity, ValidationIssue
-
-        issues: list = []
-        if self.action not in ("ok", "removed", "flagged"):
-            issues.append(
-                ValidationIssue(
-                    file="<VerificationResult>",
-                    issue=f"Invalid action: {self.action!r}",
-                    severity=IssueSeverity.WARN,
-                    validator="VerificationResult.validate_self",
-                    suggestion="Action must be 'ok', 'removed', or 'flagged'",
-                )
-            )
-        return issues
-
-    @property
-    def is_valid(self) -> bool:
-        """Shortcut: True when validate_self() returns no issues."""
-        return len(self.validate_self()) == 0
-
-
 class ReachabilityResult(BaseModel):
     """Result of a lightweight URL reachability check."""
 
@@ -182,18 +156,6 @@ class ReachabilityResult(BaseModel):
     def from_json(cls, data: dict) -> ReachabilityResult:
         """Construct from a plain dict (e.g. parsed JSON)."""
         return cls.model_validate(data)
-
-    def validate_self(self, deep: bool = False) -> List:
-        """Check internal consistency.
-
-        Returns list[ValidationIssue] -- empty when this result is well-formed.
-        """
-        return []
-
-    @property
-    def is_valid(self) -> bool:
-        """Shortcut: True when validate_self() returns no issues."""
-        return len(self.validate_self()) == 0
 
 
 # ── Single-source verification ────────────────────────────────────
