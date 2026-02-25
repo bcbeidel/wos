@@ -20,6 +20,13 @@ research-modes.md).
 {"entries": [], "not_searched": []}
 ```
 
+> **Source diversity:** `WebSearch` routes through a single search engine. To
+> improve source diversity: (1) vary query terms to surface different source
+> types, (2) fetch known database URLs directly (e.g., PubMed, Semantic
+> Scholar) when relevant, (3) log `"google"` as the source honestly — this is
+> expected. The `not_searched` field should list sources you chose not to
+> search, not sources the tool can't access.
+
 ## Phase 2: Gather Sources
 
 1. Conduct breadth-first web searches across the sub-questions
@@ -40,7 +47,23 @@ research-modes.md).
 ```
 
 7. After gathering is complete, record sources you considered but did
-   not search in `not_searched` with a brief reason
+   not search in `not_searched` as strings with a brief reason:
+
+```json
+"not_searched": [
+  "Google Scholar - covered by direct source fetching",
+  "PubMed - topic is not biomedical"
+]
+```
+
+> **Handling fetch failures:** When parallel `WebFetch` calls fail, a single
+> failure can cascade to sibling calls ("Sibling tool call errored"). Retry
+> failed URLs individually. Common failure modes:
+> - **403** — bot protection; source exists but can't be fetched. Retain if
+>   from a published venue.
+> - **303/301** — redirect; retry with the redirect URL.
+> - **Timeout** — retry once, then skip. Do not drop sources solely because
+>   fetching failed — assess based on URL verification status.
 
 ## Phase 3: Verify & Evaluate
 
@@ -167,4 +190,4 @@ Before finalizing, verify:
 - [ ] No T6 (AI-generated) sources cited
 - [ ] Search protocol section present with all searches logged
 - [ ] Implications connected to the user's context
-- [ ] Document passes `parse_document()` validation
+- [ ] Document passes validation: `python3 scripts/validate.py <file> --no-urls`
