@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import json
+from io import StringIO
+
 from wos.research_protocol import (
     SearchEntry,
     SearchProtocol,
     format_protocol,
     format_protocol_summary,
+    main,
 )
 
 
@@ -126,3 +130,102 @@ class TestFormatProtocolSummary:
         assert "2 sources" in result
         assert "25 results found" in result
         assert "6 used" in result
+
+
+class TestProtocolFromJson:
+    def test_parse_full_entry(self) -> None:
+        from wos.research_protocol import _protocol_from_json
+
+        data = {
+            "entries": [
+                {
+                    "query": "test",
+                    "source": "google",
+                    "date_range": "2024-2026",
+                    "results_found": 10,
+                    "results_used": 3,
+                }
+            ],
+            "not_searched": ["reddit"],
+        }
+        protocol = _protocol_from_json(data)
+        assert len(protocol.entries) == 1
+        assert protocol.entries[0].query == "test"
+        assert protocol.entries[0].date_range == "2024-2026"
+        assert protocol.not_searched == ["reddit"]
+
+    def test_parse_null_date_range(self) -> None:
+        from wos.research_protocol import _protocol_from_json
+
+        data = {
+            "entries": [
+                {
+                    "query": "q",
+                    "source": "s",
+                    "date_range": None,
+                    "results_found": 1,
+                    "results_used": 0,
+                }
+            ],
+            "not_searched": [],
+        }
+        protocol = _protocol_from_json(data)
+        assert protocol.entries[0].date_range is None
+
+    def test_parse_empty(self) -> None:
+        from wos.research_protocol import _protocol_from_json
+
+        protocol = _protocol_from_json({"entries": [], "not_searched": []})
+        assert protocol.entries == []
+        assert protocol.not_searched == []
+
+
+class TestCli:
+    def test_format_command(self, monkeypatch, capsys) -> None:
+        data = json.dumps(
+            {
+                "entries": [
+                    {
+                        "query": "test query",
+                        "source": "google",
+                        "date_range": None,
+                        "results_found": 5,
+                        "results_used": 2,
+                    }
+                ],
+                "not_searched": [],
+            }
+        )
+        monkeypatch.setattr("sys.stdin", StringIO(data))
+        main(["format"])
+        captured = capsys.readouterr()
+        assert "test query" in captured.out
+        assert "| Query" in captured.out
+
+    def test_format_summary_flag(self, monkeypatch, capsys) -> None:
+        data = json.dumps(
+            {
+                "entries": [
+                    {
+                        "query": "q",
+                        "source": "google",
+                        "date_range": None,
+                        "results_found": 5,
+                        "results_used": 2,
+                    }
+                ],
+                "not_searched": [],
+            }
+        )
+        monkeypatch.setattr("sys.stdin", StringIO(data))
+        main(["format", "--summary"])
+        captured = capsys.readouterr()
+        assert "1 search across" in captured.out
+
+    def test_invalid_json(self, monkeypatch) -> None:
+        monkeypatch.setattr("sys.stdin", StringIO("not json"))
+        try:
+            main(["format"])
+            assert False, "Should have raised"
+        except (json.JSONDecodeError, SystemExit):
+            pass

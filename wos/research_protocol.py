@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import argparse
+import json
+import sys
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 
 @dataclass
@@ -68,3 +71,49 @@ def format_protocol_summary(protocol: SearchProtocol) -> str:
         f"{n_searches} {search_word} across {n_sources} {source_word}, "
         f"{total_found} results found, {total_used} used"
     )
+
+
+def _protocol_from_json(data: Dict[str, Any]) -> SearchProtocol:
+    """Parse JSON dict into SearchProtocol."""
+    entries = [
+        SearchEntry(
+            query=e["query"],
+            source=e["source"],
+            date_range=e.get("date_range"),
+            results_found=e["results_found"],
+            results_used=e["results_used"],
+        )
+        for e in data.get("entries", [])
+    ]
+    return SearchProtocol(
+        entries=entries,
+        not_searched=data.get("not_searched", []),
+    )
+
+
+def main(args: Optional[List[str]] = None) -> None:
+    """CLI entry point for research protocol formatting."""
+    parser = argparse.ArgumentParser(
+        description="Research protocol formatter"
+    )
+    parser.add_argument(
+        "command", choices=["format"], help="Command to run"
+    )
+    parser.add_argument(
+        "--summary",
+        action="store_true",
+        help="Output summary line only",
+    )
+    parsed = parser.parse_args(args)
+
+    data = json.load(sys.stdin)
+    protocol = _protocol_from_json(data)
+
+    if parsed.summary:
+        print(format_protocol_summary(protocol))
+    else:
+        print(format_protocol(protocol), end="")
+
+
+if __name__ == "__main__":
+    main()
