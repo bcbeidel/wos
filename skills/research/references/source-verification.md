@@ -11,18 +11,19 @@ before entering the SIFT pipeline.
 
 ## How to Run
 
-Use `wos.url_checker.check_urls()` to verify source URLs are reachable:
+Use the `wos.url_checker` module to verify source URLs are reachable:
 
-```python
+```bash
+PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -c "
 from wos.url_checker import check_urls
-
+import json
 results = check_urls([
-    "https://example.com/page",
-    "https://other.com/article",
+    'https://example.com/page',
+    'https://other.com/article',
 ])
-
 for r in results:
-    print(f"{r.url}: reachable={r.reachable}, status={r.status}, reason={r.reason}")
+    print(json.dumps({'url': r.url, 'reachable': r.reachable, 'status': r.status, 'reason': r.reason}))
+"
 ```
 
 Each result has:
