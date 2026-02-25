@@ -82,7 +82,15 @@ def check_source_urls(doc: Document) -> List[dict]:
     if not doc.sources:
         return []
 
-    results = check_urls(doc.sources)
+    # Normalize: sources may be plain URL strings or dicts with a "url" key.
+    urls = []
+    for s in doc.sources:
+        if isinstance(s, dict):
+            urls.append(s.get("url", s.get("href", "")))
+        else:
+            urls.append(str(s))
+
+    results = check_urls(urls)
     issues: List[dict] = []
     for result in results:
         if not result.reachable:

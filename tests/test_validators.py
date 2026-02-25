@@ -156,6 +156,45 @@ class TestCheckSourceUrls:
         mock_check.assert_not_called()
         assert issues == []
 
+    def test_dict_format_sources(self) -> None:
+        """Dict-format sources should be normalized to URL strings (#61)."""
+        from wos.url_checker import UrlCheckResult
+        from wos.validators import check_source_urls
+
+        doc = _make_doc(sources=[
+            {"url": "https://example.com/a", "title": "Source A"},
+            {"url": "https://example.com/b", "title": "Source B"},
+        ])
+
+        mock_results = [
+            UrlCheckResult(url="https://example.com/a", status=200, reachable=True),
+            UrlCheckResult(url="https://example.com/b", status=200, reachable=True),
+        ]
+        with patch("wos.validators.check_urls", return_value=mock_results) as mock_check:
+            issues = check_source_urls(doc)
+        # Should pass URL strings, not dicts
+        mock_check.assert_called_once_with(["https://example.com/a", "https://example.com/b"])
+        assert issues == []
+
+    def test_mixed_format_sources(self) -> None:
+        """Mix of plain URLs and dict-format sources should work (#61)."""
+        from wos.url_checker import UrlCheckResult
+        from wos.validators import check_source_urls
+
+        doc = _make_doc(sources=[
+            "https://example.com/plain",
+            {"url": "https://example.com/dict", "title": "Dict Source"},
+        ])
+
+        mock_results = [
+            UrlCheckResult(url="https://example.com/plain", status=200, reachable=True),
+            UrlCheckResult(url="https://example.com/dict", status=200, reachable=True),
+        ]
+        with patch("wos.validators.check_urls", return_value=mock_results) as mock_check:
+            issues = check_source_urls(doc)
+        mock_check.assert_called_once_with(["https://example.com/plain", "https://example.com/dict"])
+        assert issues == []
+
 
 # ── check_related_paths ────────────────────────────────────────
 
