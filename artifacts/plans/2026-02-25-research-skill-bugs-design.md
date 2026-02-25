@@ -15,7 +15,7 @@ related:
 # Research Skill Bug Fixes Design
 
 **Issues:** #56, #59, #60
-**Branch:** TBD
+**Branch:** `fix/research-skill-bugs-56-59-60`
 **PR:** TBD
 
 ## Context
