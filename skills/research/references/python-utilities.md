@@ -1,19 +1,20 @@
 # Python Utilities Reference
 
-CLI commands available during research sessions. All scripts are run from
-the project root.
+CLI commands available during research sessions. All commands use
+`${CLAUDE_PLUGIN_ROOT}` to resolve script paths — this variable is set
+automatically by Claude Code when the plugin is active.
 
 ## Validate a Single Document
 
 Runs all 4 checks: frontmatter, research sources, source URLs, related paths.
 
 ```bash
-python3 scripts/validate.py <file> [--root DIR] [--no-urls]
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/validate.py" <file> [--root DIR] [--no-urls]
 ```
 
 Example:
 ```bash
-python3 scripts/validate.py artifacts/research/2026-02-25-my-research.md --no-urls
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/validate.py" artifacts/research/2026-02-25-my-research.md --no-urls
 ```
 
 Output on success:
@@ -31,7 +32,15 @@ Output on failure:
 Runs all 5 checks across `context/` and `artifacts/`.
 
 ```bash
-python3 scripts/audit.py [--root DIR] [--no-urls] [--json] [--fix]
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/audit.py" [--root DIR] [--no-urls] [--json] [--fix]
+```
+
+## Regenerate Index Files
+
+Regenerate all `_index.md` files under `context/` and `artifacts/`.
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/reindex.py" [--root DIR]
 ```
 
 ## Format Search Protocol
@@ -39,8 +48,8 @@ python3 scripts/audit.py [--root DIR] [--no-urls] [--json] [--fix]
 Renders a search protocol JSON as a markdown table.
 
 ```bash
-echo '<json>' | python3 -m wos.research_protocol format
-echo '<json>' | python3 -m wos.research_protocol format --summary
+echo '<json>' | PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -m wos.research_protocol format
+echo '<json>' | PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -m wos.research_protocol format --summary
 ```
 
 ### Search Protocol JSON Schema

@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.4] - 2026-02-25
+
+### Fixed
+
+- Research workflow no longer references unreachable `/wos:create` skill —
+  replaced with direct document creation instructions.
+  ([#56](https://github.com/bcbeidel/wos/issues/56))
+- Python utility paths in skill references now use `${CLAUDE_PLUGIN_ROOT}`
+  instead of bare relative paths that failed in installed plugin mode.
+  Scripts also include `sys.path` self-insertion for plugin cache
+  compatibility.
+  ([#59](https://github.com/bcbeidel/wos/issues/59))
+- Research workflow restructured for progressive document building — the
+  document is created in Phase 2 and updated at each phase boundary, so
+  intermediate work survives context window resets. Includes a resumption
+  heuristic for detecting which phases are complete.
+  ([#60](https://github.com/bcbeidel/wos/issues/60))
+
 ## [0.3.3] - 2026-02-25
 
 ### Fixed
