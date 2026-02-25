@@ -16,7 +16,7 @@ related:
 
 **Issues:** #56, #59, #60
 **Branch:** `fix/research-skill-bugs-56-59-60`
-**PR:** TBD
+**PR:** https://github.com/bcbeidel/wos/pull/62
 
 ## Context
 
