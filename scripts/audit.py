@@ -9,10 +9,20 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import warnings
 from pathlib import Path
 
 
+def _relative_path(file_path: str, root: Path) -> str:
+    """Return file_path relative to root, falling back to the original."""
+    try:
+        return str(Path(file_path).relative_to(root))
+    except ValueError:
+        return file_path
+
+
 def main() -> None:
+    warnings.filterwarnings("ignore")
     parser = argparse.ArgumentParser(
         description="Run WOS validation checks on a project.",
     )
@@ -62,7 +72,7 @@ def main() -> None:
                 content = generate_index(directory)
                 idx_path.write_text(content, encoding="utf-8")
                 fixed.append(file_path)
-                print(f"Fixed: {file_path}", file=sys.stderr)
+                print(f"Fixed: {_relative_path(file_path, root)}", file=sys.stderr)
             else:
                 remaining.append(issue)
         issues = remaining
@@ -72,7 +82,11 @@ def main() -> None:
         print(json.dumps(issues, indent=2))
     elif issues:
         for issue in issues:
-            print(f"[FAIL] {issue['file']}: {issue['issue']}")
+            rel = _relative_path(issue["file"], root)
+            print(f"[FAIL] {rel}: {issue['issue']}")
+        count = len(issues)
+        summary = "1 issue found." if count == 1 else f"{count} issues found."
+        print(f"\n{summary}")
     else:
         print("All checks passed.")
 
