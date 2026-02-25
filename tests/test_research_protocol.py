@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
-from wos.research_protocol import SearchEntry, SearchProtocol, format_protocol
+from wos.research_protocol import (
+    SearchEntry,
+    SearchProtocol,
+    format_protocol,
+    format_protocol_summary,
+)
 
 
 class TestSearchEntry:
@@ -92,3 +97,32 @@ class TestFormatProtocol:
         result = format_protocol(protocol)
         # None date range should render as em dash
         assert "\u2014" in result
+
+
+class TestFormatProtocolSummary:
+    def test_empty_protocol(self) -> None:
+        protocol = SearchProtocol()
+        result = format_protocol_summary(protocol)
+        assert result == "0 searches, 0 results found, 0 used"
+
+    def test_single_entry_singular(self) -> None:
+        entry = SearchEntry("q", "google", None, 12, 3)
+        protocol = SearchProtocol(entries=[entry])
+        result = format_protocol_summary(protocol)
+        assert "1 search across" in result
+        assert "1 source" in result
+        assert "12 results found" in result
+        assert "3 used" in result
+
+    def test_multiple_entries_multiple_sources(self) -> None:
+        entries = [
+            SearchEntry("q1", "google", None, 12, 3),
+            SearchEntry("q2", "scholar", None, 8, 2),
+            SearchEntry("q3", "google", None, 5, 1),
+        ]
+        protocol = SearchProtocol(entries=entries)
+        result = format_protocol_summary(protocol)
+        assert "3 searches" in result
+        assert "2 sources" in result
+        assert "25 results found" in result
+        assert "6 used" in result

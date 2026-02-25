@@ -48,3 +48,23 @@ def format_protocol(protocol: SearchProtocol) -> str:
 
     lines.append("")
     return "\n".join(lines) + "\n"
+
+
+def format_protocol_summary(protocol: SearchProtocol) -> str:
+    """One-line summary of search protocol."""
+    n_searches = len(protocol.entries)
+    sources = {e.source for e in protocol.entries}
+    n_sources = len(sources)
+    total_found = sum(e.results_found for e in protocol.entries)
+    total_used = sum(e.results_used for e in protocol.entries)
+
+    if n_searches == 0:
+        return "0 searches, 0 results found, 0 used"
+
+    search_word = "search" if n_searches == 1 else "searches"
+    source_word = "source" if n_sources == 1 else "sources"
+
+    return (
+        f"{n_searches} {search_word} across {n_sources} {source_word}, "
+        f"{total_found} results found, {total_used} used"
+    )
