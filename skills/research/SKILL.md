@@ -59,7 +59,8 @@ related:
 ---
 ```
 
-Use `/wos:create` to produce the final document.
+Write the document directly, then run reindex and validate
+(see `references/python-utilities.md`).
 
 ## Document Structure Convention
 
@@ -80,8 +81,8 @@ for that.
   See `references/source-evaluation.md`.
 - **Counter-evidence is required** for deep-dive, options, and technical modes.
   Actively search for disagreement.
-- **Output is a research document.** Use `/wos:create` to produce the final
-  artifact with `type: research`.
+- **Output is a research document.** Write the final artifact directly with
+  `type: research` frontmatter, then run reindex and validate.
 - **Authority annotations.** Each source in the final document should note
   its tier in the source hierarchy.
 - **Challenge before synthesis.** Never skip the Challenge phase. Assumptions
