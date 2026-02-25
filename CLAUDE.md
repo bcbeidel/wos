@@ -32,7 +32,7 @@ Version bump requires updating all three: `pyproject.toml`,
 
 ### Package Structure
 
-- `wos/` — importable Python package (7 modules)
+- `wos/` — importable Python package (8 modules)
   - `document.py` — `Document` dataclass + `parse_document()` (YAML frontmatter parser)
   - `index.py` — `_index.md` generation + sync checking
   - `validators.py` — 5 validation checks (frontmatter, research sources, URLs, related paths, index sync)
@@ -40,6 +40,7 @@ Version bump requires updating all three: `pyproject.toml`,
   - `agents_md.py` — marker-based AGENTS.md section management
   - `markers.py` — shared marker-based section replacement
   - `preferences.py` — communication preferences capture
+  - `research_protocol.py` — search protocol logging (`SearchEntry`, `SearchProtocol`, formatters, CLI)
 - `scripts/` — thin CLI entry points with argparse
   - `audit.py` — run validation checks (`--root`, `--no-urls`, `--json`, `--fix`)
   - `reindex.py` — regenerate all `_index.md` files
