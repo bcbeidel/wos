@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-02-25
+
+### Fixed
+
+- All skills now explicitly set `user-invocable: true` in SKILL.md frontmatter
+  so they appear as `/wos:*` slash commands when the plugin is installed.
+  Previously, `create` had `user-invocable: false`, and `consider`, `research`,
+  `report-issue`, and `preferences` omitted the field entirely (relying on
+  default behavior).
+
 ## [0.3.2] - 2026-02-25
 
 ### Fixed

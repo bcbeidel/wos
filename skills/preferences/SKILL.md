@@ -6,6 +6,7 @@ description: >
   "be more concise", "adjust your tone", "change communication style",
   or "update my preferences".
 disable-model-invocation: true
+user-invocable: true
 argument-hint: "[style description]"
 ---
 

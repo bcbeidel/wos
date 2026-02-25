@@ -7,6 +7,7 @@ description: >
   normal work. Proactively suggest filing when you encounter
   WOS issues the maintainer should know about.
 argument-hint: "[describe the issue or feedback]"
+user-invocable: true
 ---
 
 # Report-Issue Skill

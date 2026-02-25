@@ -6,6 +6,7 @@ description: >
   "prioritize", or apply structured thinking to a problem. Each model
   is a separate sub-skill invoked as /wos:consider:{model-name}.
 argument-hint: "{model-name} [topic to analyze]"
+user-invocable: true
 ---
 
 # Consider Skill

@@ -1,8 +1,7 @@
 ---
 name: create
 description: Create project context, areas, or documents
-user-invocable: false
-disable-model-invocation: true
+user-invocable: true
 ---
 
 # Create

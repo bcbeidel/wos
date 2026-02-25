@@ -7,6 +7,7 @@ description: >
   "deep dive into", "explore alternatives", or any request to conduct
   a structured investigation and produce a research document.
 argument-hint: "[topic or question to investigate]"
+user-invocable: true
 ---
 
 # Research Skill
