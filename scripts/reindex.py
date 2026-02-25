@@ -10,6 +10,11 @@ import argparse
 import sys
 from pathlib import Path
 
+# Ensure `import wos` works whether pip-installed or run from plugin cache.
+_plugin_root = Path(__file__).resolve().parent.parent
+if str(_plugin_root) not in sys.path:
+    sys.path.insert(0, str(_plugin_root))
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(

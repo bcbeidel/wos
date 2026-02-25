@@ -12,6 +12,11 @@ import sys
 import warnings
 from pathlib import Path
 
+# Ensure `import wos` works whether pip-installed or run from plugin cache.
+_plugin_root = Path(__file__).resolve().parent.parent
+if str(_plugin_root) not in sys.path:
+    sys.path.insert(0, str(_plugin_root))
+
 
 def _relative_path(file_path: str, root: Path) -> str:
     """Return file_path relative to root, falling back to the original."""
