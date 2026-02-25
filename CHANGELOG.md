@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.5] - 2026-02-25
+
+### Fixed
+
+- Audit URL reachability check no longer crashes on dict-format sources
+  (`{url: ..., title: ...}`) — sources are normalized to URL strings before
+  passing to `check_urls()`.
+  ([#61](https://github.com/bcbeidel/wos/issues/61))
+
 ## [0.3.4] - 2026-02-25
 
 ### Fixed
