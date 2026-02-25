@@ -179,6 +179,40 @@ class TestProtocolFromJson:
         assert protocol.entries == []
         assert protocol.not_searched == []
 
+    def test_rejects_dict_not_searched_entries(self) -> None:
+        """Issue #52: not_searched with dict entries should raise ValueError."""
+        from wos.research_protocol import _protocol_from_json
+
+        data = {
+            "entries": [],
+            "not_searched": [
+                {"source": "Google Scholar", "reason": "covered elsewhere"}
+            ],
+        }
+        try:
+            _protocol_from_json(data)
+            assert False, "Should have raised ValueError"
+        except ValueError as exc:
+            assert "not_searched" in str(exc)
+            assert "string" in str(exc).lower()
+
+    def test_rejects_mixed_not_searched_entries(self) -> None:
+        """Issue #52: mix of strings and dicts should also raise."""
+        from wos.research_protocol import _protocol_from_json
+
+        data = {
+            "entries": [],
+            "not_searched": [
+                "Reddit - not relevant",
+                {"source": "Scholar", "reason": "no access"},
+            ],
+        }
+        try:
+            _protocol_from_json(data)
+            assert False, "Should have raised ValueError"
+        except ValueError as exc:
+            assert "not_searched" in str(exc)
+
 
 class TestCli:
     def test_format_command(self, monkeypatch, capsys) -> None:

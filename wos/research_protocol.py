@@ -74,7 +74,10 @@ def format_protocol_summary(protocol: SearchProtocol) -> str:
 
 
 def _protocol_from_json(data: Dict[str, Any]) -> SearchProtocol:
-    """Parse JSON dict into SearchProtocol."""
+    """Parse JSON dict into SearchProtocol.
+
+    Raises ValueError if not_searched contains non-string entries.
+    """
     entries = [
         SearchEntry(
             query=e["query"],
@@ -85,10 +88,14 @@ def _protocol_from_json(data: Dict[str, Any]) -> SearchProtocol:
         )
         for e in data.get("entries", [])
     ]
-    return SearchProtocol(
-        entries=entries,
-        not_searched=data.get("not_searched", []),
-    )
+    not_searched = data.get("not_searched", [])
+    for item in not_searched:
+        if not isinstance(item, str):
+            raise ValueError(
+                f"not_searched entries must be strings, got {type(item).__name__}. "
+                "Use format: 'Source — reason'"
+            )
+    return SearchProtocol(entries=entries, not_searched=not_searched)
 
 
 def main(args: Optional[List[str]] = None) -> None:
