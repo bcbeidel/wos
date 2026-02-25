@@ -8,8 +8,6 @@ from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
-
 
 def _run_audit(*args: str, issues: list[dict] | None = None) -> tuple[str, str, int]:
     """Run audit.main() with the given CLI args, returning (stdout, stderr, exitcode).
