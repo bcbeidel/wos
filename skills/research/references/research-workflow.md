@@ -4,6 +4,22 @@ Six-phase investigation process. All research modes follow these phases,
 with SIFT intensity and Challenge sub-steps varying by mode (see
 research-modes.md).
 
+The research document is created in Phase 2 and built progressively —
+each phase writes its output to disk so work survives context resets.
+
+## Resuming After Context Reset
+
+If a document already exists at `artifacts/research/{date}-{slug}.md` with
+`<!-- DRAFT -->` near the top, a previous session started this investigation.
+Read the document to determine which phases are complete:
+
+- Has `sources:` in frontmatter but no tier annotations in body → resume at Phase 3
+- Has tier annotations but no `## Challenge` section → resume at Phase 4
+- Has `## Challenge` section but no `## Findings` section → resume at Phase 5
+- Has `## Findings` section but still has `<!-- DRAFT -->` → resume at Phase 6
+
+When resuming, read the document fully to recover context before continuing.
+
 ## Phase 1: Frame the Question
 
 1. Restate the user's question in a precise, answerable form
@@ -65,13 +81,40 @@ research-modes.md).
 > - **Timeout** — retry once, then skip. Do not drop sources solely because
 >   fetching failed — assess based on URL verification status.
 
+8. **Write the initial document to disk.** Create the file at
+   `artifacts/research/{date}-{slug}.md` with a `<!-- DRAFT -->` marker,
+   frontmatter containing all gathered source URLs, and a sources table:
+
+```yaml
+---
+name: "Concise summary of the investigation"
+description: "One-sentence summary (update in Phase 5)"
+type: research
+sources:
+  - https://gathered-source-1.example.com
+  - https://gathered-source-2.example.com
+related: []
+---
+<!-- DRAFT — investigation in progress -->
+
+# [Title]
+
+## Sources
+
+| # | URL | Title | Author/Org | Date | Status |
+|---|-----|-------|-----------|------|--------|
+| 1 | ... | ...   | ...       | ...  | unverified |
+```
+
+This checkpoint means the source list survives a context reset.
+
 ## Phase 3: Verify & Evaluate
 
 Mechanical URL verification followed by SIFT evaluation in a single phase.
 
 ### URL Verification
 
-1. Collect all source URLs into a list
+1. Collect all source URLs from the document's frontmatter
 2. Use `wos.url_checker.check_urls()` to verify reachability
    (see `references/source-verification.md`)
 3. Review the results:
@@ -100,6 +143,17 @@ After evaluation:
 - Never cite T6 (AI-generated) as a source
 - Annotate remaining sources with their tier
 
+5. **Update the document on disk.** Remove failed URLs from the `sources:`
+   frontmatter list. Update the sources table with verification status and
+   tier annotations:
+
+```
+| # | URL | Title | Author/Org | Date | Tier | Status |
+|---|-----|-------|-----------|------|------|--------|
+| 1 | ... | ...   | ...       | ...  | T2   | verified |
+| 2 | ... | ...   | ...       | ...  | T4   | verified (403) |
+```
+
 ## Phase 4: Challenge
 
 Stress-test reasoning before synthesis. See `references/challenge-phase.md`
@@ -114,6 +168,9 @@ Three sub-steps, applied based on research mode (see research-modes.md):
    fewest inconsistencies
 3. **Premortem** (all modes) — Imagine main conclusion is wrong, generate
    3 failure reasons, assess plausibility
+
+4. **Update the document on disk.** Append a `## Challenge` section with
+   the assumptions check, ACH matrix (if applicable), and premortem results.
 
 ## Phase 5: Synthesize
 
@@ -137,49 +194,52 @@ Three sub-steps, applied based on research mode (see research-modes.md):
 7. Note limitations — what couldn't be determined and why
 8. Suggest follow-up questions if the investigation revealed new unknowns
 
-## Phase 6: Produce Research Document
+9. **Update the document on disk.** Add a `## Findings` section organized
+   by sub-question with confidence levels, counter-evidence (if applicable),
+   and a connections/implications section. Update the `description:` in
+   frontmatter to reflect actual findings.
 
-Create the research document via `/wos:create` with frontmatter:
+## Phase 6: Finalize Research Document
 
-```yaml
----
-name: "Concise summary of the investigation"
-description: "One-sentence summary of findings"
-type: research
-sources:
-  - https://verified-source-1.example.com
-  - https://verified-source-2.example.com
-related:
-  - artifacts/research/related-doc.md
----
-```
+The document already exists on disk with content from Phases 2-5. This phase
+restructures it for the final reader and runs validation.
 
-Structure the document for LLM consumption (lost-in-the-middle convention):
+1. **Restructure for lost-in-the-middle convention:**
+   - **Top:** Summary with key findings (each annotated with confidence level)
+     and search protocol summary line
+   - **Middle:** Detailed analysis by sub-question, evidence, Challenge phase
+     output (assumptions, ACH if applicable, premortem), counter-evidence
+   - **Bottom:** Key takeaways, limitations, follow-up questions, and full
+     search protocol table
 
-1. **Top:** Summary with key findings (each annotated with confidence level)
-   and search protocol summary line
-2. **Middle:** Detailed analysis by sub-question, evidence, Challenge phase
-   output (assumptions, ACH if applicable, premortem), counter-evidence
-3. **Bottom:** Key takeaways, limitations, follow-up questions, and full
-   search protocol table
-
-### Inserting the Search Protocol
-
-Format the accumulated search protocol JSON using the CLI:
+2. **Insert the search protocol.** Format the accumulated search protocol
+   JSON using:
 
 ```bash
-echo '<protocol_json>' | python3 -m wos.research_protocol format
+echo '<protocol_json>' | PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -m wos.research_protocol format
 ```
 
-Insert the rendered table into the **Search Protocol** section at the
-bottom of the document. Add the summary line (using `--summary` flag)
-near the top of the document.
+   Insert the rendered table into the **Search Protocol** section at the
+   bottom of the document. Add the summary line (using `--summary` flag)
+   near the top.
 
-The document will be placed at `artifacts/research/{date}-{slug}.md`.
+3. **Remove the `<!-- DRAFT -->` marker** from the document.
+
+4. **Regenerate index files:**
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/reindex.py" --root .
+```
+
+5. **Validate the document:**
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/validate.py" <file> --root . --no-urls
+```
 
 ## Quality Checklist
 
-Before finalizing, verify:
+Before removing the `<!-- DRAFT -->` marker, verify:
 - [ ] All sources passed URL verification
 - [ ] All sources have been SIFT-evaluated at the mode's intensity
 - [ ] Sources are annotated with hierarchy tiers
@@ -190,4 +250,5 @@ Before finalizing, verify:
 - [ ] No T6 (AI-generated) sources cited
 - [ ] Search protocol section present with all searches logged
 - [ ] Implications connected to the user's context
-- [ ] Document passes validation: `python3 scripts/validate.py <file> --no-urls`
+- [ ] Document passes validation:
+  `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/validate.py" <file> --root . --no-urls`
