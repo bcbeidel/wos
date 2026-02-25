@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-02-25
+
+### Fixed
+
+- `not_searched` format mismatch between docs and code — clarified format as
+  `List[str]` in research workflow and added input validation in
+  `_protocol_from_json()` that raises `ValueError` for non-string entries.
+  ([#52](https://github.com/bcbeidel/wos/issues/52))
+- Research quality gate updated to use `python3 scripts/validate.py` (runs all
+  4 checks) instead of `parse_document()` which only validated generic fields.
+  ([#54](https://github.com/bcbeidel/wos/issues/54))
+
+### Added
+
+- `scripts/validate.py` — CLI for single-file validation (`python3
+  scripts/validate.py <file> [--root DIR] [--no-urls]`). Runs frontmatter,
+  research sources, source URLs, and related paths checks.
+  ([#53](https://github.com/bcbeidel/wos/issues/53))
+- `skills/research/references/python-utilities.md` — reference doc for all CLI
+  commands used during research sessions (validate, audit, research protocol
+  format), including full JSON schema and Document model fields.
+  ([#53](https://github.com/bcbeidel/wos/issues/53))
+- Fetch failure guidance in research workflow Phase 2 — documents parallel
+  `WebFetch` cascading failures and 403/301/timeout handling.
+  ([#55](https://github.com/bcbeidel/wos/issues/55))
+- Source diversity guidance in research workflow Phase 1 — acknowledges
+  `WebSearch` single-engine limitation with workarounds.
+  ([#55](https://github.com/bcbeidel/wos/issues/55))
+- `tests/test_validate.py` — 5 tests for the new validate CLI.
+- 2 new tests in `tests/test_research_protocol.py` for `not_searched`
+  validation.
+
 ## [0.3.1] - 2026-02-24
 
 ### Fixed
@@ -328,6 +360,7 @@ implemented with 229 tests passing.
 - Build roadmap with session protocol and dependency graph
 - 18 design principles across four layers
 
+[0.3.2]: https://github.com/bcbeidel/wos/releases/tag/v0.3.2
 [0.3.1]: https://github.com/bcbeidel/wos/releases/tag/v0.3.1
 [0.3.0]: https://github.com/bcbeidel/wos/releases/tag/v0.3.0
 [0.2.1]: https://github.com/bcbeidel/wos/releases/tag/v0.2.1
