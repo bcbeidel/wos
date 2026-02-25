@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-02-24
+
+### Fixed
+
+- Audit script now displays file paths relative to `--root` instead of absolute
+  paths, making output readable in narrow terminals and Claude Code.
+- Python warnings (e.g. urllib3 NotOpenSSLWarning) suppressed from audit output.
+- Summary footer added to audit failure output (e.g. "3 issues found.").
+  ([#50](https://github.com/bcbeidel/wos/issues/50))
+
+### Added
+
+- `tests/test_audit.py` — 9 tests covering audit CLI output formatting.
+
 ## [0.3.0] - 2026-02-24
 
 ### Added
@@ -314,6 +328,7 @@ implemented with 229 tests passing.
 - Build roadmap with session protocol and dependency graph
 - 18 design principles across four layers
 
+[0.3.1]: https://github.com/bcbeidel/wos/releases/tag/v0.3.1
 [0.3.0]: https://github.com/bcbeidel/wos/releases/tag/v0.3.0
 [0.2.1]: https://github.com/bcbeidel/wos/releases/tag/v0.2.1
 [0.2.0]: https://github.com/bcbeidel/wos/releases/tag/v0.2.0
