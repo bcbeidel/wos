@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-02-24
+
+### Added
+
+- `wos/research_protocol.py` — search protocol logging for research
+  auditability. `SearchEntry` and `SearchProtocol` dataclasses, markdown table
+  renderer (`format_protocol`), one-line summary (`format_protocol_summary`),
+  JSON parser, and CLI entry point (`python3 -m wos.research_protocol format
+  [--summary]`).
+- `skills/research/references/challenge-phase.md` — Challenge phase quality
+  gate with three sub-steps: Assumptions Check (all modes), Analysis of
+  Competing Hypotheses (deep-dive, options, competitive, feasibility), and
+  Premortem (all modes).
+- `skills/research/references/research-workflow.md` — 6-phase research workflow
+  integrating search protocol logging, Challenge phase, and confidence levels.
+- Challenge column and sub-step matrix added to
+  `skills/research/references/research-modes.md`.
+- Three new key rules in `/wos:research` SKILL.md: challenge before synthesis,
+  log search protocol, confidence levels on every finding.
+- 19 new tests in `tests/test_research_protocol.py`.
+
+### Changed
+
+- `/wos:research` workflow restructured from 7 phases to 6 phases. Phase 4
+  (Challenge) inserted between Verify & Evaluate and Synthesize. Phase 5
+  (Synthesize) now requires confidence level annotations (HIGH/MODERATE/LOW)
+  on every finding. Phase 6 (Produce Research Document) includes search
+  protocol table insertion.
+  ([#39](https://github.com/bcbeidel/wos/issues/39),
+  [#49](https://github.com/bcbeidel/wos/pull/49))
+
+### Removed
+
+- `skills/research/references/research-investigate.md` — replaced by
+  `research-workflow.md`.
+
 ## [0.2.1] - 2026-02-23
 
 ### Removed
@@ -278,6 +314,7 @@ implemented with 229 tests passing.
 - Build roadmap with session protocol and dependency graph
 - 18 design principles across four layers
 
+[0.3.0]: https://github.com/bcbeidel/wos/releases/tag/v0.3.0
 [0.2.1]: https://github.com/bcbeidel/wos/releases/tag/v0.2.1
 [0.2.0]: https://github.com/bcbeidel/wos/releases/tag/v0.2.0
 [0.1.9]: https://github.com/bcbeidel/wos/releases/tag/v0.1.9

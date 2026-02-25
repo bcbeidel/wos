@@ -6,16 +6,34 @@ vary in SIFT rigor, source requirements, and counter-evidence needs.
 
 ## Mode Matrix
 
-| Mode | Min Sources | SIFT Rigor | Counter-Evidence | Typical Duration |
-|------|-----------|------------|-----------------|-----------------|
-| deep-dive | 8+ | High | Required | Long |
-| landscape | 6+ | Medium | Optional | Medium |
-| technical | 6+ | High | Required | Long |
-| feasibility | 4+ | Medium | Required | Medium |
-| competitive | 6+ | Medium | Optional | Medium |
-| options | 6+ | High | Required | Long |
-| historical | 4+ | Low | Optional | Short |
-| open-source | 4+ | Medium | Optional | Medium |
+| Mode | Min Sources | SIFT Rigor | Counter-Evidence | Challenge | Typical Duration |
+|------|-------------|------------|------------------|-----------|------------------|
+| deep-dive | 8+ | High | Required | Full | Long |
+| landscape | 6+ | Medium | Optional | Partial | Medium |
+| technical | 6+ | High | Required | Partial | Long |
+| feasibility | 4+ | Medium | Required | Full | Medium |
+| competitive | 6+ | Medium | Optional | Full | Medium |
+| options | 6+ | High | Required | Full | Long |
+| historical | 4+ | Low | Optional | Partial | Short |
+| open-source | 4+ | Medium | Optional | Partial | Medium |
+
+## Challenge Sub-Steps by Mode
+
+| Mode | Assumptions Check | ACH | Premortem |
+|------|-------------------|-----|----------|
+| deep-dive | Yes | Yes | Yes |
+| landscape | Yes | No | Yes |
+| technical | Yes | No | Yes |
+| feasibility | Yes | Yes | Yes |
+| competitive | Yes | Yes | Yes |
+| options | Yes | Yes | Yes |
+| historical | Yes | No | Yes |
+| open-source | Yes | No | Yes |
+
+- **Full** = Assumptions check + ACH + Premortem
+- **Partial** = Assumptions check + Premortem (no ACH)
+
+See `references/challenge-phase.md` for detailed procedures.
 
 ## Mode Descriptions
 

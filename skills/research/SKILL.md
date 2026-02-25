@@ -38,7 +38,7 @@ A **deep dive** (comprehensive), **options comparison**, or
 ## Workflow
 
 All modes follow the same workflow with varying SIFT intensity.
-See `references/research-investigate.md` for the full multi-phase process.
+See `references/research-workflow.md` for the full 6-phase process.
 
 ## Output Document Format
 
@@ -83,3 +83,12 @@ for that.
   artifact with `type: research`.
 - **Authority annotations.** Each source in the final document should note
   its tier in the source hierarchy.
+- **Challenge before synthesis.** Never skip the Challenge phase. Assumptions
+  check and premortem run on every mode. ACH runs on deep-dive, options,
+  competitive, and feasibility. See `references/challenge-phase.md`.
+- **Log search protocol.** Record every search during Phase 2 (Gather).
+  Format with `python3 -m wos.research_protocol format` and include in
+  the final document. See `references/research-workflow.md` Phase 2.
+- **Confidence levels on every finding.** Annotate each finding as HIGH,
+  MODERATE, or LOW based on source convergence and tier. See
+  `references/research-workflow.md` Phase 5.

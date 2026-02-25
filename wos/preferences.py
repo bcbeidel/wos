@@ -149,5 +149,7 @@ def update_preferences(file_path: str, prefs: Dict[str, str]) -> None:
         return
 
     content = path.read_text(encoding="utf-8")
-    updated = replace_marker_section(content, COMM_MARKER_BEGIN, COMM_MARKER_END, section)
+    updated = replace_marker_section(
+        content, COMM_MARKER_BEGIN, COMM_MARKER_END, section
+    )
     path.write_text(updated, encoding="utf-8")
