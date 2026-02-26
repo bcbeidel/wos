@@ -115,8 +115,22 @@ Mechanical URL verification followed by SIFT evaluation in a single phase.
 ### URL Verification
 
 1. Collect all source URLs from the document's frontmatter
-2. Use `wos.url_checker.check_urls()` to verify reachability
-   (see `references/source-verification.md`)
+2. Use `wos.url_checker.check_urls()` to verify reachability:
+
+   ```bash
+   PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -c "
+   from wos.url_checker import check_urls
+   import json
+   results = check_urls([
+       'https://example.com/source-1',
+       'https://example.com/source-2',
+   ])
+   for r in results:
+       print(json.dumps({'url': r.url, 'reachable': r.reachable, 'status': r.status, 'reason': r.reason}))
+   "
+   ```
+
+   (Full reference: `references/source-verification.md`)
 3. Review the results:
    - Remove sources where `reachable=False` with status 404 or 0
    - Keep sources where `reachable=False` with status 403/5xx but note issues
