@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.6] - 2026-02-25
+
+### Fixed
+
+- Research skill restructured for workflow compliance — declared tool
+  dependencies in `compatibility` field, added phase gates and common
+  deviations to SKILL.md, inlined `url_checker` command at point of use in
+  Phase 3, and search protocol is now persisted on disk in DRAFT document
+  during research sessions.
+  ([#65](https://github.com/bcbeidel/wos/issues/65),
+  [#66](https://github.com/bcbeidel/wos/issues/66))
+
+### Added
+
+- Experiment framework design document for empirical claim validation
+  (`artifacts/plans/2026-02-25-experiment-framework-design.md`).
+
 ## [0.3.5] - 2026-02-25
 
 ### Fixed
@@ -397,6 +414,10 @@ implemented with 229 tests passing.
 - Build roadmap with session protocol and dependency graph
 - 18 design principles across four layers
 
+[0.3.6]: https://github.com/bcbeidel/wos/releases/tag/v0.3.6
+[0.3.5]: https://github.com/bcbeidel/wos/releases/tag/v0.3.5
+[0.3.4]: https://github.com/bcbeidel/wos/releases/tag/v0.3.4
+[0.3.3]: https://github.com/bcbeidel/wos/releases/tag/v0.3.3
 [0.3.2]: https://github.com/bcbeidel/wos/releases/tag/v0.3.2
 [0.3.1]: https://github.com/bcbeidel/wos/releases/tag/v0.3.1
 [0.3.0]: https://github.com/bcbeidel/wos/releases/tag/v0.3.0
