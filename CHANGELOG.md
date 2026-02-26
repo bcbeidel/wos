@@ -7,6 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-02-26
+
+### Changed
+
+- **Zero runtime dependencies.** Replaced `pyyaml` with a custom restricted
+  YAML subset parser (`wos/frontmatter.py`) — scalars are always strings (no
+  type coercion), lists via `- item` syntax, no nested dicts. Replaced
+  `requests` with `urllib.request` in `url_checker.py`. Removed unused
+  `pydantic`. `pyproject.toml` now declares `dependencies = []`.
+  ([#68](https://github.com/bcbeidel/wos/issues/68),
+  [#69](https://github.com/bcbeidel/wos/pull/69))
+- **Warn/fail severity in validators.** `check_frontmatter()` now merges the
+  old `check_research_sources()` and adds two new warnings: dict-format source
+  items (`warn`) and context files missing `related` fields (`warn`). All
+  validators return issues with explicit `severity: "fail"` or `"warn"`.
+- **LLM-friendly audit output.** `scripts/audit.py` now prints a summary line
+  (`N fail, M warn across K files`) followed by a table with severity column.
+  Exit code: 1 on any `fail`, 0 on `warn` only. New `--strict` flag exits 1
+  on any issue.
+- **Single-file audit mode.** `audit.py` accepts an optional positional file
+  argument for validating a single document. `scripts/validate.py` removed
+  (functionality merged into `audit.py`).
+- **Preamble-preserving indexes.** `generate_index()` accepts an optional
+  `preamble` parameter. `check_index_sync()` and `reindex.py` extract and
+  preserve existing preambles during regeneration. `check_all_indexes()` warns
+  when an `_index.md` has no area description preamble.
+- **`Document.extra` field removed.** Unknown frontmatter keys are ignored
+  rather than stored.
+- **Research protocol CLI removed.** `main()` and `if __name__` block stripped
+  from `research_protocol.py`. Search protocols are now formatted as inline
+  markdown tables in the research document.
+
+### Added
+
+- `wos/frontmatter.py` — custom YAML subset parser (stdlib-only, 94 lines).
+- `wos/validators.check_content()` — warns when context files exceed 800 words
+  (configurable via `--context-max-words`). Artifacts and `_index.md` excluded.
+- `/wos:distill` skill — converts research artifacts into focused context files
+  with confidence mapping, word count guidance, splitting heuristics, and
+  bidirectional linking. Includes `references/distillation-guidelines.md`.
+- `/wos:create` skill now prompts for area description preambles, checks word
+  count, and suggests `related:` candidates with bidirectional linking.
+- 14 new tests across `test_frontmatter.py` (22 tests), `test_index.py`
+  (6 preamble tests), `test_validators.py` (8 new check tests), and
+  `test_audit.py` (11 tests rewritten for new output format).
+
+### Removed
+
+- `scripts/validate.py` and `tests/test_validate.py` — merged into `audit.py`.
+- `research_protocol.py` CLI entry point (`main()`, argparse, `--summary`).
+- Runtime dependencies: `pyyaml`, `requests`, `pydantic`.
+
 ## [0.3.6] - 2026-02-25
 
 ### Fixed
@@ -414,6 +466,7 @@ implemented with 229 tests passing.
 - Build roadmap with session protocol and dependency graph
 - 18 design principles across four layers
 
+[0.4.0]: https://github.com/bcbeidel/wos/releases/tag/v0.4.0
 [0.3.6]: https://github.com/bcbeidel/wos/releases/tag/v0.3.6
 [0.3.5]: https://github.com/bcbeidel/wos/releases/tag/v0.3.5
 [0.3.4]: https://github.com/bcbeidel/wos/releases/tag/v0.3.4
