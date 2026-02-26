@@ -40,8 +40,9 @@ Update AGENTS.md with the WOS section using markers.
 
 1. Ask for area name (lowercase-hyphenated)
 2. Create `context/{area}/`
-3. Run `python3 scripts/reindex.py --root .`
-4. Update AGENTS.md areas table
+3. Ask the user for a 1-2 sentence area description. Write it as the preamble in `_index.md` above the file table.
+4. Run `python3 scripts/reindex.py --root .`
+5. Update AGENTS.md areas table
 
 ## 3. Create Document
 
@@ -56,7 +57,9 @@ Update AGENTS.md with the WOS section using markers.
    - Top: summary with key insights and actionable guidance
    - Middle: detailed explanation, examples, context for human readers
    - Bottom: key takeaways or quick-reference summary
-5. Run `python3 scripts/reindex.py --root .`
+5. **Word count check** — Count words in the generated content. If the context file exceeds 800 words, note the count and suggest splitting into multiple focused files. This is advisory, not blocking.
+6. **Related fields** — Scan existing files in the target area for potential `related:` candidates. Present suggestions to the user. If they confirm, add `related:` entries to the frontmatter. Ask whether referenced files should also link back (bidirectional linking).
+7. Run `python3 scripts/reindex.py --root .`
 
 ## Document Structure Convention
 
