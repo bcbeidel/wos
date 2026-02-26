@@ -17,7 +17,10 @@ class TestAuditSysPath:
     def test_audit_runs_from_different_cwd(self, tmp_path: Path) -> None:
         """audit.py should work when CWD is not the plugin root."""
         result = subprocess.run(
-            [sys.executable, str(SCRIPTS_DIR / "audit.py"), "--root", str(tmp_path), "--no-urls"],
+            [
+                sys.executable, str(SCRIPTS_DIR / "audit.py"),
+                "--root", str(tmp_path), "--no-urls",
+            ],
             capture_output=True,
             text=True,
             cwd=str(tmp_path),
@@ -69,7 +72,10 @@ class TestValidateSysPath:
         doc = tmp_path / "test.md"
         doc.write_text("---\nname: Test\ndescription: A test\n---\nBody\n")
         result = subprocess.run(
-            [sys.executable, str(SCRIPTS_DIR / "validate.py"), str(doc), "--root", str(tmp_path), "--no-urls"],
+            [
+                sys.executable, str(SCRIPTS_DIR / "validate.py"),
+                str(doc), "--root", str(tmp_path), "--no-urls",
+            ],
             capture_output=True,
             text=True,
             cwd=str(tmp_path),

@@ -104,7 +104,21 @@ related: []
 | # | URL | Title | Author/Org | Date | Status |
 |---|-----|-------|-----------|------|--------|
 | 1 | ... | ...   | ...       | ...  | unverified |
+
+## Search Protocol (WIP)
+
+<!-- search-protocol
+{"entries": [], "not_searched": []}
+-->
+
+Update this section after each search. Replace the JSON in the comment
+above with the current accumulated protocol.
 ```
+
+The search protocol JSON is stored in the document itself (inside the
+`<!-- search-protocol ... -->` comment), not in agent memory. After each
+search, update the comment with the accumulated JSON. This ensures the
+protocol survives context resets alongside the source list.
 
 This checkpoint means the source list survives a context reset.
 
@@ -115,8 +129,22 @@ Mechanical URL verification followed by SIFT evaluation in a single phase.
 ### URL Verification
 
 1. Collect all source URLs from the document's frontmatter
-2. Use `wos.url_checker.check_urls()` to verify reachability
-   (see `references/source-verification.md`)
+2. Use `wos.url_checker.check_urls()` to verify reachability:
+
+   ```bash
+   PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -c "
+   from wos.url_checker import check_urls
+   import json
+   results = check_urls([
+       'https://example.com/source-1',
+       'https://example.com/source-2',
+   ])
+   for r in results:
+       print(json.dumps({'url': r.url, 'reachable': r.reachable, 'status': r.status, 'reason': r.reason}))
+   "
+   ```
+
+   (Full reference: `references/source-verification.md`)
 3. Review the results:
    - Remove sources where `reachable=False` with status 404 or 0
    - Keep sources where `reachable=False` with status 403/5xx but note issues
@@ -212,16 +240,19 @@ restructures it for the final reader and runs validation.
    - **Bottom:** Key takeaways, limitations, follow-up questions, and full
      search protocol table
 
-2. **Insert the search protocol.** Format the accumulated search protocol
-   JSON using:
+2. **Format the search protocol.** Extract the search protocol JSON from
+   the `<!-- search-protocol ... -->` comment in the document. Format it
+   using:
 
 ```bash
 echo '<protocol_json>' | PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -m wos.research_protocol format
 ```
 
-   Insert the rendered table into the **Search Protocol** section at the
-   bottom of the document. Add the summary line (using `--summary` flag)
-   near the top.
+   Replace the `## Search Protocol (WIP)` section and its
+   `<!-- search-protocol ... -->` comment with the rendered markdown table
+   under a final `## Search Protocol` heading (drop the "(WIP)" suffix).
+   Add the summary line (using `--summary` flag) near the top of the
+   document.
 
 3. **Remove the `<!-- DRAFT -->` marker** from the document.
 

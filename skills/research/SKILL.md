@@ -8,6 +8,7 @@ description: >
   a structured investigation and produce a research document.
 argument-hint: "[topic or question to investigate]"
 user-invocable: true
+compatibility: "Requires Python 3, WOS plugin (url_checker, validate, reindex), WebSearch, WebFetch"
 ---
 
 # Research Skill
@@ -40,6 +41,35 @@ A **deep dive** (comprehensive), **options comparison**, or
 
 All modes follow the same workflow with varying SIFT intensity.
 See `references/research-workflow.md` for the full 6-phase process.
+
+## Phase Gates (Mandatory)
+
+Each phase ends with a checkpoint. Do not proceed until the gate is met.
+
+| Phase | Gate | How to Verify |
+|-------|------|---------------|
+| 1. Frame -> 2. Gather | User confirmed sub-questions | User said "yes" or equivalent |
+| 2. Gather -> 3. Verify | DRAFT file exists on disk with `<!-- DRAFT -->` marker | Read the file |
+| 3. Verify -> 4. Challenge | Sources table has Tier + Status columns | Read the file |
+| 4. Challenge -> 5. Synthesize | `## Challenge` section exists on disk | Read the file |
+| 5. Synthesize -> 6. Finalize | `## Findings` section exists on disk | Read the file |
+| 6. Finalize -> Done | `<!-- DRAFT -->` removed, validate passes | Run validate |
+
+STOP at each gate. If the condition is not met, complete it before proceeding.
+
+## Common Deviations (Do Not)
+
+- **Do not write the entire document in one pass at the end.** Each phase
+  writes to disk. If you haven't written to disk since Phase 2, you've
+  skipped checkpoints.
+- **Do not skip sub-questions.** They structure Phase 5 synthesis. Without
+  them, findings will organize by whatever taxonomy emerges from searching.
+- **Do not SIFT "in your head."** Use the SIFT evaluation log in the
+  sources table. If there's no visible per-source tier annotation, SIFT
+  didn't happen.
+- **Do not skip `url_checker`.** Fetching content via WebFetch verifies
+  content; `url_checker` verifies the URL itself (catches 404s, hallucinated
+  URLs).
 
 ## Output Document Format
 
