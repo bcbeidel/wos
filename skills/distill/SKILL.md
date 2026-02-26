@@ -1,0 +1,81 @@
+---
+name: distill
+description: >
+  This skill should be used when the user wants to "distill research",
+  "extract findings", "create context from research", "summarize research
+  into context files", "operationalize research", or convert any research
+  artifact into focused context documents.
+argument-hint: "[path to research artifact]"
+user-invocable: true
+---
+
+# Distill
+
+Convert research artifacts into focused context files.
+
+## Workflow
+
+### 1. Input
+
+Accept a research artifact path from the user. If none provided, scan
+`artifacts/research/` for the most recently modified `.md` file and confirm.
+
+### 2. Analyze
+
+Read the research document and identify discrete findings:
+- Each finding should be a self-contained insight
+- Note confidence level (HIGH, MODERATE, LOW) based on evidence strength
+- Note evidence type (empirical, expert consensus, case study, theoretical)
+
+### 3. Propose
+
+Present a distillation plan as a table:
+
+| # | Finding | Target Area | Filename | Words (est.) |
+|---|---------|-------------|----------|--------------|
+| 1 | Key finding one | context/area/ | finding-one.md | ~400 |
+
+User approves, edits, or rejects individual rows.
+
+### 4. Generate
+
+For each approved finding:
+
+1. Write a 200-800 word context file with frontmatter:
+   ```yaml
+   ---
+   name: [Concise title]
+   description: [One-sentence summary]
+   type: reference
+   sources:
+     - [Carry forward relevant URLs from research]
+   related:
+     - [Path to source research artifact]
+     - [Paths to sibling distilled files]
+   ---
+   ```
+
+2. Follow the lost-in-the-middle convention:
+   - **Top:** Key insight and actionable guidance
+   - **Middle:** Detail, examples, context
+   - **Bottom:** Takeaways or quick-reference
+
+3. Report word count after writing. If >800 words, suggest splitting.
+
+### 5. Integrate
+
+1. Run `python3 scripts/reindex.py --root .`
+2. Update the source research artifact's `related:` field to link
+   forward to the new context files
+3. Run `python3 scripts/audit.py --root . --no-urls` to verify
+
+## Key Constraints
+
+- **User controls granularity.** They pick which findings become standalone
+  files vs. which get folded into existing files. Propose, don't decide.
+- **Context files target 200-800 words.** This is advisory. If a finding
+  needs more space, note it and proceed.
+- **Carry forward sources.** Each context file should trace back to the
+  original evidence via `sources:` URLs.
+- **Bidirectional linking.** New files link to research via `related:`.
+  Research links to new files via `related:`. Ask before modifying.
