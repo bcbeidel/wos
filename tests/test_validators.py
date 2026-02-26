@@ -346,11 +346,11 @@ class TestCheckRelatedPaths:
 
 
 class TestCheckAllIndexes:
-    def test_synced_index(self, tmp_path: Path) -> None:
+    def test_synced_index_with_preamble(self, tmp_path: Path) -> None:
         from wos.index import generate_index
         from wos.validators import check_all_indexes
 
-        # Create a directory with a file and a synced _index.md
+        # Create a directory with a file and a synced _index.md with preamble
         area = tmp_path / "context" / "testing"
         area.mkdir(parents=True)
         topic = area / "unit-tests.md"
@@ -360,10 +360,12 @@ class TestCheckAllIndexes:
             "---\n# Unit Tests\n"
         )
         index = area / "_index.md"
-        index.write_text(generate_index(area))
+        index.write_text(generate_index(area, preamble="Testing area."))
         # Also create a synced index for the context root
         context_dir = tmp_path / "context"
-        (context_dir / "_index.md").write_text(generate_index(context_dir))
+        (context_dir / "_index.md").write_text(
+            generate_index(context_dir, preamble="All context.")
+        )
 
         issues = check_all_indexes(context_dir)
         assert issues == []
@@ -384,6 +386,47 @@ class TestCheckAllIndexes:
         issues = check_all_indexes(tmp_path / "context")
         assert len(issues) >= 1
         assert any("missing" in i["issue"].lower() for i in issues)
+
+
+class TestCheckPreamble:
+    def test_index_with_preamble_no_warning(self, tmp_path: Path) -> None:
+        from wos.index import generate_index
+        from wos.validators import check_all_indexes
+
+        area = tmp_path / "context" / "api"
+        area.mkdir(parents=True)
+        (area / "auth.md").write_text(
+            "---\nname: Auth\ndescription: Auth docs\n---\n"
+        )
+        index = generate_index(area, preamble="This area covers the API.")
+        (area / "_index.md").write_text(index)
+        (tmp_path / "context" / "_index.md").write_text(
+            generate_index(tmp_path / "context", preamble="All context.")
+        )
+
+        issues = check_all_indexes(tmp_path / "context")
+        warn_issues = [i for i in issues if i["severity"] == "warn"]
+        assert not any("preamble" in i["issue"].lower() for i in warn_issues)
+
+    def test_index_without_preamble_warns(self, tmp_path: Path) -> None:
+        from wos.index import generate_index
+        from wos.validators import check_all_indexes
+
+        area = tmp_path / "context" / "api"
+        area.mkdir(parents=True)
+        (area / "auth.md").write_text(
+            "---\nname: Auth\ndescription: Auth docs\n---\n"
+        )
+        # No preamble
+        index = generate_index(area)
+        (area / "_index.md").write_text(index)
+        (tmp_path / "context" / "_index.md").write_text(
+            generate_index(tmp_path / "context")
+        )
+
+        issues = check_all_indexes(tmp_path / "context")
+        warn_issues = [i for i in issues if i["severity"] == "warn"]
+        assert any("area description" in i["issue"].lower() for i in warn_issues)
 
 
 # ── validate_file ──────────────────────────────────────────────
@@ -427,11 +470,13 @@ class TestValidateProject:
         area.mkdir(parents=True)
         topic = area / "unit-tests.md"
         topic.write_text(_md("Unit Tests", "Guide to unit tests"))
-        # Create synced index for the area
-        (area / "_index.md").write_text(generate_index(area))
-        # Create synced index for context root
+        # Create synced index with preambles for the area
+        (area / "_index.md").write_text(
+            generate_index(area, preamble="Testing area.")
+        )
+        # Create synced index with preamble for context root
         (tmp_path / "context" / "_index.md").write_text(
-            generate_index(tmp_path / "context")
+            generate_index(tmp_path / "context", preamble="All context.")
         )
 
         issues = validate_project(tmp_path, verify_urls=False)

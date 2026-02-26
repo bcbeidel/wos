@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import List
 
 from wos.document import Document, parse_document
-from wos.index import check_index_sync
+from wos.index import _extract_preamble, check_index_sync
 from wos.url_checker import check_urls
 
 # ── Individual checks ──────────────────────────────────────────
@@ -175,6 +175,7 @@ def check_all_indexes(directory: Path) -> List[dict]:
     """Recursively check all _index.md files under a directory.
 
     Walks all subdirectories and runs check_index_sync() on each.
+    Also warns when an _index.md exists but has no preamble.
 
     Args:
         directory: Root directory to walk.
@@ -188,6 +189,15 @@ def check_all_indexes(directory: Path) -> List[dict]:
 
     # Check the directory itself
     issues.extend(check_index_sync(directory))
+
+    # WARN: index exists but has no preamble (area description)
+    index_path = directory / "_index.md"
+    if index_path.is_file() and _extract_preamble(index_path) is None:
+        issues.append({
+            "file": str(index_path),
+            "issue": "Index has no area description (preamble)",
+            "severity": "warn",
+        })
 
     # Recurse into subdirectories
     for entry in sorted(directory.iterdir()):
