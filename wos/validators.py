@@ -74,6 +74,39 @@ def check_frontmatter(doc: Document, context_path: str = "context") -> List[dict
     return issues
 
 
+def check_content(
+    doc: Document,
+    context_path: str = "context",
+    max_words: int = 800,
+) -> List[dict]:
+    """Warn when context files exceed word count threshold.
+
+    Only checks files under context_path. Artifacts and _index.md
+    files are excluded.
+
+    Args:
+        doc: A parsed Document instance.
+        context_path: Path prefix for context files.
+        max_words: Word count threshold (default 800).
+
+    Returns:
+        List of issue dicts. Empty if within threshold.
+    """
+    if not doc.path.startswith(context_path + "/"):
+        return []
+    if doc.path.endswith("_index.md"):
+        return []
+
+    word_count = len(doc.content.split())
+    if word_count > max_words:
+        return [{
+            "file": doc.path,
+            "issue": f"Context file is {word_count} words (threshold: {max_words})",
+            "severity": "warn",
+        }]
+    return []
+
+
 def check_source_urls(doc: Document) -> List[dict]:
     """Check that all URLs in doc.sources are reachable.
 
@@ -204,6 +237,7 @@ def validate_file(
 
     issues: List[dict] = []
     issues.extend(check_frontmatter(doc))
+    issues.extend(check_content(doc))
     if verify_urls:
         issues.extend(check_source_urls(doc))
     issues.extend(check_related_paths(doc, root))

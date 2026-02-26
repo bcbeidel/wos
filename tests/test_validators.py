@@ -134,6 +134,73 @@ class TestCheckFrontmatter:
         assert not any("related" in i["issue"].lower() for i in issues)
 
 
+# ── check_content ─────────────────────────────────────────────
+
+
+class TestCheckContent:
+    def test_short_context_file_no_warning(self) -> None:
+        from wos.validators import check_content
+
+        doc = _make_doc(
+            path="context/api/auth.md",
+            content="Word " * 200,
+        )
+        issues = check_content(doc)
+        assert issues == []
+
+    def test_long_context_file_warns(self) -> None:
+        from wos.validators import check_content
+
+        doc = _make_doc(
+            path="context/api/auth.md",
+            content="Word " * 900,
+        )
+        issues = check_content(doc)
+        assert len(issues) == 1
+        assert issues[0]["severity"] == "warn"
+        assert "900" in issues[0]["issue"]
+
+    def test_artifact_file_no_warning(self) -> None:
+        from wos.validators import check_content
+
+        doc = _make_doc(
+            path="artifacts/research/topic.md",
+            content="Word " * 2000,
+        )
+        issues = check_content(doc)
+        assert issues == []
+
+    def test_index_file_excluded(self) -> None:
+        from wos.validators import check_content
+
+        doc = _make_doc(
+            path="context/api/_index.md",
+            content="Word " * 2000,
+        )
+        issues = check_content(doc)
+        assert issues == []
+
+    def test_custom_max_words(self) -> None:
+        from wos.validators import check_content
+
+        doc = _make_doc(
+            path="context/api/auth.md",
+            content="Word " * 500,
+        )
+        issues = check_content(doc, max_words=400)
+        assert len(issues) == 1
+
+    def test_exactly_at_threshold_no_warning(self) -> None:
+        from wos.validators import check_content
+
+        doc = _make_doc(
+            path="context/api/auth.md",
+            content="Word " * 800,
+        )
+        issues = check_content(doc)
+        assert issues == []
+
+
 # ── check_source_urls ──────────────────────────────────────────
 
 
