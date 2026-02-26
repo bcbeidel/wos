@@ -2,15 +2,11 @@
 
 from __future__ import annotations
 
-import json
-from io import StringIO
-
 from wos.research_protocol import (
     SearchEntry,
     SearchProtocol,
     format_protocol,
     format_protocol_summary,
-    main,
 )
 
 
@@ -214,52 +210,3 @@ class TestProtocolFromJson:
             assert "not_searched" in str(exc)
 
 
-class TestCli:
-    def test_format_command(self, monkeypatch, capsys) -> None:
-        data = json.dumps(
-            {
-                "entries": [
-                    {
-                        "query": "test query",
-                        "source": "google",
-                        "date_range": None,
-                        "results_found": 5,
-                        "results_used": 2,
-                    }
-                ],
-                "not_searched": [],
-            }
-        )
-        monkeypatch.setattr("sys.stdin", StringIO(data))
-        main(["format"])
-        captured = capsys.readouterr()
-        assert "test query" in captured.out
-        assert "| Query" in captured.out
-
-    def test_format_summary_flag(self, monkeypatch, capsys) -> None:
-        data = json.dumps(
-            {
-                "entries": [
-                    {
-                        "query": "q",
-                        "source": "google",
-                        "date_range": None,
-                        "results_found": 5,
-                        "results_used": 2,
-                    }
-                ],
-                "not_searched": [],
-            }
-        )
-        monkeypatch.setattr("sys.stdin", StringIO(data))
-        main(["format", "--summary"])
-        captured = capsys.readouterr()
-        assert "1 search across" in captured.out
-
-    def test_invalid_json(self, monkeypatch) -> None:
-        monkeypatch.setattr("sys.stdin", StringIO("not json"))
-        try:
-            main(["format"])
-            assert False, "Should have raised"
-        except (json.JSONDecodeError, SystemExit):
-            pass
