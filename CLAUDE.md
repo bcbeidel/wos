@@ -21,7 +21,7 @@ Lint:
 ruff check wos/ tests/ scripts/
 ```
 
-Dependencies: `pydantic>=2.0`, `pyyaml>=6.0`, `requests>=2.28` (declared in `pyproject.toml`)
+No runtime dependencies (stdlib only). Dev dependencies in `pyproject.toml`.
 
 Note: `ruff` may not be installed locally; CI runs it via GitHub Actions.
 
@@ -32,18 +32,19 @@ Version bump requires updating all three: `pyproject.toml`,
 
 ### Package Structure
 
-- `wos/` — importable Python package (8 modules)
-  - `document.py` — `Document` dataclass + `parse_document()` (YAML frontmatter parser)
-  - `index.py` — `_index.md` generation + sync checking
-  - `validators.py` — 5 validation checks (frontmatter, research sources, URLs, related paths, index sync)
-  - `url_checker.py` — HTTP HEAD/GET URL reachability
+- `wos/` — importable Python package (9 modules)
+  - `frontmatter.py` — custom YAML subset parser (stdlib-only)
+  - `document.py` — `Document` dataclass + `parse_document()`
+  - `index.py` — `_index.md` generation + sync checking (preamble-preserving)
+  - `validators.py` — 5 validation checks with warn/fail severity (frontmatter, content length, URLs, related paths, index sync)
+  - `url_checker.py` — HTTP HEAD/GET URL reachability (urllib)
   - `agents_md.py` — marker-based AGENTS.md section management
   - `markers.py` — shared marker-based section replacement
   - `preferences.py` — communication preferences capture
-  - `research_protocol.py` — search protocol logging (`SearchEntry`, `SearchProtocol`, formatters, CLI)
+  - `research_protocol.py` — search protocol logging (`SearchEntry`, `SearchProtocol`, formatters)
 - `scripts/` — thin CLI entry points with argparse
-  - `audit.py` — run validation checks (`--root`, `--no-urls`, `--json`, `--fix`)
-  - `reindex.py` — regenerate all `_index.md` files
+  - `audit.py` — run validation checks (`--root`, `--no-urls`, `--json`, `--fix`, `--strict`)
+  - `reindex.py` — regenerate all `_index.md` files (preamble-preserving)
 - `skills/` — skill definitions (SKILL.md + references/) auto-discovered by Claude Code
 - `tests/` — pytest tests
 
@@ -65,24 +66,25 @@ instructions, areas table, metadata format, and communication preferences.
 
 ### Skills
 
-Prefix: `/wos:` (e.g., `/wos:create`, `/wos:audit`). 6 skills:
+Prefix: `/wos:` (e.g., `/wos:create`, `/wos:audit`). 7 skills:
 
 | Skill | Purpose |
 |-------|---------|
 | `/wos:create` | Create project context, areas, or documents |
 | `/wos:audit` | Validate project health (5 checks + auto-fix) |
 | `/wos:research` | SIFT-based research with source verification |
+| `/wos:distill` | Convert research artifacts into focused context files |
 | `/wos:consider` | Mental models for problem analysis |
 | `/wos:report-issue` | File GitHub issues against WOS repo |
 | `/wos:preferences` | Capture communication preferences |
 
-### Validation (5 checks)
+### Validation (5 checks, warn/fail severity)
 
-1. Every `.md` (except `_index.md`) has `name` and `description` in frontmatter
-2. `type: research` documents have non-empty `sources` list
-3. All URLs in `sources` are programmatically reachable
-4. File paths in `related` frontmatter exist on disk
-5. Each `_index.md` matches its directory contents
+1. **Frontmatter** (fail + warn) — `name`/`description` non-empty, research sources, dict source warnings, context `related` field warnings
+2. **Content length** (warn) — context files exceeding 800 words
+3. **Source URLs** (fail) — all URLs in `sources` are programmatically reachable
+4. **Related paths** (fail) — file paths in `related` frontmatter exist on disk
+5. **Index sync** (fail + warn) — `_index.md` matches directory contents, preamble presence
 
 ### Key Entry Points
 

@@ -45,14 +45,18 @@ class TestCheckFrontmatter:
     def test_valid_doc_no_issues(self) -> None:
         from wos.validators import check_frontmatter
 
-        doc = _make_doc(name="Valid", description="A valid document")
+        doc = _make_doc(
+            path="artifacts/research/topic.md",
+            name="Valid",
+            description="A valid document",
+        )
         issues = check_frontmatter(doc)
         assert issues == []
 
     def test_empty_name(self) -> None:
         from wos.validators import check_frontmatter
 
-        doc = _make_doc(name="")
+        doc = _make_doc(path="artifacts/research/topic.md", name="")
         issues = check_frontmatter(doc)
         assert len(issues) == 1
         assert issues[0]["severity"] == "fail"
@@ -62,49 +66,138 @@ class TestCheckFrontmatter:
     def test_empty_description(self) -> None:
         from wos.validators import check_frontmatter
 
-        doc = _make_doc(description="")
+        doc = _make_doc(path="artifacts/research/topic.md", description="")
         issues = check_frontmatter(doc)
         assert len(issues) == 1
         assert issues[0]["severity"] == "fail"
         assert "description" in issues[0]["issue"].lower()
         assert issues[0]["file"] == doc.path
 
+    def test_research_without_sources_fail(self) -> None:
+        from wos.validators import check_frontmatter
 
-# ── check_research_sources ─────────────────────────────────────
+        doc = _make_doc(type="research", sources=[])
+        issues = check_frontmatter(doc)
+        assert any(
+            i["severity"] == "fail" and "sources" in i["issue"].lower()
+            for i in issues
+        )
 
-
-class TestCheckResearchSources:
-    def test_research_with_sources_ok(self) -> None:
-        from wos.validators import check_research_sources
+    def test_research_with_sources_no_source_issue(self) -> None:
+        from wos.validators import check_frontmatter
 
         doc = _make_doc(
             type="research",
             sources=["https://example.com/source"],
         )
-        issues = check_research_sources(doc)
-        assert issues == []
-
-    def test_research_without_sources_fail(self) -> None:
-        from wos.validators import check_research_sources
-
-        doc = _make_doc(type="research", sources=[])
-        issues = check_research_sources(doc)
-        assert len(issues) == 1
-        assert issues[0]["severity"] == "fail"
-        assert "sources" in issues[0]["issue"].lower()
+        issues = check_frontmatter(doc)
+        assert not any("sources" in i["issue"].lower() for i in issues)
 
     def test_non_research_without_sources_ok(self) -> None:
-        from wos.validators import check_research_sources
+        from wos.validators import check_frontmatter
 
         doc = _make_doc(type="topic", sources=[])
-        issues = check_research_sources(doc)
+        issues = check_frontmatter(doc)
+        assert not any("sources" in i["issue"].lower() for i in issues)
+
+    def test_dict_source_warns(self) -> None:
+        from wos.validators import check_frontmatter
+
+        doc = _make_doc(sources=[
+            {"url": "https://example.com", "title": "A"},
+        ])
+        issues = check_frontmatter(doc)
+        assert any(i["severity"] == "warn" for i in issues)
+        assert any("dict" in i["issue"].lower() for i in issues)
+
+    def test_context_file_without_related_warns(self) -> None:
+        from wos.validators import check_frontmatter
+
+        doc = _make_doc(
+            path="context/api/auth.md",
+            related=[],
+        )
+        issues = check_frontmatter(doc)
+        assert any(
+            i["severity"] == "warn" and "related" in i["issue"].lower()
+            for i in issues
+        )
+
+    def test_artifact_file_without_related_no_warn(self) -> None:
+        from wos.validators import check_frontmatter
+
+        doc = _make_doc(
+            path="artifacts/research/topic.md",
+            related=[],
+        )
+        issues = check_frontmatter(doc)
+        assert not any("related" in i["issue"].lower() for i in issues)
+
+
+# ── check_content ─────────────────────────────────────────────
+
+
+class TestCheckContent:
+    def test_short_context_file_no_warning(self) -> None:
+        from wos.validators import check_content
+
+        doc = _make_doc(
+            path="context/api/auth.md",
+            content="Word " * 200,
+        )
+        issues = check_content(doc)
         assert issues == []
 
-    def test_no_type_without_sources_ok(self) -> None:
-        from wos.validators import check_research_sources
+    def test_long_context_file_warns(self) -> None:
+        from wos.validators import check_content
 
-        doc = _make_doc(type=None, sources=[])
-        issues = check_research_sources(doc)
+        doc = _make_doc(
+            path="context/api/auth.md",
+            content="Word " * 900,
+        )
+        issues = check_content(doc)
+        assert len(issues) == 1
+        assert issues[0]["severity"] == "warn"
+        assert "900" in issues[0]["issue"]
+
+    def test_artifact_file_no_warning(self) -> None:
+        from wos.validators import check_content
+
+        doc = _make_doc(
+            path="artifacts/research/topic.md",
+            content="Word " * 2000,
+        )
+        issues = check_content(doc)
+        assert issues == []
+
+    def test_index_file_excluded(self) -> None:
+        from wos.validators import check_content
+
+        doc = _make_doc(
+            path="context/api/_index.md",
+            content="Word " * 2000,
+        )
+        issues = check_content(doc)
+        assert issues == []
+
+    def test_custom_max_words(self) -> None:
+        from wos.validators import check_content
+
+        doc = _make_doc(
+            path="context/api/auth.md",
+            content="Word " * 500,
+        )
+        issues = check_content(doc, max_words=400)
+        assert len(issues) == 1
+
+    def test_exactly_at_threshold_no_warning(self) -> None:
+        from wos.validators import check_content
+
+        doc = _make_doc(
+            path="context/api/auth.md",
+            content="Word " * 800,
+        )
+        issues = check_content(doc)
         assert issues == []
 
 
@@ -253,11 +346,11 @@ class TestCheckRelatedPaths:
 
 
 class TestCheckAllIndexes:
-    def test_synced_index(self, tmp_path: Path) -> None:
+    def test_synced_index_with_preamble(self, tmp_path: Path) -> None:
         from wos.index import generate_index
         from wos.validators import check_all_indexes
 
-        # Create a directory with a file and a synced _index.md
+        # Create a directory with a file and a synced _index.md with preamble
         area = tmp_path / "context" / "testing"
         area.mkdir(parents=True)
         topic = area / "unit-tests.md"
@@ -267,10 +360,12 @@ class TestCheckAllIndexes:
             "---\n# Unit Tests\n"
         )
         index = area / "_index.md"
-        index.write_text(generate_index(area))
+        index.write_text(generate_index(area, preamble="Testing area."))
         # Also create a synced index for the context root
         context_dir = tmp_path / "context"
-        (context_dir / "_index.md").write_text(generate_index(context_dir))
+        (context_dir / "_index.md").write_text(
+            generate_index(context_dir, preamble="All context.")
+        )
 
         issues = check_all_indexes(context_dir)
         assert issues == []
@@ -291,6 +386,47 @@ class TestCheckAllIndexes:
         issues = check_all_indexes(tmp_path / "context")
         assert len(issues) >= 1
         assert any("missing" in i["issue"].lower() for i in issues)
+
+
+class TestCheckPreamble:
+    def test_index_with_preamble_no_warning(self, tmp_path: Path) -> None:
+        from wos.index import generate_index
+        from wos.validators import check_all_indexes
+
+        area = tmp_path / "context" / "api"
+        area.mkdir(parents=True)
+        (area / "auth.md").write_text(
+            "---\nname: Auth\ndescription: Auth docs\n---\n"
+        )
+        index = generate_index(area, preamble="This area covers the API.")
+        (area / "_index.md").write_text(index)
+        (tmp_path / "context" / "_index.md").write_text(
+            generate_index(tmp_path / "context", preamble="All context.")
+        )
+
+        issues = check_all_indexes(tmp_path / "context")
+        warn_issues = [i for i in issues if i["severity"] == "warn"]
+        assert not any("preamble" in i["issue"].lower() for i in warn_issues)
+
+    def test_index_without_preamble_warns(self, tmp_path: Path) -> None:
+        from wos.index import generate_index
+        from wos.validators import check_all_indexes
+
+        area = tmp_path / "context" / "api"
+        area.mkdir(parents=True)
+        (area / "auth.md").write_text(
+            "---\nname: Auth\ndescription: Auth docs\n---\n"
+        )
+        # No preamble
+        index = generate_index(area)
+        (area / "_index.md").write_text(index)
+        (tmp_path / "context" / "_index.md").write_text(
+            generate_index(tmp_path / "context")
+        )
+
+        issues = check_all_indexes(tmp_path / "context")
+        warn_issues = [i for i in issues if i["severity"] == "warn"]
+        assert any("area description" in i["issue"].lower() for i in warn_issues)
 
 
 # ── validate_file ──────────────────────────────────────────────
@@ -334,11 +470,13 @@ class TestValidateProject:
         area.mkdir(parents=True)
         topic = area / "unit-tests.md"
         topic.write_text(_md("Unit Tests", "Guide to unit tests"))
-        # Create synced index for the area
-        (area / "_index.md").write_text(generate_index(area))
-        # Create synced index for context root
+        # Create synced index with preambles for the area
+        (area / "_index.md").write_text(
+            generate_index(area, preamble="Testing area.")
+        )
+        # Create synced index with preamble for context root
         (tmp_path / "context" / "_index.md").write_text(
-            generate_index(tmp_path / "context")
+            generate_index(tmp_path / "context", preamble="All context.")
         )
 
         issues = validate_project(tmp_path, verify_urls=False)

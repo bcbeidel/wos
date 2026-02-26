@@ -9,9 +9,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Optional
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
-
-import requests
+from urllib.request import Request, urlopen
 
 
 @dataclass
@@ -33,7 +33,7 @@ def check_url(url: str) -> UrlCheckResult:
 
     - Non-HTTP URLs (ftp://, etc.) return reachable=False immediately.
     - HTTP HEAD request with 10s timeout.
-    - If HEAD returns 405, falls back to GET with stream=True.
+    - If HEAD returns 405, falls back to GET.
     - 2xx/3xx = reachable, 4xx/5xx = unreachable.
     - Connection errors / timeouts return status=0, reachable=False.
     """
@@ -49,43 +49,64 @@ def check_url(url: str) -> UrlCheckResult:
 
     # Try HEAD first
     try:
-        resp = requests.head(url, timeout=_TIMEOUT, headers=_HEADERS)
-    except requests.ConnectionError as exc:
+        req = Request(url, method="HEAD", headers=_HEADERS)
+        resp = urlopen(req, timeout=_TIMEOUT)
+        status = resp.status
+    except HTTPError as exc:
+        if exc.code == 405:
+            # HEAD not allowed — fall back to GET
+            return _try_get(url)
         return UrlCheckResult(
-            url=url, status=0, reachable=False, reason=str(exc)
+            url=url,
+            status=exc.code,
+            reachable=False,
+            reason=f"HTTP {exc.code}",
         )
-    except requests.Timeout as exc:
+    except URLError as exc:
         return UrlCheckResult(
-            url=url, status=0, reachable=False, reason=str(exc)
+            url=url, status=0, reachable=False, reason=str(exc.reason)
         )
-    except requests.RequestException as exc:
+    except Exception as exc:
         return UrlCheckResult(
             url=url, status=0, reachable=False, reason=str(exc)
         )
 
-    # HEAD returned 405 — retry with GET (stream to avoid downloading body)
-    if resp.status_code == 405:
-        try:
-            resp = requests.get(
-                url, timeout=_TIMEOUT, stream=True, headers=_HEADERS
-            )
-        except requests.RequestException as exc:
-            return UrlCheckResult(
-                url=url, status=0, reachable=False, reason=str(exc)
-            )
-
-    status = resp.status_code
-
-    # 2xx and 3xx are reachable
+    # 2xx and 3xx are reachable (urllib follows redirects, so we mostly see 2xx)
     if 200 <= status < 400:
         return UrlCheckResult(url=url, status=status, reachable=True)
 
-    # 4xx and 5xx are unreachable
     return UrlCheckResult(
         url=url,
         status=status,
         reachable=False,
         reason=f"HTTP {status}",
+    )
+
+
+def _try_get(url: str) -> UrlCheckResult:
+    """Fallback GET request when HEAD returns 405."""
+    try:
+        req = Request(url, headers=_HEADERS)
+        resp = urlopen(req, timeout=_TIMEOUT)
+        status = resp.status
+    except HTTPError as exc:
+        return UrlCheckResult(
+            url=url,
+            status=exc.code,
+            reachable=False,
+            reason=f"HTTP {exc.code}",
+        )
+    except (URLError, Exception) as exc:
+        reason = str(exc.reason) if hasattr(exc, "reason") else str(exc)
+        return UrlCheckResult(
+            url=url, status=0, reachable=False, reason=reason
+        )
+
+    if 200 <= status < 400:
+        return UrlCheckResult(url=url, status=status, reachable=True)
+
+    return UrlCheckResult(
+        url=url, status=status, reachable=False, reason=f"HTTP {status}",
     )
 
 

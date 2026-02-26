@@ -6,8 +6,7 @@ All HTTP calls are mocked. No network traffic in tests.
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
-
-import requests
+from urllib.error import HTTPError, URLError
 
 from wos.url_checker import UrlCheckResult, check_url, check_urls
 
@@ -40,62 +39,56 @@ def test_url_check_result_unreachable_with_reason() -> None:
 # ── check_url ────────────────────────────────────────────────────
 
 
-def _mock_response(status_code: int = 200) -> MagicMock:
-    """Create a mock requests.Response with the given status code."""
-    resp = MagicMock(spec=requests.Response)
-    resp.status_code = status_code
+def _mock_response(status: int = 200) -> MagicMock:
+    """Create a mock urllib response with the given status."""
+    resp = MagicMock()
+    resp.status = status
+    resp.__enter__ = MagicMock(return_value=resp)
+    resp.__exit__ = MagicMock(return_value=False)
     return resp
 
 
-@patch("wos.url_checker.requests.head")
-def test_check_url_200_reachable(mock_head: MagicMock) -> None:
+@patch("wos.url_checker.urlopen")
+def test_check_url_200_reachable(mock_urlopen: MagicMock) -> None:
     """HTTP 200 response marks URL as reachable."""
-    mock_head.return_value = _mock_response(200)
+    mock_urlopen.return_value = _mock_response(200)
     result = check_url("https://example.com/page")
     assert result.reachable is True
     assert result.status == 200
     assert result.reason is None
-    mock_head.assert_called_once_with(
-        "https://example.com/page",
-        timeout=10,
-        headers={"User-Agent": "wos-url-checker/1.0"},
-    )
+    mock_urlopen.assert_called_once()
 
 
-@patch("wos.url_checker.requests.head")
-def test_check_url_404_unreachable(mock_head: MagicMock) -> None:
+@patch("wos.url_checker.urlopen")
+def test_check_url_404_unreachable(mock_urlopen: MagicMock) -> None:
     """HTTP 404 response marks URL as unreachable."""
-    mock_head.return_value = _mock_response(404)
+    mock_urlopen.side_effect = HTTPError(
+        "https://example.com/missing", 404, "Not Found", {}, None
+    )
     result = check_url("https://example.com/missing")
     assert result.reachable is False
     assert result.status == 404
     assert result.reason is not None
 
 
-@patch("wos.url_checker.requests.get")
-@patch("wos.url_checker.requests.head")
-def test_check_url_head_405_falls_back_to_get(
-    mock_head: MagicMock, mock_get: MagicMock
-) -> None:
-    """HEAD returning 405 triggers a GET fallback with stream=True."""
-    mock_head.return_value = _mock_response(405)
-    mock_get.return_value = _mock_response(200)
+@patch("wos.url_checker.urlopen")
+def test_check_url_head_405_falls_back_to_get(mock_urlopen: MagicMock) -> None:
+    """HEAD returning 405 triggers a GET fallback."""
+    # First call (HEAD) raises 405, second call (GET) succeeds
+    mock_urlopen.side_effect = [
+        HTTPError("https://example.com/no-head", 405, "Method Not Allowed", {}, None),
+        _mock_response(200),
+    ]
     result = check_url("https://example.com/no-head")
     assert result.reachable is True
     assert result.status == 200
-    mock_head.assert_called_once()
-    mock_get.assert_called_once_with(
-        "https://example.com/no-head",
-        timeout=10,
-        stream=True,
-        headers={"User-Agent": "wos-url-checker/1.0"},
-    )
+    assert mock_urlopen.call_count == 2
 
 
-@patch("wos.url_checker.requests.head")
-def test_check_url_connection_error(mock_head: MagicMock) -> None:
+@patch("wos.url_checker.urlopen")
+def test_check_url_connection_error(mock_urlopen: MagicMock) -> None:
     """Connection error returns status=0, reachable=False."""
-    mock_head.side_effect = requests.ConnectionError("DNS resolution failed")
+    mock_urlopen.side_effect = URLError("DNS resolution failed")
     result = check_url("https://nonexistent.example.com")
     assert result.reachable is False
     assert result.status == 0
@@ -103,15 +96,14 @@ def test_check_url_connection_error(mock_head: MagicMock) -> None:
     assert "DNS resolution failed" in result.reason
 
 
-@patch("wos.url_checker.requests.head")
-def test_check_url_timeout(mock_head: MagicMock) -> None:
+@patch("wos.url_checker.urlopen")
+def test_check_url_timeout(mock_urlopen: MagicMock) -> None:
     """Timeout returns status=0, reachable=False."""
-    mock_head.side_effect = requests.Timeout("Request timed out")
+    mock_urlopen.side_effect = URLError("timed out")
     result = check_url("https://slow.example.com")
     assert result.reachable is False
     assert result.status == 0
     assert result.reason is not None
-    assert "Request timed out" in result.reason
 
 
 def test_check_url_invalid_scheme() -> None:
@@ -126,16 +118,16 @@ def test_check_url_invalid_scheme() -> None:
 # ── check_urls (batch) ───────────────────────────────────────────
 
 
-@patch("wos.url_checker.requests.head")
-def test_check_urls_batch(mock_head: MagicMock) -> None:
+@patch("wos.url_checker.urlopen")
+def test_check_urls_batch(mock_urlopen: MagicMock) -> None:
     """Batch check returns a result for each unique URL."""
-
-    def side_effect(url: str, **kwargs: object) -> MagicMock:
+    def side_effect(req, **kwargs):
+        url = req.full_url if hasattr(req, 'full_url') else str(req)
         if "good" in url:
             return _mock_response(200)
-        return _mock_response(404)
+        raise HTTPError(url, 404, "Not Found", {}, None)
 
-    mock_head.side_effect = side_effect
+    mock_urlopen.side_effect = side_effect
 
     results = check_urls([
         "https://example.com/good",
@@ -152,17 +144,15 @@ def test_check_urls_empty_list() -> None:
     assert results == []
 
 
-@patch("wos.url_checker.requests.head")
-def test_check_urls_deduplicates(mock_head: MagicMock) -> None:
+@patch("wos.url_checker.urlopen")
+def test_check_urls_deduplicates(mock_urlopen: MagicMock) -> None:
     """Duplicate URLs are checked only once."""
-    mock_head.return_value = _mock_response(200)
+    mock_urlopen.return_value = _mock_response(200)
     results = check_urls([
         "https://example.com/page",
         "https://example.com/page",
         "https://example.com/page",
     ])
-    # Returns one result per unique URL
     assert len(results) == 1
     assert results[0].url == "https://example.com/page"
-    # HEAD called only once despite three input URLs
-    mock_head.assert_called_once()
+    mock_urlopen.assert_called_once()

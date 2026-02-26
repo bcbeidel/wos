@@ -242,17 +242,19 @@ restructures it for the final reader and runs validation.
 
 2. **Format the search protocol.** Extract the search protocol JSON from
    the `<!-- search-protocol ... -->` comment in the document. Format it
-   using:
+   as a markdown table directly in the document. Use this format:
 
-```bash
-echo '<protocol_json>' | PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -m wos.research_protocol format
+```markdown
+| Query | Source | Date Range | Found | Used |
+|-------|--------|------------|-------|------|
+| search terms | google | 2024-2026 | 12 | 3 |
 ```
+
+   Include a one-line summary near the top: `N searches across M sources, X results found, Y used`
 
    Replace the `## Search Protocol (WIP)` section and its
    `<!-- search-protocol ... -->` comment with the rendered markdown table
    under a final `## Search Protocol` heading (drop the "(WIP)" suffix).
-   Add the summary line (using `--summary` flag) near the top of the
-   document.
 
 3. **Remove the `<!-- DRAFT -->` marker** from the document.
 
@@ -265,7 +267,7 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/reindex.py" --root .
 5. **Validate the document:**
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/validate.py" <file> --root . --no-urls
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/audit.py" <file> --root . --no-urls
 ```
 
 ## Quality Checklist
@@ -282,4 +284,4 @@ Before removing the `<!-- DRAFT -->` marker, verify:
 - [ ] Search protocol section present with all searches logged
 - [ ] Implications connected to the user's context
 - [ ] Document passes validation:
-  `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/validate.py" <file> --root . --no-urls`
+  `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/audit.py" <file> --root . --no-urls`

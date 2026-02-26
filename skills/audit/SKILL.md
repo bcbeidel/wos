@@ -23,65 +23,66 @@ python3 scripts/audit.py --root .
 # Skip URL reachability checks (fast, offline-friendly)
 python3 scripts/audit.py --root . --no-urls
 
+# Validate a single file
+python3 scripts/audit.py path/to/file.md --root . --no-urls
+
 # JSON output for programmatic use
 python3 scripts/audit.py --root . --json
 
 # Auto-fix out-of-sync or missing _index.md files
 python3 scripts/audit.py --root . --fix
+
+# Exit 1 on any issue (including warnings)
+python3 scripts/audit.py --root . --strict
+
+# Custom word count threshold for context files (default: 800)
+python3 scripts/audit.py --root . --context-max-words 500
 ```
 
-Exit code: 0 if no issues, 1 if any issues found.
+Exit code: 1 if any `fail`, 0 if only `warn`. Use `--strict` to exit 1 on any issue.
 
-## The 5 Checks
+## The Checks
 
-### 1. Frontmatter Validation
+### 1. Frontmatter Validation (fail + warn)
 
-Verifies that every document has non-empty `name` and `description` fields
-in its YAML frontmatter.
+Verifies:
+- **fail:** `name` and `description` are non-empty
+- **fail:** `type: research` documents have a non-empty `sources` list
+- **warn:** Source items should be URL strings, not dicts
+- **warn:** Context files should have `related` fields
 
-**Failure:** `Frontmatter 'name' is empty` or `Frontmatter 'description' is empty`
-**Fix:** Add or fill in the missing frontmatter field.
+### 2. Content Length (warn)
 
-### 2. Research Sources
+Warns when context files exceed 800 words (configurable via `--context-max-words`).
+Artifacts and `_index.md` files are excluded.
 
-Verifies that documents with `type: research` have a non-empty `sources` list.
+### 3. Source URL Reachability (fail)
 
-**Failure:** `Research document has no sources`
-**Fix:** Add a `sources:` list with at least one verified URL to the frontmatter.
+Checks that every URL in `sources` is reachable via HTTP.
+Skipped with `--no-urls`.
 
-### 3. Source URL Reachability
+### 4. Related Path Validation (fail)
 
-Checks that every URL in a document's `sources` list is reachable via HTTP.
-Skipped when `--no-urls` is passed.
+Checks that local file paths in `related` exist on disk.
 
-**Failure:** `Source URL unreachable: <url> (<reason>)`
-**Fix:** Replace the dead URL with a working one, or remove it if the source
-no longer exists.
+### 5. Index Sync (fail + warn)
 
-### 4. Related Path Validation
-
-Checks that every local file path in a document's `related` list exists on
-disk. URLs (http/https) are skipped -- only file paths are validated.
-
-**Failure:** `Related path does not exist: <path>`
-**Fix:** Correct the path, or remove the entry if the related file was deleted.
-
-### 5. Index Sync
-
-Checks that every directory containing markdown files has an `_index.md` that
-accurately lists all files and subdirectories.
-
-**Failure:** `_index.md missing` or `_index.md out of sync`
-**Fix:** Run `python3 scripts/audit.py --root . --fix` to regenerate, or
-run `python3 scripts/reindex.py --root .` to regenerate all indexes.
+- **fail:** `_index.md` missing or out of sync
+- **warn:** `_index.md` has no area description (preamble)
 
 ## Interpreting Results
 
-Each issue is reported as:
+Summary line first, then table:
 
 ```
-[FAIL] <file>: <issue description>
+2 fail, 1 warn across 15 files
+
+file                              | sev  | issue
+context/api/auth.md               | fail | Frontmatter 'name' is empty
+context/api/_index.md             | warn | Index has no area description (preamble)
 ```
+
+Exit code: 1 if any `fail`, 0 if only `warn`. Use `--strict` to exit 1 on any issue.
 
 With `--json`, output is a JSON array of objects:
 
@@ -95,7 +96,7 @@ With `--json`, output is a JSON array of objects:
 ]
 ```
 
-All issues have severity `fail`. A clean project produces:
+A clean project produces:
 
 ```
 All checks passed.

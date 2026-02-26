@@ -6,15 +6,15 @@ automatically by Claude Code when the plugin is active.
 
 ## Validate a Single Document
 
-Runs all 4 checks: frontmatter, research sources, source URLs, related paths.
+Runs all checks: frontmatter, content length, source URLs, related paths.
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/validate.py" <file> [--root DIR] [--no-urls]
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/audit.py" <file> [--root DIR] [--no-urls]
 ```
 
 Example:
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/validate.py" artifacts/research/2026-02-25-my-research.md --no-urls
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/audit.py" artifacts/research/2026-02-25-my-research.md --root . --no-urls
 ```
 
 Output on success:
@@ -24,15 +24,18 @@ All checks passed.
 
 Output on failure:
 ```
-[FAIL] artifacts/research/my-research.md: Research document has no sources
+1 fail, 0 warn across 1 files
+
+file                                     | sev  | issue
+artifacts/research/my-research.md        | fail | Research document has no sources
 ```
 
 ## Validate Entire Project
 
-Runs all 5 checks across `context/` and `artifacts/`.
+Runs all checks across `context/` and `artifacts/`.
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/audit.py" [--root DIR] [--no-urls] [--json] [--fix]
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/audit.py" [--root DIR] [--no-urls] [--json] [--fix] [--strict]
 ```
 
 ## Regenerate Index Files
@@ -41,63 +44,6 @@ Regenerate all `_index.md` files under `context/` and `artifacts/`.
 
 ```bash
 python3 "${CLAUDE_PLUGIN_ROOT}/scripts/reindex.py" [--root DIR]
-```
-
-## Format Search Protocol
-
-Renders a search protocol JSON as a markdown table.
-
-```bash
-echo '<json>' | PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -m wos.research_protocol format
-echo '<json>' | PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -m wos.research_protocol format --summary
-```
-
-### Search Protocol JSON Schema
-
-```json
-{
-  "entries": [
-    {
-      "query": "search terms used",
-      "source": "google",
-      "date_range": "2024-2026 or null",
-      "results_found": 12,
-      "results_used": 3
-    }
-  ],
-  "not_searched": [
-    "Google Scholar - covered by direct source fetching",
-    "PubMed - topic is not biomedical"
-  ]
-}
-```
-
-**Fields:**
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `entries[].query` | string | Search terms used |
-| `entries[].source` | string | Search engine (e.g., `google`, `scholar`, `github`, `docs`) |
-| `entries[].date_range` | string or null | Date filter applied (e.g., `"2024-2026"`) |
-| `entries[].results_found` | int | Total results returned |
-| `entries[].results_used` | int | Results kept for evaluation |
-| `not_searched` | list of strings | Sources not searched, with reason (e.g., `"Reddit - not relevant to topic"`) |
-
-### Example Output (table)
-
-```
-| Query | Source | Date Range | Found | Used |
-|-------|--------|------------|-------|------|
-| python asyncio patterns | google | 2024-2026 | 12 | 3 |
-| asyncio best practices | google | — | 8 | 2 |
-
-**Not searched:** Google Scholar - covered by direct source fetching
-```
-
-### Example Output (summary)
-
-```
-2 searches across 1 source, 20 results found, 5 used
 ```
 
 ## Document Model

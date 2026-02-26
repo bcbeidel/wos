@@ -8,7 +8,7 @@ description: >
   a structured investigation and produce a research document.
 argument-hint: "[topic or question to investigate]"
 user-invocable: true
-compatibility: "Requires Python 3, WOS plugin (url_checker, validate, reindex), WebSearch, WebFetch"
+compatibility: "Requires Python 3 (stdlib only), WOS plugin (audit, reindex), WebSearch, WebFetch"
 ---
 
 # Research Skill
@@ -53,7 +53,7 @@ Each phase ends with a checkpoint. Do not proceed until the gate is met.
 | 3. Verify -> 4. Challenge | Sources table has Tier + Status columns | Read the file |
 | 4. Challenge -> 5. Synthesize | `## Challenge` section exists on disk | Read the file |
 | 5. Synthesize -> 6. Finalize | `## Findings` section exists on disk | Read the file |
-| 6. Finalize -> Done | `<!-- DRAFT -->` removed, validate passes | Run validate |
+| 6. Finalize -> Done | `<!-- DRAFT -->` removed, audit passes | Run audit |
 
 STOP at each gate. If the condition is not met, complete it before proceeding.
 
@@ -119,8 +119,8 @@ for that.
   check and premortem run on every mode. ACH runs on deep-dive, options,
   competitive, and feasibility. See `references/challenge-phase.md`.
 - **Log search protocol.** Record every search during Phase 2 (Gather).
-  Format with `python3 -m wos.research_protocol format` and include in
-  the final document. See `references/research-workflow.md` Phase 2.
+  Format as a markdown table and include in the final document.
+  See `references/research-workflow.md` Phase 2.
 - **Confidence levels on every finding.** Annotate each finding as HIGH,
   MODERATE, or LOW based on source convergence and tier. See
   `references/research-workflow.md` Phase 5.

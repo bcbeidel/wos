@@ -14,22 +14,25 @@ from pathlib import Path
 from typing import List
 
 from wos.document import Document, parse_document
-from wos.index import check_index_sync
+from wos.index import _extract_preamble, check_index_sync
 from wos.url_checker import check_urls
 
 # ── Individual checks ──────────────────────────────────────────
 
 
-def check_frontmatter(doc: Document) -> List[dict]:
-    """Check that name and description are non-empty strings.
+def check_frontmatter(doc: Document, context_path: str = "context") -> List[dict]:
+    """Check frontmatter fields: required fields, research sources, type issues.
 
     Args:
         doc: A parsed Document instance.
+        context_path: Path prefix for context files (for related-field check).
 
     Returns:
-        List of issue dicts. Empty if valid.
+        List of issue dicts with severity 'fail' or 'warn'.
     """
     issues: List[dict] = []
+
+    # FAIL: required fields
     if not doc.name or not doc.name.strip():
         issues.append({
             "file": doc.path,
@@ -42,27 +45,64 @@ def check_frontmatter(doc: Document) -> List[dict]:
             "issue": "Frontmatter 'description' is empty",
             "severity": "fail",
         })
-    return issues
 
-
-def check_research_sources(doc: Document) -> List[dict]:
-    """Check that research documents have non-empty sources.
-
-    Non-research documents (or documents without a type) always pass.
-
-    Args:
-        doc: A parsed Document instance.
-
-    Returns:
-        List of issue dicts. Empty if valid.
-    """
-    if doc.type != "research":
-        return []
-    if not doc.sources:
-        return [{
+    # FAIL: research documents must have sources
+    if doc.type == "research" and not doc.sources:
+        issues.append({
             "file": doc.path,
             "issue": "Research document has no sources",
             "severity": "fail",
+        })
+
+    # WARN: source items should be strings, not dicts
+    for idx, source in enumerate(doc.sources):
+        if isinstance(source, dict):
+            issues.append({
+                "file": doc.path,
+                "issue": f"sources[{idx}] is a dict, expected a URL string",
+                "severity": "warn",
+            })
+
+    # WARN: context files should have related fields
+    if doc.path.startswith(context_path + "/") and not doc.related:
+        issues.append({
+            "file": doc.path,
+            "issue": "Context file has no related fields",
+            "severity": "warn",
+        })
+
+    return issues
+
+
+def check_content(
+    doc: Document,
+    context_path: str = "context",
+    max_words: int = 800,
+) -> List[dict]:
+    """Warn when context files exceed word count threshold.
+
+    Only checks files under context_path. Artifacts and _index.md
+    files are excluded.
+
+    Args:
+        doc: A parsed Document instance.
+        context_path: Path prefix for context files.
+        max_words: Word count threshold (default 800).
+
+    Returns:
+        List of issue dicts. Empty if within threshold.
+    """
+    if not doc.path.startswith(context_path + "/"):
+        return []
+    if doc.path.endswith("_index.md"):
+        return []
+
+    word_count = len(doc.content.split())
+    if word_count > max_words:
+        return [{
+            "file": doc.path,
+            "issue": f"Context file is {word_count} words (threshold: {max_words})",
+            "severity": "warn",
         }]
     return []
 
@@ -135,6 +175,7 @@ def check_all_indexes(directory: Path) -> List[dict]:
     """Recursively check all _index.md files under a directory.
 
     Walks all subdirectories and runs check_index_sync() on each.
+    Also warns when an _index.md exists but has no preamble.
 
     Args:
         directory: Root directory to walk.
@@ -148,6 +189,15 @@ def check_all_indexes(directory: Path) -> List[dict]:
 
     # Check the directory itself
     issues.extend(check_index_sync(directory))
+
+    # WARN: index exists but has no preamble (area description)
+    index_path = directory / "_index.md"
+    if index_path.is_file() and _extract_preamble(index_path) is None:
+        issues.append({
+            "file": str(index_path),
+            "issue": "Index has no area description (preamble)",
+            "severity": "warn",
+        })
 
     # Recurse into subdirectories
     for entry in sorted(directory.iterdir()):
@@ -197,7 +247,7 @@ def validate_file(
 
     issues: List[dict] = []
     issues.extend(check_frontmatter(doc))
-    issues.extend(check_research_sources(doc))
+    issues.extend(check_content(doc))
     if verify_urls:
         issues.extend(check_source_urls(doc))
     issues.extend(check_related_paths(doc, root))

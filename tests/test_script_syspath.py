@@ -66,14 +66,14 @@ class TestReindexSysPath:
         assert "reindex" in result.stdout.lower() or "_index.md" in result.stdout
 
 
-class TestValidateSysPath:
-    def test_validate_runs_from_different_cwd(self, tmp_path: Path) -> None:
-        """validate.py should work when CWD is not the plugin root."""
+class TestAuditSingleFileSysPath:
+    def test_audit_single_file_from_different_cwd(self, tmp_path: Path) -> None:
+        """audit.py FILE should work when CWD is not the plugin root."""
         doc = tmp_path / "test.md"
         doc.write_text("---\nname: Test\ndescription: A test\n---\nBody\n")
         result = subprocess.run(
             [
-                sys.executable, str(SCRIPTS_DIR / "validate.py"),
+                sys.executable, str(SCRIPTS_DIR / "audit.py"),
                 str(doc), "--root", str(tmp_path), "--no-urls",
             ],
             capture_output=True,

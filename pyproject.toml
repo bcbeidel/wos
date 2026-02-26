@@ -4,14 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wos"
-version = "0.3.6"
+version = "0.4.0"
 description = "Claude Code plugin for building and maintaining structured knowledge bases"
 requires-python = ">=3.9"
-dependencies = [
-    "pydantic>=2.0",
-    "pyyaml>=6.0",
-    "requests>=2.28",
-]
+dependencies = []
 
 [project.optional-dependencies]
 dev = [
