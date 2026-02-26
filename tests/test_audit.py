@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 
 def _run_audit(*args: str, issues: list[dict] | None = None) -> tuple[str, str, int]:
-    """Run audit.main() with the given CLI args, returning (stdout, stderr, exitcode)."""
+    """Run audit.main() with given CLI args, returning (stdout, stderr, exitcode)."""
     captured_stdout = StringIO()
     captured_stderr = StringIO()
     exit_code = 0

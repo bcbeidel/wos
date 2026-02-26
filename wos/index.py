@@ -75,7 +75,7 @@ def _extract_preamble(index_path: Path) -> Optional[str]:
 
     # Extract lines between heading and table, strip blanks
     preamble_lines = [
-        l for l in lines[heading_idx + 1:table_idx] if l.strip()
+        line for line in lines[heading_idx + 1:table_idx] if line.strip()
     ]
     if not preamble_lines:
         return None

@@ -290,11 +290,11 @@ class TestPreamble:
         assert "This area covers testing." in result
         heading_idx = 0
         table_idx = next(
-            i for i, l in enumerate(lines) if l.startswith("| File")
+            i for i, line in enumerate(lines) if line.startswith("| File")
         )
         preamble_idx = next(
-            i for i, l in enumerate(lines)
-            if "This area covers testing." in l
+            i for i, line in enumerate(lines)
+            if "This area covers testing." in line
         )
         assert heading_idx < preamble_idx < table_idx
 
@@ -311,13 +311,13 @@ class TestPreamble:
         # No blank line with text between heading and table
         assert lines[0].startswith("# ")
         # Next non-empty line should be table header
-        non_empty = [l for l in lines[1:] if l.strip()]
+        non_empty = [line for line in lines[1:] if line.strip()]
         assert non_empty[0].startswith("| File")
 
     def test_preamble_preserved_during_regeneration(
         self, tmp_path: Path
     ) -> None:
-        from wos.index import generate_index, _extract_preamble
+        from wos.index import _extract_preamble, generate_index
 
         (tmp_path / "doc.md").write_text(
             "---\nname: Doc\ndescription: A document\n---\n# Doc\n"

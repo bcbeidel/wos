@@ -28,7 +28,7 @@ def main() -> None:
     args = parser.parse_args()
 
     # Deferred import — keeps --help fast
-    from wos.index import generate_index, _extract_preamble
+    from wos.index import _extract_preamble, generate_index
 
     root = Path(args.root).resolve()
 

@@ -2,7 +2,8 @@
 """Run WOS validation checks on a project.
 
 Usage:
-    python3 scripts/audit.py [FILE] [--root DIR] [--no-urls] [--json] [--fix] [--strict] [--context-max-words N]
+    python3 scripts/audit.py [FILE] [--root DIR] [--no-urls] [--json]
+                             [--fix] [--strict] [--context-max-words N]
 """
 from __future__ import annotations
 
