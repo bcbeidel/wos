@@ -20,16 +20,19 @@ from wos.url_checker import check_urls
 # ── Individual checks ──────────────────────────────────────────
 
 
-def check_frontmatter(doc: Document) -> List[dict]:
-    """Check that name and description are non-empty strings.
+def check_frontmatter(doc: Document, context_path: str = "context") -> List[dict]:
+    """Check frontmatter fields: required fields, research sources, type issues.
 
     Args:
         doc: A parsed Document instance.
+        context_path: Path prefix for context files (for related-field check).
 
     Returns:
-        List of issue dicts. Empty if valid.
+        List of issue dicts with severity 'fail' or 'warn'.
     """
     issues: List[dict] = []
+
+    # FAIL: required fields
     if not doc.name or not doc.name.strip():
         issues.append({
             "file": doc.path,
@@ -42,29 +45,33 @@ def check_frontmatter(doc: Document) -> List[dict]:
             "issue": "Frontmatter 'description' is empty",
             "severity": "fail",
         })
-    return issues
 
-
-def check_research_sources(doc: Document) -> List[dict]:
-    """Check that research documents have non-empty sources.
-
-    Non-research documents (or documents without a type) always pass.
-
-    Args:
-        doc: A parsed Document instance.
-
-    Returns:
-        List of issue dicts. Empty if valid.
-    """
-    if doc.type != "research":
-        return []
-    if not doc.sources:
-        return [{
+    # FAIL: research documents must have sources
+    if doc.type == "research" and not doc.sources:
+        issues.append({
             "file": doc.path,
             "issue": "Research document has no sources",
             "severity": "fail",
-        }]
-    return []
+        })
+
+    # WARN: source items should be strings, not dicts
+    for idx, source in enumerate(doc.sources):
+        if isinstance(source, dict):
+            issues.append({
+                "file": doc.path,
+                "issue": f"sources[{idx}] is a dict, expected a URL string",
+                "severity": "warn",
+            })
+
+    # WARN: context files should have related fields
+    if doc.path.startswith(context_path + "/") and not doc.related:
+        issues.append({
+            "file": doc.path,
+            "issue": "Context file has no related fields",
+            "severity": "warn",
+        })
+
+    return issues
 
 
 def check_source_urls(doc: Document) -> List[dict]:
@@ -197,7 +204,6 @@ def validate_file(
 
     issues: List[dict] = []
     issues.extend(check_frontmatter(doc))
-    issues.extend(check_research_sources(doc))
     if verify_urls:
         issues.extend(check_source_urls(doc))
     issues.extend(check_related_paths(doc, root))

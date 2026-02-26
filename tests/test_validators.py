@@ -45,14 +45,18 @@ class TestCheckFrontmatter:
     def test_valid_doc_no_issues(self) -> None:
         from wos.validators import check_frontmatter
 
-        doc = _make_doc(name="Valid", description="A valid document")
+        doc = _make_doc(
+            path="artifacts/research/topic.md",
+            name="Valid",
+            description="A valid document",
+        )
         issues = check_frontmatter(doc)
         assert issues == []
 
     def test_empty_name(self) -> None:
         from wos.validators import check_frontmatter
 
-        doc = _make_doc(name="")
+        doc = _make_doc(path="artifacts/research/topic.md", name="")
         issues = check_frontmatter(doc)
         assert len(issues) == 1
         assert issues[0]["severity"] == "fail"
@@ -62,50 +66,72 @@ class TestCheckFrontmatter:
     def test_empty_description(self) -> None:
         from wos.validators import check_frontmatter
 
-        doc = _make_doc(description="")
+        doc = _make_doc(path="artifacts/research/topic.md", description="")
         issues = check_frontmatter(doc)
         assert len(issues) == 1
         assert issues[0]["severity"] == "fail"
         assert "description" in issues[0]["issue"].lower()
         assert issues[0]["file"] == doc.path
 
+    def test_research_without_sources_fail(self) -> None:
+        from wos.validators import check_frontmatter
 
-# ── check_research_sources ─────────────────────────────────────
+        doc = _make_doc(type="research", sources=[])
+        issues = check_frontmatter(doc)
+        assert any(
+            i["severity"] == "fail" and "sources" in i["issue"].lower()
+            for i in issues
+        )
 
-
-class TestCheckResearchSources:
-    def test_research_with_sources_ok(self) -> None:
-        from wos.validators import check_research_sources
+    def test_research_with_sources_no_source_issue(self) -> None:
+        from wos.validators import check_frontmatter
 
         doc = _make_doc(
             type="research",
             sources=["https://example.com/source"],
         )
-        issues = check_research_sources(doc)
-        assert issues == []
-
-    def test_research_without_sources_fail(self) -> None:
-        from wos.validators import check_research_sources
-
-        doc = _make_doc(type="research", sources=[])
-        issues = check_research_sources(doc)
-        assert len(issues) == 1
-        assert issues[0]["severity"] == "fail"
-        assert "sources" in issues[0]["issue"].lower()
+        issues = check_frontmatter(doc)
+        assert not any("sources" in i["issue"].lower() for i in issues)
 
     def test_non_research_without_sources_ok(self) -> None:
-        from wos.validators import check_research_sources
+        from wos.validators import check_frontmatter
 
         doc = _make_doc(type="topic", sources=[])
-        issues = check_research_sources(doc)
-        assert issues == []
+        issues = check_frontmatter(doc)
+        assert not any("sources" in i["issue"].lower() for i in issues)
 
-    def test_no_type_without_sources_ok(self) -> None:
-        from wos.validators import check_research_sources
+    def test_dict_source_warns(self) -> None:
+        from wos.validators import check_frontmatter
 
-        doc = _make_doc(type=None, sources=[])
-        issues = check_research_sources(doc)
-        assert issues == []
+        doc = _make_doc(sources=[
+            {"url": "https://example.com", "title": "A"},
+        ])
+        issues = check_frontmatter(doc)
+        assert any(i["severity"] == "warn" for i in issues)
+        assert any("dict" in i["issue"].lower() for i in issues)
+
+    def test_context_file_without_related_warns(self) -> None:
+        from wos.validators import check_frontmatter
+
+        doc = _make_doc(
+            path="context/api/auth.md",
+            related=[],
+        )
+        issues = check_frontmatter(doc)
+        assert any(
+            i["severity"] == "warn" and "related" in i["issue"].lower()
+            for i in issues
+        )
+
+    def test_artifact_file_without_related_no_warn(self) -> None:
+        from wos.validators import check_frontmatter
+
+        doc = _make_doc(
+            path="artifacts/research/topic.md",
+            related=[],
+        )
+        issues = check_frontmatter(doc)
+        assert not any("related" in i["issue"].lower() for i in issues)
 
 
 # ── check_source_urls ──────────────────────────────────────────
