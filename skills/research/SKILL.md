@@ -8,6 +8,7 @@ description: >
   a structured investigation and produce a research document.
 argument-hint: "[topic or question to investigate]"
 user-invocable: true
+compatibility: "Requires Python 3, WOS plugin (url_checker, validate, reindex), WebSearch, WebFetch"
 ---
 
 # Research Skill
