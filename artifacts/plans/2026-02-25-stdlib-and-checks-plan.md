@@ -16,11 +16,13 @@ related:
 
 **Tech Stack:** Python 3.9+ stdlib only (no runtime dependencies). pytest + ruff for dev.
 
+**Branch:** `feat/stdlib-and-checks` | **PR:** [#69](https://github.com/bcbeidel/wos/pull/69) (merged) | **Release:** [v0.4.0](https://github.com/bcbeidel/wos/releases/tag/v0.4.0)
+
 ---
 
 ## Phase 1: Stdlib Migration
 
-### Task 1: Create custom frontmatter parser
+### ~~Task 1: Create custom frontmatter parser~~ [DONE]
 
 **Files:**
 - Create: `wos/frontmatter.py`
@@ -274,7 +276,7 @@ git commit -m "feat: add custom frontmatter parser (stdlib-only)"
 
 ---
 
-### Task 2: Migrate document.py from yaml to custom parser
+### ~~Task 2: Migrate document.py from yaml to custom parser~~ [DONE]
 
 **Files:**
 - Modify: `wos/document.py`
@@ -429,7 +431,7 @@ git commit -m "refactor: migrate document.py from pyyaml to custom parser, drop 
 
 ---
 
-### Task 3: Replace requests with urllib in url_checker.py
+### ~~Task 3: Replace requests with urllib in url_checker.py~~ [DONE]
 
 **Files:**
 - Modify: `wos/url_checker.py`
@@ -758,7 +760,7 @@ git commit -m "refactor: replace requests with urllib.request in url_checker"
 
 ---
 
-### Task 4: Remove dependencies and simplify research_protocol
+### ~~Task 4: Remove dependencies and simplify research_protocol~~ [DONE]
 
 **Files:**
 - Modify: `pyproject.toml`
@@ -818,7 +820,7 @@ git commit -m "refactor: remove runtime dependencies, strip research_protocol CL
 
 ## Phase 2: Validator & Output Refactoring
 
-### Task 5: Merge frontmatter checks and add warn/fail severity
+### ~~Task 5: Merge frontmatter checks and add warn/fail severity~~ [DONE]
 
 **Files:**
 - Modify: `wos/validators.py`
@@ -974,7 +976,7 @@ git commit -m "refactor: merge frontmatter checks, add warn/fail severity"
 
 ---
 
-### Task 6: Add check_content() for word count warnings
+### ~~Task 6: Add check_content() for word count warnings~~ [DONE]
 
 **Files:**
 - Modify: `wos/validators.py`
@@ -1104,7 +1106,7 @@ git commit -m "feat: add check_content() for word count warnings on context file
 
 ---
 
-### Task 7: Preamble-preserving index generation
+### ~~Task 7: Preamble-preserving index generation~~ [DONE]
 
 **Files:**
 - Modify: `wos/index.py`
@@ -1323,7 +1325,7 @@ git commit -m "feat: preamble-preserving index generation"
 
 ---
 
-### Task 8: Add preamble warning check to validators
+### ~~Task 8: Add preamble warning check to validators~~ [DONE]
 
 **Files:**
 - Modify: `wos/validators.py`
@@ -1422,7 +1424,7 @@ git commit -m "feat: warn when _index.md lacks area description preamble"
 
 ---
 
-### Task 9: LLM-friendly output format and merge validate.py into audit.py
+### ~~Task 9: LLM-friendly output format and merge validate.py into audit.py~~ [DONE]
 
 **Files:**
 - Modify: `scripts/audit.py`
@@ -1790,7 +1792,7 @@ git commit -m "feat: LLM-friendly output, merge validate.py into audit.py, add -
 
 ## Phase 3: Skill Layer
 
-### Task 10: Update /wos:create skill
+### ~~Task 10: Update /wos:create skill~~ [DONE]
 
 **Files:**
 - Modify: `skills/create/SKILL.md`
@@ -1822,7 +1824,7 @@ git commit -m "feat: update /create skill with preamble, word count, and related
 
 ---
 
-### Task 11: Update /wos:audit skill
+### ~~Task 11: Update /wos:audit skill~~ [DONE]
 
 **Files:**
 - Modify: `skills/audit/SKILL.md`
@@ -1891,7 +1893,7 @@ git commit -m "docs: update /audit skill for new output format and severity leve
 
 ---
 
-### Task 12: Update /wos:research skill references
+### ~~Task 12: Update /wos:research skill references~~ [DONE]
 
 **Files:**
 - Modify: `skills/research/references/python-utilities.md`
@@ -1932,7 +1934,7 @@ git commit -m "docs: update research skill for stdlib migration, remove protocol
 
 ---
 
-### Task 13: Create /wos:distill skill
+### ~~Task 13: Create /wos:distill skill~~ [DONE]
 
 **Files:**
 - Create: `skills/distill/SKILL.md`
@@ -2078,7 +2080,7 @@ git commit -m "feat: add /wos:distill skill for research-to-context distillation
 
 ---
 
-### Task 14: Version bump and CLAUDE.md updates
+### ~~Task 14: Version bump and CLAUDE.md updates~~ [DONE]
 
 **Files:**
 - Modify: `pyproject.toml` (version only — deps already cleared in Task 4)
@@ -2113,7 +2115,7 @@ git commit -m "chore: bump version to 0.4.0, update CLAUDE.md for stdlib migrati
 
 ---
 
-### Task 15: Final verification
+### ~~Task 15: Final verification~~ [DONE]
 
 **Step 1: Run full test suite**
 
