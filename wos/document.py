@@ -8,9 +8,9 @@ that extracts YAML frontmatter into structured fields.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
-import yaml
+from wos.frontmatter import parse_frontmatter
 
 # Known frontmatter fields extracted into Document attributes.
 _KNOWN_FIELDS = {"name", "description", "type", "sources", "related"}
@@ -27,7 +27,6 @@ class Document:
     type: Optional[str] = None
     sources: List[str] = field(default_factory=list)
     related: List[str] = field(default_factory=list)
-    extra: Dict[str, Any] = field(default_factory=dict)
 
 
 def parse_document(path: str, text: str) -> Document:
@@ -35,7 +34,7 @@ def parse_document(path: str, text: str) -> Document:
 
     Extracts frontmatter between ``---`` delimiters. Known fields
     (name, description, type, sources, related) become Document
-    attributes; everything else goes into ``extra``.
+    attributes; unknown fields are ignored.
 
     Args:
         path: File path for the document.
@@ -48,40 +47,10 @@ def parse_document(path: str, text: str) -> Document:
         ValueError: If frontmatter is missing, or required fields
             (name, description) are absent.
     """
-    # ── Locate frontmatter delimiters ──────────────────────────
-    if not text.startswith("---\n"):
-        raise ValueError(
-            f"{path}: no YAML frontmatter found "
-            "(file must start with '---')"
-        )
-
-    # Find the closing delimiter (second '---').
-    # Search for "\n---\n" first (normal case with content after).
-    close_idx = text.find("\n---\n", 3)
-    if close_idx != -1:
-        yaml_end = close_idx
-        content_start = close_idx + 5  # skip "\n---\n" (5 chars)
-    else:
-        # Try "\n---" at end of file (no trailing content)
-        close_idx = text.find("\n---", 3)
-        if close_idx != -1 and close_idx + 4 >= len(text):
-            yaml_end = close_idx
-            content_start = len(text)
-        else:
-            raise ValueError(
-                f"{path}: no closing frontmatter delimiter found"
-            )
-
-    # ── Parse YAML ─────────────────────────────────────────────
-    yaml_text = text[4:yaml_end]  # skip opening "---\n"
     try:
-        fm = yaml.safe_load(yaml_text)
-    except yaml.YAMLError as exc:
-        raise ValueError(f"{path}: invalid YAML frontmatter: {exc}") from exc
-
-    if not isinstance(fm, dict):
-        # empty or non-mapping frontmatter
-        fm = {}
+        fm, content = parse_frontmatter(text)
+    except ValueError as exc:
+        raise ValueError(f"{path}: {exc}") from exc
 
     # ── Validate required fields ───────────────────────────────
     if "name" not in fm:
@@ -92,19 +61,15 @@ def parse_document(path: str, text: str) -> Document:
         )
 
     # ── Extract known fields ───────────────────────────────────
-    name: str = str(fm["name"])
-    description: str = str(fm["description"])
+    name: str = str(fm["name"]) if fm["name"] is not None else ""
+    description: str = str(fm["description"]) if fm["description"] is not None else ""
     doc_type: Optional[str] = fm.get("type")
+    if isinstance(doc_type, str):
+        doc_type = doc_type
+    else:
+        doc_type = str(doc_type) if doc_type is not None else None
     sources: List[str] = fm.get("sources") or []
     related: List[str] = fm.get("related") or []
-
-    # Everything else goes into extra
-    extra: Dict[str, Any] = {
-        k: v for k, v in fm.items() if k not in _KNOWN_FIELDS
-    }
-
-    # ── Extract body content ───────────────────────────────────
-    content = text[content_start:] if content_start < len(text) else ""
 
     return Document(
         path=path,
@@ -114,5 +79,4 @@ def parse_document(path: str, text: str) -> Document:
         type=doc_type,
         sources=sources,
         related=related,
-        extra=extra,
     )

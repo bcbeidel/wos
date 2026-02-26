@@ -24,7 +24,6 @@ class TestDocument:
         assert doc.type is None
         assert doc.sources == []
         assert doc.related == []
-        assert doc.extra == {}
 
     def test_all_fields(self) -> None:
         from wos.document import Document
@@ -43,15 +42,12 @@ class TestDocument:
                 "context/api/authentication.md",
                 "https://github.com/org/repo/issues/42",
             ],
-            extra={"status": "complete", "author": "bbeidel"},
         )
         assert doc.type == "research"
         assert len(doc.sources) == 2
         assert "https://example.com/rest-guide" in doc.sources
         assert len(doc.related) == 2
         assert "context/api/authentication.md" in doc.related
-        assert doc.extra["status"] == "complete"
-        assert doc.extra["author"] == "bbeidel"
 
 
 # ── parse_document ──────────────────────────────────────────────
@@ -77,7 +73,6 @@ class TestParseDocument:
         assert doc.type is None
         assert doc.sources == []
         assert doc.related == []
-        assert doc.extra == {}
 
     def test_research_doc_with_type_and_sources(self) -> None:
         from wos.document import parse_document
@@ -121,7 +116,7 @@ class TestParseDocument:
             "https://github.com/org/repo/issues/42",
         ]
 
-    def test_extra_fields_preserved(self) -> None:
+    def test_unknown_fields_ignored(self) -> None:
         from wos.document import parse_document
 
         text = (
@@ -137,12 +132,11 @@ class TestParseDocument:
             "# Custom Doc\n"
         )
         doc = parse_document("context/misc/custom.md", text)
-        assert doc.extra["status"] == "draft"
-        assert doc.extra["priority"] == "high"
-        assert doc.extra["tags"] == ["python", "testing"]
-        # Known fields should NOT be in extra
-        assert "name" not in doc.extra
-        assert "description" not in doc.extra
+        assert doc.name == "Custom Doc"
+        assert doc.description == "A document with extra fields"
+        # Unknown fields are not stored — no extra dict
+        assert not hasattr(doc, "status")
+        assert not hasattr(doc, "priority")
 
     def test_raises_on_no_frontmatter(self) -> None:
         from wos.document import parse_document
@@ -249,21 +243,16 @@ class TestParseDocument:
         assert doc.sources == []
         assert doc.related == []
 
-    def test_raises_valueerror_on_invalid_yaml(self) -> None:
-        """Syntactically invalid YAML must raise ValueError, not yaml.YAMLError."""
+    def test_raises_valueerror_on_missing_closing_delimiter(self) -> None:
+        """Missing closing delimiter must raise ValueError."""
         from wos.document import parse_document
 
         text = (
             "---\n"
-            "name: Bad YAML\n"
-            "description: This has a tab character problem\n"
-            "broken:\n"
-            "  - item1\n"
-            " bad_indent: true\n"
-            "---\n"
-            "# Content\n"
+            "name: Unclosed\n"
+            "description: No closing delimiter\n"
         )
-        with pytest.raises(ValueError, match="invalid YAML frontmatter"):
+        with pytest.raises(ValueError, match="closing"):
             parse_document("test.md", text)
 
     def test_numeric_name_and_description_coerced_to_str(self) -> None:
