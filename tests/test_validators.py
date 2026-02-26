@@ -170,10 +170,14 @@ class TestCheckSourceUrls:
             UrlCheckResult(url="https://example.com/a", status=200, reachable=True),
             UrlCheckResult(url="https://example.com/b", status=200, reachable=True),
         ]
-        with patch("wos.validators.check_urls", return_value=mock_results) as mock_check:
+        with patch(
+            "wos.validators.check_urls", return_value=mock_results,
+        ) as mock_check:
             issues = check_source_urls(doc)
         # Should pass URL strings, not dicts
-        mock_check.assert_called_once_with(["https://example.com/a", "https://example.com/b"])
+        mock_check.assert_called_once_with(
+            ["https://example.com/a", "https://example.com/b"],
+        )
         assert issues == []
 
     def test_mixed_format_sources(self) -> None:
@@ -190,9 +194,13 @@ class TestCheckSourceUrls:
             UrlCheckResult(url="https://example.com/plain", status=200, reachable=True),
             UrlCheckResult(url="https://example.com/dict", status=200, reachable=True),
         ]
-        with patch("wos.validators.check_urls", return_value=mock_results) as mock_check:
+        with patch(
+            "wos.validators.check_urls", return_value=mock_results,
+        ) as mock_check:
             issues = check_source_urls(doc)
-        mock_check.assert_called_once_with(["https://example.com/plain", "https://example.com/dict"])
+        mock_check.assert_called_once_with(
+            ["https://example.com/plain", "https://example.com/dict"],
+        )
         assert issues == []
 
 
