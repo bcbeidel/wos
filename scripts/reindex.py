@@ -28,7 +28,7 @@ def main() -> None:
     args = parser.parse_args()
 
     # Deferred import — keeps --help fast
-    from wos.index import generate_index
+    from wos.index import generate_index, _extract_preamble
 
     root = Path(args.root).resolve()
 
@@ -51,24 +51,24 @@ def main() -> None:
             continue
 
         # Also index the top-level subdir itself
-        if _reindex_directory(subdir, generate_index):
+        if _reindex_directory(subdir, generate_index, _extract_preamble):
             count += 1
 
         # Walk all subdirectories
         for dirpath in sorted(subdir.rglob("*")):
             if not dirpath.is_dir():
                 continue
-            if _reindex_directory(dirpath, generate_index):
+            if _reindex_directory(dirpath, generate_index, _extract_preamble):
                 count += 1
 
     print(f"Wrote {count} _index.md files.")
 
 
-def _reindex_directory(directory: Path, generate_index_fn) -> bool:
+def _reindex_directory(directory: Path, generate_index_fn, extract_preamble_fn) -> bool:
     """Regenerate _index.md for a single directory if it has content.
 
     A directory has content if it contains .md files (other than _index.md)
-    or subdirectories.
+    or subdirectories. Preserves any existing preamble text.
 
     Returns:
         True if _index.md was written, False if skipped.
@@ -84,7 +84,8 @@ def _reindex_directory(directory: Path, generate_index_fn) -> bool:
         return False
 
     index_path = directory / "_index.md"
-    content = generate_index_fn(directory)
+    preamble = extract_preamble_fn(index_path)
+    content = generate_index_fn(directory, preamble=preamble)
     index_path.write_text(content, encoding="utf-8")
     print(index_path)
     return True

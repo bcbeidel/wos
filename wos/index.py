@@ -44,7 +44,46 @@ def _directory_display_name(directory: Path) -> str:
     return directory.name.replace("-", " ").replace("_", " ").title()
 
 
-def generate_index(directory: Path) -> str:
+def _extract_preamble(index_path: Path) -> Optional[str]:
+    """Extract preamble text from an existing _index.md.
+
+    The preamble is any text between the heading line and the first
+    table line (starting with '|'). Returns None if no preamble
+    exists or the file is missing.
+    """
+    if not index_path.is_file():
+        return None
+
+    try:
+        content = index_path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+
+    lines = content.splitlines()
+    heading_idx = None
+    table_idx = None
+
+    for i, line in enumerate(lines):
+        if heading_idx is None and line.startswith("# "):
+            heading_idx = i
+        elif heading_idx is not None and line.startswith("|"):
+            table_idx = i
+            break
+
+    if heading_idx is None or table_idx is None:
+        return None
+
+    # Extract lines between heading and table, strip blanks
+    preamble_lines = [
+        l for l in lines[heading_idx + 1:table_idx] if l.strip()
+    ]
+    if not preamble_lines:
+        return None
+
+    return "\n".join(preamble_lines)
+
+
+def generate_index(directory: Path, preamble: Optional[str] = None) -> str:
     """Generate _index.md content for a directory.
 
     Lists all .md files (except _index.md) with descriptions extracted
@@ -53,12 +92,18 @@ def generate_index(directory: Path) -> str:
 
     Args:
         directory: Path to the directory to index.
+        preamble: Optional area description text to insert between
+            the heading and the file table.
 
     Returns:
         Markdown string suitable for writing to _index.md.
     """
     heading = _directory_display_name(directory)
     lines: List[str] = [f"# {heading}\n"]
+
+    if preamble:
+        lines.append("")
+        lines.append(preamble)
 
     # ── Collect .md files (excluding _index.md) ────────────────
     md_files = sorted(
@@ -118,8 +163,9 @@ def check_index_sync(directory: Path) -> List[dict]:
             }
         ]
 
-    # Compare current generated content with what's on disk
-    current_content = generate_index(directory)
+    # Preserve preamble when comparing
+    preamble = _extract_preamble(index_path)
+    current_content = generate_index(directory, preamble=preamble)
     existing_content = index_path.read_text(encoding="utf-8")
 
     if current_content != existing_content:

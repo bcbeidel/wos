@@ -243,6 +243,97 @@ class TestCheckIndexSync:
         assert issues[0]["severity"] == "fail"
 
 
+# ── Preamble support ──────────────────────────────────────────
+
+
+class TestPreamble:
+    def test_extract_preamble_returns_text_between_heading_and_table(
+        self, tmp_path: Path
+    ) -> None:
+        from wos.index import _extract_preamble
+
+        index = tmp_path / "_index.md"
+        index.write_text(
+            "# My Area\n\nThis area covers authentication.\n\n"
+            "| File | Description |\n| --- | --- |\n| [a.md](a.md) | Doc A |\n"
+        )
+        assert _extract_preamble(index) == "This area covers authentication."
+
+    def test_extract_preamble_returns_none_when_no_preamble(
+        self, tmp_path: Path
+    ) -> None:
+        from wos.index import _extract_preamble
+
+        index = tmp_path / "_index.md"
+        index.write_text(
+            "# My Area\n\n| File | Description |\n| --- | --- |\n"
+        )
+        assert _extract_preamble(index) is None
+
+    def test_extract_preamble_returns_none_for_missing_file(
+        self, tmp_path: Path
+    ) -> None:
+        from wos.index import _extract_preamble
+
+        assert _extract_preamble(tmp_path / "nonexistent.md") is None
+
+    def test_generate_index_includes_preamble(self, tmp_path: Path) -> None:
+        from wos.index import generate_index
+
+        (tmp_path / "doc.md").write_text(
+            "---\nname: Doc\ndescription: A document\n---\n# Doc\n"
+        )
+        result = generate_index(tmp_path, preamble="This area covers testing.")
+        lines = result.splitlines()
+        # Preamble should be between heading and table
+        assert lines[0].startswith("# ")
+        assert "This area covers testing." in result
+        heading_idx = 0
+        table_idx = next(
+            i for i, l in enumerate(lines) if l.startswith("| File")
+        )
+        preamble_idx = next(
+            i for i, l in enumerate(lines)
+            if "This area covers testing." in l
+        )
+        assert heading_idx < preamble_idx < table_idx
+
+    def test_generate_index_without_preamble_unchanged(
+        self, tmp_path: Path
+    ) -> None:
+        from wos.index import generate_index
+
+        (tmp_path / "doc.md").write_text(
+            "---\nname: Doc\ndescription: A doc\n---\n"
+        )
+        result = generate_index(tmp_path)
+        lines = result.splitlines()
+        # No blank line with text between heading and table
+        assert lines[0].startswith("# ")
+        # Next non-empty line should be table header
+        non_empty = [l for l in lines[1:] if l.strip()]
+        assert non_empty[0].startswith("| File")
+
+    def test_preamble_preserved_during_regeneration(
+        self, tmp_path: Path
+    ) -> None:
+        from wos.index import generate_index, _extract_preamble
+
+        (tmp_path / "doc.md").write_text(
+            "---\nname: Doc\ndescription: A document\n---\n# Doc\n"
+        )
+        # Write initial index with preamble
+        initial = generate_index(tmp_path, preamble="My area description.")
+        (tmp_path / "_index.md").write_text(initial)
+
+        # Extract preamble and regenerate
+        preamble = _extract_preamble(tmp_path / "_index.md")
+        regenerated = generate_index(tmp_path, preamble=preamble)
+
+        assert "My area description." in regenerated
+        assert initial == regenerated
+
+
 # ── _extract_description ───────────────────────────────────────
 
 
