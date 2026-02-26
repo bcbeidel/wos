@@ -104,7 +104,21 @@ related: []
 | # | URL | Title | Author/Org | Date | Status |
 |---|-----|-------|-----------|------|--------|
 | 1 | ... | ...   | ...       | ...  | unverified |
+
+## Search Protocol (WIP)
+
+<!-- search-protocol
+{"entries": [], "not_searched": []}
+-->
+
+Update this section after each search. Replace the JSON in the comment
+above with the current accumulated protocol.
 ```
+
+The search protocol JSON is stored in the document itself (inside the
+`<!-- search-protocol ... -->` comment), not in agent memory. After each
+search, update the comment with the accumulated JSON. This ensures the
+protocol survives context resets alongside the source list.
 
 This checkpoint means the source list survives a context reset.
 
@@ -226,16 +240,19 @@ restructures it for the final reader and runs validation.
    - **Bottom:** Key takeaways, limitations, follow-up questions, and full
      search protocol table
 
-2. **Insert the search protocol.** Format the accumulated search protocol
-   JSON using:
+2. **Format the search protocol.** Extract the search protocol JSON from
+   the `<!-- search-protocol ... -->` comment in the document. Format it
+   using:
 
 ```bash
 echo '<protocol_json>' | PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -m wos.research_protocol format
 ```
 
-   Insert the rendered table into the **Search Protocol** section at the
-   bottom of the document. Add the summary line (using `--summary` flag)
-   near the top.
+   Replace the `## Search Protocol (WIP)` section and its
+   `<!-- search-protocol ... -->` comment with the rendered markdown table
+   under a final `## Search Protocol` heading (drop the "(WIP)" suffix).
+   Add the summary line (using `--summary` flag) near the top of the
+   document.
 
 3. **Remove the `<!-- DRAFT -->` marker** from the document.
 
