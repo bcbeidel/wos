@@ -2,7 +2,7 @@
 """Run WOS validation checks on a project.
 
 Usage:
-    python3 scripts/audit.py [--root DIR] [--no-urls] [--json] [--fix]
+    python3 scripts/audit.py [FILE] [--root DIR] [--no-urls] [--json] [--fix] [--strict] [--context-max-words N]
 """
 from __future__ import annotations
 
@@ -32,6 +32,12 @@ def main() -> None:
         description="Run WOS validation checks on a project.",
     )
     parser.add_argument(
+        "file",
+        nargs="?",
+        default=None,
+        help="Optional: validate a single file instead of the whole project",
+    )
+    parser.add_argument(
         "--root",
         default=".",
         help="Project root directory (default: current directory)",
@@ -52,50 +58,80 @@ def main() -> None:
         action="store_true",
         help="Regenerate out-of-sync or missing _index.md files",
     )
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Exit 1 on any issue (including warnings)",
+    )
+    parser.add_argument(
+        "--context-max-words",
+        type=int,
+        default=800,
+        help="Word count threshold for context file warnings (default: 800)",
+    )
     args = parser.parse_args()
 
     # Deferred imports — keeps --help fast
     from wos.index import generate_index
-    from wos.validators import validate_project
+    from wos.validators import validate_file, validate_project
 
     root = Path(args.root).resolve()
-    issues = validate_project(root, verify_urls=not args.no_urls)
+
+    # Single-file or project mode
+    if args.file:
+        file_path = Path(args.file).resolve()
+        issues = validate_file(file_path, root, verify_urls=not args.no_urls)
+    else:
+        issues = validate_project(root, verify_urls=not args.no_urls)
 
     # --fix: regenerate _index.md files that are out of sync or missing
     if args.fix:
         fixed: list[str] = []
         remaining: list[dict] = []
         for issue in issues:
-            file_path = issue["file"]
+            file_path_str = issue["file"]
             msg = issue["issue"]
             if (
-                file_path.endswith("_index.md")
+                file_path_str.endswith("_index.md")
                 and ("out of sync" in msg or "missing" in msg)
             ):
-                idx_path = Path(file_path)
+                idx_path = Path(file_path_str)
                 directory = idx_path.parent
                 content = generate_index(directory)
                 idx_path.write_text(content, encoding="utf-8")
-                fixed.append(file_path)
-                print(f"Fixed: {_relative_path(file_path, root)}", file=sys.stderr)
+                fixed.append(file_path_str)
+                print(
+                    f"Fixed: {_relative_path(file_path_str, root)}",
+                    file=sys.stderr,
+                )
             else:
                 remaining.append(issue)
         issues = remaining
+
+    # Count by severity
+    fail_count = sum(1 for i in issues if i["severity"] == "fail")
+    warn_count = sum(1 for i in issues if i["severity"] == "warn")
 
     # Output
     if args.json_output:
         print(json.dumps(issues, indent=2))
     elif issues:
+        # Count unique files
+        file_count = len({i["file"] for i in issues})
+        print(f"{fail_count} fail, {warn_count} warn across {file_count} files")
+        print()
+        print(f"{'file':<40} | {'sev':<4} | issue")
         for issue in issues:
             rel = _relative_path(issue["file"], root)
-            print(f"[FAIL] {rel}: {issue['issue']}")
-        count = len(issues)
-        summary = "1 issue found." if count == 1 else f"{count} issues found."
-        print(f"\n{summary}")
+            sev = issue["severity"]
+            print(f"{rel:<40} | {sev:<4} | {issue['issue']}")
     else:
         print("All checks passed.")
 
-    sys.exit(1 if issues else 0)
+    # Exit code: 1 if any fail, or if --strict and any issue
+    has_failures = fail_count > 0
+    has_any = len(issues) > 0
+    sys.exit(1 if has_failures or (args.strict and has_any) else 0)
 
 
 if __name__ == "__main__":
