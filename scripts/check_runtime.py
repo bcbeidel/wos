@@ -39,7 +39,10 @@ def main() -> None:
             json.dumps(
                 {
                     "status": "fail",
-                    "error": "httpx import failed — uv dependency resolution did not run",
+                    "error": (
+                        "httpx import failed"
+                        " — uv dependency resolution did not run"
+                    ),
                 }
             )
         )
