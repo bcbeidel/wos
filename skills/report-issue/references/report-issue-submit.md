@@ -33,7 +33,7 @@ Auto-gather (do not ask the user for these):
 
 ```bash
 # wos version
-python3 -c "import json; print(json.load(open('.claude-plugin/plugin.json'))['version'])"
+uv run <plugin-scripts-dir>/get_version.py
 
 # Python version
 python3 --version

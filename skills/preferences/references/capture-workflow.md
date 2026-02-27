@@ -42,13 +42,7 @@ Use this workflow to capture communication preferences from the user.
    After confirmation, write the preferences using the Python module:
 
    ```bash
-   PYTHONPATH="<plugin-root-dir>" python3 -c "
-   from wos.preferences import update_preferences
-   update_preferences('CLAUDE.md', {
-       'directness': 'blunt',
-       'verbosity': 'terse',
-   })
-   "
+   uv run <plugin-scripts-dir>/update_preferences.py CLAUDE.md directness=blunt verbosity=terse
    ```
 
    Report what was written and where.

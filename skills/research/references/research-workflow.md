@@ -132,16 +132,9 @@ Mechanical URL verification followed by SIFT evaluation in a single phase.
 2. Use `wos.url_checker.check_urls()` to verify reachability:
 
    ```bash
-   PYTHONPATH="<plugin-root-dir>" python3 -c "
-   from wos.url_checker import check_urls
-   import json
-   results = check_urls([
-       'https://example.com/source-1',
-       'https://example.com/source-2',
-   ])
-   for r in results:
-       print(json.dumps({'url': r.url, 'reachable': r.reachable, 'status': r.status, 'reason': r.reason}))
-   "
+   uv run <plugin-scripts-dir>/check_url.py \
+       'https://example.com/source-1' \
+       'https://example.com/source-2'
    ```
 
    (Full reference: `references/source-verification.md`)

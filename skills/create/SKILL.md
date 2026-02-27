@@ -53,7 +53,7 @@ Update AGENTS.md with the WOS section using markers.
 3. Generate YAML frontmatter:
    - `name` and `description` (required)
    - `type` if appropriate (research, plan, reference, etc.)
-   - `sources` if type is research (verify URLs with `PYTHONPATH="<plugin-root-dir>" python3 -c "from wos.url_checker import check_url; print(check_url('URL'))"`)
+   - `sources` if type is research (verify URLs with `uv run <plugin-scripts-dir>/check_url.py URL`)
    - `related` if sourced from other project documents
 4. Write document content following the lost-in-the-middle convention:
    - Top: summary with key insights and actionable guidance
