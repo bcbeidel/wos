@@ -132,7 +132,7 @@ Mechanical URL verification followed by SIFT evaluation in a single phase.
 2. Use `wos.url_checker.check_urls()` to verify reachability:
 
    ```bash
-   PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -c "
+   PYTHONPATH="<plugin-root-dir>" python3 -c "
    from wos.url_checker import check_urls
    import json
    results = check_urls([

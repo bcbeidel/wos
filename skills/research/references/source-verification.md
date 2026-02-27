@@ -14,7 +14,7 @@ before entering the SIFT pipeline.
 Use the `wos.url_checker` module to verify source URLs are reachable:
 
 ```bash
-PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -c "
+PYTHONPATH="<plugin-root-dir>" python3 -c "
 from wos.url_checker import check_urls
 import json
 results = check_urls([
