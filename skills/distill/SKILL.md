@@ -7,6 +7,8 @@ description: >
   artifact into focused context documents.
 argument-hint: "[path to research artifact]"
 user-invocable: true
+references:
+  - references/distillation-guidelines.md
 ---
 
 # Distill

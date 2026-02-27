@@ -8,6 +8,8 @@ description: >
 disable-model-invocation: true
 user-invocable: true
 argument-hint: "[style description]"
+references:
+  - references/capture-workflow.md
 ---
 
 # Preferences Skill

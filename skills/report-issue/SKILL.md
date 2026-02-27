@@ -8,6 +8,9 @@ description: >
   WOS issues the maintainer should know about.
 argument-hint: "[describe the issue or feedback]"
 user-invocable: true
+references:
+  - references/issue-templates.md
+  - references/report-issue-submit.md
 ---
 
 # Report-Issue Skill
