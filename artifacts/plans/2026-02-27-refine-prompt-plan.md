@@ -18,6 +18,15 @@ related:
 
 **Issue:** [#71](https://github.com/bcbeidel/wos/issues/71)
 **Branch:** `feat/71-refine-prompt`
+**PR:** (pending)
+
+### Progress
+
+- [x] Task 1: Create SKILL.md
+- [x] Task 2: Create assessment rubric reference
+- [x] Task 3: Create technique registry reference
+- [x] Task 4: Verify skill discovery and run tests (171/171 pass)
+- [x] Task 5: Update plan doc and close out
 
 ---
 
