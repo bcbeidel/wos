@@ -47,7 +47,12 @@ wos/
 scripts/
   audit.py             # CLI: run validation, offer fixes
   reindex.py           # CLI: regenerate all _index.md files
+  check_runtime.py     # Canary: validate uv + PEP 723 pipeline
+  check_url.py         # CLI: URL reachability checking
+  update_preferences.py # CLI: update communication preferences
+  get_version.py       # CLI: print plugin version
 skills/                # Skill definitions (SKILL.md + references/)
+  _shared/references/  # Shared references (e.g., preflight.md)
 tests/                 # pytest tests
 artifacts/plans/       # Design docs and implementation plans
 ```
@@ -60,8 +65,22 @@ claude --plugin-dir /path/to/wos
 
 Or add to Claude Code settings for automatic loading.
 
+## Script Invocation
+
+All scripts use [PEP 723](https://peps.python.org/pep-0723/) inline metadata
+and are invoked via `uv run`. This is the universal pattern across all WOS
+skills — no bare `python3` for script invocations.
+
+Skills follow a 3-step preflight before any `uv run` call:
+1. Check `uv` availability
+2. Run the canary (`check_runtime.py`) to validate PEP 723 dependency resolution
+3. Run the actual script
+
+See `skills/_shared/references/preflight.md` for the full pattern.
+
 ## Dependencies
 
 - Python 3.9+
-- `pydantic>=2.0`, `pyyaml>=6.0`, `requests>=2.28`
+- [`uv`](https://docs.astral.sh/uv/) — for running scripts with PEP 723 inline dependencies
+- No runtime Python dependencies (stdlib only for `wos/` package)
 - `gh` CLI (for report-issue skill)
