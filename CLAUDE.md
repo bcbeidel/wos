@@ -28,6 +28,21 @@ Note: `ruff` may not be installed locally; CI runs it via GitHub Actions.
 Version bump requires updating all three: `pyproject.toml`,
 `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`
 
+## Design Principles
+
+1. **Convention over configuration** — document patterns, don't enforce them
+2. **Structure in code, quality in skills** — deterministic checks in Python, judgment in LLMs
+3. **Single source of truth** — navigation is derived from disk, never hand-curated
+4. **Keep it simple** — no hierarchies, no frameworks, no indirection
+5. **When in doubt, leave it out** — every field, abstraction, and feature must justify itself
+6. **Omit needless words** — agent-facing output earns every token
+7. **Depend on nothing** — stdlib-only core; scripts isolate their own deps
+8. **One obvious way to run** — every script, every skill, same entry point
+9. **Separate reads from writes** — audit observes; fixes require explicit action
+10. **Bottom line up front** — key insights at top and bottom, detail in the middle
+
+Full descriptions: [Design Principles](artifacts/research/2026-02-22-design-principles.md)
+
 ## Architecture
 
 ### Package Structure
@@ -100,8 +115,9 @@ Prefix: `/wos:` (e.g., `/wos:create`, `/wos:audit`). 7 skills:
 
 ## Reference
 
-- Design doc: [Simplification Design](artifacts/plans/2026-02-22-simplification-design.md)
+- Architecture: [WOS Architecture Reference](artifacts/plans/2026-02-27-architecture-reference.md)
 - Design principles: [WOS Design Principles](artifacts/research/2026-02-22-design-principles.md)
+- Simplification history: [Simplification Design](artifacts/plans/2026-02-22-simplification-design.md)
 
 ## Plans
 
