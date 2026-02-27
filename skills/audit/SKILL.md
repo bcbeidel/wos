@@ -16,27 +16,29 @@ does not modify any files (unless `--fix` is used for index regeneration).
 
 ## How to Run
 
+**Prerequisite:** Follow the preflight check in the [preflight reference](../_shared/references/preflight.md) before running.
+
 ```bash
 # Default: run all checks including URL reachability
-python3 scripts/audit.py --root .
+uv run <plugin-scripts-dir>/audit.py --root .
 
 # Skip URL reachability checks (fast, offline-friendly)
-python3 scripts/audit.py --root . --no-urls
+uv run <plugin-scripts-dir>/audit.py --root . --no-urls
 
 # Validate a single file
-python3 scripts/audit.py path/to/file.md --root . --no-urls
+uv run <plugin-scripts-dir>/audit.py path/to/file.md --root . --no-urls
 
 # JSON output for programmatic use
-python3 scripts/audit.py --root . --json
+uv run <plugin-scripts-dir>/audit.py --root . --json
 
 # Auto-fix out-of-sync or missing _index.md files
-python3 scripts/audit.py --root . --fix
+uv run <plugin-scripts-dir>/audit.py --root . --fix
 
 # Exit 1 on any issue (including warnings)
-python3 scripts/audit.py --root . --strict
+uv run <plugin-scripts-dir>/audit.py --root . --strict
 
 # Custom word count threshold for context files (default: 800)
-python3 scripts/audit.py --root . --context-max-words 500
+uv run <plugin-scripts-dir>/audit.py --root . --context-max-words 500
 ```
 
 Exit code: 1 if any `fail`, 0 if only `warn`. Use `--strict` to exit 1 on any issue.

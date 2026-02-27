@@ -261,13 +261,13 @@ restructures it for the final reader and runs validation.
 4. **Regenerate index files:**
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/reindex.py" --root .
+uv run <plugin-scripts-dir>/reindex.py --root .
 ```
 
 5. **Validate the document:**
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/audit.py" <file> --root . --no-urls
+uv run <plugin-scripts-dir>/audit.py <file> --root . --no-urls
 ```
 
 ## Quality Checklist
@@ -284,4 +284,4 @@ Before removing the `<!-- DRAFT -->` marker, verify:
 - [ ] Search protocol section present with all searches logged
 - [ ] Implications connected to the user's context
 - [ ] Document passes validation:
-  `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/audit.py" <file> --root . --no-urls`
+  `uv run <plugin-scripts-dir>/audit.py <file> --root . --no-urls`
