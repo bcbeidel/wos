@@ -4,9 +4,15 @@ description: "Design for /wos:refine-prompt — evidence-backed prompt assessmen
 type: plan
 related:
   - artifacts/plans/2026-02-27-architecture-reference.md
+  - artifacts/plans/2026-02-27-refine-prompt-plan.md
 ---
 
 # `/wos:refine-prompt` — Evidence-Backed Prompt Refinement
+
+**Issue:** [#71](https://github.com/bcbeidel/wos/issues/71)
+**Branch:** `feat/71-refine-prompt`
+**PR:** [#73](https://github.com/bcbeidel/wos/pull/73)
+**Plan:** [Implementation Plan](2026-02-27-refine-prompt-plan.md)
 
 ## Problem
 
