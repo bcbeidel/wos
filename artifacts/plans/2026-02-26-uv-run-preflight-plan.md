@@ -18,7 +18,8 @@ related:
 
 **Issue:** [#70](https://github.com/bcbeidel/wos/issues/70)
 **Branch:** `feat/70-uv-run-preflight`
-**PR:** TBD
+**PR:** [#72](https://github.com/bcbeidel/wos/pull/72)
+**Release:** [v0.5.0](https://github.com/bcbeidel/wos/releases/tag/v0.5.0)
 
 ---
 
