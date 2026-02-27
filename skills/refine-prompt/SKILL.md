@@ -24,6 +24,8 @@ Accept either:
 - **File path** — path to a file containing the prompt (e.g., a SKILL.md)
 
 If a file path is given, read the file and use its content as the prompt.
+If no input is provided, ask the user for the prompt text. If a file path
+is unreadable, report the error and ask for an alternative.
 
 ## Pipeline
 
