@@ -55,8 +55,9 @@ order (1 through 7). For each technique:
 2. If the condition is met, apply the technique
 3. If not, skip to the next technique
 
-Apply techniques iteratively — each builds on the previous output. Stop when
-all dimensions reach 4+ and no remaining technique condition triggers.
+Apply techniques iteratively — each builds on the previous output. Re-score
+after each technique application. Stop when all dimensions reach 4+ and no
+remaining technique condition triggers.
 
 **Key constraint:** Be selective. Over-prompting degrades Claude 4.x
 performance. Apply only techniques whose conditions are clearly met.

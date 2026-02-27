@@ -12,7 +12,8 @@ More techniques does not mean a better prompt.
 ## 1. Clarity Rewrite
 
 **Impact:** HIGH
-**When to apply:** Clarity score < 5
+**When to apply:** Clarity score < 5 (intentionally broad — even prompts
+scoring 4 benefit from minor directness improvements)
 **When to skip:** Clarity already 5/5
 
 Rewrite for directness and specificity:
