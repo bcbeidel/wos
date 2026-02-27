@@ -16,6 +16,8 @@ Determine user intent from their message:
 2. **Add area** -- "add area for X", "new area", "create area"
 3. **Create document** -- "create a doc about X", "write about X", "new document"
 
+**Prerequisite:** Before running any `uv run` command below, follow the preflight check in the [preflight reference](../_shared/references/preflight.md).
+
 ## 1. Initialize Project
 
 Create directory structure and AGENTS.md:
@@ -32,7 +34,7 @@ artifacts/
 AGENTS.md (with WOS section)
 ```
 
-Run: `python3 scripts/reindex.py --root .`
+Run: `uv run <plugin-scripts-dir>/reindex.py --root .`
 
 Update AGENTS.md with the WOS section using markers.
 
@@ -41,7 +43,7 @@ Update AGENTS.md with the WOS section using markers.
 1. Ask for area name (lowercase-hyphenated)
 2. Create `context/{area}/`
 3. Ask the user for a 1-2 sentence area description. Write it as the preamble in `_index.md` above the file table.
-4. Run `python3 scripts/reindex.py --root .`
+4. Run `uv run <plugin-scripts-dir>/reindex.py --root .`
 5. Update AGENTS.md areas table
 
 ## 3. Create Document
@@ -51,7 +53,7 @@ Update AGENTS.md with the WOS section using markers.
 3. Generate YAML frontmatter:
    - `name` and `description` (required)
    - `type` if appropriate (research, plan, reference, etc.)
-   - `sources` if type is research (verify URLs with `python3 -c "from wos.url_checker import check_url; print(check_url('URL'))"`)
+   - `sources` if type is research (verify URLs with `uv run <plugin-scripts-dir>/check_url.py URL`)
    - `related` if sourced from other project documents
 4. Write document content following the lost-in-the-middle convention:
    - Top: summary with key insights and actionable guidance
@@ -59,7 +61,7 @@ Update AGENTS.md with the WOS section using markers.
    - Bottom: key takeaways or quick-reference summary
 5. **Word count check** — Count words in the generated content. If the context file exceeds 800 words, note the count and suggest splitting into multiple focused files. This is advisory, not blocking.
 6. **Related fields** — Scan existing files in the target area for potential `related:` candidates. Present suggestions to the user. If they confirm, add `related:` entries to the frontmatter. Ask whether referenced files should also link back (bidirectional linking).
-7. Run `python3 scripts/reindex.py --root .`
+7. Run `uv run <plugin-scripts-dir>/reindex.py --root .`
 
 ## Document Structure Convention
 

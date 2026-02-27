@@ -13,7 +13,7 @@ using it.
 ## Build & Test
 
 ```bash
-python3 -m pytest tests/ -v
+uv run python -m pytest tests/ -v
 ```
 
 Lint:
@@ -42,9 +42,13 @@ Version bump requires updating all three: `pyproject.toml`,
   - `markers.py` — shared marker-based section replacement
   - `preferences.py` — communication preferences capture
   - `research_protocol.py` — search protocol logging (`SearchEntry`, `SearchProtocol`, formatters)
-- `scripts/` — thin CLI entry points with argparse
+- `scripts/` — thin CLI entry points with argparse and PEP 723 inline metadata
   - `audit.py` — run validation checks (`--root`, `--no-urls`, `--json`, `--fix`, `--strict`)
   - `reindex.py` — regenerate all `_index.md` files (preamble-preserving)
+  - `check_runtime.py` — canary script to validate `uv run` + PEP 723 pipeline
+  - `check_url.py` — URL reachability checking via `wos.url_checker`
+  - `update_preferences.py` — communication preferences updates
+  - `get_version.py` — print plugin version from `plugin.json`
 - `skills/` — skill definitions (SKILL.md + references/) auto-discovered by Claude Code
 - `tests/` — pytest tests
 
@@ -111,7 +115,14 @@ Prefix: `/wos:` (e.g., `/wos:create`, `/wos:audit`). 7 skills:
 
 - Python 3.9 — use `from __future__ import annotations` for type hints,
   `Optional[X]` for runtime expressions
+- **Script invocation: `uv run` is the universal pattern.** All scripts in
+  `scripts/` have PEP 723 inline metadata. Skills invoke them via
+  `uv run <plugin-scripts-dir>/script.py`. The preflight reference at
+  `skills/_shared/references/preflight.md` documents the 3-step check
+  (uv availability → canary → actual script). No bare `python3 scripts/...`
+  invocations in skill docs.
 - CLI scripts default to CWD as root; accept `--root` for override
+- Scripts use `sys.path` self-insertion for plugin cache compatibility
 - Validators return `list[dict]` with keys: `file`, `issue`, `severity`
 - Skills use free-text intake — users describe intent, Claude routes
 - `ValueError` + stdlib exceptions only (no custom exception hierarchy)

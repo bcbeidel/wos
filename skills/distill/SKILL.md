@@ -13,6 +13,8 @@ user-invocable: true
 
 Convert research artifacts into focused context files.
 
+**Prerequisite:** Before running any `uv run` command below, follow the preflight check in the [preflight reference](../_shared/references/preflight.md).
+
 ## Workflow
 
 ### 1. Input
@@ -64,10 +66,10 @@ For each approved finding:
 
 ### 5. Integrate
 
-1. Run `python3 scripts/reindex.py --root .`
+1. Run `uv run <plugin-scripts-dir>/reindex.py --root .`
 2. Update the source research artifact's `related:` field to link
    forward to the new context files
-3. Run `python3 scripts/audit.py --root . --no-urls` to verify
+3. Run `uv run <plugin-scripts-dir>/audit.py --root . --no-urls` to verify
 
 ## Key Constraints
 

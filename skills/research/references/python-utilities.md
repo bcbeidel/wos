@@ -1,20 +1,20 @@
 # Python Utilities Reference
 
 CLI commands available during research sessions. All commands use
-`${CLAUDE_PLUGIN_ROOT}` to resolve script paths — this variable is set
-automatically by Claude Code when the plugin is active.
+`<plugin-scripts-dir>` to resolve script paths — this refers to the `scripts/`
+directory at the root of the WOS plugin.
 
 ## Validate a Single Document
 
 Runs all checks: frontmatter, content length, source URLs, related paths.
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/audit.py" <file> [--root DIR] [--no-urls]
+uv run <plugin-scripts-dir>/audit.py <file> [--root DIR] [--no-urls]
 ```
 
 Example:
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/audit.py" artifacts/research/2026-02-25-my-research.md --root . --no-urls
+uv run <plugin-scripts-dir>/audit.py artifacts/research/2026-02-25-my-research.md --root . --no-urls
 ```
 
 Output on success:
@@ -35,7 +35,7 @@ artifacts/research/my-research.md        | fail | Research document has no sourc
 Runs all checks across `context/` and `artifacts/`.
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/audit.py" [--root DIR] [--no-urls] [--json] [--fix] [--strict]
+uv run <plugin-scripts-dir>/audit.py [--root DIR] [--no-urls] [--json] [--fix] [--strict]
 ```
 
 ## Regenerate Index Files
@@ -43,7 +43,7 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/audit.py" [--root DIR] [--no-urls] [--jso
 Regenerate all `_index.md` files under `context/` and `artifacts/`.
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/reindex.py" [--root DIR]
+uv run <plugin-scripts-dir>/reindex.py [--root DIR]
 ```
 
 ## Document Model

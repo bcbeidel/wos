@@ -132,16 +132,9 @@ Mechanical URL verification followed by SIFT evaluation in a single phase.
 2. Use `wos.url_checker.check_urls()` to verify reachability:
 
    ```bash
-   PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -c "
-   from wos.url_checker import check_urls
-   import json
-   results = check_urls([
-       'https://example.com/source-1',
-       'https://example.com/source-2',
-   ])
-   for r in results:
-       print(json.dumps({'url': r.url, 'reachable': r.reachable, 'status': r.status, 'reason': r.reason}))
-   "
+   uv run <plugin-scripts-dir>/check_url.py \
+       'https://example.com/source-1' \
+       'https://example.com/source-2'
    ```
 
    (Full reference: `references/source-verification.md`)
@@ -261,13 +254,13 @@ restructures it for the final reader and runs validation.
 4. **Regenerate index files:**
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/reindex.py" --root .
+uv run <plugin-scripts-dir>/reindex.py --root .
 ```
 
 5. **Validate the document:**
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/audit.py" <file> --root . --no-urls
+uv run <plugin-scripts-dir>/audit.py <file> --root . --no-urls
 ```
 
 ## Quality Checklist
@@ -284,4 +277,4 @@ Before removing the `<!-- DRAFT -->` marker, verify:
 - [ ] Search protocol section present with all searches logged
 - [ ] Implications connected to the user's context
 - [ ] Document passes validation:
-  `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/audit.py" <file> --root . --no-urls`
+  `uv run <plugin-scripts-dir>/audit.py <file> --root . --no-urls`
