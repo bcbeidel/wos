@@ -86,7 +86,7 @@ class TestCheckRuntimeHelp:
 
 **Step 2: Run test to verify it fails**
 
-Run: `python3 -m pytest tests/test_check_runtime.py -v`
+Run: `uv run python -m pytest tests/test_check_runtime.py -v`
 Expected: FAIL — `scripts/check_runtime.py` does not exist yet
 
 **Step 3: Write the canary script**
@@ -146,7 +146,7 @@ if __name__ == "__main__":
 
 **Step 4: Run tests to verify they pass**
 
-Run: `python3 -m pytest tests/test_check_runtime.py -v`
+Run: `uv run python -m pytest tests/test_check_runtime.py -v`
 Expected: PASS — both tests should pass (script fails gracefully without httpx)
 
 **Step 5: Commit**
@@ -278,7 +278,7 @@ If anything broke, fix and commit.
 
 **Step 1: Run full test suite**
 
-Run: `python3 -m pytest tests/ -v`
+Run: `uv run python -m pytest tests/ -v`
 Expected: All tests pass
 
 **Step 2: Run linter (if available)**

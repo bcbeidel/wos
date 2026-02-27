@@ -6,7 +6,7 @@
 """Regenerate all _index.md files in a WOS project.
 
 Usage:
-    python3 scripts/reindex.py [--root DIR]
+    uv run scripts/reindex.py [--root DIR]
 """
 from __future__ import annotations
 

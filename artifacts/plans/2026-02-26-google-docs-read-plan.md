@@ -188,10 +188,10 @@ class TestExtractText:
 
 **Step 4: Verify everything imports**
 
-Run: `python3 -c "from wos.google_docs import parse_doc_url, extract_text; print('ok')"`
+Run: `uv run python -c "from wos.google_docs import parse_doc_url, extract_text; print('ok')"`
 Expected: `ok`
 
-Run: `python3 -m pytest tests/test_google_docs.py -v`
+Run: `uv run python -m pytest tests/test_google_docs.py -v`
 Expected: `no tests ran` (0 collected)
 
 **Step 5: Commit**
@@ -260,7 +260,7 @@ class TestParseDocUrl:
 
 **Step 2: Run tests to verify they fail**
 
-Run: `python3 -m pytest tests/test_google_docs.py::TestParseDocUrl -v`
+Run: `uv run python -m pytest tests/test_google_docs.py::TestParseDocUrl -v`
 Expected: 7 FAILED (NotImplementedError)
 
 **Step 3: Implement `parse_doc_url`**
@@ -288,7 +288,7 @@ def parse_doc_url(url_or_id: str) -> str:
 
 **Step 4: Run tests to verify they pass**
 
-Run: `python3 -m pytest tests/test_google_docs.py::TestParseDocUrl -v`
+Run: `uv run python -m pytest tests/test_google_docs.py::TestParseDocUrl -v`
 Expected: 7 PASSED
 
 **Step 5: Lint**
@@ -488,7 +488,7 @@ def _paragraph(text: str) -> dict:
 
 **Step 3: Run tests to verify they fail**
 
-Run: `python3 -m pytest tests/test_google_docs.py::TestExtractText -v`
+Run: `uv run python -m pytest tests/test_google_docs.py::TestExtractText -v`
 Expected: 3 FAILED (NotImplementedError)
 
 **Step 4: Implement basic `extract_text`**
@@ -560,12 +560,12 @@ def _render_table(table: Dict[str, Any]) -> str:
 
 **Step 5: Run tests to verify they pass**
 
-Run: `python3 -m pytest tests/test_google_docs.py::TestExtractText -v`
+Run: `uv run python -m pytest tests/test_google_docs.py::TestExtractText -v`
 Expected: 3 PASSED
 
 **Step 6: Run all tests**
 
-Run: `python3 -m pytest tests/ -v`
+Run: `uv run python -m pytest tests/ -v`
 Expected: all pass
 
 **Step 7: Commit**
@@ -659,7 +659,7 @@ def _doc_with_elements(
 
 **Step 2: Run tests to verify they fail**
 
-Run: `python3 -m pytest tests/test_google_docs.py -k "bold or italic or link" -v`
+Run: `uv run python -m pytest tests/test_google_docs.py -k "bold or italic or link" -v`
 Expected: 4 FAILED
 
 **Step 3: Update `_render_element` to handle formatting**
@@ -710,7 +710,7 @@ def _render_element(elem: Dict[str, Any]) -> str:
 
 **Step 4: Run tests to verify they pass**
 
-Run: `python3 -m pytest tests/test_google_docs.py -v`
+Run: `uv run python -m pytest tests/test_google_docs.py -v`
 Expected: all PASSED
 
 **Step 5: Commit**
@@ -805,7 +805,7 @@ def _numbered_item(text: str, nest_level: int = 0) -> dict:
 
 **Step 2: Run tests to verify they fail**
 
-Run: `python3 -m pytest tests/test_google_docs.py -k "bullet or numbered" -v`
+Run: `uv run python -m pytest tests/test_google_docs.py -k "bullet or numbered" -v`
 Expected: 2 FAILED
 
 **Step 3: Implement list rendering**
@@ -922,7 +922,7 @@ Update the `_numbered_item` helper to also build a doc with a `lists` key, or up
 
 **Step 4: Run tests to verify they pass**
 
-Run: `python3 -m pytest tests/test_google_docs.py -v`
+Run: `uv run python -m pytest tests/test_google_docs.py -v`
 Expected: all PASSED
 
 **Step 5: Commit**
@@ -983,7 +983,7 @@ Add to `TestExtractText`:
 
 **Step 2: Run test to verify it fails**
 
-Run: `python3 -m pytest tests/test_google_docs.py::TestExtractText::test_table -v`
+Run: `uv run python -m pytest tests/test_google_docs.py::TestExtractText::test_table -v`
 Expected: FAILED (empty string from stub)
 
 **Step 3: Implement `_render_table`**
@@ -1035,7 +1035,7 @@ def _render_table(table: Dict[str, Any]) -> str:
 
 **Step 4: Run tests to verify they pass**
 
-Run: `python3 -m pytest tests/test_google_docs.py -v`
+Run: `uv run python -m pytest tests/test_google_docs.py -v`
 Expected: all PASSED
 
 **Step 5: Commit**
@@ -1149,7 +1149,7 @@ def cmd_auth(args: argparse.Namespace) -> None:
 
 **Step 3: Verify script parses correctly**
 
-Run: `python3 scripts/google_docs.py auth --help`
+Run: `uv run scripts/google_docs.py auth --help`
 Expected: shows help text (does not import google libs at parse time)
 
 **Step 4: Commit**
@@ -1202,7 +1202,7 @@ def cmd_read(args: argparse.Namespace) -> None:
 
 **Step 2: Verify script parses correctly**
 
-Run: `python3 scripts/google_docs.py read --help`
+Run: `uv run scripts/google_docs.py read --help`
 Expected: shows help text
 
 **Step 3: Commit**
@@ -1271,7 +1271,7 @@ def cmd_list(args: argparse.Namespace) -> None:
 
 **Step 2: Verify script parses correctly**
 
-Run: `python3 scripts/google_docs.py list --help`
+Run: `uv run scripts/google_docs.py list --help`
 Expected: shows help text
 
 **Step 3: Commit**
@@ -1426,7 +1426,7 @@ import pytest
 class TestGoogleDocsIntegration:
     """Integration tests — require real Google credentials.
 
-    Run with: python3 -m pytest tests/test_google_docs.py -m integration -v
+    Run with: uv run python -m pytest tests/test_google_docs.py -m integration -v
 
     Prerequisites:
     - Google Cloud project with Docs API enabled
@@ -1476,10 +1476,10 @@ class TestGoogleDocsIntegration:
 
 **Step 3: Verify integration tests are skipped by default**
 
-Run: `python3 -m pytest tests/test_google_docs.py -v`
+Run: `uv run python -m pytest tests/test_google_docs.py -v`
 Expected: integration tests show as SKIPPED (if using `-m "not integration"` default) or simply not selected
 
-Run: `python3 -m pytest tests/ -v`
+Run: `uv run python -m pytest tests/ -v`
 Expected: all unit tests pass, integration tests collected but not skipped unless explicitly deselected
 
 **Step 4: Commit**
@@ -1498,7 +1498,7 @@ git commit -m "feat: add integration test scaffolding for Google Docs"
 
 **Step 1: Run full test suite**
 
-Run: `python3 -m pytest tests/ -v`
+Run: `uv run python -m pytest tests/ -v`
 Expected: all tests pass
 
 **Step 2: Run linter**
@@ -1508,10 +1508,10 @@ Expected: clean (or fix any issues)
 
 **Step 3: Verify script help**
 
-Run: `python3 scripts/google_docs.py --help`
-Run: `python3 scripts/google_docs.py auth --help`
-Run: `python3 scripts/google_docs.py read --help`
-Run: `python3 scripts/google_docs.py list --help`
+Run: `uv run scripts/google_docs.py --help`
+Run: `uv run scripts/google_docs.py auth --help`
+Run: `uv run scripts/google_docs.py read --help`
+Run: `uv run scripts/google_docs.py list --help`
 Expected: all show correct help text
 
 **Step 4: Update plan with completion status**
