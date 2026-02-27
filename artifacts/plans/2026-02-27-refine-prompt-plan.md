@@ -18,7 +18,7 @@ related:
 
 **Issue:** [#71](https://github.com/bcbeidel/wos/issues/71)
 **Branch:** `feat/71-refine-prompt`
-**PR:** (pending)
+**PR:** [#73](https://github.com/bcbeidel/wos/pull/73)
 
 ### Progress
 
