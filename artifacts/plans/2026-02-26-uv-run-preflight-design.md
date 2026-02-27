@@ -10,7 +10,7 @@ related:
 
 **Issue:** [#70](https://github.com/bcbeidel/wos/issues/70)
 **Branch:** `feat/70-uv-run-preflight`
-**Status:** Design approved
+**Status:** Implementation complete
 
 ## Problem
 
@@ -93,8 +93,8 @@ Then follow the preflight steps before any `uv run` invocation.
 
 ## Acceptance Criteria
 
-- [ ] `scripts/check_runtime.py` exists and validates uv + PEP 723 deps
-- [ ] `skills/_shared/references/preflight.md` documents the preflight pattern
-- [ ] Pattern is documented for skill authors
-- [ ] Tests for canary script output format
-- [ ] Works on macOS and Linux
+- [x] `scripts/check_runtime.py` exists and validates uv + PEP 723 deps
+- [x] `skills/_shared/references/preflight.md` documents the preflight pattern
+- [x] Pattern is documented for skill authors
+- [x] Tests for canary script output format
+- [x] Works on macOS and Linux
