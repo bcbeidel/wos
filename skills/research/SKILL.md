@@ -9,6 +9,14 @@ description: >
 argument-hint: "[topic or question to investigate]"
 user-invocable: true
 compatibility: "Requires Python 3 (stdlib only), WOS plugin (audit, reindex), WebSearch, WebFetch"
+references:
+  - references/research-workflow.md
+  - references/sift-framework.md
+  - references/source-evaluation.md
+  - references/source-verification.md
+  - references/challenge-phase.md
+  - references/research-modes.md
+  - references/python-utilities.md
 ---
 
 # Research Skill

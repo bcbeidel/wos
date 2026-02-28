@@ -73,7 +73,7 @@ building the tool.
 ```
 wos/                          # Python package (10 modules, ~1,200 LOC)
 scripts/                      # CLI entry points (6 scripts, PEP 723 metadata)
-skills/                       # Skill definitions (7 skills + shared references)
+skills/                       # Skill definitions (8 skills + shared references)
 tests/                        # pytest tests (17 files, ~2,400 LOC)
 artifacts/plans/              # Design docs and implementation plans
 artifacts/research/           # Research artifacts
@@ -117,6 +117,7 @@ Skills invoke them as `uv run <plugin-scripts-dir>/script.py`.
 | research | `/wos:research` | SIFT-based research with source verification |
 | distill | `/wos:distill` | Convert research into focused context files |
 | consider | `/wos:consider` | Mental models for analysis (16 models) |
+| refine-prompt | `/wos:refine-prompt` | Assess and refine prompts with evidence-backed techniques |
 | report-issue | `/wos:report-issue` | File issues against WOS repo |
 | preferences | `/wos:preferences` | Capture communication preferences |
 

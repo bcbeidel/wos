@@ -85,7 +85,7 @@ instructions, areas table, metadata format, and communication preferences.
 
 ### Skills
 
-Prefix: `/wos:` (e.g., `/wos:create`, `/wos:audit`). 7 skills:
+Prefix: `/wos:` (e.g., `/wos:create`, `/wos:audit`). 8 skills:
 
 | Skill | Purpose |
 |-------|---------|
@@ -94,6 +94,7 @@ Prefix: `/wos:` (e.g., `/wos:create`, `/wos:audit`). 7 skills:
 | `/wos:research` | SIFT-based research with source verification |
 | `/wos:distill` | Convert research artifacts into focused context files |
 | `/wos:consider` | Mental models for problem analysis |
+| `/wos:refine-prompt` | Assess and refine prompts using evidence-backed techniques |
 | `/wos:report-issue` | File GitHub issues against WOS repo |
 | `/wos:preferences` | Capture communication preferences |
 
