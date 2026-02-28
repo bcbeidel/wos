@@ -7,6 +7,86 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-02-28
+
+### Added
+
+- **`/wos:experiment` skill.** Complete 6-phase experiment framework for
+  empirical validation of research claims. Guides users through Design, Audit,
+  Evaluation, Execution, Analysis, and Publication with tier-appropriate depth
+  (Pilot / Exploratory / Confirmatory).
+  ([#67](https://github.com/bcbeidel/wos/issues/67))
+  - `wos/experiment_state.py` — state machine with `ExperimentState` and
+    `PhaseState` dataclasses, artifact-existence gates, phase progression,
+    and backtracking with `.prev` file preservation
+  - `scripts/experiment_state.py` — CLI with 6 subcommands: `init`, `status`,
+    `advance`, `check-gates`, `generate-manifest`, `backtrack`
+  - Blinding support: `generate_manifest()` assigns NATO phonetic opaque IDs
+    (ALPHA–HOTEL) to conditions with randomized mapping
+  - Backtracking: `backtrack_to_phase()` resets downstream phases and
+    `preserve_artifacts()` renames existing files with `.prev` suffix
+  - SKILL.md guidance for all 6 phases with conversation flows, quality checks,
+    gate verification, and tier-gated interpretation
+  - Supplementary sections: LLM-as-judge debiasing (5 biases + calibration
+    protocol), reproducibility (tier-scaled requirements + caching strategy),
+    error recovery (analyze.py failures, gate failures, abandonment), and
+    edge cases (single-condition, 3+ conditions, mixed evaluation methods)
+  - 8 Common Deviations entries
+  - ([#74](https://github.com/bcbeidel/wos/pull/75),
+    [#76](https://github.com/bcbeidel/wos/pull/81),
+    [#77](https://github.com/bcbeidel/wos/pull/82),
+    [#80](https://github.com/bcbeidel/wos/pull/83),
+    [#78](https://github.com/bcbeidel/wos/pull/85),
+    [#79](https://github.com/bcbeidel/wos/pull/86))
+
+### Changed
+
+- **Directory layout unified under `docs/`.** `context/` and `artifacts/`
+  consolidated into `docs/context/`, `docs/plans/`, and `docs/research/`.
+  Aligns with ecosystem conventions (`docs/` is the dominant standard) and
+  the superpowers plugin's `docs/plans/` convention. Updated: `validators.py`,
+  `reindex.py`, `agents_md.py`, all tests, 6 skill files, CLAUDE.md, README.md,
+  and 20 frontmatter `related:` fields.
+  ([#84](https://github.com/bcbeidel/wos/issues/84),
+  [#87](https://github.com/bcbeidel/wos/pull/87))
+
+## [0.6.0] - 2026-02-28
+
+### Added
+
+- **`/wos:refine-prompt` skill.** Assess and refine prompts using
+  evidence-backed techniques. Three-stage pipeline (Assess → Refine →
+  Present) with a 7-technique registry in Pareto priority order.
+  ([#71](https://github.com/bcbeidel/wos/issues/71),
+  [#73](https://github.com/bcbeidel/wos/pull/73))
+- `references:` frontmatter convention — all skills with reference files
+  now declare them in SKILL.md frontmatter for auto-loading. Updated:
+  distill, preferences, report-issue, research.
+
+## [0.5.0] - 2026-02-27
+
+### Changed
+
+- **Universal `uv run` script invocation.** All WOS scripts now use PEP 723
+  inline metadata and are invoked via `uv run`. `uv` is now required to run
+  WOS scripts.
+  ([#70](https://github.com/bcbeidel/wos/issues/70),
+  [#72](https://github.com/bcbeidel/wos/pull/72))
+
+### Added
+
+- `scripts/check_runtime.py` — canary script to validate `uv run` + PEP 723
+  pipeline.
+- `scripts/check_url.py` — URL reachability checking via `wos.url_checker`.
+- `scripts/update_preferences.py` — communication preferences updates.
+- `scripts/get_version.py` — print plugin version from `plugin.json`.
+- `skills/_shared/references/preflight.md` — reusable 3-step preflight check
+  (uv availability → canary → actual script) for skills needing `uv run`.
+
+### Removed
+
+- References to non-existent `CLAUDE_PLUGIN_ROOT` environment variable.
+
 ## [0.4.0] - 2026-02-26
 
 ### Changed
@@ -466,6 +546,9 @@ implemented with 229 tests passing.
 - Build roadmap with session protocol and dependency graph
 - 18 design principles across four layers
 
+[0.7.0]: https://github.com/bcbeidel/wos/releases/tag/v0.7.0
+[0.6.0]: https://github.com/bcbeidel/wos/releases/tag/v0.6.0
+[0.5.0]: https://github.com/bcbeidel/wos/releases/tag/v0.5.0
 [0.4.0]: https://github.com/bcbeidel/wos/releases/tag/v0.4.0
 [0.3.6]: https://github.com/bcbeidel/wos/releases/tag/v0.3.6
 [0.3.5]: https://github.com/bcbeidel/wos/releases/tag/v0.3.5
