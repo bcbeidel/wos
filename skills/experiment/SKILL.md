@@ -423,6 +423,39 @@ Then check gates and advance:
   a rubric, "quality" means whatever the evaluator feels in the moment.
   Define scoring criteria before collecting data.
 
+## Backtracking
+
+Backtracking returns to an earlier phase. It's re-entry, not undo —
+existing artifacts are preserved as `.prev` files.
+
+### When to Suggest Backtracking
+
+- User realizes the hypothesis is wrong during Audit
+- Audit reveals a fundamental design flaw
+- Execution reveals evaluation criteria need updating
+- Analysis shows data collection was flawed
+
+### How to Backtrack
+
+1. Confirm with the user: **"Backtracking to [phase] will reset
+   [downstream phases]. Existing work will be saved as .prev files.
+   Proceed?"**
+2. Run:
+
+       uv run <plugin-scripts-dir>/experiment_state.py --root . backtrack --phase <phase>
+
+3. Show the updated progress display
+4. Remind the user: **"Your previous work is saved as .prev files
+   if you need to reference it."**
+
+### Rules
+
+- **Always confirm before backtracking.** Show what will be reset.
+- **Backtracking preserves artifacts.** Files get a `.prev` suffix, not deleted.
+- **Only one level of history.** If `.prev` files already exist, they're overwritten.
+- **Backtracking is normal.** Especially at Pilot/Exploratory tiers, changing
+  direction is expected and healthy. Don't treat it as failure.
+
 ## Key Rules
 
 - **Don't skip phases.** All tiers use all 6 phases. Depth varies, not count.

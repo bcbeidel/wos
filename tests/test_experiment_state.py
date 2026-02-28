@@ -9,7 +9,6 @@ import pytest
 
 from wos.experiment_state import (
     OPAQUE_IDS,
-    PHASE_ARTIFACTS,
     PHASE_ORDER,
     ExperimentState,
     PhaseState,
@@ -413,7 +412,7 @@ class TestBacktrackToPhase:
             phases={name: PhaseState(status="complete") for name in PHASE_ORDER},
         )
         state.phases["publication"].status = "in_progress"
-        report = backtrack_to_phase(state, "audit")
+        backtrack_to_phase(state, "audit")
         assert state.phases["audit"].status == "in_progress"
         assert state.phases["evaluation"].status == "pending"
         assert state.phases["execution"].status == "pending"
@@ -469,7 +468,7 @@ class TestBacktrackToPhase:
                 for name in PHASE_ORDER
             },
         )
-        report = backtrack_to_phase(state, "design")
+        backtrack_to_phase(state, "design")
         assert state.phases["design"].status == "in_progress"
         assert all(
             state.phases[name].status == "pending"

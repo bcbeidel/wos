@@ -141,7 +141,6 @@ def main() -> None:
         else:
             print(f"Gates satisfied for {phase}.")
 
-<<<<<<< HEAD
     elif args.command == "generate-manifest":
         if not state_path.is_file():
             print("No experiment-state.json found.", file=sys.stderr)

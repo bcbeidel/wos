@@ -113,7 +113,6 @@ class TestCheckGates:
         assert "satisfied" in stdout
 
 
-<<<<<<< HEAD
 class TestGenerateManifest:
     def test_creates_manifest_file(self, tmp_path: Path) -> None:
         _run_cli(

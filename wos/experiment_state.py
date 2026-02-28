@@ -31,7 +31,10 @@ PHASE_ARTIFACTS: Dict[str, List[str]] = {
     "audit": ["protocol/audit.md"],
     "evaluation": ["evaluation/criteria.md", "evaluation/blinding-manifest.json"],
     "execution": ["data/raw/", "protocol/prompts/"],
-    "analysis": ["results/analysis.md", "results/unblinding.md", "results/statistics.json"],
+    "analysis": [
+        "results/analysis.md", "results/unblinding.md",
+        "results/statistics.json",
+    ],
     "publication": ["CONCLUSION.md"],
 }
 
