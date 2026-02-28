@@ -26,6 +26,18 @@ OPAQUE_IDS = (
 
 VALID_TIERS = {"pilot", "exploratory", "confirmatory"}
 
+PHASE_ARTIFACTS: Dict[str, List[str]] = {
+    "design": ["protocol/hypothesis.md", "protocol/design.md"],
+    "audit": ["protocol/audit.md"],
+    "evaluation": ["evaluation/criteria.md", "evaluation/blinding-manifest.json"],
+    "execution": ["data/raw/", "protocol/prompts/"],
+    "analysis": [
+        "results/analysis.md", "results/unblinding.md",
+        "results/statistics.json",
+    ],
+    "publication": ["CONCLUSION.md"],
+}
+
 ARTIFACT_GATES: Dict[str, List[str]] = {
     "audit": ["protocol/hypothesis.md", "protocol/design.md"],
     "evaluation": ["protocol/audit.md"],
@@ -177,6 +189,76 @@ def check_gate(root: str, phase: str) -> List[str]:
             if not os.path.isfile(path):
                 missing.append(gate)
     return missing
+
+
+def backtrack_to_phase(
+    state: ExperimentState, target: str,
+) -> dict:
+    """Backtrack to a target phase, resetting all downstream phases.
+
+    Sets the target phase to in_progress and all phases after it to pending.
+    Phases before the target are left unchanged.
+
+    Returns a report dict with target, reset_phases list.
+    """
+    if target not in PHASE_ORDER:
+        raise ValueError(f"Unknown phase: {target}")
+
+    target_idx = PHASE_ORDER.index(target)
+    reset_phases = []
+
+    # Set target to in_progress
+    if state.phases[target].status != "pending":
+        state.phases[target].status = "in_progress"
+        state.phases[target].completed_at = None
+
+    # Reset all downstream phases
+    for name in PHASE_ORDER[target_idx + 1:]:
+        if state.phases[name].status != "pending":
+            state.phases[name].status = "pending"
+            state.phases[name].completed_at = None
+            reset_phases.append(name)
+
+    return {
+        "target": target,
+        "reset_phases": reset_phases,
+    }
+
+
+def preserve_artifacts(root: str, phase: str) -> List[str]:
+    """Preserve artifacts for a phase by renaming to .prev.
+
+    For file paths, renames file.ext to file.ext.prev.
+    For directory paths (ending with /), renames individual files
+    within the directory (excluding .gitkeep and .prev files).
+
+    Returns list of preserved file paths (relative to root).
+    """
+    artifacts = PHASE_ARTIFACTS.get(phase, [])
+    preserved = []
+
+    for artifact in artifacts:
+        full_path = os.path.join(root, artifact)
+
+        if artifact.endswith("/"):
+            if os.path.isdir(full_path):
+                for fname in sorted(os.listdir(full_path)):
+                    if fname == ".gitkeep" or fname.endswith(".prev"):
+                        continue
+                    src = os.path.join(full_path, fname)
+                    if os.path.isfile(src):
+                        dst = src + ".prev"
+                        os.replace(src, dst)
+                        preserved.append(
+                            os.path.relpath(dst, root)
+                        )
+        else:
+            if os.path.isfile(full_path):
+                dst = full_path + ".prev"
+                os.replace(full_path, dst)
+                preserved.append(os.path.relpath(dst, root))
+
+    return preserved
 
 
 def format_progress(state: ExperimentState) -> str:

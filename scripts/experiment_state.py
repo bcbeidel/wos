@@ -71,16 +71,30 @@ def main() -> None:
         help="Randomization seed (default: random)",
     )
 
+    back_p = sub.add_parser("backtrack", help="Return to an earlier phase")
+    back_p.add_argument(
+        "--phase",
+        required=True,
+        choices=[
+            "design", "audit", "evaluation",
+            "execution", "analysis", "publication",
+        ],
+        help="Phase to return to",
+    )
+
     args = parser.parse_args()
 
     # Deferred imports — keeps --help fast
     from wos.experiment_state import (
+        PHASE_ORDER,
         advance_phase,
+        backtrack_to_phase,
         check_gate,
         current_phase,
         format_progress,
         load_state,
         new_state,
+        preserve_artifacts,
         save_state,
     )
 
@@ -163,6 +177,32 @@ def main() -> None:
         print("Condition mapping (DO NOT share during execution):")
         for label, info in manifest["conditions"].items():
             print("  %s -> %s" % (label, info["opaque_id"]))
+
+    elif args.command == "backtrack":
+        if not state_path.is_file():
+            print("No experiment-state.json found.", file=sys.stderr)
+            sys.exit(1)
+        state = load_state(str(state_path))
+
+        # Preserve artifacts for the target phase and all downstream
+        all_preserved = []
+        target_idx = PHASE_ORDER.index(args.phase)
+        for name in PHASE_ORDER[target_idx:]:
+            preserved = preserve_artifacts(str(root), name)
+            all_preserved.extend(preserved)
+
+        report = backtrack_to_phase(state, args.phase)
+        save_state(state, str(state_path))
+
+        print("Backtracked to: %s" % args.phase)
+        if report["reset_phases"]:
+            print("Reset phases: %s" % ", ".join(report["reset_phases"]))
+        if all_preserved:
+            print(
+                "Preserved %d artifact(s) as .prev files" % len(all_preserved)
+            )
+        print()
+        print(format_progress(state))
 
 
 if __name__ == "__main__":

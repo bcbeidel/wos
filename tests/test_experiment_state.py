@@ -13,12 +13,14 @@ from wos.experiment_state import (
     ExperimentState,
     PhaseState,
     advance_phase,
+    backtrack_to_phase,
     check_gate,
     current_phase,
     format_progress,
     generate_manifest,
     load_state,
     new_state,
+    preserve_artifacts,
     save_state,
 )
 
@@ -402,3 +404,123 @@ class TestGenerateManifest:
             seed=1,
         )
         assert manifest["assignments"] == []
+
+
+class TestBacktrackToPhase:
+    def test_resets_downstream_phases(self) -> None:
+        state = ExperimentState(
+            phases={name: PhaseState(status="complete") for name in PHASE_ORDER},
+        )
+        state.phases["publication"].status = "in_progress"
+        backtrack_to_phase(state, "audit")
+        assert state.phases["audit"].status == "in_progress"
+        assert state.phases["evaluation"].status == "pending"
+        assert state.phases["execution"].status == "pending"
+        assert state.phases["analysis"].status == "pending"
+        assert state.phases["publication"].status == "pending"
+        # Design stays complete (upstream of target)
+        assert state.phases["design"].status == "complete"
+
+    def test_clears_completed_at_for_reset_phases(self) -> None:
+        state = ExperimentState(
+            phases={
+                name: PhaseState(status="complete", completed_at="2026-02-27T10:00:00Z")
+                for name in PHASE_ORDER
+            },
+        )
+        backtrack_to_phase(state, "evaluation")
+        assert state.phases["evaluation"].completed_at is None
+        assert state.phases["execution"].completed_at is None
+        # Upstream phases keep their timestamps
+        assert state.phases["design"].completed_at == "2026-02-27T10:00:00Z"
+        assert state.phases["audit"].completed_at == "2026-02-27T10:00:00Z"
+
+    def test_target_already_pending_is_noop(self) -> None:
+        state = ExperimentState(
+            phases={name: PhaseState() for name in PHASE_ORDER},
+        )
+        state.phases["design"].status = "in_progress"
+        report = backtrack_to_phase(state, "design")
+        assert report["reset_phases"] == []
+        assert state.phases["design"].status == "in_progress"
+
+    def test_unknown_phase_raises(self) -> None:
+        state = ExperimentState(
+            phases={name: PhaseState() for name in PHASE_ORDER},
+        )
+        with pytest.raises(ValueError, match="Unknown phase"):
+            backtrack_to_phase(state, "nonexistent")
+
+    def test_returns_report(self) -> None:
+        state = ExperimentState(
+            phases={name: PhaseState(status="complete") for name in PHASE_ORDER},
+        )
+        report = backtrack_to_phase(state, "audit")
+        assert report["target"] == "audit"
+        assert "evaluation" in report["reset_phases"]
+        assert "execution" in report["reset_phases"]
+        assert "design" not in report["reset_phases"]
+
+    def test_backtrack_to_first_phase(self) -> None:
+        state = ExperimentState(
+            phases={
+                name: PhaseState(status="complete")
+                for name in PHASE_ORDER
+            },
+        )
+        backtrack_to_phase(state, "design")
+        assert state.phases["design"].status == "in_progress"
+        assert all(
+            state.phases[name].status == "pending"
+            for name in PHASE_ORDER[1:]
+        )
+
+    def test_backtrack_to_last_phase(self) -> None:
+        state = ExperimentState(
+            phases={
+                name: PhaseState(status="complete")
+                for name in PHASE_ORDER
+            },
+        )
+        report = backtrack_to_phase(state, "publication")
+        assert state.phases["publication"].status == "in_progress"
+        assert report["reset_phases"] == []
+
+
+class TestPreserveArtifacts:
+    def test_renames_existing_files(self, tmp_path: Path) -> None:
+        proto = tmp_path / "protocol"
+        proto.mkdir()
+        (proto / "hypothesis.md").write_text("# Original")
+        (proto / "design.md").write_text("# Original Design")
+        preserved = preserve_artifacts(str(tmp_path), "design")
+        assert (proto / "hypothesis.md.prev").exists()
+        assert (proto / "hypothesis.md.prev").read_text() == "# Original"
+        assert (proto / "design.md.prev").exists()
+        assert len(preserved) == 2
+
+    def test_overwrites_existing_prev(self, tmp_path: Path) -> None:
+        proto = tmp_path / "protocol"
+        proto.mkdir()
+        (proto / "hypothesis.md").write_text("# V2")
+        (proto / "hypothesis.md.prev").write_text("# V1")
+        preserve_artifacts(str(tmp_path), "design")
+        assert (proto / "hypothesis.md.prev").read_text() == "# V2"
+
+    def test_skips_missing_files(self, tmp_path: Path) -> None:
+        preserved = preserve_artifacts(str(tmp_path), "design")
+        assert preserved == []
+
+    def test_unknown_phase_returns_empty(self, tmp_path: Path) -> None:
+        preserved = preserve_artifacts(str(tmp_path), "nonexistent")
+        assert preserved == []
+
+    def test_preserves_directory_contents(self, tmp_path: Path) -> None:
+        raw = tmp_path / "data" / "raw"
+        raw.mkdir(parents=True)
+        (raw / "results.csv").write_text("a,b\n1,2")
+        (raw / ".gitkeep").write_text("")
+        preserved = preserve_artifacts(str(tmp_path), "execution")
+        assert (raw / "results.csv.prev").exists()
+        assert not (raw / ".gitkeep.prev").exists()
+        assert len(preserved) >= 1

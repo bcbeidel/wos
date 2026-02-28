@@ -154,3 +154,48 @@ class TestGenerateManifest:
         )
         assert "blinding-manifest.json" in stdout
         assert "ALPHA" in stdout or "BRAVO" in stdout
+
+
+class TestBacktrack:
+    def test_resets_state_and_preserves_artifacts(self, tmp_path: Path) -> None:
+        _run_cli(
+            "--root", str(tmp_path), "init",
+            "--tier", "exploratory", "--title", "Backtrack Test",
+        )
+        proto = tmp_path / "protocol"
+        proto.mkdir(exist_ok=True)
+        (proto / "hypothesis.md").write_text("# Hypothesis")
+        (proto / "design.md").write_text("# Design")
+        _run_cli("--root", str(tmp_path), "advance", "--phase", "design")
+
+        stdout, _, code = _run_cli(
+            "--root", str(tmp_path), "backtrack", "--phase", "design",
+        )
+        assert code == 0
+        assert "design" in stdout.lower()
+
+        data = json.loads((tmp_path / "experiment-state.json").read_text())
+        assert data["phases"]["design"]["status"] == "in_progress"
+        assert data["phases"]["audit"]["status"] == "pending"
+
+        assert (proto / "hypothesis.md.prev").exists()
+
+    def test_missing_state_file_exits_1(self, tmp_path: Path) -> None:
+        _, stderr, code = _run_cli(
+            "--root", str(tmp_path), "backtrack", "--phase", "design",
+        )
+        assert code == 1
+
+    def test_shows_reset_report(self, tmp_path: Path) -> None:
+        _run_cli(
+            "--root", str(tmp_path), "init",
+            "--tier", "exploratory", "--title", "Report Test",
+        )
+        _run_cli("--root", str(tmp_path), "advance", "--phase", "design")
+        _run_cli("--root", str(tmp_path), "advance", "--phase", "audit")
+
+        stdout, _, code = _run_cli(
+            "--root", str(tmp_path), "backtrack", "--phase", "design",
+        )
+        assert code == 0
+        assert "audit" in stdout.lower()
