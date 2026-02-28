@@ -8,9 +8,7 @@ and formatting progress displays.
 from __future__ import annotations
 
 import json
-import os
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 PHASE_ORDER = (
