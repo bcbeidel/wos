@@ -26,6 +26,15 @@ OPAQUE_IDS = (
 
 VALID_TIERS = {"pilot", "exploratory", "confirmatory"}
 
+PHASE_ARTIFACTS: Dict[str, List[str]] = {
+    "design": ["protocol/hypothesis.md", "protocol/design.md"],
+    "audit": ["protocol/audit.md"],
+    "evaluation": ["evaluation/criteria.md", "evaluation/blinding-manifest.json"],
+    "execution": ["data/raw/", "protocol/prompts/"],
+    "analysis": ["results/analysis.md", "results/unblinding.md", "results/statistics.json"],
+    "publication": ["CONCLUSION.md"],
+}
+
 ARTIFACT_GATES: Dict[str, List[str]] = {
     "audit": ["protocol/hypothesis.md", "protocol/design.md"],
     "evaluation": ["protocol/audit.md"],
@@ -211,6 +220,42 @@ def backtrack_to_phase(
         "target": target,
         "reset_phases": reset_phases,
     }
+
+
+def preserve_artifacts(root: str, phase: str) -> List[str]:
+    """Preserve artifacts for a phase by renaming to .prev.
+
+    For file paths, renames file.ext to file.ext.prev.
+    For directory paths (ending with /), renames individual files
+    within the directory (excluding .gitkeep and .prev files).
+
+    Returns list of preserved file paths (relative to root).
+    """
+    artifacts = PHASE_ARTIFACTS.get(phase, [])
+    preserved = []
+
+    for artifact in artifacts:
+        full_path = os.path.join(root, artifact)
+
+        if artifact.endswith("/"):
+            if os.path.isdir(full_path):
+                for fname in sorted(os.listdir(full_path)):
+                    if fname == ".gitkeep" or fname.endswith(".prev"):
+                        continue
+                    src = os.path.join(full_path, fname)
+                    if os.path.isfile(src):
+                        dst = src + ".prev"
+                        os.replace(src, dst)
+                        preserved.append(
+                            os.path.relpath(dst, root)
+                        )
+        else:
+            if os.path.isfile(full_path):
+                dst = full_path + ".prev"
+                os.replace(full_path, dst)
+                preserved.append(os.path.relpath(dst, root))
+
+    return preserved
 
 
 def format_progress(state: ExperimentState) -> str:

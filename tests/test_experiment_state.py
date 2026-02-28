@@ -9,6 +9,7 @@ import pytest
 
 from wos.experiment_state import (
     OPAQUE_IDS,
+    PHASE_ARTIFACTS,
     PHASE_ORDER,
     ExperimentState,
     PhaseState,
@@ -20,6 +21,7 @@ from wos.experiment_state import (
     generate_manifest,
     load_state,
     new_state,
+    preserve_artifacts,
     save_state,
 )
 
@@ -484,3 +486,42 @@ class TestBacktrackToPhase:
         report = backtrack_to_phase(state, "publication")
         assert state.phases["publication"].status == "in_progress"
         assert report["reset_phases"] == []
+
+
+class TestPreserveArtifacts:
+    def test_renames_existing_files(self, tmp_path: Path) -> None:
+        proto = tmp_path / "protocol"
+        proto.mkdir()
+        (proto / "hypothesis.md").write_text("# Original")
+        (proto / "design.md").write_text("# Original Design")
+        preserved = preserve_artifacts(str(tmp_path), "design")
+        assert (proto / "hypothesis.md.prev").exists()
+        assert (proto / "hypothesis.md.prev").read_text() == "# Original"
+        assert (proto / "design.md.prev").exists()
+        assert len(preserved) == 2
+
+    def test_overwrites_existing_prev(self, tmp_path: Path) -> None:
+        proto = tmp_path / "protocol"
+        proto.mkdir()
+        (proto / "hypothesis.md").write_text("# V2")
+        (proto / "hypothesis.md.prev").write_text("# V1")
+        preserve_artifacts(str(tmp_path), "design")
+        assert (proto / "hypothesis.md.prev").read_text() == "# V2"
+
+    def test_skips_missing_files(self, tmp_path: Path) -> None:
+        preserved = preserve_artifacts(str(tmp_path), "design")
+        assert preserved == []
+
+    def test_unknown_phase_returns_empty(self, tmp_path: Path) -> None:
+        preserved = preserve_artifacts(str(tmp_path), "nonexistent")
+        assert preserved == []
+
+    def test_preserves_directory_contents(self, tmp_path: Path) -> None:
+        raw = tmp_path / "data" / "raw"
+        raw.mkdir(parents=True)
+        (raw / "results.csv").write_text("a,b\n1,2")
+        (raw / ".gitkeep").write_text("")
+        preserved = preserve_artifacts(str(tmp_path), "execution")
+        assert (raw / "results.csv.prev").exists()
+        assert not (raw / ".gitkeep.prev").exists()
+        assert len(preserved) >= 1
