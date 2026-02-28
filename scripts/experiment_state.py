@@ -7,7 +7,8 @@
 
 Usage:
     uv run scripts/experiment_state.py --root . status
-    uv run scripts/experiment_state.py --root . init --tier exploratory --title "My Experiment"
+    uv run scripts/experiment_state.py --root . init \\
+        --tier exploratory --title "My Experiment"
     uv run scripts/experiment_state.py --root . advance --phase design
     uv run scripts/experiment_state.py --root . check-gates [--phase audit]
 """

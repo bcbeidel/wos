@@ -206,9 +206,10 @@ def format_progress(state: ExperimentState) -> str:
         phase_num = total
         phase_label = "Complete"
 
+    arrow = " \u2192 "
     return (
         f"Experiment: {title} ({tier})\n"
         f"Progress: {filled}{empty} Phase {phase_num} of {total}"
         f" \u2014 {phase_label}\n"
-        f"Completed: {' \u2192 '.join(parts)}"
+        f"Completed: {arrow.join(parts)}"
     )

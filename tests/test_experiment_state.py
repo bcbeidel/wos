@@ -8,7 +8,6 @@ from pathlib import Path
 import pytest
 
 from wos.experiment_state import (
-    ARTIFACT_GATES,
     PHASE_ORDER,
     ExperimentState,
     PhaseState,
@@ -51,7 +50,10 @@ class TestLoadState:
             "rigor_tier": "pilot",
             "created_at": "2026-02-27T10:00:00Z",
             "phases": {
-                "design": {"status": "complete", "completed_at": "2026-02-27T10:00:00Z"},
+                "design": {
+                    "status": "complete",
+                    "completed_at": "2026-02-27T10:00:00Z",
+                },
                 "audit": {"status": "in_progress", "completed_at": None},
                 "evaluation": {"status": "pending", "completed_at": None},
                 "execution": {"status": "pending", "completed_at": None},
@@ -100,7 +102,10 @@ class TestSaveState:
             rigor_tier="exploratory",
             created_at="2026-02-27T10:00:00Z",
             phases={
-                "design": PhaseState(status="complete", completed_at="2026-02-27T10:00:00Z"),
+                "design": PhaseState(
+                    status="complete",
+                    completed_at="2026-02-27T10:00:00Z",
+                ),
                 "audit": PhaseState(status="in_progress"),
                 "evaluation": PhaseState(),
                 "execution": PhaseState(),
