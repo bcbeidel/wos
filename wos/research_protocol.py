@@ -70,7 +70,7 @@ def format_protocol_summary(protocol: SearchProtocol) -> str:
     )
 
 
-def _protocol_from_json(data: Dict[str, Any]) -> SearchProtocol:
+def protocol_from_json(data: Dict[str, Any]) -> SearchProtocol:
     """Parse JSON dict into SearchProtocol.
 
     Raises ValueError if not_searched contains non-string entries.

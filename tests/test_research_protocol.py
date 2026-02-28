@@ -130,7 +130,7 @@ class TestFormatProtocolSummary:
 
 class TestProtocolFromJson:
     def test_parse_full_entry(self) -> None:
-        from wos.research_protocol import _protocol_from_json
+        from wos.research_protocol import protocol_from_json
 
         data = {
             "entries": [
@@ -144,14 +144,14 @@ class TestProtocolFromJson:
             ],
             "not_searched": ["reddit"],
         }
-        protocol = _protocol_from_json(data)
+        protocol = protocol_from_json(data)
         assert len(protocol.entries) == 1
         assert protocol.entries[0].query == "test"
         assert protocol.entries[0].date_range == "2024-2026"
         assert protocol.not_searched == ["reddit"]
 
     def test_parse_null_date_range(self) -> None:
-        from wos.research_protocol import _protocol_from_json
+        from wos.research_protocol import protocol_from_json
 
         data = {
             "entries": [
@@ -165,19 +165,19 @@ class TestProtocolFromJson:
             ],
             "not_searched": [],
         }
-        protocol = _protocol_from_json(data)
+        protocol = protocol_from_json(data)
         assert protocol.entries[0].date_range is None
 
     def test_parse_empty(self) -> None:
-        from wos.research_protocol import _protocol_from_json
+        from wos.research_protocol import protocol_from_json
 
-        protocol = _protocol_from_json({"entries": [], "not_searched": []})
+        protocol = protocol_from_json({"entries": [], "not_searched": []})
         assert protocol.entries == []
         assert protocol.not_searched == []
 
     def test_rejects_dict_not_searched_entries(self) -> None:
         """Issue #52: not_searched with dict entries should raise ValueError."""
-        from wos.research_protocol import _protocol_from_json
+        from wos.research_protocol import protocol_from_json
 
         data = {
             "entries": [],
@@ -186,7 +186,7 @@ class TestProtocolFromJson:
             ],
         }
         try:
-            _protocol_from_json(data)
+            protocol_from_json(data)
             assert False, "Should have raised ValueError"
         except ValueError as exc:
             assert "not_searched" in str(exc)
@@ -194,7 +194,7 @@ class TestProtocolFromJson:
 
     def test_rejects_mixed_not_searched_entries(self) -> None:
         """Issue #52: mix of strings and dicts should also raise."""
-        from wos.research_protocol import _protocol_from_json
+        from wos.research_protocol import protocol_from_json
 
         data = {
             "entries": [],
@@ -204,7 +204,7 @@ class TestProtocolFromJson:
             ],
         }
         try:
-            _protocol_from_json(data)
+            protocol_from_json(data)
             assert False, "Should have raised ValueError"
         except ValueError as exc:
             assert "not_searched" in str(exc)
