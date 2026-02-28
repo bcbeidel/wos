@@ -8,10 +8,12 @@ from pathlib import Path
 import pytest
 
 from wos.experiment_state import (
+    ARTIFACT_GATES,
     PHASE_ORDER,
     ExperimentState,
     PhaseState,
     advance_phase,
+    check_gate,
     current_phase,
     load_state,
     new_state,
@@ -234,3 +236,40 @@ class TestNewState:
         for tier in ("pilot", "exploratory", "confirmatory"):
             state = new_state(tier=tier, title="T")
             assert state.rigor_tier == tier
+
+
+class TestCheckGate:
+    def test_design_has_no_gates(self, tmp_path: Path) -> None:
+        assert check_gate(str(tmp_path), "design") == []
+
+    def test_audit_missing_both(self, tmp_path: Path) -> None:
+        missing = check_gate(str(tmp_path), "audit")
+        assert "protocol/hypothesis.md" in missing
+        assert "protocol/design.md" in missing
+
+    def test_audit_satisfied(self, tmp_path: Path) -> None:
+        proto = tmp_path / "protocol"
+        proto.mkdir()
+        (proto / "hypothesis.md").write_text("# H")
+        (proto / "design.md").write_text("# D")
+        assert check_gate(str(tmp_path), "audit") == []
+
+    def test_analysis_empty_data_dir_fails(self, tmp_path: Path) -> None:
+        raw = tmp_path / "data" / "raw"
+        raw.mkdir(parents=True)
+        (raw / ".gitkeep").write_text("")
+        missing = check_gate(str(tmp_path), "analysis")
+        assert "data/raw/" in missing
+
+    def test_analysis_data_dir_with_files_passes(self, tmp_path: Path) -> None:
+        raw = tmp_path / "data" / "raw"
+        raw.mkdir(parents=True)
+        (raw / "results.csv").write_text("condition,outcome\na,1")
+        assert check_gate(str(tmp_path), "analysis") == []
+
+    def test_analysis_no_data_dir_fails(self, tmp_path: Path) -> None:
+        missing = check_gate(str(tmp_path), "analysis")
+        assert "data/raw/" in missing
+
+    def test_unknown_phase_returns_empty(self, tmp_path: Path) -> None:
+        assert check_gate(str(tmp_path), "nonexistent") == []

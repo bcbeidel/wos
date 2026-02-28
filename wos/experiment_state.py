@@ -8,6 +8,7 @@ and formatting progress displays.
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
@@ -18,6 +19,14 @@ PHASE_ORDER = (
 )
 
 VALID_TIERS = {"pilot", "exploratory", "confirmatory"}
+
+ARTIFACT_GATES: Dict[str, List[str]] = {
+    "audit": ["protocol/hypothesis.md", "protocol/design.md"],
+    "evaluation": ["protocol/audit.md"],
+    "execution": ["evaluation/criteria.md"],
+    "analysis": ["data/raw/"],
+    "publication": ["results/analysis.md"],
+}
 
 
 @dataclass
@@ -138,3 +147,27 @@ def advance_phase(state: ExperimentState, phase: str) -> None:
         next_name = PHASE_ORDER[idx + 1]
         if state.phases[next_name].status == "pending":
             state.phases[next_name].status = "in_progress"
+
+
+def check_gate(root: str, phase: str) -> List[str]:
+    """Check artifact gates for entering a phase.
+
+    Returns list of missing artifact paths (empty if all satisfied).
+    Paths ending with '/' are directories that must contain files
+    other than .gitkeep.
+    """
+    gates = ARTIFACT_GATES.get(phase, [])
+    missing = []
+    for gate in gates:
+        path = os.path.join(root, gate)
+        if gate.endswith("/"):
+            if not os.path.isdir(path):
+                missing.append(gate)
+            else:
+                files = [f for f in os.listdir(path) if f != ".gitkeep"]
+                if not files:
+                    missing.append(gate)
+        else:
+            if not os.path.isfile(path):
+                missing.append(gate)
+    return missing
