@@ -262,6 +262,92 @@ Then check gates and advance:
     uv run <plugin-scripts-dir>/experiment_state.py --root . check-gates
     uv run <plugin-scripts-dir>/experiment_state.py --root . advance --phase audit
 
+## Phase: Evaluation Design
+
+Guide the user through `evaluation/criteria.md` and the blinding decision.
+If blinding is chosen, generate `evaluation/blinding-manifest.json`.
+
+### Conversation Flow
+
+**Step 1 — Primary metrics:**
+
+Ask: **"What will you measure? How will you measure it?"**
+
+Fill the Primary Metrics table in `evaluation/criteria.md`:
+
+| Metric | Description | How Measured | Direction |
+|--------|-------------|--------------|-----------|
+| (user-provided) | (user-provided) | (user-provided) | Higher/Lower is better |
+
+**Step 2 — Effect size targets (Exploratory+ only):**
+
+| Tier | Action |
+|------|--------|
+| Pilot | Skip — you're estimating effect sizes, not targeting them |
+| Exploratory | Ask: "What size of difference would be practically meaningful?" |
+| Confirmatory | Ask: "What is the minimum effect size of interest (SESOI)?" |
+
+**Step 3 — Evaluation rubric (if human judgment involved):**
+
+If the evaluation method involves human rating or LLM-as-judge, build a
+scoring rubric:
+
+| Score | Label | Criteria |
+|-------|-------|----------|
+| 0 | Fail | (define) |
+| 1 | Partial | (define) |
+| 2 | Pass | (define) |
+
+**Step 4 — Blinding decision:**
+
+Present the blinding decision matrix:
+
+| Evaluation Method | Pilot | Exploratory | Confirmatory |
+|-------------------|-------|-------------|--------------|
+| Automated metrics | Label conditions | Label conditions | Label + pre-register |
+| Human rating | Label conditions | Label + randomize | Double-blind via script |
+| LLM-as-judge | Label conditions | Randomize order + different judge | Randomize + debias |
+
+Ask: **"What evaluation method will you use?"** Then apply the matrix to
+recommend a blinding level.
+
+**Step 5 — Generate manifest (if blinding chosen):**
+
+If the matrix recommends blinding, run:
+
+    uv run <plugin-scripts-dir>/experiment_state.py --root . generate-manifest \
+      --conditions "label1=desc1,label2=desc2" --seed <seed>
+
+Tell the user: **"The manifest is sealed. During execution, use only the
+opaque IDs (ALPHA, BRAVO, etc.). Do not look at the manifest until
+the Analysis phase."**
+
+**Step 6 — Pass/fail threshold (Exploratory+ only):**
+
+| Tier | Action |
+|------|--------|
+| Pilot | Skip |
+| Exploratory | Optional — "Under what conditions would you consider the hypothesis supported?" |
+| Confirmatory | Required — pre-specify the decision rule |
+
+**Step 7 — Update PROTOCOL.md:**
+
+Fill the Primary Metric field in `PROTOCOL.md` Design Summary.
+Add blinding decision to Key Decisions table.
+
+### Quality Check
+
+Before advancing, verify:
+- [ ] `evaluation/criteria.md` has at least one primary metric
+- [ ] Blinding decision is recorded
+- [ ] If blinding chosen: `evaluation/blinding-manifest.json` exists
+- [ ] For Confirmatory: pass/fail threshold is specified
+
+Then check gates and advance:
+
+    uv run <plugin-scripts-dir>/experiment_state.py --root . check-gates
+    uv run <plugin-scripts-dir>/experiment_state.py --root . advance --phase evaluation
+
 ## Common Deviations (Do Not)
 
 - **Do not skip the audit.** Even Pilot experiments need the 5-item sanity
