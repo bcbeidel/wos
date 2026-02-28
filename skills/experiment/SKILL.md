@@ -83,6 +83,105 @@ If satisfied:
 
     uv run <plugin-scripts-dir>/experiment_state.py --root . advance --phase <phase>
 
+## Phase: Design
+
+Guide the user through `protocol/hypothesis.md` and `protocol/design.md`.
+By the end, `PROTOCOL.md` should have its Overview and Design Summary filled.
+
+### Conversation Flow
+
+**Step 1 — Research question:**
+
+Ask: **"What question are you trying to answer?"**
+
+Accept a natural-language answer. Help refine it into a clear, testable question.
+
+**Step 2 — Variables:**
+
+Ask: **"What are you manipulating (independent variable) and measuring (dependent variable)?"**
+
+Write both to the Variables section of `protocol/hypothesis.md`.
+
+**Step 3 — Tier-specific hypothesis depth:**
+
+| Tier | What to write |
+|------|---------------|
+| Pilot | Research question only. Skip Expected Direction. |
+| Exploratory | Research question + expected direction ("We expect X to outperform Y because...") |
+| Confirmatory | Formal falsifiable hypothesis with directionality and minimum meaningful effect size |
+
+Write to `protocol/hypothesis.md`. For Confirmatory, ensure the hypothesis specifies the comparison and direction precisely enough to pre-register.
+
+**Step 4 — Conditions:**
+
+Ask: **"What conditions are you comparing?"**
+
+Fill the Conditions table in `protocol/design.md`:
+
+| Condition | Label | Description |
+|-----------|-------|-------------|
+| Treatment | (user-provided) | (user-provided) |
+| Control | (user-provided) | (user-provided) |
+
+Update `experiment-state.json` with the conditions list:
+
+    uv run <plugin-scripts-dir>/experiment_state.py --root . status
+
+(The `conditions` field in state is informational — it doesn't gate anything.)
+
+**Step 5 — Sample size:**
+
+| Tier | Guidance |
+|------|----------|
+| Pilot | "Any sample size is fine — you're testing feasibility." |
+| Exploratory | Default: 30 paired / 50 independent per condition. Enough for bootstrap CIs. |
+| Confirmatory | Ask for power analysis justification. Target: 80% power at expected effect size. |
+
+**Step 6 — Procedure:**
+
+Ask: **"Walk me through one trial — what happens step by step?"**
+
+Write numbered steps to the Procedure section of `protocol/design.md`.
+
+**Step 7 — Environment & Model Configuration:**
+
+If the experiment involves LLMs or APIs:
+- Pin the exact model string (not an alias)
+- Record API parameters (temperature, top_p, max_tokens, seed)
+- Record runtime environment
+
+If not applicable, note "N/A — not an LLM/API experiment."
+
+**Step 8 — Reproducibility checklist:**
+
+Walk through the tier-appropriate items in `protocol/design.md`:
+
+| Tier | Items |
+|------|-------|
+| All | Model pinned, API params recorded, prompts saved, dependencies locked, raw data preserved |
+| Exploratory+ | Multiple runs per condition (>=3), full API responses cached, exact rerun commands |
+| Confirmatory | Docker environment, analysis code committed before data, independent rerun, archival planned |
+
+**Step 9 — PROTOCOL.md summary:**
+
+Fill the Overview and Design Summary sections of `PROTOCOL.md`:
+- Title, Tier, Question (from hypothesis)
+- Conditions, Sample, Primary metric (from design)
+- 2-3 sentence method summary
+
+### Quality Check
+
+Before advancing, verify:
+- [ ] `protocol/hypothesis.md` has a clear research question
+- [ ] `protocol/design.md` has conditions, sample size, and procedure
+- [ ] For Confirmatory: hypothesis is falsifiable with specified direction
+- [ ] `PROTOCOL.md` Overview and Design Summary are filled
+
+Then check gates and advance:
+
+    uv run <plugin-scripts-dir>/experiment_state.py --root . check-gates
+    uv run <plugin-scripts-dir>/experiment_state.py --root . advance --phase design
+
 ## Key Rules
 
 - **Don't skip phases.** All tiers use all 6 phases. Depth varies, not count.
