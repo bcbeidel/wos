@@ -68,8 +68,8 @@ Show at each interaction:
 |-------|-----------|----------|
 | design | `protocol/hypothesis.md`, `protocol/design.md` | See [Phase: Design](#phase-design) below |
 | audit | `protocol/audit.md` | See [Phase: Audit](#phase-audit) below |
-| evaluation | `evaluation/criteria.md`, `evaluation/blinding-manifest.json` | Define metrics, rubrics, blinding setup |
-| execution | `data/raw/`, `protocol/prompts/` | Collect data, save raw results |
+| evaluation | `evaluation/criteria.md`, `evaluation/blinding-manifest.json` | See [Phase: Evaluation Design](#phase-evaluation-design) below |
+| execution | `data/raw/`, `protocol/prompts/` | See [Phase: Execution](#phase-execution) below |
 | analysis | `results/analysis.md` | Run `python scripts/analyze.py`, interpret results |
 | publication | `CONCLUSION.md`, `README.md` | Write verdict, update README |
 
@@ -416,6 +416,12 @@ Then check gates and advance:
   or pre-registration requirements.
 - **Do not advance without checking gates.** Always run `check-gates`
   before `advance`. The gates verify artifacts exist on disk.
+- **Do not open the blinding manifest during execution.** The whole point
+  of blinding is that condition labels are hidden. If you read the manifest
+  during Phase 4, blinding is broken.
+- **Do not skip the evaluation rubric for subjective metrics.** Without
+  a rubric, "quality" means whatever the evaluator feels in the moment.
+  Define scoring criteria before collecting data.
 
 ## Key Rules
 
