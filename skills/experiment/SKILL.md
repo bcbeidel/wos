@@ -70,8 +70,8 @@ Show at each interaction:
 | audit | `protocol/audit.md` | See [Phase: Audit](#phase-audit) below |
 | evaluation | `evaluation/criteria.md`, `evaluation/blinding-manifest.json` | See [Phase: Evaluation Design](#phase-evaluation-design) below |
 | execution | `data/raw/`, `protocol/prompts/` | See [Phase: Execution](#phase-execution) below |
-| analysis | `results/analysis.md` | Run `python scripts/analyze.py`, interpret results |
-| publication | `CONCLUSION.md`, `README.md` | Write verdict, update README |
+| analysis | `results/analysis.md` | See [Phase: Analysis](#phase-analysis) below |
+| publication | `CONCLUSION.md`, `README.md` | See [Phase: Publication](#phase-publication) below |
 
 ### Gate Checking
 
@@ -403,6 +403,157 @@ Then check gates and advance:
     uv run <plugin-scripts-dir>/experiment_state.py --root . check-gates
     uv run <plugin-scripts-dir>/experiment_state.py --root . advance --phase execution
 
+## Phase: Analysis
+
+Guide the user through unblinding (if applicable) and statistical analysis.
+
+### Conversation Flow
+
+**Step 1 — Unblinding (if blinding was used):**
+
+If `evaluation/blinding-manifest.json` has `blinding_enabled: true`:
+
+1. Read the manifest: **"Let's unseal the blinding manifest."**
+2. Display the condition mapping:
+   - "ALPHA was [condition label] — [description]"
+   - "BRAVO was [condition label] — [description]"
+3. Fill `results/unblinding.md` with the Condition Mapping table
+4. Ask: **"Did unblinding reveal anything unexpected?"**
+5. Record any observations in Post-Unblinding Notes
+
+If blinding was not used, note "Blinding not used" in `results/unblinding.md`
+or delete the file.
+
+**Step 2 — Data preparation:**
+
+Ensure `data/processed/results.csv` exists with:
+- A `condition` column (using actual condition labels, not opaque IDs)
+- One or more outcome columns matching the primary metrics
+
+If raw data needs processing, guide the user through creating the CSV.
+
+**Step 3 — Run analysis:**
+
+Run the template's analysis script:
+
+    cd <experiment-repo-root>
+    python scripts/analyze.py --data data/processed/results.csv --tier <tier>
+
+For within-subjects designs, add `--paired`.
+
+**Step 4 — Interpret results:**
+
+| Tier | Interpretation focus |
+|------|---------------------|
+| Pilot | "Does this look interesting enough to pursue? What surprised you?" |
+| Exploratory | "What do the effect sizes tell you? Are the CIs informative? Does the CI exclude zero?" |
+| Confirmatory | "Does the pre-specified analysis support or reject the hypothesis? Report the permutation p-value and effect size together." |
+
+Key guidance:
+- Lead with effect sizes, not p-values
+- A large effect with a wide CI means you need more data, not that the effect is real
+- For Confirmatory: report pre-specified analyses first, post-hoc analyses separately
+
+**Step 5 — Fill `results/analysis.md`:**
+
+- Paste the `analyze.py` output in the Statistical Results section
+- Write the Interpretation section
+- For Exploratory+: fill the Planned vs. Post-Hoc Analyses table
+- Fill Limitations
+
+**Step 6 — Common pitfalls to flag:**
+
+- If the user wants to re-run analysis with different parameters after seeing
+  results, warn: **"Changing analysis parameters after seeing data is a form
+  of p-hacking. If you want to try different analyses, label them as
+  post-hoc/exploratory."**
+- If effect size is large but CI is very wide: **"The effect looks large but
+  the confidence interval is wide — consider whether you need more data
+  before drawing conclusions."**
+
+### Quality Check
+
+Before advancing, verify:
+- [ ] `results/analysis.md` has statistical output and interpretation
+- [ ] If blinding was used: `results/unblinding.md` is filled
+- [ ] Planned vs. post-hoc analyses are distinguished (Exploratory+)
+
+Then check gates and advance:
+
+    uv run <plugin-scripts-dir>/experiment_state.py --root . check-gates
+    uv run <plugin-scripts-dir>/experiment_state.py --root . advance --phase analysis
+
+## Phase: Publication
+
+Guide the user through writing the conclusion, updating the README,
+and integrating the experiment as a research source.
+
+### Conversation Flow
+
+**Step 1 — Write CONCLUSION.md:**
+
+Guide the user through each section:
+
+1. **Verdict:** validated / invalidated / inconclusive
+   - Base this on the pre-specified threshold (Confirmatory) or the effect
+     size and CI (Exploratory)
+   - For Pilot: "What did you learn?" is sufficient
+2. **Key Findings:** 2-5 bullet points, lead with effect sizes
+3. **Practical Implications:** what should change based on results?
+4. **Limitations:** be honest about threats to validity
+5. **Next Steps:** follow-up experiments or actions
+
+For Confirmatory tier, also fill:
+- Pre-Registered Analysis Results section
+- Exploratory Findings section (post-hoc, clearly labeled)
+- Archival section (persistent identifier, data archive URL)
+
+**Step 2 — Update README.md:**
+
+Fill the README with a summary:
+- Experiment title and tier
+- One-sentence hypothesis
+- One-sentence method
+- Key result (effect size + CI)
+- Verdict
+
+**Step 3 — Research integration:**
+
+If this experiment was motivated by a research document:
+
+Ask: **"Was this experiment motivated by a specific research document?
+If so, which one?"**
+
+If yes:
+1. Add the experiment repo URL to the research document's `sources:` list
+   in its YAML frontmatter
+2. The experiment qualifies as a T2 source (direct empirical evidence)
+   or T3 source (structured methodology) depending on tier:
+   - Confirmatory → T2 (primary research equivalent)
+   - Exploratory → T3 (structured evidence)
+   - Pilot → T3 (preliminary evidence)
+
+**Step 4 — Archival (Confirmatory only):**
+
+For Confirmatory tier:
+- Verify Docker build works: `docker build -t experiment .`
+- Ensure all data, code, and results are committed
+- Guide user to archive with a persistent identifier (Zenodo, institutional
+  repo, or GitHub release with DOI)
+
+### Quality Check
+
+Before advancing, verify:
+- [ ] `CONCLUSION.md` has a verdict and key findings
+- [ ] `README.md` is updated with experiment summary
+- [ ] For Confirmatory: archival checklist complete
+
+Then advance to mark the experiment complete:
+
+    uv run <plugin-scripts-dir>/experiment_state.py --root . advance --phase publication
+
+Display final progress — all phases should show complete.
+
 ## Common Deviations (Do Not)
 
 - **Do not skip the audit.** Even Pilot experiments need the 5-item sanity
@@ -422,6 +573,14 @@ Then check gates and advance:
 - **Do not skip the evaluation rubric for subjective metrics.** Without
   a rubric, "quality" means whatever the evaluator feels in the moment.
   Define scoring criteria before collecting data.
+- **Do not change analysis parameters after seeing results.** If the
+  pre-specified analysis doesn't show what you hoped, that's a finding,
+  not an invitation to try different tests. Post-hoc analyses must be
+  labeled as exploratory.
+- **Do not skip the research integration step.** The whole point of
+  running experiments is to generate evidence that feeds back into
+  research documents. If the experiment isn't linked as a source,
+  it's orphaned knowledge.
 
 ## Backtracking
 
