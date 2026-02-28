@@ -35,7 +35,10 @@ AGENTS.md (with WOS section)
 
 Run: `uv run <plugin-scripts-dir>/reindex.py --root .`
 
-Update AGENTS.md with the WOS section using markers.
+Update AGENTS.md with the WOS section wrapped in `<!-- wos:begin -->` /
+`<!-- wos:end -->` markers. These markers are required — they enable
+automated navigation updates via `agents_md.py`. Never place WOS-managed
+content outside these markers.
 
 ## 2. Add Area
 

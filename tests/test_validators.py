@@ -201,6 +201,43 @@ class TestCheckContent:
         assert issues == []
 
 
+# ── check_draft_markers ────────────────────────────────────────
+
+
+class TestCheckDraftMarkers:
+    def test_research_with_draft_marker_warns(self) -> None:
+        from wos.validators import check_draft_markers
+
+        doc = _make_doc(
+            type="research",
+            content="# Topic\n\n<!-- DRAFT -->\n\nSome content.\n",
+        )
+        issues = check_draft_markers(doc)
+        assert len(issues) == 1
+        assert issues[0]["severity"] == "warn"
+        assert "DRAFT" in issues[0]["issue"]
+
+    def test_research_without_draft_marker_clean(self) -> None:
+        from wos.validators import check_draft_markers
+
+        doc = _make_doc(
+            type="research",
+            content="# Topic\n\nFinal content.\n",
+        )
+        issues = check_draft_markers(doc)
+        assert issues == []
+
+    def test_non_research_with_draft_marker_clean(self) -> None:
+        from wos.validators import check_draft_markers
+
+        doc = _make_doc(
+            type="reference",
+            content="# Topic\n\n<!-- DRAFT -->\n\nSome content.\n",
+        )
+        issues = check_draft_markers(doc)
+        assert issues == []
+
+
 # ── check_source_urls ──────────────────────────────────────────
 
 
@@ -238,6 +275,84 @@ class TestCheckSourceUrls:
         assert len(issues) == 1
         assert issues[0]["severity"] == "fail"
         assert "https://example.com/missing" in issues[0]["issue"]
+
+    def test_403_downgraded_to_warn(self) -> None:
+        from wos.url_checker import UrlCheckResult
+        from wos.validators import check_source_urls
+
+        doc = _make_doc(sources=["https://example.com/blocked"])
+
+        mock_results = [
+            UrlCheckResult(
+                url="https://example.com/blocked",
+                status=403,
+                reachable=False,
+                reason="HTTP 403",
+            ),
+        ]
+        with patch("wos.validators.check_urls", return_value=mock_results):
+            issues = check_source_urls(doc)
+        assert len(issues) == 1
+        assert issues[0]["severity"] == "warn"
+        assert "403" in issues[0]["issue"]
+
+    def test_429_downgraded_to_warn(self) -> None:
+        from wos.url_checker import UrlCheckResult
+        from wos.validators import check_source_urls
+
+        doc = _make_doc(sources=["https://example.com/ratelimited"])
+
+        mock_results = [
+            UrlCheckResult(
+                url="https://example.com/ratelimited",
+                status=429,
+                reachable=False,
+                reason="HTTP 429",
+            ),
+        ]
+        with patch("wos.validators.check_urls", return_value=mock_results):
+            issues = check_source_urls(doc)
+        assert len(issues) == 1
+        assert issues[0]["severity"] == "warn"
+        assert "429" in issues[0]["issue"]
+
+    def test_404_remains_fail(self) -> None:
+        from wos.url_checker import UrlCheckResult
+        from wos.validators import check_source_urls
+
+        doc = _make_doc(sources=["https://example.com/gone"])
+
+        mock_results = [
+            UrlCheckResult(
+                url="https://example.com/gone",
+                status=404,
+                reachable=False,
+                reason="HTTP 404",
+            ),
+        ]
+        with patch("wos.validators.check_urls", return_value=mock_results):
+            issues = check_source_urls(doc)
+        assert len(issues) == 1
+        assert issues[0]["severity"] == "fail"
+
+    def test_connection_error_remains_fail(self) -> None:
+        from wos.url_checker import UrlCheckResult
+        from wos.validators import check_source_urls
+
+        doc = _make_doc(sources=["https://example.com/error"])
+
+        mock_results = [
+            UrlCheckResult(
+                url="https://example.com/error",
+                status=0,
+                reachable=False,
+                reason="Connection refused",
+            ),
+        ]
+        with patch("wos.validators.check_urls", return_value=mock_results):
+            issues = check_source_urls(doc)
+        assert len(issues) == 1
+        assert issues[0]["severity"] == "fail"
 
     def test_no_sources_no_check_called(self) -> None:
         from wos.validators import check_source_urls
@@ -429,6 +544,61 @@ class TestCheckPreamble:
         assert any("area description" in i["issue"].lower() for i in warn_issues)
 
 
+# ── check_project_files ────────────────────────────────────────
+
+
+class TestCheckProjectFiles:
+    def test_no_agents_md_warns(self, tmp_path: Path) -> None:
+        from wos.validators import check_project_files
+
+        issues = check_project_files(tmp_path)
+        agents_issues = [i for i in issues if i["file"] == "AGENTS.md"]
+        assert any("No AGENTS.md" in i["issue"] for i in agents_issues)
+
+    def test_agents_md_without_markers_warns(self, tmp_path: Path) -> None:
+        from wos.validators import check_project_files
+
+        (tmp_path / "AGENTS.md").write_text("# Agents\n\nSome content.\n")
+        issues = check_project_files(tmp_path)
+        agents_issues = [i for i in issues if i["file"] == "AGENTS.md"]
+        assert any("markers" in i["issue"].lower() for i in agents_issues)
+
+    def test_agents_md_with_markers_clean(self, tmp_path: Path) -> None:
+        from wos.validators import check_project_files
+
+        (tmp_path / "AGENTS.md").write_text(
+            "# Agents\n\n<!-- wos:begin -->\nWOS content\n<!-- wos:end -->\n"
+        )
+        issues = check_project_files(tmp_path)
+        agents_issues = [i for i in issues if i["file"] == "AGENTS.md"]
+        assert agents_issues == []
+
+    def test_no_claude_md_warns(self, tmp_path: Path) -> None:
+        from wos.validators import check_project_files
+
+        issues = check_project_files(tmp_path)
+        claude_issues = [i for i in issues if i["file"] == "CLAUDE.md"]
+        assert any("No CLAUDE.md" in i["issue"] for i in claude_issues)
+
+    def test_claude_md_without_agents_ref_warns(self, tmp_path: Path) -> None:
+        from wos.validators import check_project_files
+
+        (tmp_path / "CLAUDE.md").write_text("# Project\n\nSome instructions.\n")
+        issues = check_project_files(tmp_path)
+        claude_issues = [i for i in issues if i["file"] == "CLAUDE.md"]
+        assert any("@AGENTS.md" in i["issue"] for i in claude_issues)
+
+    def test_claude_md_with_agents_ref_clean(self, tmp_path: Path) -> None:
+        from wos.validators import check_project_files
+
+        (tmp_path / "CLAUDE.md").write_text(
+            "# Project\n\n@AGENTS.md\n\nSome instructions.\n"
+        )
+        issues = check_project_files(tmp_path)
+        claude_issues = [i for i in issues if i["file"] == "CLAUDE.md"]
+        assert claude_issues == []
+
+
 # ── validate_file ──────────────────────────────────────────────
 
 
@@ -478,6 +648,13 @@ class TestValidateProject:
         context_dir = tmp_path / "docs" / "context"
         (context_dir / "_index.md").write_text(
             generate_index(context_dir, preamble="All context.")
+        )
+        # Create AGENTS.md with WOS markers and CLAUDE.md with @AGENTS.md
+        (tmp_path / "AGENTS.md").write_text(
+            "# Agents\n\n<!-- wos:begin -->\nWOS\n<!-- wos:end -->\n"
+        )
+        (tmp_path / "CLAUDE.md").write_text(
+            "# Project\n\n@AGENTS.md\n"
         )
 
         issues = validate_project(tmp_path, verify_urls=False)

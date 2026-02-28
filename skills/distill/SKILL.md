@@ -55,9 +55,14 @@ For each approved finding:
      - [Carry forward relevant URLs from research]
    related:
      - [Path to source research artifact]
-     - [Paths to sibling distilled files]
+     - [Path to other context file from this batch]
+     - [Path to existing context file in the same area]
    ---
    ```
+
+   Every distilled file should link to at least one sibling context file in
+   `related:`, not just the source research document. When distilling a batch,
+   include cross-references between thematically adjacent files.
 
 2. Follow the lost-in-the-middle convention:
    - **Top:** Key insight and actionable guidance

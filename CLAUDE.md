@@ -92,7 +92,7 @@ Prefix: `/wos:` (e.g., `/wos:create`, `/wos:audit`). 10 skills:
 | Skill | Purpose |
 |-------|---------|
 | `/wos:create` | Create project context, areas, or documents |
-| `/wos:audit` | Validate project health (5 checks + auto-fix) |
+| `/wos:audit` | Validate project health (7 checks + auto-fix) |
 | `/wos:research` | SIFT-based research with source verification |
 | `/wos:distill` | Convert research artifacts into focused context files |
 | `/wos:consider` | Mental models for problem analysis |
@@ -102,13 +102,15 @@ Prefix: `/wos:` (e.g., `/wos:create`, `/wos:audit`). 10 skills:
 | `/wos:retrospective` | Session review and feedback submission |
 | `/wos:preferences` | Capture communication preferences |
 
-### Validation (5 checks, warn/fail severity)
+### Validation (7 checks, warn/fail severity)
 
 1. **Frontmatter** (fail + warn) — `name`/`description` non-empty, research sources, dict source warnings, context `related` field warnings
 2. **Content length** (warn) — context files exceeding 800 words
-3. **Source URLs** (fail) — all URLs in `sources` are programmatically reachable
-4. **Related paths** (fail) — file paths in `related` frontmatter exist on disk
-5. **Index sync** (fail + warn) — `_index.md` matches directory contents, preamble presence
+3. **Draft markers** (warn) — research documents containing `<!-- DRAFT -->` markers
+4. **Source URLs** (fail + warn) — URLs in `sources` reachable; 403/429 downgraded to `warn`
+5. **Related paths** (fail) — file paths in `related` frontmatter exist on disk
+6. **Index sync** (fail + warn) — `_index.md` matches directory contents, preamble presence
+7. **Project files** (warn) — AGENTS.md/CLAUDE.md existence and configuration
 
 ### Key Entry Points
 

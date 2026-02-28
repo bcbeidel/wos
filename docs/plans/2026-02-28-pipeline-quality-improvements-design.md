@@ -9,8 +9,8 @@ related:
 
 # Pipeline Quality Improvements Design
 
-**Branch:** TBD
-**Issue:** TBD
+**Branch:** feat/91-pipeline-quality-improvements
+**Issue:** #91
 
 ## Context
 

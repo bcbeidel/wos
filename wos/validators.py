@@ -1,8 +1,9 @@
 """Per-file and project-wide validation checks.
 
-Provides five individual checks (frontmatter, research sources, source
-URLs, related paths, index sync) and two composite functions
-(validate_file, validate_project) that orchestrate them.
+Provides seven individual checks (frontmatter, content length, draft
+markers, source URLs, related paths, index sync, project files) and two
+composite functions (validate_file, validate_project) that orchestrate
+them.
 
 Each check returns a list of issue dicts with keys: file, issue, severity.
 """
@@ -134,13 +135,48 @@ def check_source_urls(doc: Document) -> List[dict]:
     issues: List[dict] = []
     for result in results:
         if not result.reachable:
-            reason = f" ({result.reason})" if result.reason else ""
-            issues.append({
-                "file": doc.path,
-                "issue": f"Source URL unreachable: {result.url}{reason}",
-                "severity": "fail",
-            })
+            if result.status in (403, 429):
+                msg = (
+                    f"URL returned {result.status}"
+                    f" (site may block automated checks):"
+                    f" {result.url}"
+                )
+                issues.append({
+                    "file": doc.path,
+                    "issue": msg,
+                    "severity": "warn",
+                })
+            else:
+                reason = f" ({result.reason})" if result.reason else ""
+                issues.append({
+                    "file": doc.path,
+                    "issue": f"Source URL unreachable: {result.url}{reason}",
+                    "severity": "fail",
+                })
     return issues
+
+
+def check_draft_markers(doc: Document) -> List[dict]:
+    """Warn when research documents contain DRAFT markers.
+
+    Only applies to documents with type: research. A ``<!-- DRAFT -->``
+    marker indicates an incomplete workflow.
+
+    Args:
+        doc: A parsed Document instance.
+
+    Returns:
+        List of issue dicts. Empty if no marker found.
+    """
+    if doc.type != "research":
+        return []
+    if "<!-- DRAFT -->" in doc.content:
+        return [{
+            "file": doc.path,
+            "issue": "Research document contains <!-- DRAFT --> marker",
+            "severity": "warn",
+        }]
+    return []
 
 
 def check_related_paths(doc: Document, root: Path) -> List[dict]:
@@ -248,9 +284,71 @@ def validate_file(
     issues: List[dict] = []
     issues.extend(check_frontmatter(doc))
     issues.extend(check_content(doc))
+    issues.extend(check_draft_markers(doc))
     if verify_urls:
         issues.extend(check_source_urls(doc))
     issues.extend(check_related_paths(doc, root))
+    return issues
+
+
+def check_project_files(root: Path) -> List[dict]:
+    """Warn when AGENTS.md or CLAUDE.md are missing or misconfigured.
+
+    Checks:
+    - AGENTS.md missing
+    - AGENTS.md exists but lacks ``<!-- wos:begin -->`` marker
+    - CLAUDE.md missing
+    - CLAUDE.md exists but doesn't reference ``@AGENTS.md``
+
+    Args:
+        root: Project root directory.
+
+    Returns:
+        List of issue dicts. Empty if all checks pass.
+    """
+    issues: List[dict] = []
+
+    agents_path = root / "AGENTS.md"
+    if not agents_path.is_file():
+        issues.append({
+            "file": "AGENTS.md",
+            "issue": "No AGENTS.md found. Run /wos:create to initialize.",
+            "severity": "warn",
+        })
+    else:
+        try:
+            content = agents_path.read_text(encoding="utf-8")
+        except OSError:
+            content = ""
+        if "<!-- wos:begin -->" not in content:
+            issues.append({
+                "file": "AGENTS.md",
+                "issue": "AGENTS.md lacks WOS markers. Navigation updates won't work.",
+                "severity": "warn",
+            })
+
+    claude_path = root / "CLAUDE.md"
+    if not claude_path.is_file():
+        issues.append({
+            "file": "CLAUDE.md",
+            "issue": "No CLAUDE.md found. Run /wos:create to initialize.",
+            "severity": "warn",
+        })
+    else:
+        try:
+            content = claude_path.read_text(encoding="utf-8")
+        except OSError:
+            content = ""
+        if "@AGENTS.md" not in content:
+            issues.append({
+                "file": "CLAUDE.md",
+                "issue": (
+                    "CLAUDE.md doesn't reference @AGENTS.md."
+                    " Navigation may not load."
+                ),
+                "severity": "warn",
+            })
+
     return issues
 
 
@@ -261,7 +359,8 @@ def validate_project(
 
     Walks the docs/ subtree under root. Runs index sync checks on
     each directory, and per-file checks on each .md file (excluding
-    _index.md files).
+    _index.md files). Also checks project-level files (AGENTS.md,
+    CLAUDE.md).
 
     Args:
         root: Project root directory.
@@ -271,6 +370,9 @@ def validate_project(
         List of all issue dicts found.
     """
     issues: List[dict] = []
+
+    # Project-level checks
+    issues.extend(check_project_files(root))
 
     docs_dir = root / "docs"
     if not docs_dir.is_dir():
