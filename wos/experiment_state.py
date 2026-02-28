@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+import random as _random
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
@@ -16,6 +17,11 @@ from typing import Dict, List, Optional
 PHASE_ORDER = (
     "design", "audit", "evaluation",
     "execution", "analysis", "publication",
+)
+
+OPAQUE_IDS = (
+    "ALPHA", "BRAVO", "CHARLIE", "DELTA",
+    "ECHO", "FOXTROT", "GOLF", "HOTEL",
 )
 
 VALID_TIERS = {"pilot", "exploratory", "confirmatory"}
@@ -213,3 +219,48 @@ def format_progress(state: ExperimentState) -> str:
         f" \u2014 {phase_label}\n"
         f"Completed: {arrow.join(parts)}"
     )
+
+
+def generate_manifest(
+    conditions: Dict[str, str],
+    seed: Optional[int] = None,
+) -> dict:
+    """Generate a blinding manifest mapping conditions to opaque IDs.
+
+    Args:
+        conditions: Mapping of condition_label -> description.
+        seed: Randomization seed. If None, a random seed is generated.
+
+    Returns:
+        Manifest dict matching the experiment-template schema.
+    """
+    if len(conditions) < 2:
+        raise ValueError("At least 2 conditions required for blinding.")
+    if len(conditions) > len(OPAQUE_IDS):
+        raise ValueError(
+            "Maximum %d conditions supported. Got %d."
+            % (len(OPAQUE_IDS), len(conditions))
+        )
+
+    if seed is None:
+        seed = _random.randint(0, 2**31 - 1)
+
+    rng = _random.Random(seed)
+    ids = list(OPAQUE_IDS[:len(conditions)])
+    rng.shuffle(ids)
+
+    manifest_conditions = {}
+    for (label, description), opaque_id in zip(
+        sorted(conditions.items()), ids
+    ):
+        manifest_conditions[label] = {
+            "opaque_id": opaque_id,
+            "description": description,
+        }
+
+    return {
+        "blinding_enabled": True,
+        "randomization_seed": seed,
+        "conditions": manifest_conditions,
+        "assignments": [],
+    }
