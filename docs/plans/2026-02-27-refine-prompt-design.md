@@ -3,8 +3,8 @@ name: "Refine-Prompt Skill Design"
 description: "Design for /wos:refine-prompt — evidence-backed prompt assessment and refinement"
 type: plan
 related:
-  - artifacts/plans/2026-02-27-architecture-reference.md
-  - artifacts/plans/2026-02-27-refine-prompt-plan.md
+  - docs/plans/2026-02-27-architecture-reference.md
+  - docs/plans/2026-02-27-refine-prompt-plan.md
 ---
 
 # `/wos:refine-prompt` — Evidence-Backed Prompt Refinement

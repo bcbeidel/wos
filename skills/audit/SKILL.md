@@ -80,8 +80,8 @@ Summary line first, then table:
 2 fail, 1 warn across 15 files
 
 file                              | sev  | issue
-context/api/auth.md               | fail | Frontmatter 'name' is empty
-context/api/_index.md             | warn | Index has no area description (preamble)
+docs/context/api/auth.md           | fail | Frontmatter 'name' is empty
+docs/context/api/_index.md        | warn | Index has no area description (preamble)
 ```
 
 Exit code: 1 if any `fail`, 0 if only `warn`. Use `--strict` to exit 1 on any issue.
@@ -91,7 +91,7 @@ With `--json`, output is a JSON array of objects:
 ```json
 [
   {
-    "file": "context/area/topic.md",
+    "file": "docs/context/area/topic.md",
     "issue": "Frontmatter 'name' is empty",
     "severity": "fail"
   }
@@ -108,4 +108,4 @@ All checks passed.
 
 - Audit is read-only (except `--fix` which only regenerates `_index.md` files)
 - Use `/wos:create` to create missing documents
-- Empty project (no `context/` or `artifacts/`) exits 0 with no issues
+- Empty project (no `docs/` directory) exits 0 with no issues

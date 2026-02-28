@@ -10,13 +10,13 @@ class TestRenderWithAreas:
         from wos.agents_md import render_wos_section
 
         areas = [
-            {"name": "Python Basics", "path": "context/python-basics"},
-            {"name": "Testing", "path": "context/testing"},
+            {"name": "Python Basics", "path": "docs/context/python-basics"},
+            {"name": "Testing", "path": "docs/context/testing"},
         ]
         result = render_wos_section(areas)
         assert "| Area | Path |" in result
-        assert "| Python Basics | context/python-basics |" in result
-        assert "| Testing | context/testing |" in result
+        assert "| Python Basics | docs/context/python-basics |" in result
+        assert "| Testing | docs/context/testing |" in result
 
     def test_areas_section_omitted_when_empty(self) -> None:
         from wos.agents_md import render_wos_section
@@ -94,10 +94,10 @@ class TestUpdateReplaceExisting:
             f"{BEGIN_MARKER}\nold content\n{END_MARKER}\n\n"
             "## Other Section\n"
         )
-        areas = [{"name": "API", "path": "context/api"}]
+        areas = [{"name": "API", "path": "docs/context/api"}]
         result = update_agents_md(content, areas)
         assert "old content" not in result
-        assert "| API | context/api |" in result
+        assert "| API | docs/context/api |" in result
         assert BEGIN_MARKER in result
         assert END_MARKER in result
 
@@ -107,7 +107,7 @@ class TestUpdateAppendWhenNoMarkers:
         from wos.agents_md import BEGIN_MARKER, END_MARKER, update_agents_md
 
         content = "# AGENTS.md\n\nSome existing content.\n"
-        areas = [{"name": "API", "path": "context/api"}]
+        areas = [{"name": "API", "path": "docs/context/api"}]
         result = update_agents_md(content, areas)
         assert result.startswith("# AGENTS.md")
         assert "Some existing content." in result
@@ -138,12 +138,12 @@ class TestUpdateAreasAppearInOutput:
 
         content = "# AGENTS.md\n"
         areas = [
-            {"name": "Frontend", "path": "context/frontend"},
-            {"name": "Backend", "path": "context/backend"},
+            {"name": "Frontend", "path": "docs/context/frontend"},
+            {"name": "Backend", "path": "docs/context/backend"},
         ]
         result = update_agents_md(content, areas)
-        assert "| Frontend | context/frontend |" in result
-        assert "| Backend | context/backend |" in result
+        assert "| Frontend | docs/context/frontend |" in result
+        assert "| Backend | docs/context/backend |" in result
 
 
 class TestUpdatePreferencesPreserved:

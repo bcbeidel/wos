@@ -26,7 +26,7 @@ class TestAuditSysPath:
             cwd=str(tmp_path),
         )
         # No ModuleNotFoundError — script should either pass (no content dirs)
-        # or fail gracefully (no context/artifacts dir)
+        # or fail gracefully (no docs/ dir)
         assert "ModuleNotFoundError" not in result.stderr
         assert "No module named" not in result.stderr
 

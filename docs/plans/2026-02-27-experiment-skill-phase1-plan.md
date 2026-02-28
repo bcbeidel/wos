@@ -3,7 +3,7 @@ name: Experiment Skill Phase 1 Implementation Plan
 description: Step-by-step TDD implementation of /wos:experiment skill skeleton with state management, phase tracking, artifact gates, and CLI
 type: plan
 related:
-  - artifacts/plans/2026-02-25-experiment-framework-design.md
+  - docs/plans/2026-02-25-experiment-framework-design.md
 ---
 
 # Experiment Skill Phase 1 Implementation Plan
@@ -1184,7 +1184,7 @@ Expected: `experiment True`
 Update this plan doc — mark all tasks complete. Commit:
 
 ```bash
-git add artifacts/plans/2026-02-27-experiment-skill-phase1-plan.md
+git add docs/plans/2026-02-27-experiment-skill-phase1-plan.md
 git commit -m "docs: mark experiment skill phase 1 plan complete (#74)"
 ```
 

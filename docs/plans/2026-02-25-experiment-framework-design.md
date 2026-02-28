@@ -3,7 +3,7 @@ name: "Experiment Framework Design"
 description: "Design for /wos:experiment — empirical validation of research claims via template-first experiment framework with double-blind execution"
 type: plan
 related:
-  - artifacts/plans/2026-02-24-research-skill-enhancement.md
+  - docs/plans/2026-02-24-research-skill-enhancement.md
 ---
 
 # `/wos:experiment` — Empirical Validation of Research Claims

@@ -9,7 +9,7 @@ each phase writes its output to disk so work survives context resets.
 
 ## Resuming After Context Reset
 
-If a document already exists at `artifacts/research/{date}-{slug}.md` with
+If a document already exists at `docs/research/{date}-{slug}.md` with
 `<!-- DRAFT -->` near the top, a previous session started this investigation.
 Read the document to determine which phases are complete:
 
@@ -82,7 +82,7 @@ When resuming, read the document fully to recover context before continuing.
 >   fetching failed — assess based on URL verification status.
 
 8. **Write the initial document to disk.** Create the file at
-   `artifacts/research/{date}-{slug}.md` with a `<!-- DRAFT -->` marker,
+   `docs/research/{date}-{slug}.md` with a `<!-- DRAFT -->` marker,
    frontmatter containing all gathered source URLs, and a sources table:
 
 ```yaml

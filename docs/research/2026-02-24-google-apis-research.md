@@ -26,7 +26,7 @@ sources:
   - https://github.com/googleapis/google-api-python-client
   - https://googleapis.dev/python/google-auth-oauthlib/latest/reference/google_auth_oauthlib.flow.html
 related:
-  - artifacts/plans/2026-02-22-simplification-design.md
+  - docs/plans/2026-02-22-simplification-design.md
 ---
 
 # Google APIs Research (Docs + Calendar)

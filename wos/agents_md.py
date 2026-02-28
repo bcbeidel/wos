@@ -41,8 +41,9 @@ def render_wos_section(
     lines.append(
         "Each directory has an `_index.md` listing all files with descriptions."
     )
-    lines.append("- `context/_index.md` -- all topic areas")
-    lines.append("- `artifacts/_index.md` -- research & plans")
+    lines.append("- `docs/context/_index.md` -- all topic areas")
+    lines.append("- `docs/plans/_index.md` -- plans")
+    lines.append("- `docs/research/_index.md` -- research")
     lines.append("")
     lines.append(
         "Each `.md` file starts with YAML metadata (between `---` lines)."

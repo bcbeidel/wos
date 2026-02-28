@@ -2,7 +2,7 @@
 name: WOS Design Principles
 description: 10 principles that guide WOS development, revised from the simplification (PR #38) through v0.5.0.
 related:
-  - artifacts/plans/2026-02-27-architecture-reference.md
+  - docs/plans/2026-02-27-architecture-reference.md
 ---
 
 # WOS Design Principles

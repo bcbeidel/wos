@@ -23,7 +23,7 @@ references:
 
 Conduct structured investigations using the SIFT framework (Stop,
 Investigate the source, Find better coverage, Trace claims). Produces
-research documents in `/artifacts/research/` with verified sources
+research documents in `/docs/research/` with verified sources
 and structured findings.
 
 ## Mode Detection
@@ -81,7 +81,7 @@ STOP at each gate. If the condition is not met, complete it before proceeding.
 
 ## Output Document Format
 
-The final research document is placed at `artifacts/research/{date}-{slug}.md`
+The final research document is placed at `docs/research/{date}-{slug}.md`
 with simplified YAML frontmatter:
 
 ```yaml
@@ -93,7 +93,7 @@ sources:
   - https://example.com/primary-source
   - https://example.com/another-source
 related:
-  - artifacts/research/2026-01-15-related-topic.md
+  - docs/research/2026-01-15-related-topic.md
 ---
 ```
 

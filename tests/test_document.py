@@ -12,12 +12,12 @@ class TestDocument:
         from wos.document import Document
 
         doc = Document(
-            path="context/testing/unit-tests.md",
+            path="docs/context/testing/unit-tests.md",
             name="Unit Tests",
             description="Guide to writing unit tests",
             content="# Unit Tests\n\nSome content here.\n",
         )
-        assert doc.path == "context/testing/unit-tests.md"
+        assert doc.path == "docs/context/testing/unit-tests.md"
         assert doc.name == "Unit Tests"
         assert doc.description == "Guide to writing unit tests"
         assert doc.content == "# Unit Tests\n\nSome content here.\n"
@@ -29,7 +29,7 @@ class TestDocument:
         from wos.document import Document
 
         doc = Document(
-            path="artifacts/research/2026-02-20-api-review.md",
+            path="docs/research/2026-02-20-api-review.md",
             name="API Review",
             description="Research on REST API patterns",
             content="# API Review\n\nFindings.\n",
@@ -39,7 +39,7 @@ class TestDocument:
                 "https://example.com/api-design",
             ],
             related=[
-                "context/api/authentication.md",
+                "docs/context/api/authentication.md",
                 "https://github.com/org/repo/issues/42",
             ],
         )
@@ -47,7 +47,7 @@ class TestDocument:
         assert len(doc.sources) == 2
         assert "https://example.com/rest-guide" in doc.sources
         assert len(doc.related) == 2
-        assert "context/api/authentication.md" in doc.related
+        assert "docs/context/api/authentication.md" in doc.related
 
 
 # ── parse_document ──────────────────────────────────────────────
@@ -66,8 +66,8 @@ class TestParseDocument:
             "\n"
             "Content here.\n"
         )
-        doc = parse_document("context/testing/unit-tests.md", text)
-        assert doc.path == "context/testing/unit-tests.md"
+        doc = parse_document("docs/context/testing/unit-tests.md", text)
+        assert doc.path == "docs/context/testing/unit-tests.md"
         assert doc.name == "Unit Tests"
         assert doc.description == "Guide to writing unit tests"
         assert doc.type is None
@@ -90,7 +90,7 @@ class TestParseDocument:
             "\n"
             "Research findings.\n"
         )
-        doc = parse_document("artifacts/research/2026-02-20-api-review.md", text)
+        doc = parse_document("docs/research/2026-02-20-api-review.md", text)
         assert doc.type == "research"
         assert doc.sources == [
             "https://example.com/rest-guide",
@@ -105,14 +105,14 @@ class TestParseDocument:
             "name: Authentication\n"
             "description: Auth patterns\n"
             "related:\n"
-            "  - context/api/tokens.md\n"
+            "  - docs/context/api/tokens.md\n"
             "  - https://github.com/org/repo/issues/42\n"
             "---\n"
             "# Authentication\n"
         )
-        doc = parse_document("context/api/authentication.md", text)
+        doc = parse_document("docs/context/api/authentication.md", text)
         assert doc.related == [
-            "context/api/tokens.md",
+            "docs/context/api/tokens.md",
             "https://github.com/org/repo/issues/42",
         ]
 
@@ -131,7 +131,7 @@ class TestParseDocument:
             "---\n"
             "# Custom Doc\n"
         )
-        doc = parse_document("context/misc/custom.md", text)
+        doc = parse_document("docs/context/misc/custom.md", text)
         assert doc.name == "Custom Doc"
         assert doc.description == "A document with extra fields"
         # Unknown fields are not stored — no extra dict

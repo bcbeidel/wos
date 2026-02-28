@@ -9,7 +9,7 @@ related:
   - skills/research/references/source-verification.md
   - scripts/audit.py
   - scripts/reindex.py
-  - artifacts/plans/2026-02-25-research-skill-fixes-design.md
+  - docs/plans/2026-02-25-research-skill-fixes-design.md
 ---
 
 # Research Skill Bug Fixes Design
@@ -124,7 +124,7 @@ Replace with: "Write the document directly and run reindex + validate."
 
 **research-workflow.md Phase 6** — Replace `/wos:create` invocation with
 direct instructions:
-1. Write the file to `artifacts/research/{date}-{slug}.md`
+1. Write the file to `docs/research/{date}-{slug}.md`
 2. Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/reindex.py" --root .`
 3. Validate: `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/audit.py" --root . --no-urls`
 

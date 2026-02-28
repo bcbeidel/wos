@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.9, pytest, Claude Code plugin framework (`${CLAUDE_PLUGIN_ROOT}`)
 
-**Design doc:** `artifacts/plans/2026-02-25-research-skill-bugs-design.md`
+**Design doc:** `docs/plans/2026-02-25-research-skill-bugs-design.md`
 
 **Branch:** `fix/research-skill-bugs-56-59-60`
 
@@ -252,7 +252,7 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/validate.py" <file> [--root DIR] [--no-ur
 
 Example:
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/validate.py" artifacts/research/2026-02-25-my-research.md --no-urls
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/validate.py" docs/research/2026-02-25-my-research.md --no-urls
 ```
 
 Output on success:
@@ -262,7 +262,7 @@ All checks passed.
 
 Output on failure:
 ```
-[FAIL] artifacts/research/my-research.md: Research document has no sources
+[FAIL] docs/research/my-research.md: Research document has no sources
 ```
 
 ## Validate Entire Project
@@ -527,7 +527,7 @@ each phase writes its output to disk so work survives context resets.
 
 ## Resuming After Context Reset
 
-If a document already exists at `artifacts/research/{date}-{slug}.md` with
+If a document already exists at `docs/research/{date}-{slug}.md` with
 `<!-- DRAFT -->` near the top, a previous session started this investigation.
 Read the document to determine which phases are complete:
 
@@ -600,7 +600,7 @@ When resuming, read the document fully to recover context before continuing.
 >   fetching failed — assess based on URL verification status.
 
 8. **Write the initial document to disk.** Create the file at
-   `artifacts/research/{date}-{slug}.md` with a `<!-- DRAFT -->` marker,
+   `docs/research/{date}-{slug}.md` with a `<!-- DRAFT -->` marker,
    frontmatter containing all gathered source URLs, and a sources table:
 
 ```yaml
@@ -975,7 +975,7 @@ EOF
 
 **Step 3: Record PR URL in design doc**
 
-Update `artifacts/plans/2026-02-25-research-skill-bugs-design.md` —
+Update `docs/plans/2026-02-25-research-skill-bugs-design.md` —
 replace `**PR:** TBD` with the actual PR URL.
 
 ---

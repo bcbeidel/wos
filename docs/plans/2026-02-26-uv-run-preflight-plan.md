@@ -3,7 +3,7 @@ name: uv run Preflight Implementation Plan
 description: Step-by-step implementation for reliable uv run invocation from skills
 type: plan
 related:
-  - artifacts/plans/2026-02-26-uv-run-preflight-design.md
+  - docs/plans/2026-02-26-uv-run-preflight-design.md
 ---
 
 # uv run Preflight Implementation Plan
@@ -274,7 +274,7 @@ If anything broke, fix and commit.
 ### Task 4: Update Design Doc and Run Full Tests
 
 **Files:**
-- Modify: `artifacts/plans/2026-02-26-uv-run-preflight-design.md` (check off acceptance criteria)
+- Modify: `docs/plans/2026-02-26-uv-run-preflight-design.md` (check off acceptance criteria)
 
 **Step 1: Run full test suite**
 
@@ -293,6 +293,6 @@ Mark acceptance criteria as done in the design doc.
 **Step 4: Final commit**
 
 ```bash
-git add artifacts/plans/2026-02-26-uv-run-preflight-design.md
+git add docs/plans/2026-02-26-uv-run-preflight-design.md
 git commit -m "docs: mark preflight acceptance criteria complete (#70)"
 ```

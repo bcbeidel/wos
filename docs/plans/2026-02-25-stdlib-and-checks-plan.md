@@ -3,7 +3,7 @@ name: Stdlib Migration and Validator Refactoring Plan
 description: Step-by-step implementation plan for issue #68
 type: plan
 related:
-  - artifacts/plans/2026-02-25-stdlib-and-checks-design.md
+  - docs/plans/2026-02-25-stdlib-and-checks-design.md
 ---
 
 # Stdlib Migration & Validator Refactoring Implementation Plan
@@ -887,7 +887,7 @@ Add new test cases to `tests/test_validators.py`. The `TestCheckResearchSources`
         from wos.validators import check_frontmatter
 
         doc = _make_doc(
-            path="artifacts/research/topic.md",
+            path="docs/research/topic.md",
             related=[],
         )
         issues = check_frontmatter(doc)
@@ -1012,7 +1012,7 @@ class TestCheckContent:
         from wos.validators import check_content
 
         doc = _make_doc(
-            path="artifacts/research/topic.md",
+            path="docs/research/topic.md",
             content="Word " * 2000,
         )
         issues = check_content(doc)
@@ -1605,7 +1605,7 @@ class TestFixOutput:
         with patch("wos.validators.validate_project", return_value=issues):
             _, stderr, _ = _run_audit("--root", str(root), "--no-urls", "--fix")
         assert str(root) not in stderr
-        assert "artifacts/plans/_index.md" in stderr
+        assert "docs/plans/_index.md" in stderr
 ```
 
 **Step 2: Run tests to verify they fail**
@@ -1963,7 +1963,7 @@ Convert research artifacts into focused context files.
 ### 1. Input
 
 Accept a research artifact path from the user. If none provided, scan
-`artifacts/research/` for the most recently modified `.md` file and confirm.
+`docs/research/` for the most recently modified `.md` file and confirm.
 
 ### 2. Analyze
 

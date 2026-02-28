@@ -20,7 +20,7 @@ from wos.url_checker import check_urls
 # ── Individual checks ──────────────────────────────────────────
 
 
-def check_frontmatter(doc: Document, context_path: str = "context") -> List[dict]:
+def check_frontmatter(doc: Document, context_path: str = "docs/context") -> List[dict]:
     """Check frontmatter fields: required fields, research sources, type issues.
 
     Args:
@@ -76,12 +76,12 @@ def check_frontmatter(doc: Document, context_path: str = "context") -> List[dict
 
 def check_content(
     doc: Document,
-    context_path: str = "context",
+    context_path: str = "docs/context",
     max_words: int = 800,
 ) -> List[dict]:
     """Warn when context files exceed word count threshold.
 
-    Only checks files under context_path. Artifacts and _index.md
+    Only checks files under context_path. Non-context files and _index.md
     files are excluded.
 
     Args:
@@ -259,9 +259,9 @@ def validate_project(
 ) -> List[dict]:
     """Validate all markdown files in a project.
 
-    Walks context/ and artifacts/ directories under root. Runs index
-    sync checks on each directory, and per-file checks on each .md
-    file (excluding _index.md files).
+    Walks the docs/ subtree under root. Runs index sync checks on
+    each directory, and per-file checks on each .md file (excluding
+    _index.md files).
 
     Args:
         root: Project root directory.
@@ -272,8 +272,11 @@ def validate_project(
     """
     issues: List[dict] = []
 
-    for subdir_name in ("context", "artifacts"):
-        subdir = root / subdir_name
+    docs_dir = root / "docs"
+    if not docs_dir.is_dir():
+        return issues
+
+    for subdir in sorted(docs_dir.iterdir()):
         if not subdir.is_dir():
             continue
 

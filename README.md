@@ -54,7 +54,10 @@ scripts/
 skills/                # Skill definitions (SKILL.md + references/)
   _shared/references/  # Shared references (e.g., preflight.md)
 tests/                 # pytest tests
-artifacts/plans/       # Design docs and implementation plans
+docs/                  # Documentation, plans, and research
+  context/             # Topic areas (created by /wos:create)
+  plans/               # Design docs and implementation plans
+  research/            # Research artifacts
 ```
 
 ## Usage

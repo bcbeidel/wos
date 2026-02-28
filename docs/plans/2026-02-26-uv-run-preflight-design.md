@@ -3,7 +3,7 @@ name: uv run Preflight Design
 description: Design for reliable uv run invocation from WOS skills
 type: plan
 related:
-  - artifacts/plans/2026-02-26-google-docs-read-design.md
+  - docs/plans/2026-02-26-google-docs-read-design.md
 ---
 
 # Reliable `uv run` Invocation from Skills

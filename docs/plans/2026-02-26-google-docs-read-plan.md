@@ -3,8 +3,8 @@ name: Google Docs Read Implementation Plan
 description: Step-by-step implementation plan for Google Docs read integration
 type: plan
 related:
-  - artifacts/plans/2026-02-26-google-docs-read-design.md
-  - artifacts/research/2026-02-24-google-apis-research.md
+  - docs/plans/2026-02-26-google-docs-read-design.md
+  - docs/research/2026-02-24-google-apis-research.md
 ---
 
 # Google Docs Read Implementation Plan
@@ -1494,7 +1494,7 @@ git commit -m "feat: add integration test scaffolding for Google Docs"
 ### Task 12: Final verification and cleanup
 
 **Files:**
-- Modify: `artifacts/plans/2026-02-26-google-docs-read-plan.md` (check off tasks)
+- Modify: `docs/plans/2026-02-26-google-docs-read-plan.md` (check off tasks)
 
 **Step 1: Run full test suite**
 

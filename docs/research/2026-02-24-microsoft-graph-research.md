@@ -27,7 +27,7 @@ sources:
   - https://graphpermissions.merill.net/permission/Calendars.Read.Shared
   - https://graphpermissions.merill.net/permission/Files.Read.All
 related:
-  - artifacts/plans/2026-02-22-simplification-design.md
+  - docs/plans/2026-02-22-simplification-design.md
 ---
 
 # Microsoft Graph API Research (Docs + Calendar)
