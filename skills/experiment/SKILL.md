@@ -621,3 +621,139 @@ existing artifacts are preserved as `.prev` files.
 - **Check gates before advancing.** Artifact-existence gates prevent premature progression.
 - **Show progress every interaction.** Users need to see where they are.
 - **Respect tier choice.** Don't impose Confirmatory ceremony on Pilot experiments.
+
+## LLM-as-Judge Debiasing
+
+When the evaluation method is "LLM-as-judge," apply these mitigations
+during the Evaluation and Execution phases. The biases below are
+well-documented in the literature.
+
+### Known Biases and Mitigations
+
+| Bias | Description | Mitigation |
+|------|-------------|------------|
+| Position bias | LLMs prefer the first or last option presented | Randomize condition order across evaluations. Run each comparison in both orders and average. |
+| Verbosity bias | LLMs rate longer responses higher regardless of quality | Normalize response lengths, or instruct the judge to explicitly ignore length. |
+| Self-preference | Models rate their own outputs higher | Use a different model family as judge (e.g., use Claude to judge GPT outputs, or vice versa). |
+| Anchoring | First example seen influences scoring of later examples | Present conditions independently, not side-by-side. Evaluate each on its own merits. |
+| Sycophancy | Model agrees with the framing of the evaluation prompt | Use neutral evaluation prompts. Don't hint at expected outcomes. |
+
+### Calibration Protocol
+
+For Exploratory+ experiments using LLM-as-judge:
+
+1. Create 3-5 "anchor" examples with known quality levels
+2. Have the judge evaluate anchors first
+3. Verify anchor scores match expected quality ordering
+4. If calibration fails, revise the evaluation prompt before proceeding
+5. Include anchor evaluation results in `evaluation/criteria.md`
+
+### When to Apply
+
+The Evaluation phase guidance asks for the evaluation method. If the
+answer is "LLM-as-judge":
+- Exploratory: apply position randomization + self-preference check
+- Confirmatory: apply all mitigations + calibration protocol
+
+## Reproducibility
+
+Reproducibility requirements scale with tier. These supplement the
+checklist in `protocol/design.md`.
+
+### Key Principle
+
+LLM reproducibility is *distributional*, not exact. Even `temperature=0`
+is non-deterministic due to floating-point arithmetic and silent model
+updates. Define reproducibility as: "consistent statistical properties
+across runs," not "identical outputs."
+
+### Tier Requirements
+
+**All tiers:**
+- Model version pinned (exact string like `claude-sonnet-4-20250514`, not alias like `claude-sonnet`)
+- API parameters recorded in `protocol/design.md`
+- Prompts saved as files in `protocol/prompts/`
+- Dependencies in `scripts/requirements.txt`
+- Raw data preserved in `data/raw/`
+
+**Exploratory+:**
+- Multiple runs per condition (>=3) for variance estimation
+- Full API responses cached in `data/raw/` (not just extracted metrics)
+- Exact rerun commands in README
+
+**Confirmatory:**
+- Docker environment (`Dockerfile.example` in template)
+- All analysis code committed before data collection
+- Independent re-run verification (someone else runs it)
+- Archived with persistent identifier
+
+### Response Caching Strategy
+
+For LLM experiments, cache full API responses:
+- Save each response as `data/raw/{condition_id}_{trial_n}.json`
+- Include full response object (not just text content)
+- This enables re-analysis without re-running the experiment
+- Caching is the primary mechanism for reproducibility at Exploratory tier
+
+## Error Recovery
+
+### analyze.py Failures
+
+| Error | Likely Cause | Fix |
+|-------|-------------|-----|
+| "No 'condition' column" | CSV missing condition column | Ensure `data/processed/results.csv` has a column named `condition` |
+| "Not enough data" | Too few rows per condition | Check that all trials are included in the CSV |
+| FileNotFoundError | Wrong path or missing file | Verify `data/processed/results.csv` exists |
+| Import error | Missing dependency | Run `pip install -r scripts/requirements.txt` in the experiment repo |
+
+### Gate Check Failures
+
+If `check-gates` reports missing artifacts:
+1. Read the missing artifact list
+2. Determine which phase should have created them
+3. The current phase cannot proceed — guide the user to create the missing files
+4. Re-run `check-gates` after creating them
+
+### Experiment Abandonment
+
+If the user wants to abandon an experiment mid-flight:
+1. Ask why — the reason informs what to document
+2. Update `CONCLUSION.md` with verdict "Inconclusive" and document why
+3. Record the abandonment reason in `PROTOCOL.md` Deviations
+4. The experiment repo remains as a record — don't delete it
+
+### Hypothesis Changes During Design
+
+If the hypothesis changes significantly during the Design phase:
+- This is expected and healthy at Pilot/Exploratory tiers
+- Update `protocol/hypothesis.md` with the revised question
+- If the experiment has progressed past Design, this requires backtracking
+  (see Backtracking section)
+
+## Edge Cases
+
+### Single-Condition Experiments
+
+Some experiments measure a single condition against a known baseline
+rather than comparing two conditions:
+- Valid when the baseline is external (e.g., "industry benchmark")
+- Use a one-sample design: one condition, compared against a threshold
+- `generate-manifest` is not applicable (no blinding with one condition)
+- `analyze.py` can still compute descriptive stats and CIs for the single condition
+
+### More Than Two Conditions
+
+Experiments with 3+ conditions:
+- `generate-manifest` supports up to 8 conditions (NATO phonetic alphabet)
+- `analyze.py` computes pairwise comparisons with Holm-Bonferroni correction
+  for multiple comparisons by default
+- Guide the user to specify which comparison is primary vs. secondary
+  in `evaluation/criteria.md`
+
+### Mixed Evaluation Methods
+
+Some experiments combine automated metrics with human judgment:
+- Apply blinding decision matrix separately for each metric type
+- Automated metrics can use condition labels even when human metrics
+  are blinded
+- Document which metrics use which evaluation method in `evaluation/criteria.md`
