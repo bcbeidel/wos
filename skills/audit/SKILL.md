@@ -58,10 +58,11 @@ Verifies:
 Warns when context files exceed 800 words (configurable via `--context-max-words`).
 Artifacts and `_index.md` files are excluded.
 
-### 3. Source URL Reachability (fail)
+### 3. Source URL Reachability (fail + warn)
 
 Checks that every URL in `sources` is reachable via HTTP.
-Skipped with `--no-urls`.
+Skipped with `--no-urls`. URLs returning 403/429 are downgraded to
+`warn` — these sites likely block automated checks, not dead links.
 
 ### 4. Related Path Validation (fail)
 
@@ -114,6 +115,27 @@ After presenting audit results, offer to help resolve actionable warnings:
   the WOS-managed section. Confirm before modifying existing content.
 - **CLAUDE.md missing @AGENTS.md reference:** Offer to add the reference.
   Do not rewrite CLAUDE.md contents — only add the `@AGENTS.md` line.
+- **403/429 URL warnings:** Present each blocked URL to the user and ask
+  them to verify it manually. For each URL:
+  1. Show the URL and the file it appears in
+  2. Ask the user to verify the URL. Offer these options:
+     - **Visit in browser** and confirm it's still valid
+     - **Provide a screenshot** of the page (drag/paste image)
+     - **Provide a printed PDF** of the page (drag/paste file)
+     - **Paste the page content** or a relevant excerpt
+     - **Mark as dead** if the URL no longer works
+  3. Based on response:
+     - User confirms valid or provides content → no source change needed.
+       If the user provided a screenshot, PDF, or pasted content, use it
+       to verify the source is still relevant to the document. Note any
+       discrepancies.
+     - User says dead → offer to remove it from the document's `sources:`
+       list. Show the proposed edit and get approval before writing.
+     - User provides a replacement URL → offer to update the `sources:`
+       entry. Verify the new URL with `uv run <plugin-scripts-dir>/check_url.py URL`
+       before writing.
+
+  Process URLs one at a time. Do not batch-ask about all URLs at once.
 
 ## Key Rules
 
