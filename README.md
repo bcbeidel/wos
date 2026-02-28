@@ -29,7 +29,10 @@ an areas table, metadata format, and communication preferences.
 | `/wos:create` | Create project context, areas, or documents |
 | `/wos:audit` | Validate project health (5 checks + auto-fix) |
 | `/wos:research` | SIFT-based research with source verification |
+| `/wos:distill` | Convert research artifacts into focused context files |
 | `/wos:consider` | Mental models for problem analysis |
+| `/wos:refine-prompt` | Assess and refine prompts using evidence-backed techniques |
+| `/wos:experiment` | Structured experiment lifecycle (design through publication) |
 | `/wos:report-issue` | File GitHub issues against WOS repo |
 | `/wos:preferences` | Capture communication preferences |
 
@@ -38,12 +41,15 @@ an areas table, metadata format, and communication preferences.
 ```
 wos/
   document.py          # Document dataclass + parse_document()
+  frontmatter.py       # Custom YAML subset parser (stdlib-only)
   index.py             # _index.md generation + sync checking
   validators.py        # 5 validation checks
   url_checker.py       # HTTP HEAD/GET URL reachability
   agents_md.py         # Marker-based AGENTS.md section management
   markers.py           # Shared marker-based section replacement
   preferences.py       # Communication preferences capture
+  research_protocol.py # Search protocol logging
+  experiment_state.py  # Experiment lifecycle state machine
 scripts/
   audit.py             # CLI: run validation, offer fixes
   reindex.py           # CLI: regenerate all _index.md files
@@ -51,6 +57,7 @@ scripts/
   check_url.py         # CLI: URL reachability checking
   update_preferences.py # CLI: update communication preferences
   get_version.py       # CLI: print plugin version
+  experiment_state.py  # CLI: experiment state transitions
 skills/                # Skill definitions (SKILL.md + references/)
   _shared/references/  # Shared references (e.g., preflight.md)
 tests/                 # pytest tests

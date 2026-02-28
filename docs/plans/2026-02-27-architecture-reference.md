@@ -1,13 +1,13 @@
 ---
 name: WOS Architecture Reference
-description: Current architecture overview of WOS as of v0.5.0
+description: Current architecture overview of WOS as of v0.7.0
 type: reference
 related:
   - docs/plans/2026-02-22-simplification-design.md
   - docs/research/2026-02-22-design-principles.md
 ---
 
-# WOS Architecture Reference (v0.5.0)
+# WOS Architecture Reference (v0.7.0)
 
 > Concise reference for maintainers returning to the project. For design
 > rationale and history, see the related documents above.
@@ -72,8 +72,8 @@ building the tool.
 
 ```
 wos/                          # Python package (10 modules, ~1,200 LOC)
-scripts/                      # CLI entry points (6 scripts, PEP 723 metadata)
-skills/                       # Skill definitions (8 skills + shared references)
+scripts/                      # CLI entry points (7 scripts, PEP 723 metadata)
+skills/                       # Skill definitions (9 skills + shared references)
 tests/                        # pytest tests (17 files, ~2,400 LOC)
 docs/plans/              # Design docs and implementation plans
 docs/research/           # Research artifacts
@@ -93,6 +93,7 @@ docs/research/           # Research artifacts
 | `markers.py` | Shared marker-based section replacement |
 | `preferences.py` | Communication preferences capture |
 | `research_protocol.py` | Search protocol logging (`SearchEntry`, `SearchProtocol`) |
+| `experiment_state.py` | Experiment lifecycle state machine (phase transitions, status tracking) |
 
 ### Scripts: `scripts/`
 
@@ -104,6 +105,7 @@ docs/research/           # Research artifacts
 | `check_url.py` | none | URL reachability checking |
 | `update_preferences.py` | none | Preference key=value updates |
 | `get_version.py` | none | Print plugin version |
+| `experiment_state.py` | none | Experiment state transitions CLI |
 
 All scripts use `sys.path` self-insertion for plugin cache compatibility.
 Skills invoke them as `uv run <plugin-scripts-dir>/script.py`.
@@ -119,6 +121,7 @@ Skills invoke them as `uv run <plugin-scripts-dir>/script.py`.
 | consider | `/wos:consider` | Mental models for analysis (16 models) |
 | refine-prompt | `/wos:refine-prompt` | Assess and refine prompts with evidence-backed techniques |
 | report-issue | `/wos:report-issue` | File issues against WOS repo |
+| experiment | `/wos:experiment` | Structured experiment lifecycle (design through publication) |
 | preferences | `/wos:preferences` | Capture communication preferences |
 
 Shared references live in `skills/_shared/references/` (e.g., `preflight.md`
@@ -152,7 +155,7 @@ Validators return `list[dict]` with keys: `file`, `issue`, `severity`.
 
 ### `_index.md` (auto-generated)
 
-Each directory under `context/` and `artifacts/` gets an `_index.md` listing
+Each directory under `docs/` gets an `_index.md` listing
 files with descriptions from frontmatter, plus a subdirectory table. Preamble
 text above the generated tables is preserved across regeneration.
 
