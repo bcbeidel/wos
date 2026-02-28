@@ -3,18 +3,52 @@
 Renders the WOS-managed section for AGENTS.md (context navigation,
 areas table, file metadata format, preferences) and updates the file
 content using marker-based replacement.
-
-This module is intentionally independent of other wos modules.
 """
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Dict, List, Optional
 
 # ── Markers ──────────────────────────────────────────────────────
 
 BEGIN_MARKER = "<!-- wos:begin -->"
 END_MARKER = "<!-- wos:end -->"
+
+
+# ── Discovery ────────────────────────────────────────────────────
+
+
+def discover_areas(root: Path) -> List[Dict[str, str]]:
+    """Discover areas by scanning docs/context/ subdirectories.
+
+    Walks ``docs/context/`` under *root*, reads each subdirectory's
+    ``_index.md`` preamble as the area description, and returns a
+    sorted list of area dicts suitable for ``render_wos_section()``.
+
+    Args:
+        root: Project root directory.
+
+    Returns:
+        Sorted list of dicts with 'name' and 'path' keys.
+    """
+    from wos.index import _extract_preamble
+
+    context_dir = root / "docs" / "context"
+    if not context_dir.is_dir():
+        return []
+
+    areas: List[Dict[str, str]] = []
+    for entry in sorted(context_dir.iterdir()):
+        if not entry.is_dir():
+            continue
+        index_path = entry / "_index.md"
+        preamble = _extract_preamble(index_path)
+        name = preamble if preamble else entry.name
+        rel_path = str(entry.relative_to(root))
+        areas.append({"name": name, "path": rel_path})
+
+    return areas
 
 
 # ── Render ───────────────────────────────────────────────────────

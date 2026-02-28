@@ -2,6 +2,90 @@
 
 from __future__ import annotations
 
+import subprocess
+import sys
+from pathlib import Path
+
+SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "scripts"
+
+# ── discover_areas ─────────────────────────────────────────────
+
+
+class TestDiscoverAreas:
+    def test_discovers_areas_from_disk(self, tmp_path: Path) -> None:
+        from wos.agents_md import discover_areas
+        from wos.index import generate_index
+
+        # Create two area directories with _index.md preambles
+        api_dir = tmp_path / "docs" / "context" / "api"
+        api_dir.mkdir(parents=True)
+        (api_dir / "_index.md").write_text(
+            generate_index(api_dir, preamble="API documentation")
+        )
+
+        testing_dir = tmp_path / "docs" / "context" / "testing"
+        testing_dir.mkdir(parents=True)
+        (testing_dir / "_index.md").write_text(
+            generate_index(testing_dir, preamble="Testing guides")
+        )
+
+        areas = discover_areas(tmp_path)
+        assert len(areas) == 2
+        assert areas[0] == {
+            "name": "API documentation",
+            "path": "docs/context/api",
+        }
+        assert areas[1] == {
+            "name": "Testing guides",
+            "path": "docs/context/testing",
+        }
+
+    def test_falls_back_to_dir_name_without_preamble(
+        self, tmp_path: Path,
+    ) -> None:
+        from wos.agents_md import discover_areas
+        from wos.index import generate_index
+
+        area_dir = tmp_path / "docs" / "context" / "my-area"
+        area_dir.mkdir(parents=True)
+        # No preamble
+        (area_dir / "_index.md").write_text(generate_index(area_dir))
+
+        areas = discover_areas(tmp_path)
+        assert len(areas) == 1
+        assert areas[0]["name"] == "my-area"
+
+    def test_returns_empty_when_no_context_dir(
+        self, tmp_path: Path,
+    ) -> None:
+        from wos.agents_md import discover_areas
+
+        areas = discover_areas(tmp_path)
+        assert areas == []
+
+    def test_ignores_files_in_context_dir(self, tmp_path: Path) -> None:
+        from wos.agents_md import discover_areas
+
+        context_dir = tmp_path / "docs" / "context"
+        context_dir.mkdir(parents=True)
+        (context_dir / "_index.md").write_text("# Context\n")
+
+        areas = discover_areas(tmp_path)
+        assert areas == []
+
+    def test_sorted_alphabetically(self, tmp_path: Path) -> None:
+        from wos.agents_md import discover_areas
+
+        context_dir = tmp_path / "docs" / "context"
+        for name in ["zebra", "alpha", "middle"]:
+            d = context_dir / name
+            d.mkdir(parents=True)
+
+        areas = discover_areas(tmp_path)
+        names = [a["name"] for a in areas]
+        assert names == ["alpha", "middle", "zebra"]
+
+
 # ── render_wos_section ──────────────────────────────────────────
 
 
@@ -156,3 +240,61 @@ class TestUpdatePreferencesPreserved:
         assert "### Preferences" in result
         assert "- Keep it short" in result
         assert "- Use examples" in result
+
+
+# ── reindex.py AGENTS.md integration ──────────────────────────
+
+
+class TestReindexUpdatesAgentsMd:
+    def test_reindex_auto_updates_areas_table(self, tmp_path: Path) -> None:
+        from wos.agents_md import BEGIN_MARKER, END_MARKER
+        from wos.index import generate_index
+
+        # Set up a project with docs/context/ areas
+        area_dir = tmp_path / "docs" / "context" / "api"
+        area_dir.mkdir(parents=True)
+        (area_dir / "_index.md").write_text(
+            generate_index(area_dir, preamble="API documentation")
+        )
+        (area_dir / "endpoints.md").write_text(
+            "---\nname: Endpoints\ndescription: API endpoints\n---\n"
+        )
+
+        # Create AGENTS.md with existing markers but no areas
+        agents_path = tmp_path / "AGENTS.md"
+        agents_path.write_text(
+            f"# AGENTS.md\n\n{BEGIN_MARKER}\nold\n{END_MARKER}\n"
+        )
+
+        result = subprocess.run(
+            [
+                sys.executable, str(SCRIPTS_DIR / "reindex.py"),
+                "--root", str(tmp_path),
+            ],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0
+
+        updated = agents_path.read_text()
+        assert "| API documentation | docs/context/api |" in updated
+        assert "old" not in updated
+
+    def test_reindex_skips_when_no_agents_md(self, tmp_path: Path) -> None:
+        # Set up docs/ but no AGENTS.md
+        docs_dir = tmp_path / "docs" / "context" / "api"
+        docs_dir.mkdir(parents=True)
+        (docs_dir / "test.md").write_text(
+            "---\nname: Test\ndescription: A test\n---\n"
+        )
+
+        result = subprocess.run(
+            [
+                sys.executable, str(SCRIPTS_DIR / "reindex.py"),
+                "--root", str(tmp_path),
+            ],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0
+        assert not (tmp_path / "AGENTS.md").exists()

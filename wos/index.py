@@ -70,12 +70,15 @@ def _extract_preamble(index_path: Path) -> Optional[str]:
             table_idx = i
             break
 
-    if heading_idx is None or table_idx is None:
+    if heading_idx is None:
         return None
 
-    # Extract lines between heading and table, strip blanks
+    # End boundary: table line if present, otherwise end of content
+    end_idx = table_idx if table_idx is not None else len(lines)
+
+    # Extract lines between heading and boundary, strip blanks
     preamble_lines = [
-        line for line in lines[heading_idx + 1:table_idx] if line.strip()
+        line for line in lines[heading_idx + 1:end_idx] if line.strip()
     ]
     if not preamble_lines:
         return None

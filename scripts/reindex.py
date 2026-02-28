@@ -3,7 +3,7 @@
 # requires-python = ">=3.9"
 # dependencies = []
 # ///
-"""Regenerate all _index.md files in a WOS project.
+"""Regenerate all _index.md files and update AGENTS.md areas in a WOS project.
 
 Usage:
     uv run scripts/reindex.py [--root DIR]
@@ -22,7 +22,7 @@ if str(_plugin_root) not in sys.path:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Regenerate all _index.md files in a WOS project.",
+        description="Regenerate _index.md files and update AGENTS.md areas.",
     )
     parser.add_argument(
         "--root",
@@ -65,6 +65,9 @@ def main() -> None:
 
     print(f"Wrote {count} _index.md files.")
 
+    # ── Update AGENTS.md areas table ────────────────────────────
+    _update_agents_md_areas(root)
+
 
 def _reindex_directory(directory: Path, generate_index_fn, extract_preamble_fn) -> bool:
     """Regenerate _index.md for a single directory if it has content.
@@ -91,6 +94,24 @@ def _reindex_directory(directory: Path, generate_index_fn, extract_preamble_fn) 
     index_path.write_text(content, encoding="utf-8")
     print(index_path)
     return True
+
+
+def _update_agents_md_areas(root: Path) -> None:
+    """Auto-update the AGENTS.md areas table from disk state."""
+    from wos.agents_md import discover_areas, update_agents_md
+
+    agents_path = root / "AGENTS.md"
+    if not agents_path.is_file():
+        return
+
+    areas = discover_areas(root)
+    content = agents_path.read_text(encoding="utf-8")
+    updated = update_agents_md(content, areas)
+    if updated != content:
+        agents_path.write_text(updated, encoding="utf-8")
+        print(f"Updated AGENTS.md areas table ({len(areas)} areas).")
+    else:
+        print("AGENTS.md areas table already up to date.")
 
 
 if __name__ == "__main__":
