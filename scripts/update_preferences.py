@@ -13,6 +13,7 @@ Example:
 """
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -23,26 +24,32 @@ if str(_plugin_root) not in sys.path:
 
 
 def main() -> None:
-    if len(sys.argv) < 3:
-        print(
-            "Usage: update_preferences.py <file> key=value [key=value ...]",
-            file=sys.stderr,
-        )
-        sys.exit(1)
+    parser = argparse.ArgumentParser(
+        description="Update communication preferences in a target file.",
+    )
+    parser.add_argument(
+        "file",
+        help="Target file to update (e.g., CLAUDE.md)",
+    )
+    parser.add_argument(
+        "preferences",
+        nargs="+",
+        metavar="key=value",
+        help="Preference key=value pairs (e.g., directness=blunt)",
+    )
+    args = parser.parse_args()
 
     from wos.preferences import update_preferences
 
-    target_file = sys.argv[1]
     prefs = {}
-    for arg in sys.argv[2:]:
+    for arg in args.preferences:
         if "=" not in arg:
-            print(f"Invalid preference: {arg!r} (expected key=value)", file=sys.stderr)
-            sys.exit(1)
+            parser.error(f"Invalid preference: {arg!r} (expected key=value)")
         key, value = arg.split("=", 1)
         prefs[key] = value
 
-    update_preferences(target_file, prefs)
-    print(f"Updated preferences in {target_file}")
+    update_preferences(args.file, prefs)
+    print(f"Updated preferences in {args.file}")
 
 
 if __name__ == "__main__":

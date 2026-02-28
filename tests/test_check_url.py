@@ -16,5 +16,5 @@ class TestCheckUrlHelp:
             text=True,
             cwd=str(tmp_path),
         )
-        assert result.returncode == 1
-        assert "Usage" in result.stderr
+        assert result.returncode != 0
+        assert "usage" in result.stderr.lower()

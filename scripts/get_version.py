@@ -10,6 +10,7 @@ Usage:
 """
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -21,6 +22,11 @@ if str(_plugin_root) not in sys.path:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Print the WOS plugin version from plugin.json.",
+    )
+    parser.parse_args()
+
     plugin_json = _plugin_root / ".claude-plugin" / "plugin.json"
     if not plugin_json.exists():
         print("plugin.json not found", file=sys.stderr)
