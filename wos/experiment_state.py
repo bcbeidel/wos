@@ -1,0 +1,91 @@
+"""Experiment state management.
+
+Provides dataclasses for experiment state and functions for
+loading, saving, querying phase status, checking artifact gates,
+and formatting progress displays.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from typing import Dict, List, Optional
+
+PHASE_ORDER = (
+    "design", "audit", "evaluation",
+    "execution", "analysis", "publication",
+)
+
+VALID_TIERS = {"pilot", "exploratory", "confirmatory"}
+
+
+@dataclass
+class PhaseState:
+    """Status of a single experiment phase."""
+
+    status: str = "pending"
+    completed_at: Optional[str] = None
+
+
+@dataclass
+class ExperimentState:
+    """Machine-readable experiment state from experiment-state.json."""
+
+    experiment_id: str = ""
+    title: str = ""
+    rigor_tier: str = "exploratory"
+    created_at: str = ""
+    phases: Dict[str, PhaseState] = field(default_factory=dict)
+    conditions: List[str] = field(default_factory=list)
+    subject_type: str = ""
+    evaluation_method: str = ""
+
+
+def load_state(path: str) -> ExperimentState:
+    """Load experiment state from a JSON file."""
+    with open(path) as f:
+        data = json.load(f)
+
+    phases = {}
+    for name in PHASE_ORDER:
+        phase_data = data.get("phases", {}).get(name, {})
+        phases[name] = PhaseState(
+            status=phase_data.get("status", "pending"),
+            completed_at=phase_data.get("completed_at"),
+        )
+
+    return ExperimentState(
+        experiment_id=data.get("experiment_id", ""),
+        title=data.get("title", ""),
+        rigor_tier=data.get("rigor_tier", "exploratory"),
+        created_at=data.get("created_at", ""),
+        phases=phases,
+        conditions=data.get("conditions", []),
+        subject_type=data.get("subject_type", ""),
+        evaluation_method=data.get("evaluation_method", ""),
+    )
+
+
+def save_state(state: ExperimentState, path: str) -> None:
+    """Save experiment state to a JSON file."""
+    data = {
+        "experiment_id": state.experiment_id,
+        "title": state.title,
+        "rigor_tier": state.rigor_tier,
+        "created_at": state.created_at,
+        "phases": {
+            name: {
+                "status": ps.status,
+                "completed_at": ps.completed_at,
+            }
+            for name, ps in state.phases.items()
+        },
+        "conditions": state.conditions,
+        "subject_type": state.subject_type,
+        "evaluation_method": state.evaluation_method,
+    }
+    with open(path, "w") as f:
+        json.dump(data, f, indent=2)
+        f.write("\n")
