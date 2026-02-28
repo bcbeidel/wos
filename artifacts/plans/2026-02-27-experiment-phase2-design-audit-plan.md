@@ -1,88 +1,45 @@
 ---
-name: experiment
-description: >
-  This skill should be used when the user wants to "run an experiment",
-  "test a hypothesis", "compare approaches", "validate a claim",
-  "set up an experiment", "check experiment status", "experiment progress",
-  or any request to conduct a structured empirical investigation using
-  the experiment template.
-argument-hint: "[action: status, init, or phase name]"
-user-invocable: true
-compatibility: "Requires Python 3 (stdlib only), experiment-template repo"
+name: Experiment Phase 2 — Design & Audit Guidance Plan
+description: Step-by-step implementation for expanding SKILL.md with Design and Audit phase guidance
+type: plan
+related:
+  - artifacts/plans/2026-02-27-experiment-skill-phase1-plan.md
+  - artifacts/plans/2026-02-25-experiment-framework-design.md
 ---
 
-# Experiment Skill
+# Experiment Phase 2 — Design & Audit Guidance Implementation Plan
 
-Orchestrate structured experiments using repos created from the
-[experiment-template](https://github.com/bcbeidel/experiment-template).
-Guides users through 6 phases with tier-appropriate depth
-(Pilot / Exploratory / Confirmatory).
+> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-## Routing
+**Goal:** Expand `skills/experiment/SKILL.md` with full Design and Audit phase guidance so Claude can walk users through writing protocol files with tier-appropriate depth.
 
-| Situation | Action |
-|-----------|--------|
-| No `experiment-state.json` | Tell user to create repo from template |
-| Has state, user says "status" | Show progress |
-| Has state, all phases pending | Initialize (tier selection) |
-| Has state, phases in progress | Route to current phase |
+**Architecture:** SKILL.md-only changes. No new Python code, no new tests. Three edits to the same file: add Design phase section, add Audit phase section, update Phase Routing table and add Common Deviations. Each edit is verified by frontmatter parse check and full test suite (regression).
 
-**Prerequisite:** Before running any `uv run` command below, follow the
-preflight check in the [preflight reference](../_shared/references/preflight.md).
+**Tech Stack:** Markdown only. No Python, no dependencies.
 
-## Detection
+**Issue:** [#76](https://github.com/bcbeidel/work-os/issues/76)
+**Parent Issue:** [#67](https://github.com/bcbeidel/work-os/issues/67)
+**Branch:** `feat/76-experiment-design-audit`
+**PR:** TBD
 
-Check for `experiment-state.json` in the current directory:
+### Progress
 
-    uv run <plugin-scripts-dir>/experiment_state.py --root . status
+- [x] Task 1: Add Design phase guidance
+- [x] Task 2: Add Audit phase guidance
+- [x] Task 3: Update Phase Routing table and add Common Deviations
 
-If missing: "This doesn't appear to be an experiment repo. Create one from
-the template: https://github.com/bcbeidel/experiment-template"
+---
 
-## Initialize
+### Task 1: Add Design Phase Guidance
 
-Ask: **"What's the intent of this experiment?"**
+**Files:**
+- Modify: `skills/experiment/SKILL.md`
 
-| Choice | Tier |
-|--------|------|
-| Quick test or feasibility check | `pilot` |
-| Learn something real, might share results | `exploratory` |
-| Testing a specific hypothesis for decisions | `confirmatory` |
+**Step 1: Add the Design phase section**
 
-Then ask for a short title and run:
+Insert the following section after the `### Gate Checking` section (after line 84) and before `## Key Rules` (line 86) in `skills/experiment/SKILL.md`:
 
-    uv run <plugin-scripts-dir>/experiment_state.py --root . init --tier <tier> --title "<title>"
-
-**Escalation prompt:** If the user picks Pilot but mentions sharing results
-or making decisions, suggest Exploratory tier.
-
-## Progress Display
-
-Show at each interaction:
-
-    uv run <plugin-scripts-dir>/experiment_state.py --root . status
-
-## Phase Routing
-
-| Phase | Key Files | Guidance |
-|-------|-----------|----------|
-| design | `protocol/hypothesis.md`, `protocol/design.md` | See [Phase: Design](#phase-design) below |
-| audit | `protocol/audit.md` | See [Phase: Audit](#phase-audit) below |
-| evaluation | `evaluation/criteria.md`, `evaluation/blinding-manifest.json` | Define metrics, rubrics, blinding setup |
-| execution | `data/raw/`, `protocol/prompts/` | Collect data, save raw results |
-| analysis | `results/analysis.md` | Run `python scripts/analyze.py`, interpret results |
-| publication | `CONCLUSION.md`, `README.md` | Write verdict, update README |
-
-### Gate Checking
-
-Before advancing:
-
-    uv run <plugin-scripts-dir>/experiment_state.py --root . check-gates
-
-If satisfied:
-
-    uv run <plugin-scripts-dir>/experiment_state.py --root . advance --phase <phase>
-
+```markdown
 ## Phase: Design
 
 Guide the user through `protocol/hypothesis.md` and `protocol/design.md`.
@@ -181,7 +138,37 @@ Then check gates and advance:
 
     uv run <plugin-scripts-dir>/experiment_state.py --root . check-gates
     uv run <plugin-scripts-dir>/experiment_state.py --root . advance --phase design
+```
 
+**Step 2: Verify SKILL.md frontmatter still parses**
+
+Run: `uv run python -c "from wos.frontmatter import parse_frontmatter; text = open('skills/experiment/SKILL.md').read(); fm, _ = parse_frontmatter(text); print(fm['name'])"`
+Expected: `experiment`
+
+**Step 3: Verify all existing tests pass**
+
+Run: `uv run python -m pytest tests/ -v`
+Expected: 208 tests pass, 0 failures.
+
+**Step 4: Commit**
+
+```bash
+git add skills/experiment/SKILL.md
+git commit -m "feat(experiment): add Design phase guidance with tier branching (#76)"
+```
+
+---
+
+### Task 2: Add Audit Phase Guidance
+
+**Files:**
+- Modify: `skills/experiment/SKILL.md`
+
+**Step 1: Add the Audit phase section**
+
+Insert the following section immediately after the `## Phase: Design` section (after its Quality Check block) and before `## Key Rules`:
+
+```markdown
 ## Phase: Audit
 
 Guide the user through the self-review checklist in `protocol/audit.md`.
@@ -261,7 +248,52 @@ Then check gates and advance:
 
     uv run <plugin-scripts-dir>/experiment_state.py --root . check-gates
     uv run <plugin-scripts-dir>/experiment_state.py --root . advance --phase audit
+```
 
+**Step 2: Verify SKILL.md frontmatter still parses**
+
+Run: `uv run python -c "from wos.frontmatter import parse_frontmatter; text = open('skills/experiment/SKILL.md').read(); fm, _ = parse_frontmatter(text); print(fm['name'])"`
+Expected: `experiment`
+
+**Step 3: Verify all existing tests pass**
+
+Run: `uv run python -m pytest tests/ -v`
+Expected: 208 tests pass, 0 failures.
+
+**Step 4: Commit**
+
+```bash
+git add skills/experiment/SKILL.md
+git commit -m "feat(experiment): add Audit phase guidance with tier-scaled checklists (#76)"
+```
+
+---
+
+### Task 3: Update Phase Routing Table and Add Common Deviations
+
+**Files:**
+- Modify: `skills/experiment/SKILL.md`
+
+**Step 1: Update the Phase Routing table**
+
+Replace the `design` and `audit` rows in the Phase Routing table with references to the new sections. The table (currently at lines 67-74) should become:
+
+```markdown
+| Phase | Key Files | Guidance |
+|-------|-----------|----------|
+| design | `protocol/hypothesis.md`, `protocol/design.md` | See [Phase: Design](#phase-design) below |
+| audit | `protocol/audit.md` | See [Phase: Audit](#phase-audit) below |
+| evaluation | `evaluation/criteria.md`, `evaluation/blinding-manifest.json` | Define metrics, rubrics, blinding setup |
+| execution | `data/raw/`, `protocol/prompts/` | Collect data, save raw results |
+| analysis | `results/analysis.md` | Run `python scripts/analyze.py`, interpret results |
+| publication | `CONCLUSION.md`, `README.md` | Write verdict, update README |
+```
+
+**Step 2: Add Common Deviations section**
+
+Insert this section before `## Key Rules`:
+
+```markdown
 ## Common Deviations (Do Not)
 
 - **Do not skip the audit.** Even Pilot experiments need the 5-item sanity
@@ -275,10 +307,57 @@ Then check gates and advance:
   or pre-registration requirements.
 - **Do not advance without checking gates.** Always run `check-gates`
   before `advance`. The gates verify artifacts exist on disk.
+```
 
-## Key Rules
+**Step 3: Verify SKILL.md frontmatter still parses**
 
-- **Don't skip phases.** All tiers use all 6 phases. Depth varies, not count.
-- **Check gates before advancing.** Artifact-existence gates prevent premature progression.
-- **Show progress every interaction.** Users need to see where they are.
-- **Respect tier choice.** Don't impose Confirmatory ceremony on Pilot experiments.
+Run: `uv run python -c "from wos.frontmatter import parse_frontmatter; text = open('skills/experiment/SKILL.md').read(); fm, _ = parse_frontmatter(text); print(fm['name'])"`
+Expected: `experiment`
+
+**Step 4: Verify all existing tests pass**
+
+Run: `uv run python -m pytest tests/ -v`
+Expected: 208 tests pass, 0 failures.
+
+**Step 5: Run ruff**
+
+Run: `uv run --extra dev ruff check wos/ tests/ scripts/`
+Expected: All checks passed.
+
+**Step 6: Commit**
+
+```bash
+git add skills/experiment/SKILL.md
+git commit -m "feat(experiment): update phase routing table and add common deviations (#76)"
+```
+
+**Step 7: Update plan and create PR**
+
+Mark all tasks complete in this plan doc. Commit. Push and create PR:
+
+```bash
+git push -u origin feat/76-experiment-design-audit
+gh pr create --title "feat: add Design & Audit phase guidance to /wos:experiment (#76)" --body "$(cat <<'EOF'
+## Summary
+
+Phase 2 of the experiment framework (#67). Expands SKILL.md with:
+
+- Full Design phase guidance (9-step conversation flow, tier branching)
+- Full Audit phase guidance (tier-scaled checklists: 5/15/20 items)
+- Updated Phase Routing table with section references
+- Common Deviations section (4 anti-patterns)
+
+No new Python code — SKILL.md guidance only.
+
+## Test plan
+
+- [ ] SKILL.md frontmatter parses correctly
+- [ ] All existing tests pass (208/208, 0 regressions)
+- [ ] `ruff check` clean
+
+Closes #76
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+EOF
+)"
+```
