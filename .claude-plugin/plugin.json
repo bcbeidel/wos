@@ -1,7 +1,7 @@
 {
   "name": "wos",
   "version": "0.7.0",
-  "description": "Personal work operating system — a collection of Claude Code skills for daily workflows",
+  "description": "Claude Code plugin for building and maintaining structured project context",
   "author": {
     "name": "bbeidel"
   },
