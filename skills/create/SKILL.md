@@ -45,8 +45,7 @@ content outside these markers.
 1. Ask for area name (lowercase-hyphenated)
 2. Create `docs/context/{area}/`
 3. Ask the user for a 1-2 sentence area description. Write it as the preamble in `_index.md` above the file table.
-4. Run `uv run <plugin-scripts-dir>/reindex.py --root .`
-5. Update AGENTS.md areas table
+4. Run `uv run <plugin-scripts-dir>/reindex.py --root .` (also auto-updates AGENTS.md areas table)
 
 ## 3. Create Document
 
