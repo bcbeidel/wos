@@ -8,7 +8,9 @@ and formatting progress displays.
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 PHASE_ORDER = (
@@ -87,3 +89,53 @@ def save_state(state: ExperimentState, path: str) -> None:
     with open(path, "w") as f:
         json.dump(data, f, indent=2)
         f.write("\n")
+
+
+def new_state(tier: str, title: str) -> ExperimentState:
+    """Create a fresh experiment state with design phase in_progress."""
+    if tier not in VALID_TIERS:
+        raise ValueError(
+            f"Invalid tier: {tier}. "
+            f"Must be one of: {', '.join(sorted(VALID_TIERS))}"
+        )
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    slug = title.lower().replace(" ", "-")[:50]
+    date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+    phases = {name: PhaseState() for name in PHASE_ORDER}
+    phases["design"] = PhaseState(status="in_progress")
+
+    return ExperimentState(
+        experiment_id=f"{date_str}-{slug}",
+        title=title,
+        rigor_tier=tier,
+        created_at=now,
+        phases=phases,
+    )
+
+
+def current_phase(state: ExperimentState) -> Optional[str]:
+    """Return the first non-complete phase, or None if all done."""
+    for name in PHASE_ORDER:
+        if state.phases.get(name, PhaseState()).status != "complete":
+            return name
+    return None
+
+
+def advance_phase(state: ExperimentState, phase: str) -> None:
+    """Mark a phase complete and set the next phase to in_progress.
+
+    Modifies state in place.
+    """
+    if phase not in PHASE_ORDER:
+        raise ValueError(f"Unknown phase: {phase}")
+
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    state.phases[phase].status = "complete"
+    state.phases[phase].completed_at = now
+
+    idx = PHASE_ORDER.index(phase)
+    if idx + 1 < len(PHASE_ORDER):
+        next_name = PHASE_ORDER[idx + 1]
+        if state.phases[next_name].status == "pending":
+            state.phases[next_name].status = "in_progress"
