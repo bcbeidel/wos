@@ -348,6 +348,61 @@ Then check gates and advance:
     uv run <plugin-scripts-dir>/experiment_state.py --root . check-gates
     uv run <plugin-scripts-dir>/experiment_state.py --root . advance --phase evaluation
 
+## Phase: Execution
+
+Guide the user through data collection. If blinding is enabled, enforce
+opaque ID usage throughout.
+
+### Conversation Flow
+
+**Step 1 — Blinding check:**
+
+If `evaluation/blinding-manifest.json` has `blinding_enabled: true`:
+- **"Blinding is active. Use only opaque IDs (ALPHA, BRAVO, etc.) for
+  conditions during this phase. Do not look at the manifest."**
+- Do not read or display the manifest contents during this phase.
+
+**Step 2 — Prompt preparation (LLM experiments):**
+
+If the experiment involves LLM subjects:
+- Guide creation of prompt files in `protocol/prompts/`
+- Each prompt file should be a complete, self-contained prompt
+- Use opaque condition IDs in filenames if blinding is active
+
+**Step 3 — Data collection:**
+
+Ask: **"Ready to start collecting data? Walk me through what happens
+for each trial."**
+
+Guide the user to save results to `data/raw/`:
+- One file per trial, or a structured CSV/JSON
+- Include condition identifier (opaque ID if blinded)
+- Include all raw output (not just the metric)
+
+**Step 4 — Deviation logging:**
+
+If anything deviates from the protocol during execution:
+- Record in the Deviations section of `PROTOCOL.md`
+- Include what changed and why
+
+**Step 5 — Completion check:**
+
+When the user reports data collection is complete:
+- Verify `data/raw/` contains files (not just `.gitkeep`)
+- Confirm the planned sample size was met (or document why not)
+
+### Quality Check
+
+Before advancing, verify:
+- [ ] `data/raw/` contains actual data files
+- [ ] If blinding: opaque IDs used throughout, manifest not opened
+- [ ] Any deviations recorded in `PROTOCOL.md`
+
+Then check gates and advance:
+
+    uv run <plugin-scripts-dir>/experiment_state.py --root . check-gates
+    uv run <plugin-scripts-dir>/experiment_state.py --root . advance --phase execution
+
 ## Common Deviations (Do Not)
 
 - **Do not skip the audit.** Even Pilot experiments need the 5-item sanity
