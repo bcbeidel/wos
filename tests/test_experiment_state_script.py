@@ -111,3 +111,46 @@ class TestCheckGates:
         )
         assert code == 0
         assert "satisfied" in stdout
+
+
+class TestGenerateManifest:
+    def test_creates_manifest_file(self, tmp_path: Path) -> None:
+        _run_cli(
+            "--root", str(tmp_path), "init",
+            "--tier", "exploratory", "--title", "Manifest Test",
+        )
+        eval_dir = tmp_path / "evaluation"
+        eval_dir.mkdir(exist_ok=True)
+
+        stdout, _, code = _run_cli(
+            "--root", str(tmp_path), "generate-manifest",
+            "--conditions", "gpt-4=OpenAI GPT-4,claude=Anthropic Claude",
+            "--seed", "42",
+        )
+        assert code == 0
+        manifest_path = eval_dir / "blinding-manifest.json"
+        assert manifest_path.exists()
+        data = json.loads(manifest_path.read_text())
+        assert data["blinding_enabled"] is True
+        assert data["randomization_seed"] == 42
+        assert len(data["conditions"]) == 2
+
+    def test_missing_state_file_exits_1(self, tmp_path: Path) -> None:
+        _, stderr, code = _run_cli(
+            "--root", str(tmp_path), "generate-manifest",
+            "--conditions", "a=A,b=B",
+        )
+        assert code == 1
+
+    def test_output_confirms_creation(self, tmp_path: Path) -> None:
+        _run_cli(
+            "--root", str(tmp_path), "init",
+            "--tier", "exploratory", "--title", "Test",
+        )
+        (tmp_path / "evaluation").mkdir(exist_ok=True)
+        stdout, _, _ = _run_cli(
+            "--root", str(tmp_path), "generate-manifest",
+            "--conditions", "a=A,b=B",
+        )
+        assert "blinding-manifest.json" in stdout
+        assert "ALPHA" in stdout or "BRAVO" in stdout

@@ -68,8 +68,8 @@ Show at each interaction:
 |-------|-----------|----------|
 | design | `protocol/hypothesis.md`, `protocol/design.md` | See [Phase: Design](#phase-design) below |
 | audit | `protocol/audit.md` | See [Phase: Audit](#phase-audit) below |
-| evaluation | `evaluation/criteria.md`, `evaluation/blinding-manifest.json` | Define metrics, rubrics, blinding setup |
-| execution | `data/raw/`, `protocol/prompts/` | Collect data, save raw results |
+| evaluation | `evaluation/criteria.md`, `evaluation/blinding-manifest.json` | See [Phase: Evaluation Design](#phase-evaluation-design) below |
+| execution | `data/raw/`, `protocol/prompts/` | See [Phase: Execution](#phase-execution) below |
 | analysis | `results/analysis.md` | Run `python scripts/analyze.py`, interpret results |
 | publication | `CONCLUSION.md`, `README.md` | Write verdict, update README |
 
@@ -262,6 +262,147 @@ Then check gates and advance:
     uv run <plugin-scripts-dir>/experiment_state.py --root . check-gates
     uv run <plugin-scripts-dir>/experiment_state.py --root . advance --phase audit
 
+## Phase: Evaluation Design
+
+Guide the user through `evaluation/criteria.md` and the blinding decision.
+If blinding is chosen, generate `evaluation/blinding-manifest.json`.
+
+### Conversation Flow
+
+**Step 1 — Primary metrics:**
+
+Ask: **"What will you measure? How will you measure it?"**
+
+Fill the Primary Metrics table in `evaluation/criteria.md`:
+
+| Metric | Description | How Measured | Direction |
+|--------|-------------|--------------|-----------|
+| (user-provided) | (user-provided) | (user-provided) | Higher/Lower is better |
+
+**Step 2 — Effect size targets (Exploratory+ only):**
+
+| Tier | Action |
+|------|--------|
+| Pilot | Skip — you're estimating effect sizes, not targeting them |
+| Exploratory | Ask: "What size of difference would be practically meaningful?" |
+| Confirmatory | Ask: "What is the minimum effect size of interest (SESOI)?" |
+
+**Step 3 — Evaluation rubric (if human judgment involved):**
+
+If the evaluation method involves human rating or LLM-as-judge, build a
+scoring rubric:
+
+| Score | Label | Criteria |
+|-------|-------|----------|
+| 0 | Fail | (define) |
+| 1 | Partial | (define) |
+| 2 | Pass | (define) |
+
+**Step 4 — Blinding decision:**
+
+Present the blinding decision matrix:
+
+| Evaluation Method | Pilot | Exploratory | Confirmatory |
+|-------------------|-------|-------------|--------------|
+| Automated metrics | Label conditions | Label conditions | Label + pre-register |
+| Human rating | Label conditions | Label + randomize | Double-blind via script |
+| LLM-as-judge | Label conditions | Randomize order + different judge | Randomize + debias |
+
+Ask: **"What evaluation method will you use?"** Then apply the matrix to
+recommend a blinding level.
+
+**Step 5 — Generate manifest (if blinding chosen):**
+
+If the matrix recommends blinding, run:
+
+    uv run <plugin-scripts-dir>/experiment_state.py --root . generate-manifest \
+      --conditions "label1=desc1,label2=desc2" --seed <seed>
+
+Tell the user: **"The manifest is sealed. During execution, use only the
+opaque IDs (ALPHA, BRAVO, etc.). Do not look at the manifest until
+the Analysis phase."**
+
+**Step 6 — Pass/fail threshold (Exploratory+ only):**
+
+| Tier | Action |
+|------|--------|
+| Pilot | Skip |
+| Exploratory | Optional — "Under what conditions would you consider the hypothesis supported?" |
+| Confirmatory | Required — pre-specify the decision rule |
+
+**Step 7 — Update PROTOCOL.md:**
+
+Fill the Primary Metric field in `PROTOCOL.md` Design Summary.
+Add blinding decision to Key Decisions table.
+
+### Quality Check
+
+Before advancing, verify:
+- [ ] `evaluation/criteria.md` has at least one primary metric
+- [ ] Blinding decision is recorded
+- [ ] If blinding chosen: `evaluation/blinding-manifest.json` exists
+- [ ] For Confirmatory: pass/fail threshold is specified
+
+Then check gates and advance:
+
+    uv run <plugin-scripts-dir>/experiment_state.py --root . check-gates
+    uv run <plugin-scripts-dir>/experiment_state.py --root . advance --phase evaluation
+
+## Phase: Execution
+
+Guide the user through data collection. If blinding is enabled, enforce
+opaque ID usage throughout.
+
+### Conversation Flow
+
+**Step 1 — Blinding check:**
+
+If `evaluation/blinding-manifest.json` has `blinding_enabled: true`:
+- **"Blinding is active. Use only opaque IDs (ALPHA, BRAVO, etc.) for
+  conditions during this phase. Do not look at the manifest."**
+- Do not read or display the manifest contents during this phase.
+
+**Step 2 — Prompt preparation (LLM experiments):**
+
+If the experiment involves LLM subjects:
+- Guide creation of prompt files in `protocol/prompts/`
+- Each prompt file should be a complete, self-contained prompt
+- Use opaque condition IDs in filenames if blinding is active
+
+**Step 3 — Data collection:**
+
+Ask: **"Ready to start collecting data? Walk me through what happens
+for each trial."**
+
+Guide the user to save results to `data/raw/`:
+- One file per trial, or a structured CSV/JSON
+- Include condition identifier (opaque ID if blinded)
+- Include all raw output (not just the metric)
+
+**Step 4 — Deviation logging:**
+
+If anything deviates from the protocol during execution:
+- Record in the Deviations section of `PROTOCOL.md`
+- Include what changed and why
+
+**Step 5 — Completion check:**
+
+When the user reports data collection is complete:
+- Verify `data/raw/` contains files (not just `.gitkeep`)
+- Confirm the planned sample size was met (or document why not)
+
+### Quality Check
+
+Before advancing, verify:
+- [ ] `data/raw/` contains actual data files
+- [ ] If blinding: opaque IDs used throughout, manifest not opened
+- [ ] Any deviations recorded in `PROTOCOL.md`
+
+Then check gates and advance:
+
+    uv run <plugin-scripts-dir>/experiment_state.py --root . check-gates
+    uv run <plugin-scripts-dir>/experiment_state.py --root . advance --phase execution
+
 ## Common Deviations (Do Not)
 
 - **Do not skip the audit.** Even Pilot experiments need the 5-item sanity
@@ -275,6 +416,12 @@ Then check gates and advance:
   or pre-registration requirements.
 - **Do not advance without checking gates.** Always run `check-gates`
   before `advance`. The gates verify artifacts exist on disk.
+- **Do not open the blinding manifest during execution.** The whole point
+  of blinding is that condition labels are hidden. If you read the manifest
+  during Phase 4, blinding is broken.
+- **Do not skip the evaluation rubric for subjective metrics.** Without
+  a rubric, "quality" means whatever the evaluator feels in the moment.
+  Define scoring criteria before collecting data.
 
 ## Key Rules
 

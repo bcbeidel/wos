@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from wos.experiment_state import (
+    OPAQUE_IDS,
     PHASE_ORDER,
     ExperimentState,
     PhaseState,
@@ -15,6 +16,7 @@ from wos.experiment_state import (
     check_gate,
     current_phase,
     format_progress,
+    generate_manifest,
     load_state,
     new_state,
     save_state,
@@ -332,3 +334,71 @@ class TestFormatProgress:
         output = format_progress(state)
         assert "\u2588" in output  # filled block
         assert "\u2591" in output  # empty block
+
+
+class TestGenerateManifest:
+    def test_two_conditions(self) -> None:
+        manifest = generate_manifest(
+            conditions={"gpt-4": "OpenAI GPT-4", "claude": "Anthropic Claude"},
+            seed=42,
+        )
+        assert manifest["blinding_enabled"] is True
+        assert manifest["randomization_seed"] == 42
+        assert len(manifest["conditions"]) == 2
+        # Opaque IDs assigned from OPAQUE_IDS sequence
+        ids = {v["opaque_id"] for v in manifest["conditions"].values()}
+        assert ids <= set(OPAQUE_IDS)
+        assert len(ids) == 2
+
+    def test_deterministic_with_seed(self) -> None:
+        m1 = generate_manifest(
+            conditions={"a": "A", "b": "B", "c": "C"},
+            seed=123,
+        )
+        m2 = generate_manifest(
+            conditions={"a": "A", "b": "B", "c": "C"},
+            seed=123,
+        )
+        assert m1 == m2
+
+    def test_different_seeds_different_assignment(self) -> None:
+        m1 = generate_manifest(
+            conditions={"a": "A", "b": "B", "c": "C", "d": "D"},
+            seed=1,
+        )
+        m2 = generate_manifest(
+            conditions={"a": "A", "b": "B", "c": "C", "d": "D"},
+            seed=2,
+        )
+        ids1 = [m1["conditions"][k]["opaque_id"] for k in sorted(m1["conditions"])]
+        ids2 = [m2["conditions"][k]["opaque_id"] for k in sorted(m2["conditions"])]
+        # Both should be valid opaque IDs
+        assert set(ids1) <= set(OPAQUE_IDS)
+        assert set(ids2) <= set(OPAQUE_IDS)
+
+    def test_no_seed_generates_one(self) -> None:
+        manifest = generate_manifest(
+            conditions={"a": "A", "b": "B"},
+        )
+        assert manifest["randomization_seed"] is not None
+        assert isinstance(manifest["randomization_seed"], int)
+
+    def test_too_many_conditions_raises(self) -> None:
+        conditions = {f"c{i}": f"Condition {i}" for i in range(9)}
+        with pytest.raises(ValueError, match="Maximum 8 conditions"):
+            generate_manifest(conditions=conditions)
+
+    def test_empty_conditions_raises(self) -> None:
+        with pytest.raises(ValueError, match="At least 2 conditions"):
+            generate_manifest(conditions={})
+
+    def test_single_condition_raises(self) -> None:
+        with pytest.raises(ValueError, match="At least 2 conditions"):
+            generate_manifest(conditions={"a": "only one"})
+
+    def test_assignments_empty(self) -> None:
+        manifest = generate_manifest(
+            conditions={"a": "A", "b": "B"},
+            seed=1,
+        )
+        assert manifest["assignments"] == []
