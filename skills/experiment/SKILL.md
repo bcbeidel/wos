@@ -182,6 +182,86 @@ Then check gates and advance:
     uv run <plugin-scripts-dir>/experiment_state.py --root . check-gates
     uv run <plugin-scripts-dir>/experiment_state.py --root . advance --phase design
 
+## Phase: Audit
+
+Guide the user through the self-review checklist in `protocol/audit.md`.
+The checklist scales with tier — Pilot has 5 items, Exploratory adds 10,
+Confirmatory adds 5 more.
+
+### Conversation Flow
+
+**Step 1 — Read the protocol:**
+
+Before auditing, read `protocol/hypothesis.md` and `protocol/design.md`
+to understand what's being audited.
+
+**Step 2 — Present the tier-appropriate checklist:**
+
+| Tier | Checklist sections to complete |
+|------|-------------------------------|
+| Pilot | Pilot Checklist only (5 items) |
+| Exploratory | Pilot + Exploratory Checklist (15 items) |
+| Confirmatory | All three checklists (20 items) |
+
+Tell the user which sections apply: **"Your experiment is [tier], so we'll
+work through the [Pilot / Pilot + Exploratory / full] checklist."**
+
+**Step 3 — Walk through each item:**
+
+For each checklist item:
+1. State the item
+2. Evaluate whether the current protocol satisfies it
+3. If not satisfied: suggest a specific fix and which file to update
+4. If satisfied: check it off
+
+**Pilot checklist (all tiers):**
+- Clear question — can you state what you're learning in one sentence?
+- Defined conditions — are treatment and control clearly distinct?
+- Measurable outcome — do you know what you'll measure and how?
+- Feasible scope — can you realistically collect the planned sample?
+- No obvious confounds — is there an alternative explanation you haven't addressed?
+
+**Exploratory additions (+10 items):**
+- Operational definitions — variables defined precisely enough for replication?
+- Randomization — how are subjects/items assigned to conditions?
+- Measurement validity — does the metric capture what you care about?
+- Multiple comparisons — planned correction? (analyze.py applies Holm-Bonferroni by default)
+- Effect size target — what would a meaningful effect look like?
+- Confound inventory — list potential confounds and how each is addressed
+- Data collection order — could order bias results? (learning effects)
+- Stopping rule — when will you stop collecting data?
+- Blinding considered — have you thought about the blinding decision matrix?
+- Reproducibility — completed the checklist in `protocol/design.md`?
+
+**Confirmatory additions (+5 items):**
+- Pre-registration — analysis plan specified before data collection?
+- Power analysis — adequate power (>=80%) at expected effect size?
+- Primary vs. secondary outcomes — clearly distinguished?
+- Analysis code committed — written and committed before data collection?
+- External review — has someone else reviewed the design?
+
+**Step 4 — Record notes:**
+
+Write any concerns, edge cases, or decisions to the Notes section of
+`protocol/audit.md`.
+
+**Step 5 — Update PROTOCOL.md:**
+
+Add any Key Decisions made during the audit to the Key Decisions table
+in `PROTOCOL.md`.
+
+### Quality Check
+
+Before advancing, verify:
+- [ ] All tier-appropriate checklist items addressed
+- [ ] For items that aren't satisfied: fixes applied to protocol files
+- [ ] Notes section captures any concerns or decisions
+
+Then check gates and advance:
+
+    uv run <plugin-scripts-dir>/experiment_state.py --root . check-gates
+    uv run <plugin-scripts-dir>/experiment_state.py --root . advance --phase audit
+
 ## Key Rules
 
 - **Don't skip phases.** All tiers use all 6 phases. Depth varies, not count.
