@@ -104,6 +104,17 @@ A clean project produces:
 All checks passed.
 ```
 
+## Cleanup Actions
+
+After presenting audit results, offer to help resolve actionable warnings:
+
+- **Missing AGENTS.md or CLAUDE.md:** Offer to run `/wos:create` to
+  initialize. Confirm with the user before writing any files.
+- **AGENTS.md missing WOS markers:** Offer to run `/wos:create` to add
+  the WOS-managed section. Confirm before modifying existing content.
+- **CLAUDE.md missing @AGENTS.md reference:** Offer to add the reference.
+  Do not rewrite CLAUDE.md contents — only add the `@AGENTS.md` line.
+
 ## Key Rules
 
 - Audit is read-only (except `--fix` which only regenerates `_index.md` files)
