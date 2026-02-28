@@ -171,3 +171,44 @@ def check_gate(root: str, phase: str) -> List[str]:
             if not os.path.isfile(path):
                 missing.append(gate)
     return missing
+
+
+def format_progress(state: ExperimentState) -> str:
+    """Format a human-readable progress display."""
+    cur = current_phase(state)
+    completed = sum(
+        1 for name in PHASE_ORDER
+        if state.phases.get(name, PhaseState()).status == "complete"
+    )
+    total = len(PHASE_ORDER)
+
+    filled = "\u2588" * completed
+    empty = "\u2591" * (total - completed)
+
+    parts = []
+    for name in PHASE_ORDER:
+        status = state.phases.get(name, PhaseState()).status
+        label = name.title()
+        if status == "complete":
+            parts.append(f"{label} (\u2713)")
+        elif status == "in_progress":
+            parts.append(f"[{label}]")
+        else:
+            parts.append(label)
+
+    tier = state.rigor_tier.title() if state.rigor_tier else "Unknown"
+    title = state.title or "Untitled"
+
+    if cur:
+        phase_num = PHASE_ORDER.index(cur) + 1
+        phase_label = cur.title()
+    else:
+        phase_num = total
+        phase_label = "Complete"
+
+    return (
+        f"Experiment: {title} ({tier})\n"
+        f"Progress: {filled}{empty} Phase {phase_num} of {total}"
+        f" \u2014 {phase_label}\n"
+        f"Completed: {' \u2192 '.join(parts)}"
+    )

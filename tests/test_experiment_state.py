@@ -15,6 +15,7 @@ from wos.experiment_state import (
     advance_phase,
     check_gate,
     current_phase,
+    format_progress,
     load_state,
     new_state,
     save_state,
@@ -273,3 +274,56 @@ class TestCheckGate:
 
     def test_unknown_phase_returns_empty(self, tmp_path: Path) -> None:
         assert check_gate(str(tmp_path), "nonexistent") == []
+
+
+class TestFormatProgress:
+    def test_fresh_state(self) -> None:
+        state = ExperimentState(
+            title="My Test",
+            rigor_tier="exploratory",
+            phases={name: PhaseState() for name in PHASE_ORDER},
+        )
+        state.phases["design"].status = "in_progress"
+        output = format_progress(state)
+        assert "My Test" in output
+        assert "Exploratory" in output
+        assert "Phase 1 of 6" in output
+        assert "[Design]" in output
+
+    def test_midway_state(self) -> None:
+        state = ExperimentState(
+            title="Midway",
+            rigor_tier="pilot",
+            phases={name: PhaseState() for name in PHASE_ORDER},
+        )
+        state.phases["design"].status = "complete"
+        state.phases["audit"].status = "complete"
+        state.phases["evaluation"].status = "in_progress"
+        output = format_progress(state)
+        assert "Phase 3 of 6" in output
+        assert "\u2713" in output  # checkmark
+
+    def test_all_complete(self) -> None:
+        state = ExperimentState(
+            title="Done",
+            rigor_tier="confirmatory",
+            phases={
+                name: PhaseState(status="complete")
+                for name in PHASE_ORDER
+            },
+        )
+        output = format_progress(state)
+        assert "Phase 6 of 6" in output
+        assert "Complete" in output
+
+    def test_progress_bar_characters(self) -> None:
+        state = ExperimentState(
+            title="Bar Test",
+            rigor_tier="exploratory",
+            phases={name: PhaseState() for name in PHASE_ORDER},
+        )
+        state.phases["design"].status = "complete"
+        state.phases["audit"].status = "in_progress"
+        output = format_progress(state)
+        assert "\u2588" in output  # filled block
+        assert "\u2591" in output  # empty block
