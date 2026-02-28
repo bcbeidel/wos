@@ -13,6 +13,7 @@ from wos.experiment_state import (
     ExperimentState,
     PhaseState,
     advance_phase,
+    backtrack_to_phase,
     check_gate,
     current_phase,
     format_progress,
@@ -402,3 +403,84 @@ class TestGenerateManifest:
             seed=1,
         )
         assert manifest["assignments"] == []
+
+
+class TestBacktrackToPhase:
+    def test_resets_downstream_phases(self) -> None:
+        state = ExperimentState(
+            phases={name: PhaseState(status="complete") for name in PHASE_ORDER},
+        )
+        state.phases["publication"].status = "in_progress"
+        report = backtrack_to_phase(state, "audit")
+        assert state.phases["audit"].status == "in_progress"
+        assert state.phases["evaluation"].status == "pending"
+        assert state.phases["execution"].status == "pending"
+        assert state.phases["analysis"].status == "pending"
+        assert state.phases["publication"].status == "pending"
+        # Design stays complete (upstream of target)
+        assert state.phases["design"].status == "complete"
+
+    def test_clears_completed_at_for_reset_phases(self) -> None:
+        state = ExperimentState(
+            phases={
+                name: PhaseState(status="complete", completed_at="2026-02-27T10:00:00Z")
+                for name in PHASE_ORDER
+            },
+        )
+        backtrack_to_phase(state, "evaluation")
+        assert state.phases["evaluation"].completed_at is None
+        assert state.phases["execution"].completed_at is None
+        # Upstream phases keep their timestamps
+        assert state.phases["design"].completed_at == "2026-02-27T10:00:00Z"
+        assert state.phases["audit"].completed_at == "2026-02-27T10:00:00Z"
+
+    def test_target_already_pending_is_noop(self) -> None:
+        state = ExperimentState(
+            phases={name: PhaseState() for name in PHASE_ORDER},
+        )
+        state.phases["design"].status = "in_progress"
+        report = backtrack_to_phase(state, "design")
+        assert report["reset_phases"] == []
+        assert state.phases["design"].status == "in_progress"
+
+    def test_unknown_phase_raises(self) -> None:
+        state = ExperimentState(
+            phases={name: PhaseState() for name in PHASE_ORDER},
+        )
+        with pytest.raises(ValueError, match="Unknown phase"):
+            backtrack_to_phase(state, "nonexistent")
+
+    def test_returns_report(self) -> None:
+        state = ExperimentState(
+            phases={name: PhaseState(status="complete") for name in PHASE_ORDER},
+        )
+        report = backtrack_to_phase(state, "audit")
+        assert report["target"] == "audit"
+        assert "evaluation" in report["reset_phases"]
+        assert "execution" in report["reset_phases"]
+        assert "design" not in report["reset_phases"]
+
+    def test_backtrack_to_first_phase(self) -> None:
+        state = ExperimentState(
+            phases={
+                name: PhaseState(status="complete")
+                for name in PHASE_ORDER
+            },
+        )
+        report = backtrack_to_phase(state, "design")
+        assert state.phases["design"].status == "in_progress"
+        assert all(
+            state.phases[name].status == "pending"
+            for name in PHASE_ORDER[1:]
+        )
+
+    def test_backtrack_to_last_phase(self) -> None:
+        state = ExperimentState(
+            phases={
+                name: PhaseState(status="complete")
+                for name in PHASE_ORDER
+            },
+        )
+        report = backtrack_to_phase(state, "publication")
+        assert state.phases["publication"].status == "in_progress"
+        assert report["reset_phases"] == []

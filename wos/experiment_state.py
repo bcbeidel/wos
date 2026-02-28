@@ -179,6 +179,40 @@ def check_gate(root: str, phase: str) -> List[str]:
     return missing
 
 
+def backtrack_to_phase(
+    state: ExperimentState, target: str,
+) -> dict:
+    """Backtrack to a target phase, resetting all downstream phases.
+
+    Sets the target phase to in_progress and all phases after it to pending.
+    Phases before the target are left unchanged.
+
+    Returns a report dict with target, reset_phases list.
+    """
+    if target not in PHASE_ORDER:
+        raise ValueError(f"Unknown phase: {target}")
+
+    target_idx = PHASE_ORDER.index(target)
+    reset_phases = []
+
+    # Set target to in_progress
+    if state.phases[target].status != "pending":
+        state.phases[target].status = "in_progress"
+        state.phases[target].completed_at = None
+
+    # Reset all downstream phases
+    for name in PHASE_ORDER[target_idx + 1:]:
+        if state.phases[name].status != "pending":
+            state.phases[name].status = "pending"
+            state.phases[name].completed_at = None
+            reset_phases.append(name)
+
+    return {
+        "target": target,
+        "reset_phases": reset_phases,
+    }
+
+
 def format_progress(state: ExperimentState) -> str:
     """Format a human-readable progress display."""
     cur = current_phase(state)
