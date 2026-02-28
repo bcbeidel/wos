@@ -3,9 +3,9 @@ name: Google Docs Read Integration Design
 description: Design for reading Google Docs content via a PEP 723 script and /wos:read skill
 type: plan
 related:
-  - artifacts/research/2026-02-24-google-apis-research.md
-  - artifacts/research/2026-02-24-oauth-token-management-research.md
-  - artifacts/research/2026-02-24-ai-integration-patterns-research.md
+  - docs/research/2026-02-24-google-apis-research.md
+  - docs/research/2026-02-24-oauth-token-management-research.md
+  - docs/research/2026-02-24-ai-integration-patterns-research.md
 ---
 
 # Google Docs Read Integration Design

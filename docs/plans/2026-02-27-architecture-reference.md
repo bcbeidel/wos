@@ -3,8 +3,8 @@ name: WOS Architecture Reference
 description: Current architecture overview of WOS as of v0.5.0
 type: reference
 related:
-  - artifacts/plans/2026-02-22-simplification-design.md
-  - artifacts/research/2026-02-22-design-principles.md
+  - docs/plans/2026-02-22-simplification-design.md
+  - docs/research/2026-02-22-design-principles.md
 ---
 
 # WOS Architecture Reference (v0.5.0)
@@ -75,8 +75,8 @@ wos/                          # Python package (10 modules, ~1,200 LOC)
 scripts/                      # CLI entry points (6 scripts, PEP 723 metadata)
 skills/                       # Skill definitions (8 skills + shared references)
 tests/                        # pytest tests (17 files, ~2,400 LOC)
-artifacts/plans/              # Design docs and implementation plans
-artifacts/research/           # Research artifacts
+docs/plans/              # Design docs and implementation plans
+docs/research/           # Research artifacts
 .claude-plugin/               # Plugin metadata (plugin.json, marketplace.json)
 ```
 
@@ -182,7 +182,7 @@ All Python invocation uses `uv run`. No bare `python3` calls in skill docs.
 - **Commits:** Granular within branches
 - **Version bump:** Update all three: `pyproject.toml`, `plugin.json`,
   `marketplace.json`
-- **Plans:** Stored in `artifacts/plans/`, include checkboxes, branch, and
+- **Plans:** Stored in `docs/plans/`, include checkboxes, branch, and
   PR links
 - **Exceptions:** `ValueError` + stdlib only (no custom exception hierarchy)
 - **Tests:** Inline markdown strings + `tmp_path` fixtures

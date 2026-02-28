@@ -22,7 +22,7 @@ Convert research artifacts into focused context files.
 ### 1. Input
 
 Accept a research artifact path from the user. If none provided, scan
-`artifacts/research/` for the most recently modified `.md` file and confirm.
+`docs/research/` for the most recently modified `.md` file and confirm.
 
 ### 2. Analyze
 
@@ -37,7 +37,7 @@ Present a distillation plan as a table:
 
 | # | Finding | Target Area | Filename | Words (est.) |
 |---|---------|-------------|----------|--------------|
-| 1 | Key finding one | context/area/ | finding-one.md | ~400 |
+| 1 | Key finding one | docs/context/area/ | finding-one.md | ~400 |
 
 User approves, edits, or rejects individual rows.
 

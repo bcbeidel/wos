@@ -58,14 +58,14 @@ class TestTableFormat:
         root.mkdir()
         issues = [
             {
-                "file": str(root / "context" / "api" / "auth.md"),
+                "file": str(root / "docs" / "context" / "api" / "auth.md"),
                 "issue": "Frontmatter 'name' is empty",
                 "severity": "fail",
             },
         ]
         stdout, _, _ = _run_audit("--root", str(root), "--no-urls", issues=issues)
         assert str(root) not in stdout
-        assert "context/api/auth.md" in stdout
+        assert "docs/context/api/auth.md" in stdout
 
     def test_table_has_severity_column(self, tmp_path: Path) -> None:
         root = tmp_path / "project"
@@ -135,7 +135,7 @@ class TestSingleFileMode:
     def test_single_file_validation(self, tmp_path: Path) -> None:
         root = tmp_path / "project"
         root.mkdir()
-        md_file = root / "context" / "test.md"
+        md_file = root / "docs" / "context" / "test.md"
         md_file.parent.mkdir(parents=True)
         md_file.write_text(
             "---\nname: Test\ndescription: A test\n---\n# Test\n"
@@ -152,7 +152,7 @@ class TestSingleFileMode:
 class TestFixOutput:
     def test_fix_messages_use_relative_paths(self, tmp_path: Path) -> None:
         root = tmp_path / "project"
-        idx_dir = root / "artifacts" / "plans"
+        idx_dir = root / "docs" / "plans"
         idx_dir.mkdir(parents=True)
         idx_file = idx_dir / "_index.md"
         idx_file.write_text("")
@@ -166,4 +166,4 @@ class TestFixOutput:
         with patch("wos.validators.validate_project", return_value=issues):
             _, stderr, _ = _run_audit("--root", str(root), "--no-urls", "--fix")
         assert str(root) not in stderr
-        assert "artifacts/plans/_index.md" in stderr
+        assert "docs/plans/_index.md" in stderr

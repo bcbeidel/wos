@@ -23,10 +23,9 @@ Determine user intent from their message:
 Create directory structure and AGENTS.md:
 
 ```
-context/
-  _index.md
-artifacts/
-  _index.md
+docs/
+  context/
+    _index.md
   research/
     _index.md
   plans/
@@ -41,7 +40,7 @@ Update AGENTS.md with the WOS section using markers.
 ## 2. Add Area
 
 1. Ask for area name (lowercase-hyphenated)
-2. Create `context/{area}/`
+2. Create `docs/context/{area}/`
 3. Ask the user for a 1-2 sentence area description. Write it as the preamble in `_index.md` above the file table.
 4. Run `uv run <plugin-scripts-dir>/reindex.py --root .`
 5. Update AGENTS.md areas table
@@ -49,7 +48,7 @@ Update AGENTS.md with the WOS section using markers.
 ## 3. Create Document
 
 1. Ask the user what the document should cover
-2. Determine appropriate location (`context/{area}/` or `artifacts/research/` or `artifacts/plans/`)
+2. Determine appropriate location (`docs/context/{area}/` or `docs/research/` or `docs/plans/`)
 3. Generate YAML frontmatter:
    - `name` and `description` (required)
    - `type` if appropriate (research, plan, reference, etc.)

@@ -13,7 +13,7 @@ from wos.document import Document
 def _make_doc(**overrides) -> Document:
     """Build a minimal valid Document, applying overrides."""
     defaults = {
-        "path": "context/testing/unit-tests.md",
+        "path": "docs/context/testing/unit-tests.md",
         "name": "Unit Tests",
         "description": "Guide to writing unit tests",
         "content": "# Unit Tests\n\nSome content.\n",
@@ -46,7 +46,7 @@ class TestCheckFrontmatter:
         from wos.validators import check_frontmatter
 
         doc = _make_doc(
-            path="artifacts/research/topic.md",
+            path="docs/research/topic.md",
             name="Valid",
             description="A valid document",
         )
@@ -56,7 +56,7 @@ class TestCheckFrontmatter:
     def test_empty_name(self) -> None:
         from wos.validators import check_frontmatter
 
-        doc = _make_doc(path="artifacts/research/topic.md", name="")
+        doc = _make_doc(path="docs/research/topic.md", name="")
         issues = check_frontmatter(doc)
         assert len(issues) == 1
         assert issues[0]["severity"] == "fail"
@@ -66,7 +66,7 @@ class TestCheckFrontmatter:
     def test_empty_description(self) -> None:
         from wos.validators import check_frontmatter
 
-        doc = _make_doc(path="artifacts/research/topic.md", description="")
+        doc = _make_doc(path="docs/research/topic.md", description="")
         issues = check_frontmatter(doc)
         assert len(issues) == 1
         assert issues[0]["severity"] == "fail"
@@ -114,7 +114,7 @@ class TestCheckFrontmatter:
         from wos.validators import check_frontmatter
 
         doc = _make_doc(
-            path="context/api/auth.md",
+            path="docs/context/api/auth.md",
             related=[],
         )
         issues = check_frontmatter(doc)
@@ -127,7 +127,7 @@ class TestCheckFrontmatter:
         from wos.validators import check_frontmatter
 
         doc = _make_doc(
-            path="artifacts/research/topic.md",
+            path="docs/research/topic.md",
             related=[],
         )
         issues = check_frontmatter(doc)
@@ -142,7 +142,7 @@ class TestCheckContent:
         from wos.validators import check_content
 
         doc = _make_doc(
-            path="context/api/auth.md",
+            path="docs/context/api/auth.md",
             content="Word " * 200,
         )
         issues = check_content(doc)
@@ -152,7 +152,7 @@ class TestCheckContent:
         from wos.validators import check_content
 
         doc = _make_doc(
-            path="context/api/auth.md",
+            path="docs/context/api/auth.md",
             content="Word " * 900,
         )
         issues = check_content(doc)
@@ -164,7 +164,7 @@ class TestCheckContent:
         from wos.validators import check_content
 
         doc = _make_doc(
-            path="artifacts/research/topic.md",
+            path="docs/research/topic.md",
             content="Word " * 2000,
         )
         issues = check_content(doc)
@@ -174,7 +174,7 @@ class TestCheckContent:
         from wos.validators import check_content
 
         doc = _make_doc(
-            path="context/api/_index.md",
+            path="docs/context/api/_index.md",
             content="Word " * 2000,
         )
         issues = check_content(doc)
@@ -184,7 +184,7 @@ class TestCheckContent:
         from wos.validators import check_content
 
         doc = _make_doc(
-            path="context/api/auth.md",
+            path="docs/context/api/auth.md",
             content="Word " * 500,
         )
         issues = check_content(doc, max_words=400)
@@ -194,7 +194,7 @@ class TestCheckContent:
         from wos.validators import check_content
 
         doc = _make_doc(
-            path="context/api/auth.md",
+            path="docs/context/api/auth.md",
             content="Word " * 800,
         )
         issues = check_content(doc)
@@ -305,18 +305,18 @@ class TestCheckRelatedPaths:
         from wos.validators import check_related_paths
 
         # Create a file on disk
-        related_file = tmp_path / "context" / "api" / "auth.md"
+        related_file = tmp_path / "docs" / "context" / "api" / "auth.md"
         related_file.parent.mkdir(parents=True)
         related_file.write_text("# Auth\n")
 
-        doc = _make_doc(related=["context/api/auth.md"])
+        doc = _make_doc(related=["docs/context/api/auth.md"])
         issues = check_related_paths(doc, tmp_path)
         assert issues == []
 
     def test_missing_path_fail(self, tmp_path: Path) -> None:
         from wos.validators import check_related_paths
 
-        doc = _make_doc(related=["context/api/nonexistent.md"])
+        doc = _make_doc(related=["docs/context/api/nonexistent.md"])
         issues = check_related_paths(doc, tmp_path)
         assert len(issues) == 1
         assert issues[0]["severity"] == "fail"
@@ -436,7 +436,7 @@ class TestValidateFile:
     def test_valid_file(self, tmp_path: Path) -> None:
         from wos.validators import validate_file
 
-        md_file = tmp_path / "context" / "testing" / "unit-tests.md"
+        md_file = tmp_path / "docs" / "context" / "testing" / "unit-tests.md"
         md_file.parent.mkdir(parents=True)
         md_file.write_text(_md("Unit Tests", "Guide to unit tests"))
 
@@ -446,7 +446,7 @@ class TestValidateFile:
     def test_file_without_frontmatter(self, tmp_path: Path) -> None:
         from wos.validators import validate_file
 
-        md_file = tmp_path / "context" / "testing" / "bad.md"
+        md_file = tmp_path / "docs" / "context" / "testing" / "bad.md"
         md_file.parent.mkdir(parents=True)
         md_file.write_text("# No Frontmatter\n\nJust content.\n")
 
@@ -465,8 +465,8 @@ class TestValidateProject:
         from wos.index import generate_index
         from wos.validators import validate_project
 
-        # Set up context area
-        area = tmp_path / "context" / "testing"
+        # Set up context area under docs/
+        area = tmp_path / "docs" / "context" / "testing"
         area.mkdir(parents=True)
         topic = area / "unit-tests.md"
         topic.write_text(_md("Unit Tests", "Guide to unit tests"))
@@ -475,8 +475,9 @@ class TestValidateProject:
             generate_index(area, preamble="Testing area.")
         )
         # Create synced index with preamble for context root
-        (tmp_path / "context" / "_index.md").write_text(
-            generate_index(tmp_path / "context", preamble="All context.")
+        context_dir = tmp_path / "docs" / "context"
+        (context_dir / "_index.md").write_text(
+            generate_index(context_dir, preamble="All context.")
         )
 
         issues = validate_project(tmp_path, verify_urls=False)

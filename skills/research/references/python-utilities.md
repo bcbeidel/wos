@@ -14,7 +14,7 @@ uv run <plugin-scripts-dir>/audit.py <file> [--root DIR] [--no-urls]
 
 Example:
 ```bash
-uv run <plugin-scripts-dir>/audit.py artifacts/research/2026-02-25-my-research.md --root . --no-urls
+uv run <plugin-scripts-dir>/audit.py docs/research/2026-02-25-my-research.md --root . --no-urls
 ```
 
 Output on success:
@@ -27,12 +27,12 @@ Output on failure:
 1 fail, 0 warn across 1 files
 
 file                                     | sev  | issue
-artifacts/research/my-research.md        | fail | Research document has no sources
+docs/research/my-research.md             | fail | Research document has no sources
 ```
 
 ## Validate Entire Project
 
-Runs all checks across `context/` and `artifacts/`.
+Runs all checks across `docs/` subdirectories.
 
 ```bash
 uv run <plugin-scripts-dir>/audit.py [--root DIR] [--no-urls] [--json] [--fix] [--strict]
@@ -40,7 +40,7 @@ uv run <plugin-scripts-dir>/audit.py [--root DIR] [--no-urls] [--json] [--fix] [
 
 ## Regenerate Index Files
 
-Regenerate all `_index.md` files under `context/` and `artifacts/`.
+Regenerate all `_index.md` files under `docs/` subdirectories.
 
 ```bash
 uv run <plugin-scripts-dir>/reindex.py [--root DIR]

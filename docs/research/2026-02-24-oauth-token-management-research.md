@@ -40,7 +40,7 @@ sources:
   - https://auth0.com/docs/secure/tokens/token-best-practices
   - https://cloud.google.com/architecture/bps-for-mitigating-gcloud-oauth-tokens
 related:
-  - artifacts/plans/2026-02-22-simplification-design.md
+  - docs/plans/2026-02-22-simplification-design.md
 ---
 
 # OAuth Token Management Patterns for CLI Tools

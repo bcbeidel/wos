@@ -41,7 +41,7 @@ Version bump requires updating all three: `pyproject.toml`,
 9. **Separate reads from writes** — audit observes; fixes require explicit action
 10. **Bottom line up front** — key insights at top and bottom, detail in the middle
 
-Full descriptions: [Design Principles](artifacts/research/2026-02-22-design-principles.md)
+Full descriptions: [Design Principles](docs/research/2026-02-22-design-principles.md)
 
 ## Architecture
 
@@ -78,7 +78,7 @@ Optional frontmatter: `type` (semantic tag), `sources` (URLs), `related` (file p
 
 ### Navigation
 
-Each directory under `context/` and `artifacts/` has an auto-generated `_index.md`
+Each directory under `docs/` has an auto-generated `_index.md`
 listing files with descriptions from frontmatter. AGENTS.md contains a WOS-managed
 section (between `<!-- wos:begin -->` / `<!-- wos:end -->` markers) with navigation
 instructions, areas table, metadata format, and communication preferences.
@@ -116,14 +116,14 @@ Prefix: `/wos:` (e.g., `/wos:create`, `/wos:audit`). 8 skills:
 
 ## Reference
 
-- Architecture: [WOS Architecture Reference](artifacts/plans/2026-02-27-architecture-reference.md)
-- Design principles: [WOS Design Principles](artifacts/research/2026-02-22-design-principles.md)
-- Simplification history: [Simplification Design](artifacts/plans/2026-02-22-simplification-design.md)
+- Architecture: [WOS Architecture Reference](docs/plans/2026-02-27-architecture-reference.md)
+- Design principles: [WOS Design Principles](docs/research/2026-02-22-design-principles.md)
+- Simplification history: [Simplification Design](docs/plans/2026-02-22-simplification-design.md)
 
 ## Plans
 
 - Plans MUST be detailed lists of individual tasks
-- Plans MUST be stored as markdown in `/artifacts/plans`
+- Plans MUST be stored as markdown in `/docs/plans`
 - Plans MUST include checkboxes to indicate progress, marking things off as completed
 - Plans MUST indicate the branch, and pull-request associated with the work
 - Plans MUST be implemented on a branch, and merged only after human review of a pull-request

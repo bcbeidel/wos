@@ -3,7 +3,7 @@ name: Stdlib Migration and Validator Refactoring Design
 description: Design for issue #68 — stdlib-only migration, merged checks with warn/fail severity, preamble-preserving indexes, LLM-friendly output, /distill skill
 type: plan
 related:
-  - artifacts/plans/2026-02-22-simplification-design.md
+  - docs/plans/2026-02-22-simplification-design.md
 ---
 
 # Stdlib Migration & Validator Refactoring Design

@@ -3,7 +3,7 @@ name: Refine-Prompt Skill Implementation Plan
 description: Step-by-step implementation for /wos:refine-prompt skill with assessment rubric and technique registry
 type: plan
 related:
-  - artifacts/plans/2026-02-27-refine-prompt-design.md
+  - docs/plans/2026-02-27-refine-prompt-design.md
 ---
 
 # Refine-Prompt Skill Implementation Plan
@@ -462,7 +462,7 @@ If anything broke, fix and commit.
 ### Task 5: Update Plan Doc and Close Out
 
 **Files:**
-- Modify: `artifacts/plans/2026-02-27-refine-prompt-plan.md` (this file — mark tasks complete)
+- Modify: `docs/plans/2026-02-27-refine-prompt-plan.md` (this file — mark tasks complete)
 
 **Step 1: Mark all tasks complete in this plan**
 
@@ -471,6 +471,6 @@ Check off each task's checkbox.
 **Step 2: Commit**
 
 ```bash
-git add artifacts/plans/2026-02-27-refine-prompt-plan.md
+git add docs/plans/2026-02-27-refine-prompt-plan.md
 git commit -m "docs: mark refine-prompt plan tasks complete (#71)"
 ```

@@ -36,21 +36,19 @@ def main() -> None:
 
     root = Path(args.root).resolve()
 
-    # Check that at least one content directory exists
-    context_dir = root / "context"
-    artifacts_dir = root / "artifacts"
+    # Check that the docs/ directory exists with content subdirectories
+    docs_dir = root / "docs"
 
-    if not context_dir.is_dir() and not artifacts_dir.is_dir():
+    if not docs_dir.is_dir():
         print(
-            "No context/ or artifacts/ directory found "
-            f"under {root}",
+            f"No docs/ directory found under {root}",
             file=sys.stderr,
         )
         sys.exit(1)
 
     count = 0
 
-    for subdir in (context_dir, artifacts_dir):
+    for subdir in sorted(docs_dir.iterdir()):
         if not subdir.is_dir():
             continue
 

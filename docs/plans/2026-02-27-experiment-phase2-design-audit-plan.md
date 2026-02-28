@@ -3,8 +3,8 @@ name: Experiment Phase 2 — Design & Audit Guidance Plan
 description: Step-by-step implementation for expanding SKILL.md with Design and Audit phase guidance
 type: plan
 related:
-  - artifacts/plans/2026-02-27-experiment-skill-phase1-plan.md
-  - artifacts/plans/2026-02-25-experiment-framework-design.md
+  - docs/plans/2026-02-27-experiment-skill-phase1-plan.md
+  - docs/plans/2026-02-25-experiment-framework-design.md
 ---
 
 # Experiment Phase 2 — Design & Audit Guidance Implementation Plan

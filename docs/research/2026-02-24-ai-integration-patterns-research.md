@@ -30,7 +30,7 @@ sources:
   - https://cloud.google.com/blog/products/ai-machine-learning/learn-how-to-handle-429-resource-exhaustion-errors-in-your-llms
   - https://www.firecrawl.dev/blog/best-claude-code-plugins
 related:
-  - artifacts/plans/2026-02-22-simplification-design.md
+  - docs/plans/2026-02-22-simplification-design.md
 ---
 
 # Existing Google/Microsoft Integration Patterns in AI Tools

@@ -3,7 +3,7 @@ name: Research Skill Fixes Implementation Plan
 description: Step-by-step plan for fixing GitHub issues #52-55 (research skill)
 type: plan
 related:
-  - artifacts/plans/2026-02-25-research-skill-fixes-design.md
+  - docs/plans/2026-02-25-research-skill-fixes-design.md
 ---
 
 # Research Skill Fixes Implementation Plan
@@ -322,7 +322,7 @@ python3 scripts/validate.py <file> [--root DIR] [--no-urls]
 
 Example:
 ```bash
-python3 scripts/validate.py artifacts/research/2026-02-25-my-research.md --no-urls
+python3 scripts/validate.py docs/research/2026-02-25-my-research.md --no-urls
 ```
 
 Output on success:
@@ -332,7 +332,7 @@ All checks passed.
 
 Output on failure:
 ```
-[FAIL] artifacts/research/my-research.md: Research document has no sources
+[FAIL] docs/research/my-research.md: Research document has no sources
 ```
 
 ## Validate Entire Project
