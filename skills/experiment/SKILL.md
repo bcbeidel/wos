@@ -66,8 +66,8 @@ Show at each interaction:
 
 | Phase | Key Files | Guidance |
 |-------|-----------|----------|
-| design | `protocol/hypothesis.md`, `protocol/design.md` | Fill in research question, variables, conditions, sample size |
-| audit | `protocol/audit.md` | Complete the tier-appropriate checklist |
+| design | `protocol/hypothesis.md`, `protocol/design.md` | See [Phase: Design](#phase-design) below |
+| audit | `protocol/audit.md` | See [Phase: Audit](#phase-audit) below |
 | evaluation | `evaluation/criteria.md`, `evaluation/blinding-manifest.json` | Define metrics, rubrics, blinding setup |
 | execution | `data/raw/`, `protocol/prompts/` | Collect data, save raw results |
 | analysis | `results/analysis.md` | Run `python scripts/analyze.py`, interpret results |
@@ -261,6 +261,20 @@ Then check gates and advance:
 
     uv run <plugin-scripts-dir>/experiment_state.py --root . check-gates
     uv run <plugin-scripts-dir>/experiment_state.py --root . advance --phase audit
+
+## Common Deviations (Do Not)
+
+- **Do not skip the audit.** Even Pilot experiments need the 5-item sanity
+  check. Skipping it leads to "I forgot to control for X" after data
+  collection.
+- **Do not write hypothesis.md and design.md in one pass.** The conversation
+  flow asks questions iteratively. Dumping a pre-written protocol bypasses
+  the refinement that catches bad designs.
+- **Do not impose Confirmatory ceremony on Pilot experiments.** If the tier
+  is Pilot, the 5-item checklist is sufficient. Don't add power analysis
+  or pre-registration requirements.
+- **Do not advance without checking gates.** Always run `check-gates`
+  before `advance`. The gates verify artifacts exist on disk.
 
 ## Key Rules
 
