@@ -136,9 +136,14 @@ def check_source_urls(doc: Document) -> List[dict]:
     for result in results:
         if not result.reachable:
             if result.status in (403, 429):
+                msg = (
+                    f"URL returned {result.status}"
+                    f" (site may block automated checks):"
+                    f" {result.url}"
+                )
                 issues.append({
                     "file": doc.path,
-                    "issue": f"URL returned {result.status} (site may block automated checks): {result.url}",
+                    "issue": msg,
                     "severity": "warn",
                 })
             else:
@@ -337,7 +342,10 @@ def check_project_files(root: Path) -> List[dict]:
         if "@AGENTS.md" not in content:
             issues.append({
                 "file": "CLAUDE.md",
-                "issue": "CLAUDE.md doesn't reference @AGENTS.md. Navigation may not load.",
+                "issue": (
+                    "CLAUDE.md doesn't reference @AGENTS.md."
+                    " Navigation may not load."
+                ),
                 "severity": "warn",
             })
 
