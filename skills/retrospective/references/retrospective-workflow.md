@@ -25,16 +25,24 @@ Do NOT proceed until `gh auth status` succeeds.
 Summarize what happened in this session, then ask the user three questions
 (one at a time, not all at once):
 
-1. **What worked well?** — Which WOS skills or workflows felt smooth?
-   What saved you time or helped you think?
-2. **What was frustrating?** — Where did WOS get in the way, produce
-   poor results, or require workarounds?
-3. **What was missing?** — What did you wish WOS could do that it can't?
-   Any skills or features you wanted but didn't find?
+1. **What worked?** — "Think about a specific moment in this session
+   where WOS helped you. What were you doing, and what happened?"
+2. **What was frustrating?** — "Was there a point where you got stuck
+   or had to work around WOS? Walk me through what happened."
+3. **What was missing?** — "Was there something you wished WOS could
+   do but it couldn't? What were you trying to accomplish?"
 
-For each answer, ask one brief follow-up if the response is vague
-(e.g., "Can you give a specific example?"). Don't over-interrogate —
-if the user gives a clear answer, move on.
+**Adaptive follow-up:** If the user's response is vague or incomplete,
+ask one targeted follow-up before moving on:
+
+- Vague ("it was fine") → "Can you point to the specific moment?"
+- Abstract ("the workflow was slow") → "What exactly did that look
+  like? Which step took longest?"
+- Missing why ("I had to copy-paste") → "Why do you think that
+  happened? What would have helped?"
+
+Cap at 1 follow-up probe per question. If the response is already
+specific and grounded, move on.
 
 If the user provided a focus area in the invocation, tailor the questions
 to that area instead of using the generic three.
@@ -54,7 +62,49 @@ python3 --version
 uname -s -r -m
 ```
 
-## Phase 4: Draft & Preview
+## Phase 4: Check for Duplicates
+
+Before drafting, search for related existing issues:
+
+```bash
+gh issue list --repo bcbeidel/wos --state all --search "KEYWORDS_HERE" --limit 5
+```
+
+Use 2-3 keywords extracted from the user's observations. Vary terms
+(e.g., "research" vs. "workflow") to catch near-duplicates.
+
+If related issues are found, show them to the user. For closed issues,
+note the resolution (fixed, won't-fix, duplicate) so the user has
+context. Then offer:
+
+1. **Comment on existing** — add new context to the existing issue
+2. **File new with cross-reference** — proceed, mentioning related
+   issues in the body
+3. **Abandon** — the issue is already tracked
+
+If no related issues are found, proceed to synthesis.
+
+## Phase 5: Synthesize Action Items
+
+Review all observations from Phase 2 and extract 1-3 discrete action
+items. For each, use the **Observation-Impact-Request** structure:
+
+- **Observation:** What specifically happened (grounded in the session)
+- **Impact:** Why it matters (time lost, quality affected, workflow blocked)
+- **Request:** A concrete change or investigation
+
+Present the action items to the user and ask them to assign a severity
+to each:
+
+- `blocking` — prevents effective use, no workaround
+- `friction` — slows down workflow, workaround exists
+- `nit` — minor polish, low urgency
+
+If the user edits or removes items, apply their changes. If no
+actionable observations emerged, skip this phase and note "No action
+items" in the draft.
+
+## Phase 6: Draft & Preview
 
 Compose a GitHub issue using this template:
 
@@ -74,6 +124,15 @@ Compose a GitHub issue using this template:
 ### What Was Missing
 
 [Bullet points from user's response to question 3]
+
+### Action Items
+
+[For each action item from Phase 5, format as:]
+
+- **`[severity]`** *Observation:* [what happened] → *Impact:* [why it
+  matters] → *Request:* [what to change]
+
+[If no action items, write "No actionable items identified."]
 
 ### Session Context
 
@@ -98,7 +157,7 @@ submit. Want to change anything before I file it?"
 
 Wait for explicit approval.
 
-## Phase 5: Submit
+## Phase 7: Submit
 
 Only after explicit approval:
 
