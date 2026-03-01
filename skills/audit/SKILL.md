@@ -7,6 +7,8 @@ description: >
   "run health check", or "what needs attention".
 argument-hint: "[check|audit|review|coverage|freshness]"
 user-invocable: true
+references:
+  - ../_shared/references/preflight.md
 ---
 
 # Audit Skill

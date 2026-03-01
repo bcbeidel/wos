@@ -1,7 +1,10 @@
 ---
 name: create
 description: Create project context, areas, or documents
+argument-hint: "[initialize|add area|create document]"
 user-invocable: true
+references:
+  - ../_shared/references/preflight.md
 ---
 
 # Create
