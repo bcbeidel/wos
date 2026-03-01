@@ -7,6 +7,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-02-28
+
+### Added
+
+- **`/wos:retrospective` skill.** Session review and feedback workflow with
+  five phases: prerequisites, reflect, gather context, draft, and submit via
+  GitHub Issues.
+  ([#90](https://github.com/bcbeidel/wos/issues/90),
+  [#101](https://github.com/bcbeidel/wos/pull/101))
+- **Auto-derive AGENTS.md areas table.** New `discover_areas()` function in
+  `agents_md.py` scans `docs/context/` subdirectories and extracts area names
+  from `_index.md` preambles. `reindex.py` now auto-updates the AGENTS.md
+  areas table on every run, enforcing Principle 3 (single source of truth).
+  ([#97](https://github.com/bcbeidel/wos/issues/97),
+  [#107](https://github.com/bcbeidel/wos/pull/107))
+- **Interactive URL cleanup flow.** `/wos:audit` skill now offers multi-modal
+  verification options for 403/429 URL warnings: browser check, screenshot,
+  PDF, pasted content, or mark as dead.
+  ([#92](https://github.com/bcbeidel/wos/issues/92),
+  [#103](https://github.com/bcbeidel/wos/pull/103))
+- **Pipeline quality improvements.** Three new validation checks: DRAFT marker
+  detection in research docs (`warn`), AGENTS.md/CLAUDE.md initialization
+  checks (`warn`), and 403/429 URL responses downgraded from `fail` to `warn`.
+  Distill skill now encourages explicit sibling cross-references in `related:`
+  fields.
+  ([#91](https://github.com/bcbeidel/wos/issues/91),
+  [#102](https://github.com/bcbeidel/wos/pull/102))
+
+### Fixed
+
+- **Refine-prompt skill no longer auto-executes input.** Added explicit guards
+  preventing Claude from treating input prompts as instructions to execute.
+  ([#89](https://github.com/bcbeidel/wos/issues/89),
+  [#100](https://github.com/bcbeidel/wos/pull/100))
+- **CI workflow aligned with documented patterns.** Replaced `pip` with `uv`
+  in GitHub Actions, added `astral-sh/setup-uv@v4`, and fixed `--extra dev`
+  for optional dependencies.
+  ([#93](https://github.com/bcbeidel/wos/issues/93),
+  [#104](https://github.com/bcbeidel/wos/pull/104))
+- **Description unified across config files.** Standardized project description
+  in `plugin.json` and `pyproject.toml` to match `marketplace.json`.
+  ([#94](https://github.com/bcbeidel/wos/issues/94),
+  [#105](https://github.com/bcbeidel/wos/pull/105))
+- **All scripts use argparse.** Converted `check_url.py`, `update_preferences.py`,
+  and `get_version.py` from manual `sys.argv` to `argparse` for consistent CLI
+  patterns.
+  ([#95](https://github.com/bcbeidel/wos/issues/95),
+  [#106](https://github.com/bcbeidel/wos/pull/106))
+- **Code hygiene cleanup.** Simplified no-op type assignment in `document.py`
+  and promoted `_protocol_from_json()` to public `protocol_from_json()`.
+  ([#98](https://github.com/bcbeidel/wos/issues/98),
+  [#108](https://github.com/bcbeidel/wos/pull/108))
+- **Skill frontmatter normalized.** Added missing `argument-hint` to create
+  skill and `references:` preflight declarations to all 4 skills that use it.
+  ([#99](https://github.com/bcbeidel/wos/issues/99),
+  [#109](https://github.com/bcbeidel/wos/pull/109))
+- **`_extract_preamble()` handles empty directories.** Fixed preamble extraction
+  to treat end-of-content as a valid boundary when no table line exists.
+  ([#97](https://github.com/bcbeidel/wos/issues/97))
+
 ## [0.7.0] - 2026-02-28
 
 ### Added
@@ -546,6 +606,7 @@ implemented with 229 tests passing.
 - Build roadmap with session protocol and dependency graph
 - 18 design principles across four layers
 
+[0.8.0]: https://github.com/bcbeidel/wos/releases/tag/v0.8.0
 [0.7.0]: https://github.com/bcbeidel/wos/releases/tag/v0.7.0
 [0.6.0]: https://github.com/bcbeidel/wos/releases/tag/v0.6.0
 [0.5.0]: https://github.com/bcbeidel/wos/releases/tag/v0.5.0
