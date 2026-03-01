@@ -64,10 +64,8 @@ def parse_document(path: str, text: str) -> Document:
     name: str = str(fm["name"]) if fm["name"] is not None else ""
     description: str = str(fm["description"]) if fm["description"] is not None else ""
     doc_type: Optional[str] = fm.get("type")
-    if isinstance(doc_type, str):
-        doc_type = doc_type
-    else:
-        doc_type = str(doc_type) if doc_type is not None else None
+    if not isinstance(doc_type, str) and doc_type is not None:
+        doc_type = str(doc_type)
     sources: List[str] = fm.get("sources") or []
     related: List[str] = fm.get("related") or []
 
