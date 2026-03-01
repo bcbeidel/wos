@@ -29,6 +29,18 @@ Ask the user what happened. Collect:
 - **Steps to reproduce** (for bugs) — how to trigger it
 - **Error messages** — any error output
 
+**Adaptive follow-up:** If the user's initial response is vague or
+incomplete, ask one targeted follow-up before moving on:
+
+- Vague description ("it broke") → "Can you walk me through what you
+  did step by step?"
+- Missing expected behavior → "What did you expect to happen instead?"
+- No error output mentioned → "Did you see any error messages or
+  unexpected output?"
+
+Cap at 2 follow-up probes total. If the response is already specific
+and complete, proceed to classification.
+
 Auto-gather (do not ask the user for these):
 
 ```bash
@@ -53,7 +65,27 @@ Based on the user's description, classify as one of:
 If ambiguous, ask: "Should I file this as a **bug report** or a
 **feature request**?"
 
-## Phase 3: Draft & Preview
+## Phase 3: Check for Duplicates
+
+Before drafting, search for related existing issues:
+
+```bash
+gh issue list --repo bcbeidel/wos --state open --search "KEYWORDS_HERE" --limit 5
+```
+
+Use 2-3 keywords extracted from the user's description. Vary terms
+(e.g., "crash" vs. "error") to catch near-duplicates.
+
+If related issues are found, show them to the user and offer:
+
+1. **Comment on existing** — add new context to the existing issue
+2. **File new with cross-reference** — proceed, mentioning related
+   issues in the body
+3. **Abandon** — the issue is already tracked
+
+If no related issues are found, proceed to drafting.
+
+## Phase 4: Draft & Preview
 
 Use the appropriate template from `references/issue-templates.md`.
 
@@ -61,6 +93,11 @@ Fill in:
 - **Title**: Concise summary (under 70 characters)
 - **Body**: From the template, with gathered context
 - **Labels**: From classification above
+
+**Title quality check:** Before showing the preview, verify the title
+identifies the component, the behavior, and the context.
+"Audit --fix silently skips unreachable URLs" is actionable.
+"Audit broken" is not. Rewrite if needed.
 
 **Framing rule:** Write issues from the WOS tool author's perspective.
 Use "a WOS user" instead of "I" or "my vault". Replace vault-specific
@@ -76,7 +113,7 @@ edit any part before submitting."
 Wait for explicit approval. If the user requests changes, apply them
 and preview again.
 
-## Phase 4: Submit
+## Phase 5: Submit
 
 Only after explicit approval:
 

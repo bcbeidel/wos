@@ -6,6 +6,8 @@ with gathered context.
 ## Bug Report
 
 ```markdown
+> **One issue per report.** If you have multiple problems, file separate issues.
+
 ## Description
 
 [What happened — clear, concise description of the bug]
@@ -47,6 +49,12 @@ where behavior changes.
 
 - **Scope:** What's included in this proposal
 - **Non-goals:** What's explicitly excluded to prevent scope creep]
+
+## Acceptance Criteria
+
+This issue is resolved when:
+
+- [specific observable condition]
 
 ## Environment
 
