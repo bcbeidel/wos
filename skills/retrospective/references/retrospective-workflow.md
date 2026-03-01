@@ -41,8 +41,8 @@ ask one targeted follow-up before moving on:
 - Missing why ("I had to copy-paste") → "Why do you think that
   happened? What would have helped?"
 
-Cap at 2 follow-up probes total across all three questions. If the
-response is already specific and grounded, move on.
+Cap at 1 follow-up probe per question. If the response is already
+specific and grounded, move on.
 
 If the user provided a focus area in the invocation, tailor the questions
 to that area instead of using the generic three.
@@ -67,13 +67,15 @@ uname -s -r -m
 Before drafting, search for related existing issues:
 
 ```bash
-gh issue list --repo bcbeidel/wos --state open --search "KEYWORDS_HERE" --limit 5
+gh issue list --repo bcbeidel/wos --state all --search "KEYWORDS_HERE" --limit 5
 ```
 
 Use 2-3 keywords extracted from the user's observations. Vary terms
 (e.g., "research" vs. "workflow") to catch near-duplicates.
 
-If related issues are found, show them to the user and offer:
+If related issues are found, show them to the user. For closed issues,
+note the resolution (fixed, won't-fix, duplicate) so the user has
+context. Then offer:
 
 1. **Comment on existing** — add new context to the existing issue
 2. **File new with cross-reference** — proceed, mentioning related
