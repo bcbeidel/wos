@@ -9,6 +9,8 @@ description: >
 argument-hint: "[action: status, init, or phase name]"
 user-invocable: true
 compatibility: "Requires Python 3 (stdlib only), experiment-template repo"
+references:
+  - ../_shared/references/preflight.md
 ---
 
 # Experiment Skill
