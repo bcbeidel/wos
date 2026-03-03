@@ -17,6 +17,7 @@ references:
   - references/challenge-phase.md
   - references/research-modes.md
   - references/python-utilities.md
+  - references/claim-verification.md
 ---
 
 # Research Skill
@@ -132,3 +133,6 @@ for that.
 - **Confidence levels on every finding.** Annotate each finding as HIGH,
   MODERATE, or LOW based on source convergence and tier. See
   `references/research-workflow.md` Phase 5.
+- **Verify claims before finalizing.** Every quote, statistic, attribution,
+  and superlative must be registered and verified. See
+  `references/claim-verification.md`.
