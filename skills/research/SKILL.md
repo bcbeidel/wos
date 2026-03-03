@@ -49,7 +49,7 @@ A **deep dive** (comprehensive), **options comparison**, or
 ## Workflow
 
 All modes follow the same workflow with varying SIFT intensity.
-See `references/research-workflow.md` for the full 6-phase process.
+See `references/research-workflow.md` for the full 8-phase process.
 
 ## Phase Gates (Mandatory)
 
@@ -61,7 +61,9 @@ Each phase ends with a checkpoint. Do not proceed until the gate is met.
 | 2. Gather -> 3. Verify | DRAFT file exists on disk with `<!-- DRAFT -->` marker | Read the file |
 | 3. Verify -> 4. Challenge | Sources table has Tier + Status columns | Read the file |
 | 4. Challenge -> 5. Synthesize | `## Challenge` section exists on disk | Read the file |
-| 5. Synthesize -> 6. Finalize | `## Findings` section exists on disk | Read the file |
+| 5. Synthesize -> 5.5a. Self-Verify | `## Findings` section exists on disk | Read the file |
+| 5.5a. Self-Verify -> 5.5b. Citation Re-Verify | `## Claims` table populated, CoVe complete | Read the file |
+| 5.5b. Citation Re-Verify -> 6. Finalize | No `unverified` claims in Claims Table | Read the file |
 | 6. Finalize -> Done | `<!-- DRAFT -->` removed, audit passes | Run audit |
 
 STOP at each gate. If the condition is not met, complete it before proceeding.
