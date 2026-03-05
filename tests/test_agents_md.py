@@ -157,6 +157,40 @@ class TestRenderLostInTheMiddleCue:
         assert "Documents put key insights first and last" in result
 
 
+class TestRenderDocumentStandards:
+    def test_renders_document_standards_section(self) -> None:
+        from wos.agents_md import render_wos_section
+
+        result = render_wos_section(areas=[])
+        assert "### Document Standards" in result
+
+    def test_renders_structure_guidance(self) -> None:
+        from wos.agents_md import render_wos_section
+
+        result = render_wos_section(areas=[])
+        assert "Key insights first" in result
+        assert "detail in the middle" in result
+        assert "takeaways at the bottom" in result
+
+    def test_renders_word_count_guidance(self) -> None:
+        from wos.agents_md import render_wos_section
+
+        result = render_wos_section(areas=[])
+        assert "200-800 words" in result
+
+    def test_renders_linking_guidance(self) -> None:
+        from wos.agents_md import render_wos_section
+
+        result = render_wos_section(areas=[])
+        assert "bidirectional" in result.lower()
+
+    def test_renders_one_concept_per_file(self) -> None:
+        from wos.agents_md import render_wos_section
+
+        result = render_wos_section(areas=[])
+        assert "one concept per file" in result.lower()
+
+
 class TestRenderMarkers:
     def test_output_wrapped_in_markers(self) -> None:
         from wos.agents_md import BEGIN_MARKER, END_MARKER, render_wos_section

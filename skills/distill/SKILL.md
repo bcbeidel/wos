@@ -65,12 +65,8 @@ For each approved finding:
    `related:`, not just the source research document. When distilling a batch,
    include cross-references between thematically adjacent files.
 
-2. Follow the lost-in-the-middle convention:
-   - **Top:** Key insight and actionable guidance
-   - **Middle:** Detail, examples, context
-   - **Bottom:** Takeaways or quick-reference
-
-3. Report word count after writing. If >800 words, suggest splitting.
+2. Follow the document standards in AGENTS.md for structure, frontmatter,
+   and word count guidance.
 
 ### 5. Integrate
 

@@ -103,16 +103,9 @@ related:
 Write the document directly, then run reindex and validate
 (see `references/python-utilities.md`).
 
-## Document Structure Convention
+## Document Standards
 
-**LLMs lose attention in the middle of long documents.** Structure the research
-document so that:
-- **Top:** Summary with key findings and actionable insights
-- **Middle:** Detailed analysis, evidence, source evaluation, counter-evidence
-- **Bottom:** Key takeaways, limitations, and suggested follow-up questions
-
-The first and last sections are what an agent is most likely to retain. Write
-for that.
+Follow the document standards in AGENTS.md for structure and frontmatter.
 
 ## Key Rules
 
