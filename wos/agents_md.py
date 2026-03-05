@@ -111,6 +111,28 @@ def render_wos_section(
     lines.append("---")
     lines.append("```")
 
+    # ── Document Standards ────────────────────────────────────────
+    lines.append("")
+    lines.append("### Document Standards")
+    lines.append("")
+    lines.append(
+        "**Structure:** Key insights first, detailed explanation "
+        "in the middle, takeaways at the bottom."
+    )
+    lines.append(
+        "LLMs lose attention mid-document — first and last sections "
+        "are what agents retain."
+    )
+    lines.append("")
+    lines.append("**Conventions:**")
+    lines.append("- Context files target 200-800 words. Over 800, consider splitting.")
+    lines.append(
+        "- One concept per file. Multiple distinct topics should be separate files."
+    )
+    lines.append(
+        "- Link bidirectionally — if A references B in `related`, B should reference A."
+    )
+
     # ── Preferences ──────────────────────────────────────────────
     if preferences is not None and len(preferences) > 0:
         lines.append("")
