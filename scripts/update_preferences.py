@@ -3,13 +3,13 @@
 # requires-python = ">=3.9"
 # dependencies = []
 # ///
-"""Update communication preferences in CLAUDE.md.
+"""Update communication preferences in AGENTS.md.
 
 Usage:
-    uv run scripts/update_preferences.py <file> key=value [key=value ...]
+    uv run scripts/update_preferences.py --root . key=value [key=value ...]
 
 Example:
-    uv run scripts/update_preferences.py CLAUDE.md directness=blunt verbosity=terse
+    uv run scripts/update_preferences.py --root . directness=blunt verbosity=terse
 """
 from __future__ import annotations
 
@@ -25,11 +25,12 @@ if str(_plugin_root) not in sys.path:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Update communication preferences in a target file.",
+        description="Update communication preferences in AGENTS.md.",
     )
     parser.add_argument(
-        "file",
-        help="Target file to update (e.g., CLAUDE.md)",
+        "--root",
+        default=".",
+        help="Project root directory (default: current directory)",
     )
     parser.add_argument(
         "preferences",
@@ -39,7 +40,10 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    from wos.preferences import update_preferences
+    from wos.agents_md import discover_areas, update_agents_md
+    from wos.preferences import render_preferences
+
+    root = Path(args.root).resolve()
 
     prefs = {}
     for arg in args.preferences:
@@ -48,8 +52,18 @@ def main() -> None:
         key, value = arg.split("=", 1)
         prefs[key] = value
 
-    update_preferences(args.file, prefs)
-    print(f"Updated preferences in {args.file}")
+    rendered = render_preferences(prefs)
+    areas = discover_areas(root)
+
+    agents_path = root / "AGENTS.md"
+    if agents_path.is_file():
+        content = agents_path.read_text(encoding="utf-8")
+    else:
+        content = "# AGENTS.md\n"
+
+    updated = update_agents_md(content, areas, preferences=rendered)
+    agents_path.write_text(updated, encoding="utf-8")
+    print(f"Updated preferences in {agents_path}")
 
 
 if __name__ == "__main__":
