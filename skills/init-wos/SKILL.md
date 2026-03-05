@@ -1,5 +1,5 @@
 ---
-name: init-wos
+name: wos:init
 description: >
   Initialize or update WOS project context. Use when starting a new project
   with WOS, or re-run to verify and repair an existing setup. Idempotent —
