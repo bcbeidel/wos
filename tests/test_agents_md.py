@@ -191,6 +191,40 @@ class TestRenderDocumentStandards:
         assert "one concept per file" in result.lower()
 
 
+class TestExtractPreferences:
+    def test_extracts_preferences_from_wos_section(self) -> None:
+        from wos.agents_md import extract_preferences, render_wos_section
+
+        prefs = ["**Directness:** Be direct.", "**Tone:** Keep it casual."]
+        content = f"# AGENTS.md\n\n{render_wos_section(areas=[], preferences=prefs)}"
+        result = extract_preferences(content)
+        assert result == prefs
+
+    def test_returns_empty_when_no_markers(self) -> None:
+        from wos.agents_md import extract_preferences
+
+        result = extract_preferences("# AGENTS.md\n\nNo WOS section here.\n")
+        assert result == []
+
+    def test_returns_empty_when_no_preferences_section(self) -> None:
+        from wos.agents_md import extract_preferences, render_wos_section
+
+        content = render_wos_section(areas=[], preferences=None)
+        result = extract_preferences(content)
+        assert result == []
+
+    def test_preserves_preference_content_exactly(self) -> None:
+        from wos.agents_md import extract_preferences, render_wos_section
+
+        prefs = [
+            "**Directness:** Be direct. State problems and disagreements "
+            "plainly without hedging or softening."
+        ]
+        content = render_wos_section(areas=[], preferences=prefs)
+        result = extract_preferences(content)
+        assert result == prefs
+
+
 class TestRenderMarkers:
     def test_output_wrapped_in_markers(self) -> None:
         from wos.agents_md import BEGIN_MARKER, END_MARKER, render_wos_section

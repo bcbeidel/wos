@@ -144,6 +144,45 @@ def render_wos_section(
     return "\n".join(lines) + "\n"
 
 
+# ── Extract ─────────────────────────────────────────────────────
+
+
+def extract_preferences(content: str) -> List[str]:
+    """Extract preference strings from an AGENTS.md WOS section.
+
+    Parses the ``### Preferences`` subsection between WOS markers and
+    returns the list of preference strings (without ``- `` bullet prefix).
+    Used by reindex and update_preferences to preserve existing preferences.
+
+    Args:
+        content: Full AGENTS.md file content.
+
+    Returns:
+        List of preference strings, or empty list if none found.
+    """
+    begin_idx = content.find(BEGIN_MARKER)
+    end_idx = content.find(END_MARKER)
+    if begin_idx == -1 or end_idx == -1:
+        return []
+
+    wos_section = content[begin_idx:end_idx]
+    lines = wos_section.split("\n")
+
+    in_preferences = False
+    prefs: List[str] = []
+    for line in lines:
+        if line.strip() == "### Preferences":
+            in_preferences = True
+            continue
+        if in_preferences:
+            if line.startswith("### ") or line.startswith("<!--"):
+                break
+            if line.startswith("- "):
+                prefs.append(line[2:])
+
+    return prefs
+
+
 # ── Update ───────────────────────────────────────────────────────
 
 
