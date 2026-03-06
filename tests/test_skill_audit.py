@@ -235,3 +235,92 @@ class TestParseSkillMeta:
         meta = parse_skill_meta(text)
         assert meta["name"] is None
         assert meta["description"] is None
+
+
+class TestCheckSkillMeta:
+    def test_valid_skill_no_issues(self, tmp_path: Path) -> None:
+        from wos.skill_audit import check_skill_meta
+        _create_skill(
+            tmp_path, "good-skill",
+            "---\nname: good-skill\n"
+            "description: Performs good actions. Use when the user asks for good things.\n"
+            "---\n# Good Skill\n\n- Do good\n",
+        )
+        issues = check_skill_meta(tmp_path / "good-skill")
+        assert len(issues) == 0
+
+    def test_name_uppercase_fails(self, tmp_path: Path) -> None:
+        from wos.skill_audit import check_skill_meta
+        _create_skill(
+            tmp_path, "BadName",
+            "---\nname: BadName\ndescription: Valid description here.\n---\n# X\n",
+        )
+        issues = check_skill_meta(tmp_path / "BadName")
+        assert any("lowercase" in i["issue"] for i in issues)
+        assert any(i["severity"] == "fail" for i in issues)
+
+    def test_name_too_long_fails(self, tmp_path: Path) -> None:
+        from wos.skill_audit import check_skill_meta
+        long_name = "a" * 65
+        _create_skill(
+            tmp_path, long_name,
+            f"---\nname: {long_name}\ndescription: Valid.\n---\n# X\n",
+        )
+        issues = check_skill_meta(tmp_path / long_name)
+        assert any("64 characters" in i["issue"] for i in issues)
+
+    def test_name_reserved_word_fails(self, tmp_path: Path) -> None:
+        from wos.skill_audit import check_skill_meta
+        _create_skill(
+            tmp_path, "claude-helper",
+            "---\nname: claude-helper\ndescription: Valid.\n---\n# X\n",
+        )
+        issues = check_skill_meta(tmp_path / "claude-helper")
+        assert any("reserved" in i["issue"] for i in issues)
+
+    def test_description_too_long_warns(self, tmp_path: Path) -> None:
+        from wos.skill_audit import check_skill_meta
+        long_desc = "x " * 600
+        _create_skill(
+            tmp_path, "verbose",
+            f"---\nname: verbose\ndescription: {long_desc}\n---\n# X\n",
+        )
+        issues = check_skill_meta(tmp_path / "verbose")
+        assert any("1024" in i["issue"] for i in issues)
+        assert any(i["severity"] == "warn" for i in issues)
+
+    def test_description_xml_tags_warns(self, tmp_path: Path) -> None:
+        from wos.skill_audit import check_skill_meta
+        _create_skill(
+            tmp_path, "xml-desc",
+            "---\nname: xml-desc\ndescription: Use <b>bold</b> text.\n---\n# X\n",
+        )
+        issues = check_skill_meta(tmp_path / "xml-desc")
+        assert any("XML" in i["issue"] for i in issues)
+
+    def test_description_second_person_warns(self, tmp_path: Path) -> None:
+        from wos.skill_audit import check_skill_meta
+        _create_skill(
+            tmp_path, "voice",
+            "---\nname: voice\n"
+            "description: You can use this to process files.\n"
+            "---\n# X\n",
+        )
+        issues = check_skill_meta(tmp_path / "voice")
+        assert any("third person" in i["issue"].lower() for i in issues)
+
+    def test_raw_line_count_over_500_warns(self, tmp_path: Path) -> None:
+        from wos.skill_audit import check_skill_meta
+        lines = "\n".join(f"line {i}" for i in range(510))
+        _create_skill(
+            tmp_path, "long-skill",
+            f"---\nname: long-skill\ndescription: Valid skill.\n---\n{lines}\n",
+        )
+        issues = check_skill_meta(tmp_path / "long-skill")
+        assert any("500" in i["issue"] for i in issues)
+
+    def test_no_skill_md_returns_empty(self, tmp_path: Path) -> None:
+        from wos.skill_audit import check_skill_meta
+        (tmp_path / "empty-dir").mkdir()
+        issues = check_skill_meta(tmp_path / "empty-dir")
+        assert issues == []
