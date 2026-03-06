@@ -78,7 +78,10 @@ class TestCountInstructionLines:
     def test_counts_table_data_rows(self) -> None:
         from wos.skill_audit import count_instruction_lines
 
-        text = "| Name | Value |\n|------|-------|\n| foo  | bar   |\n| baz  | qux   |\n"
+        text = (
+            "| Name | Value |\n|------|-------|\n"
+            "| foo  | bar   |\n| baz  | qux   |\n"
+        )
         assert count_instruction_lines(text) == 3
 
     def test_empty_text(self) -> None:
@@ -170,5 +173,8 @@ class TestCheckSkillSizes:
         summaries, _ = check_skill_sizes(tmp_path)
         assert len(summaries) == 1
         summary = summaries[0]
-        expected_keys = {"name", "skill_lines", "ref_lines", "total_lines", "words", "files"}
+        expected_keys = {
+            "name", "skill_lines", "ref_lines",
+            "total_lines", "words", "files",
+        }
         assert set(summary.keys()) == expected_keys

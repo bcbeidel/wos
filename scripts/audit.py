@@ -101,9 +101,19 @@ def main() -> None:
     # Single-file or project mode
     if args.file:
         file_path = Path(args.file).resolve()
-        issues = validate_file(file_path, root, verify_urls=not args.no_urls)
+        issues = validate_file(
+            file_path, root,
+            verify_urls=not args.no_urls,
+            context_max_words=args.context_max_words,
+            context_min_words=args.context_min_words,
+        )
     else:
-        issues = validate_project(root, verify_urls=not args.no_urls)
+        issues = validate_project(
+            root,
+            verify_urls=not args.no_urls,
+            context_max_words=args.context_max_words,
+            context_min_words=args.context_min_words,
+        )
 
     # --fix: regenerate _index.md files that are out of sync or missing
     if args.fix:
