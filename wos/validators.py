@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import List
 
 from wos.document import Document, parse_document
-from wos.index import _extract_preamble, check_index_sync
+from wos.index import check_index_sync, extract_preamble
 from wos.url_checker import check_urls
 
 # ── Individual checks ──────────────────────────────────────────
@@ -228,7 +228,7 @@ def check_all_indexes(directory: Path) -> List[dict]:
 
     # WARN: index exists but has no preamble (area description)
     index_path = directory / "_index.md"
-    if index_path.is_file() and _extract_preamble(index_path) is None:
+    if index_path.is_file() and extract_preamble(index_path) is None:
         issues.append({
             "file": str(index_path),
             "issue": "Index has no area description (preamble)",

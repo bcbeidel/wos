@@ -32,7 +32,7 @@ def discover_areas(root: Path) -> List[Dict[str, str]]:
     Returns:
         Sorted list of dicts with 'name' and 'path' keys.
     """
-    from wos.index import _extract_preamble
+    from wos.index import extract_preamble
 
     context_dir = root / "docs" / "context"
     if not context_dir.is_dir():
@@ -43,7 +43,7 @@ def discover_areas(root: Path) -> List[Dict[str, str]]:
         if not entry.is_dir():
             continue
         index_path = entry / "_index.md"
-        preamble = _extract_preamble(index_path)
+        preamble = extract_preamble(index_path)
         name = preamble if preamble else entry.name
         rel_path = str(entry.relative_to(root))
         areas.append({"name": name, "path": rel_path})

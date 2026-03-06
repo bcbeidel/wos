@@ -77,7 +77,7 @@ def main() -> None:
     args = parser.parse_args()
 
     # Deferred imports — keeps --help fast
-    from wos.index import generate_index
+    from wos.index import extract_preamble, generate_index
     from wos.validators import validate_file, validate_project
 
     root = Path(args.root).resolve()
@@ -102,7 +102,8 @@ def main() -> None:
             ):
                 idx_path = Path(file_path_str)
                 directory = idx_path.parent
-                content = generate_index(directory)
+                preamble = extract_preamble(idx_path)
+                content = generate_index(directory, preamble=preamble)
                 idx_path.write_text(content, encoding="utf-8")
                 fixed.append(file_path_str)
                 print(
