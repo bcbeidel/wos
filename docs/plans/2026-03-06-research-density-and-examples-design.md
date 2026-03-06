@@ -34,16 +34,17 @@ Add one `<example>` block to each of the 16 consider command files:
 
 ### #124 — Research Skill Instruction Density Reduction
 
-Reduce instruction volume while preserving behavioral intent:
+Make references small, discrete, and MECE while preserving behavioral intent:
 
-- Merge files where content naturally belongs together:
-  - `source-evaluation.md` + `source-verification.md` → unified source handling
-  - `python-utilities.md` content folded into `research-workflow.md`
-- Deduplicate overlapping content between `claim-verification.md` and
-  `research-workflow.md` Phase 5.5
+- Make each reference file own one discrete concern — no duplicated procedures
+- Deduplicate overlapping reasoning (claim-verification procedures, SIFT prose,
+  question patterns) while keeping reference data intact
+- Protect all deterministic tool invocations (`audit.py`, `reindex.py`,
+  `check_url.py`) — these are enforcement anchors, never trim candidates
+- Audit SKILL.md against instructional design best practices (primacy, recency,
+  lost-in-the-middle)
 - For every edit, apply: **"would the model do the wrong thing without this?"**
 - Word count reduction is a measurement signal, not a target
-- File count may change as a side effect, not a goal
 
 ## Sequencing
 
@@ -74,3 +75,41 @@ Reduce instruction volume while preserving behavioral intent:
 - Expertise reversal: examples help novel tasks, can hurt well-understood ones
 - Source: `notes/docs/research/2026-03-04-instructional-design.md`,
   `notes/docs/context/instructional-design/verification-and-worked-examples.md`
+
+## Results
+
+### #126 — Consider Command Examples
+
+All 16 consider models now have concrete `<example>` blocks. Each example
+matches the model's natural sweet spot (e.g., `5-whys` → CI debugging,
+`eisenhower-matrix` → sprint priorities, `inversion` → platform launch).
+16 files changed, 416 lines added.
+
+### #124 — Research Skill Density Reduction
+
+**Approach evolved during planning:** instead of merging files to reduce count,
+we focused on making references MECE (mutually exclusive, collectively
+exhaustive), trimming duplicated reasoning, and protecting deterministic tool
+invocations.
+
+| File | Before | After | Delta | What changed |
+|------|--------|-------|-------|-------------|
+| SKILL.md | 806 | 804 | -2 | Folded Document Standards into Output Format; fixed counter-evidence modes |
+| claim-verification.md | 733 | 474 | -259 | Removed duplicated Phase 5.5 procedures (workflow owns these) |
+| research-workflow.md | 2,052 | 1,912 | -140 | Trimmed SIFT prose duplication, HTML comment rationale |
+| research-modes.md | 565 | 490 | -75 | Removed question patterns (SKILL.md owns these) |
+| source-verification.md | 188 | 159 | -29 | Removed "When to Run" (workflow owns timing) |
+| python-utilities.md | 223 | 202 | -21 | Removed "Validate Entire Project" (unused by research workflow) |
+| challenge-phase.md | 461 | 461 | 0 | Already MECE |
+| sift-framework.md | 443 | 443 | 0 | Already MECE |
+| source-evaluation.md | 334 | 334 | 0 | Already concise |
+| **Total** | **5,805** | **5,279** | **-526 (-9%)** | |
+
+**Key principle applied:** deterministic stays in code, reasoning stays in
+skills. All `uv run` commands for `audit.py`, `reindex.py`, and `check_url.py`
+preserved. Phase gate structure unchanged. Every removal justified by
+duplication analysis, not word count targets.
+
+### Tests
+
+244 tests pass. All reference cross-links verified.
