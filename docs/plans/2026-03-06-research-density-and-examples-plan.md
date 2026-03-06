@@ -642,6 +642,14 @@ git commit -m "feat: add worked examples to all 16 consider command models (#126
 
 ## Part 2: Research Skill Instruction Density Reduction (#124)
 
+**Principles for this part:**
+- Each reference file should be small, discrete, and cover one concern
+- Files must be mutually exclusive (no duplicated procedures across files)
+- SKILL.md is the entry point — it should follow instructional design best practices (primacy, ordering, no lost-in-the-middle)
+- Trim each file individually: "would the model do the wrong thing without this?"
+- File count may go up, down, or stay the same — it's not a goal
+- The research skill's write-to-disk phase gates mean references load on demand, not all at once
+
 ### Task 18: Measure baseline word counts
 
 **Step 1: Record before counts**
@@ -655,87 +663,22 @@ Expected baseline: ~5,805 total words across 9 files.
 
 Record the output — this is the "before" measurement.
 
-### Task 19: Merge source-evaluation.md + source-verification.md
+### Task 19: Remove python-utilities.md (fully duplicated)
 
 **Files:**
-- Modify: `skills/research/references/source-evaluation.md`
-- Delete: `skills/research/references/source-verification.md`
-
-**Step 1: Merge content**
-
-Append the URL verification procedure from `source-verification.md` to `source-evaluation.md` as a new section. The merged file should be titled "Source Evaluation & Verification Reference" and contain:
-
-1. Source Hierarchy (existing from source-evaluation.md)
-2. Authority Annotation Format (existing from source-evaluation.md)
-3. Red Flags (existing from source-evaluation.md)
-4. URL Verification (content from source-verification.md — When to Run, How to Run, What to Do with Results)
-
-Apply the density test to each section: "Would the model do the wrong thing without this?"
-
-- Source hierarchy tiers: **KEEP** — model needs these to classify sources correctly
-- Authority annotation format: **KEEP** — model needs to know where annotations go
-- Red flags: **KEEP** — these are judgment calls the model needs
-- URL verification timing: **TRIM** — the workflow already specifies when to run verification in Phase 3
-- How to run verification: **KEEP** — the `uv run` command and result fields are mechanical
-- What to do with results: **KEEP** — drop/keep logic is a judgment call
-
-**Step 2: Update SKILL.md references**
-
-In `skills/research/SKILL.md`, remove the line:
-```
-  - references/source-verification.md
-```
-
-Also update any body text that references `source-verification.md` separately. Line 82 says:
-```
-- **Do not skip `url_checker`.** ... url_checker` verifies the URL itself
-```
-This is fine — it doesn't reference the file. Line 114-115:
-```
-- **Source hierarchy matters.** ... See `references/source-evaluation.md`.
-```
-This still works since source-evaluation.md now contains both.
-
-**Step 3: Update research-workflow.md references**
-
-In `research-workflow.md`, line 147 says:
-```
-   (Full reference: `references/source-verification.md`)
-```
-Change to:
-```
-   (Full reference: `references/source-evaluation.md`)
-```
-
-**Step 4: Delete source-verification.md**
-
-```bash
-git rm skills/research/references/source-verification.md
-```
-
-### Task 20: Fold python-utilities.md into research-workflow.md
-
-**Files:**
-- Modify: `skills/research/references/research-workflow.md`
+- Modify: `skills/research/SKILL.md`
 - Delete: `skills/research/references/python-utilities.md`
 
-**Step 1: Identify what to fold**
+**Rationale:** `python-utilities.md` (223 words) is not MECE — every command
+it documents already appears in `research-workflow.md` Phase 6 and SKILL.md's
+output format section:
+- `uv run audit.py` → workflow Phase 6 step 6
+- `uv run reindex.py` → workflow Phase 6 step 5
+- Document Model fields → SKILL.md output format + workflow Phase 2
 
-`python-utilities.md` has 3 sections:
-- Validate a Single Document — used in Phase 6 (already has `uv run` examples)
-- Validate Entire Project — used less in research workflow
-- Regenerate Index Files — used in Phase 6 (already has `uv run` example)
-- Document Model — reference for frontmatter fields
+This file doesn't own a discrete concern — it's a duplicate index.
 
-Apply the density test:
-- Validate a Single Document: Phase 6 already has the exact `uv run audit.py` command. **DON'T DUPLICATE** — the workflow already shows the command.
-- Validate Entire Project: Not used during research. **DON'T ADD.**
-- Regenerate Index Files: Phase 6 already has the exact `uv run reindex.py` command. **DON'T DUPLICATE.**
-- Document Model: The frontmatter fields are already shown in SKILL.md's output format section and Phase 2 of the workflow. **DON'T DUPLICATE.**
-
-**Conclusion:** `python-utilities.md` content is already covered by the workflow and SKILL.md. We can remove it entirely without adding anything.
-
-**Step 2: Update SKILL.md**
+**Step 1: Update SKILL.md**
 
 Remove the references line:
 ```
@@ -746,70 +689,92 @@ Remove body reference at line 104:
 ```
 (see `references/python-utilities.md`).
 ```
-Replace with just a period — the workflow already shows the commands.
+Replace with a period — the workflow already shows the commands.
 
-**Step 3: Delete python-utilities.md**
+**Step 2: Delete python-utilities.md**
 
 ```bash
 git rm skills/research/references/python-utilities.md
 ```
 
-### Task 21: Deduplicate claim-verification.md with research-workflow.md
+### Task 20: Make claim-verification.md MECE with research-workflow.md
 
 **Files:**
 - Modify: `skills/research/references/claim-verification.md`
-- Modify: `skills/research/references/research-workflow.md`
 
-**Step 1: Identify overlap**
+**Rationale:** `claim-verification.md` and `research-workflow.md` both describe
+the Phase 5.5a/5.5b procedure. The workflow owns the procedure (step-by-step
+execution). The reference should own the lookup data (types, formats, statuses,
+edge cases). Currently they overlap — make them MECE.
 
-`research-workflow.md` Phase 5.5a (lines 235-257) and Phase 5.5b (lines 259-278) describe the claim verification process at a high level and reference `claim-verification.md` for details.
+**Step 1: Identify what each file should own**
 
-`claim-verification.md` has:
-- Claim Types table (4 types) — **unique to this file, KEEP**
-- Claims Table Format — **unique to this file, KEEP**
-- Resolution Statuses table — **unique to this file, KEEP**
-- Phase 5.5a procedure — **DUPLICATES workflow** (workflow has steps 1-4, this file has the same 4 steps with more detail)
-- Phase 5.5b procedure — **DUPLICATES workflow** (workflow has steps 1-5, this file has the same steps)
-- Contradiction Resolution flowchart — **unique to this file, KEEP**
-- human-review Triggers — **unique to this file, KEEP**
+`research-workflow.md` owns (KEEP as-is):
+- Phase 5.5a procedure steps 1-4
+- Phase 5.5b procedure steps 1-5
+- Gate conditions
 
-**Step 2: Trim claim-verification.md**
+`claim-verification.md` should own (reference lookup only):
+- Claim Types table (4 types) — **KEEP, unique**
+- Claims Table Format — **KEEP, unique**
+- Resolution Statuses table (5 statuses) — **KEEP, unique**
+- Verification Questions by Type — **KEEP, extracted from the procedure as a quick-reference** (currently buried in procedure steps)
+- Contradiction Resolution flowchart — **KEEP, unique**
+- human-review Triggers — **KEEP, unique**
 
-Remove the Phase 5.5a and 5.5b procedure sections from `claim-verification.md` since the workflow already describes the steps. Keep:
-- Claim Types (4 types + table)
-- Claims Table Format
-- Resolution Statuses (5 statuses)
-- Contradiction Resolution (the flowchart/decision tree)
-- human-review Triggers
+`claim-verification.md` should NOT contain:
+- Phase 5.5a procedure (duplicates workflow)
+- Phase 5.5b procedure (duplicates workflow)
 
-Restructure as a **reference lookup** — types, formats, statuses, and edge cases — rather than a duplicate procedure.
+**Step 2: Rewrite claim-verification.md as reference lookup**
 
-The resulting file should look like:
+The resulting file:
 
 ```markdown
 # Claim Verification Reference
 
-Reference for claim types, table format, resolution statuses, and edge cases.
-The verification procedure is in `research-workflow.md` Phases 5.5a and 5.5b.
+Lookup reference for claim types, table format, resolution statuses, and edge
+cases. The step-by-step verification procedure lives in `research-workflow.md`
+Phases 5.5a and 5.5b.
 
 ## Claim Types (4)
 
-[Keep existing table — claim types map to fabrication failure modes]
+Register these claim types — they map to observed fabrication failure modes.
+
+| Type | Definition | Example |
+|------|-----------|---------|
+| quote | Verbatim text attributed to a person/source | "Software is eating the world" — Andreessen |
+| statistic | Specific number, percentage, or quantity | "30+ integrations available" |
+| attribution | Action or role attributed to a person/org | "Chesky founded Airbnb" |
+| superlative | Claim of primacy, extremity, or uniqueness | "the first company to achieve..." |
 
 General observations, trend descriptions, and methodology notes do NOT need
 registration. Only register claims that assert a specific, verifiable fact.
 
 ## Claims Table Format
 
-[Keep existing format example]
+| # | Claim | Type | Source | Status |
+|---|-------|------|--------|--------|
+| 1 | "Software is eating the world" | quote | [1] | unverified |
+| 2 | 30+ integrations | statistic | [3] | unverified |
+
+- `Source` references map to the numbered Sources table (e.g., `[1]` = first source)
+- All claims start as `unverified`
+- Claims without a citeable source should still be registered with source marked `—`
 
 ## Resolution Statuses (5)
 
-[Keep existing table]
+| Status | Meaning |
+|--------|---------|
+| verified | Passed CoVe self-check AND citation re-verification confirmed source support |
+| corrected | Didn't match source; updated to match (note original claim in parentheses) |
+| removed | Not found in source; claim removed from document body |
+| unverifiable | Source couldn't be fetched (403/timeout); claim kept but flagged in document |
+| human-review | Ambiguous automated result, or uncited claim that CoVe couldn't confirm |
 
 ## Verification Questions by Type
 
-When generating CoVe verification questions, use these patterns:
+When generating CoVe verification questions, use these type-specific patterns:
 - quote: "What exact words did [person] say about [topic]?"
 - statistic: "What is the actual number for [metric]?"
 - attribution: "What role did [person] play in [event]?"
@@ -817,18 +782,218 @@ When generating CoVe verification questions, use these patterns:
 
 ## Contradiction Resolution
 
-[Keep existing flowchart]
+When CoVe contradicts a claim:
+
+CoVe contradicts claim
+  → Does the claim have a cited source?
+    → YES: Escalate to Phase 5.5b (citation re-verification)
+           Source confirms CoVe answer → corrected, update claim, note diff
+           Source confirms original claim → verified
+           Source is ambiguous → human-review
+           Source can't be fetched → human-review
+    → NO: human-review
+
+The source is always the tiebreaker between the draft and CoVe. When there
+is no source, escalate to the human.
 
 ## human-review Triggers
 
-[Keep existing list]
+These cases always get `human-review` regardless of CoVe/citation results:
+- Direct quotes attributed to named individuals (highest fabrication risk)
+- Statistics where the source contains a nearby but different number
+- Attributions where the source describes a different role or action
+- Any claim with no cited source that CoVe contradicts
 ```
 
-**Step 3: Verify workflow references still work**
+**Step 3: Verify workflow references**
 
-Check that `research-workflow.md` Phase 5.5a and 5.5b still reference `claim-verification.md` for the types/formats/statuses. These references should still be accurate since we kept that content.
+Confirm `research-workflow.md` Phases 5.5a and 5.5b still reference
+`claim-verification.md` for types/formats/statuses. These references remain
+accurate since we kept that content — we only removed the duplicated procedure.
 
-### Task 22: Measure after word counts and run tests
+### Task 21: Trim source-verification.md
+
+**Files:**
+- Modify: `skills/research/references/source-verification.md`
+
+**Rationale:** `source-verification.md` (188 words) is a discrete concern
+(mechanical URL checking) separate from `source-evaluation.md` (quality
+assessment). Keep them as separate files. But trim: the "When to Run" section
+duplicates what `research-workflow.md` Phase 3 already specifies.
+
+**Step 1: Apply density test**
+
+- "When to Run" section (lines 7-9): **TRIM** — workflow Phase 3 already
+  specifies "after Phase 2, before SIFT evaluation"
+- "How to Run" section: **KEEP** — the `uv run` command and result fields
+  are mechanical reference
+- "What to Do with Results" section: **KEEP** — drop/keep decision logic
+  is a judgment call the model needs
+
+**Step 2: Remove the "When to Run" section**
+
+Remove lines 7-9 ("After Phase 2... before entering the SIFT pipeline.").
+The intro line ("Mechanical URL verification...") already provides sufficient
+context.
+
+### Task 22: Trim source-evaluation.md
+
+**Files:**
+- Modify: `skills/research/references/source-evaluation.md`
+
+**Rationale:** `source-evaluation.md` (334 words) is already fairly lean.
+Apply density test to each section.
+
+**Step 1: Apply density test**
+
+- Source Hierarchy (6 tiers with examples): **KEEP** — model needs tier
+  definitions to classify sources correctly
+- Authority Annotation Format: **KEEP** — shows where annotations go
+  (frontmatter vs body), which is a non-obvious convention
+- Red Flags: **KEEP** — these are judgment calls (circular sourcing,
+  survivorship bias) that the model wouldn't reliably catch without prompting
+
+**Conclusion:** No cuts. This file is already concise and MECE.
+
+### Task 23: Trim research-workflow.md
+
+**Files:**
+- Modify: `skills/research/references/research-workflow.md`
+
+**Rationale:** `research-workflow.md` (2,052 words) is the largest reference.
+It's the procedural backbone — phase-by-phase execution. Apply density test
+to each phase, looking for content that either duplicates other references
+or that the model handles correctly without prompting.
+
+**Step 1: Apply density test per phase**
+
+- **Resuming After Context Reset** (lines 10-23): **KEEP** — this is unique
+  and critical for the write-to-disk design
+- **Phase 1: Frame** (lines 25-46): Review the source diversity note (lines
+  41-46). **TRIM if redundant** — check whether this duplicates content in
+  SKILL.md or sift-framework.md
+- **Phase 2: Gather** (lines 48-130): The search protocol JSON format and
+  the inline HTML comment explanation (lines 120-128) are verbose.
+  **EVALUATE** — is the 9-line explanation of why the protocol lives in an
+  HTML comment necessary? The model would place it there if told to; the
+  "why" may be extraneous instruction.
+- **Phase 3: Verify & Evaluate** (lines 132-183): URL verification steps
+  duplicate `source-verification.md`. **TRIM** — replace inline steps with
+  a reference to `source-verification.md`, keeping only the SIFT evaluation
+  steps. Currently Phase 3 is a merged phase — URL verification then SIFT.
+  Consider whether splitting into Phase 3a (URL verification, ref:
+  `source-verification.md`) and Phase 3b (SIFT evaluation, ref:
+  `sift-framework.md`) would be cleaner. Only split if it improves clarity.
+- **Phase 5.5a/5.5b** (lines 235-278): These reference `claim-verification.md`
+  and provide the procedure. After Task 20 made claim-verification.md a
+  lookup-only reference, the workflow correctly owns the procedure. **KEEP.**
+- **Phase 6: Finalize** (lines 280-345): The search protocol formatting
+  instructions (lines 292-307) are detailed. **KEEP** — this is a mechanical
+  format the model needs to produce correctly.
+- **Quality Checklist** (lines 328-345): **KEEP** — this is the final
+  gate and uses recency position (end of file) per best practices.
+
+**Step 2: Make targeted trims**
+
+For each section flagged above, make the specific edit. Do NOT rewrite
+sections that passed the density test. Only touch what's flagged.
+
+**Step 3: Verify all cross-references**
+
+After trimming, grep for all `references/` paths in the file and confirm
+each target file exists.
+
+### Task 24: Audit SKILL.md against instructional design best practices
+
+**Files:**
+- Modify: `skills/research/SKILL.md`
+
+**Rationale:** SKILL.md is the entry point that loads first. Per instructional
+design research: critical constraints should be at the beginning (primacy),
+output format and quality criteria at the end (recency), and supporting detail
+in the middle. Check current structure against this.
+
+**Step 1: Assess current SKILL.md structure**
+
+Current order (806 words):
+1. Frontmatter (lines 1-21)
+2. Intro paragraph (lines 23-28)
+3. Mode Detection table (lines 30-47)
+4. Workflow reference pointer (lines 49-52)
+5. Phase Gates table (lines 54-68) — **critical constraints**
+6. Common Deviations (lines 71-84) — **critical constraints**
+7. Output Document Format (lines 86-101)
+8. Document Standards (lines 107-108)
+9. Key Rules (lines 110-134) — **critical constraints**
+
+**Step 2: Check for issues**
+
+Evaluate:
+- **Primacy:** Are the most critical instructions first? Phase Gates (item 5)
+  and Common Deviations (item 6) are critical but come after Mode Detection.
+  Mode Detection is important but less critical — getting the mode wrong is
+  recoverable; skipping phase gates is not.
+- **Redundancy:** "Common Deviations" (lines 71-84) and "Key Rules" (lines
+  110-134) — do they overlap? Both say "don't skip phases" in different words.
+  Check whether they can be consolidated without losing distinct value.
+- **Lost-in-the-middle:** "Document Standards" (line 107-108) is a one-liner
+  pointing to AGENTS.md, sandwiched between two important sections. It's easy
+  to miss. Evaluate whether it adds value or is extraneous.
+- **Reference duplication:** Do any "Key Rules" restate what's already in a
+  reference file? If a rule says "SIFT every source, see sift-framework.md",
+  the rule is a pointer, not a duplicate — that's fine. But if it restates
+  the SIFT procedure, that's duplication.
+
+**Step 3: Restructure if warranted**
+
+Only restructure if the audit found concrete issues. Possible changes:
+- Move Phase Gates earlier (before Mode Detection) if primacy matters more
+- Consolidate Common Deviations into Key Rules if they overlap
+- Remove Document Standards line if it's extraneous
+
+**Do NOT restructure for aesthetic reasons.** Only change what the density test
+or primacy/recency analysis identifies as a problem.
+
+### Task 25: Trim remaining references (sift-framework, challenge-phase, research-modes)
+
+**Files:**
+- Review: `skills/research/references/sift-framework.md` (443 words)
+- Review: `skills/research/references/challenge-phase.md` (461 words)
+- Review: `skills/research/references/research-modes.md` (565 words)
+
+**Rationale:** Apply the density test to each file individually. These are
+already reasonably sized. Only trim if specific sections fail the test.
+
+**Step 1: sift-framework.md**
+
+- SIFT steps (S, I, F, T) with agent actions: **KEEP** — model needs these
+- SIFT Intensity by Mode table: **CHECK** — does `research-modes.md` already
+  have this? If duplicated, keep it in one place only (whichever is more
+  natural). If both files have mode-specific tables, that's not MECE.
+
+**Step 2: challenge-phase.md**
+
+- Assumptions Check procedure: **KEEP** — unique
+- ACH procedure with anti-anchoring step: **KEEP** — unique and non-obvious
+- Premortem procedure: **KEEP** — unique
+- Output format examples: **KEEP** — model needs format reference
+
+**Step 3: research-modes.md**
+
+- Mode Matrix table: **CHECK for MECE** — does SKILL.md's Mode Detection
+  table duplicate information? SKILL.md maps question patterns → modes.
+  research-modes.md maps modes → parameters (sources, rigor, etc.). These
+  are complementary (MECE), not duplicated, if they don't repeat the same
+  columns.
+- Mode Descriptions (8 descriptions): **EVALUATE** — are all descriptions
+  necessary? Or would the model behave correctly with just the Mode Matrix
+  table? If descriptions are just prose restatements of the table, trim them.
+
+**Step 4: Make targeted trims**
+
+Only edit files where specific sections failed the density test or MECE check.
+
+### Task 26: Measure after word counts and run tests
 
 **Step 1: Measure after counts**
 
@@ -853,7 +1018,7 @@ Expected: all tests pass.
 uv run python -m pytest tests/test_skill_audit.py -v
 ```
 
-### Task 23: Commit research skill density reduction
+### Task 27: Commit research skill density reduction
 
 **Step 1: Review all changes**
 
@@ -863,9 +1028,10 @@ git diff
 ```
 
 Verify:
-- No behavioral content silently dropped
-- All references in SKILL.md and research-workflow.md point to existing files
-- Phase gate structure in SKILL.md unchanged
+- No behavioral content silently dropped — every removal justified
+- All `references/` paths in SKILL.md and research-workflow.md point to existing files
+- Phase gate structure in SKILL.md unchanged (or improved per primacy audit)
+- Reference files are MECE — no procedure appears in two files
 
 **Step 2: Commit**
 
@@ -873,19 +1039,21 @@ Verify:
 git add skills/research/
 git commit -m "refactor: reduce research skill instruction density (#124)
 
-Merge source-evaluation + source-verification into unified source reference.
-Remove python-utilities (content already in workflow and SKILL.md).
-Deduplicate claim-verification with research-workflow phases 5.5a/5.5b.
+Remove python-utilities.md (fully duplicated by workflow and SKILL.md).
+Make claim-verification.md MECE with workflow (lookup only, no procedure).
+Trim source-verification.md (remove duplicated timing info).
+Audit and trim research-workflow.md and SKILL.md per best practices.
 
 Before: 5,805 words across 9 files
-After: [X] words across [Y] files"
+After: [X] words across [Y] files
+Removals justified: [summary]"
 ```
 
 ---
 
 ## Part 3: Final Verification
 
-### Task 24: Run full test suite and update design doc
+### Task 28: Run full test suite and update design doc
 
 **Step 1: Full test suite**
 
@@ -897,6 +1065,7 @@ uv run python -m pytest tests/ -v
 
 Edit `docs/plans/2026-03-06-research-density-and-examples-design.md` to add a Results section with:
 - Before/after word counts for #124
+- Summary of what was trimmed and why
 - Confirmation all 16 consider models have examples for #126
 - Test results
 
