@@ -185,3 +185,53 @@ class TestCheckSkillSizes:
             "total_lines", "words", "files",
         }
         assert set(summary.keys()) == expected_keys
+
+
+class TestParseSkillMeta:
+    def test_extracts_name_and_description(self) -> None:
+        from wos.skill_audit import parse_skill_meta
+
+        text = "---\nname: my-skill\ndescription: Does something useful\n---\n# Body\n"
+        meta = parse_skill_meta(text)
+        assert meta["name"] == "my-skill"
+        assert meta["description"] == "Does something useful"
+
+    def test_multiline_description_with_fold(self) -> None:
+        from wos.skill_audit import parse_skill_meta
+
+        text = (
+            "---\n"
+            "name: my-skill\n"
+            "description: >\n"
+            "  First line of description\n"
+            "  second line of description.\n"
+            "argument-hint: something\n"
+            "---\n"
+            "# Body\n"
+        )
+        meta = parse_skill_meta(text)
+        assert meta["name"] == "my-skill"
+        assert "First line" in meta["description"]
+        assert "second line" in meta["description"]
+
+    def test_missing_name_returns_none(self) -> None:
+        from wos.skill_audit import parse_skill_meta
+
+        text = "---\ndescription: Does something\n---\n# Body\n"
+        meta = parse_skill_meta(text)
+        assert meta["name"] is None
+
+    def test_missing_description_returns_none(self) -> None:
+        from wos.skill_audit import parse_skill_meta
+
+        text = "---\nname: my-skill\n---\n# Body\n"
+        meta = parse_skill_meta(text)
+        assert meta["description"] is None
+
+    def test_no_frontmatter_returns_nones(self) -> None:
+        from wos.skill_audit import parse_skill_meta
+
+        text = "# Just a body\n"
+        meta = parse_skill_meta(text)
+        assert meta["name"] is None
+        assert meta["description"] is None
