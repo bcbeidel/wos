@@ -24,3 +24,27 @@ def strip_frontmatter(text: str) -> str:
     if after < len(text) and text[after] == "\n":
         after += 1
     return text[after:]
+
+
+def count_instruction_lines(text: str) -> int:
+    """Count non-empty, non-structural lines in markdown text.
+
+    Excludes blank lines, headers, code fences, table separators,
+    and horizontal rules.  Everything else counts (bullets, prose,
+    table data rows, numbered steps, code inside fences).
+    """
+    count = 0
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if stripped.startswith("#"):
+            continue
+        if stripped.startswith("```"):
+            continue
+        if stripped.startswith("|") and set(stripped) <= set("|-: "):
+            continue
+        if set(stripped) <= set("-* _"):
+            continue
+        count += 1
+    return count
