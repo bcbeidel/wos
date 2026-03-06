@@ -8,8 +8,8 @@ related:
 # Audit Validation Enhancements Design
 
 **Issues:** #132, #133
-**Branch:** TBD
-**PR:** TBD
+**Branch:** feat/132-133-audit-validation-enhancements
+**PR:** TBD (pending review)
 
 ## Issue #132: Minimum Word Count Warning
 
