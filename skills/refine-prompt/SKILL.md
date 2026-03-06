@@ -71,10 +71,10 @@ remaining technique condition triggers.
 **Key constraint:** Be selective. Over-prompting degrades Claude 4.x
 performance. Apply only techniques whose conditions are clearly met.
 
-**Structuring format:** When applying XML Structuring (technique #2), note
-the format choice and rationale in the change log. XML tags are optimized for
-Claude; for prompts targeting other models or multi-model use, prefer YAML in
-fenced code blocks or markdown section headers instead.
+**Structuring format:** When applying technique #2, consult the format
+selection table in the technique registry to choose the right format for the
+target model. Default to XML (Claude-optimized) when no target is specified.
+Note the format choice and rationale in the change log.
 
 ### 3. Present
 
