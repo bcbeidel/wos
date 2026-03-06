@@ -44,7 +44,7 @@ def _directory_display_name(directory: Path) -> str:
     return directory.name.replace("-", " ").replace("_", " ").title()
 
 
-def _extract_preamble(index_path: Path) -> Optional[str]:
+def extract_preamble(index_path: Path) -> Optional[str]:
     """Extract preamble text from an existing _index.md.
 
     The preamble is any text between the heading line and the first
@@ -167,7 +167,7 @@ def check_index_sync(directory: Path) -> List[dict]:
         ]
 
     # Preserve preamble when comparing
-    preamble = _extract_preamble(index_path)
+    preamble = extract_preamble(index_path)
     current_content = generate_index(directory, preamble=preamble)
     existing_content = index_path.read_text(encoding="utf-8")
 

@@ -32,7 +32,7 @@ def main() -> None:
     args = parser.parse_args()
 
     # Deferred import — keeps --help fast
-    from wos.index import _extract_preamble, generate_index
+    from wos.index import extract_preamble, generate_index
 
     root = Path(args.root).resolve()
 
@@ -53,14 +53,14 @@ def main() -> None:
             continue
 
         # Also index the top-level subdir itself
-        if _reindex_directory(subdir, generate_index, _extract_preamble):
+        if _reindex_directory(subdir, generate_index, extract_preamble):
             count += 1
 
         # Walk all subdirectories
         for dirpath in sorted(subdir.rglob("*")):
             if not dirpath.is_dir():
                 continue
-            if _reindex_directory(dirpath, generate_index, _extract_preamble):
+            if _reindex_directory(dirpath, generate_index, extract_preamble):
                 count += 1
 
     print(f"Wrote {count} _index.md files.")

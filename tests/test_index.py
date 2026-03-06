@@ -250,32 +250,32 @@ class TestPreamble:
     def test_extract_preamble_returns_text_between_heading_and_table(
         self, tmp_path: Path
     ) -> None:
-        from wos.index import _extract_preamble
+        from wos.index import extract_preamble
 
         index = tmp_path / "_index.md"
         index.write_text(
             "# My Area\n\nThis area covers authentication.\n\n"
             "| File | Description |\n| --- | --- |\n| [a.md](a.md) | Doc A |\n"
         )
-        assert _extract_preamble(index) == "This area covers authentication."
+        assert extract_preamble(index) == "This area covers authentication."
 
     def test_extract_preamble_returns_none_when_no_preamble(
         self, tmp_path: Path
     ) -> None:
-        from wos.index import _extract_preamble
+        from wos.index import extract_preamble
 
         index = tmp_path / "_index.md"
         index.write_text(
             "# My Area\n\n| File | Description |\n| --- | --- |\n"
         )
-        assert _extract_preamble(index) is None
+        assert extract_preamble(index) is None
 
     def test_extract_preamble_returns_none_for_missing_file(
         self, tmp_path: Path
     ) -> None:
-        from wos.index import _extract_preamble
+        from wos.index import extract_preamble
 
-        assert _extract_preamble(tmp_path / "nonexistent.md") is None
+        assert extract_preamble(tmp_path / "nonexistent.md") is None
 
     def test_generate_index_includes_preamble(self, tmp_path: Path) -> None:
         from wos.index import generate_index
@@ -317,7 +317,7 @@ class TestPreamble:
     def test_preamble_preserved_during_regeneration(
         self, tmp_path: Path
     ) -> None:
-        from wos.index import _extract_preamble, generate_index
+        from wos.index import extract_preamble, generate_index
 
         (tmp_path / "doc.md").write_text(
             "---\nname: Doc\ndescription: A document\n---\n# Doc\n"
@@ -327,7 +327,7 @@ class TestPreamble:
         (tmp_path / "_index.md").write_text(initial)
 
         # Extract preamble and regenerate
-        preamble = _extract_preamble(tmp_path / "_index.md")
+        preamble = extract_preamble(tmp_path / "_index.md")
         regenerated = generate_index(tmp_path, preamble=preamble)
 
         assert "My area description." in regenerated
