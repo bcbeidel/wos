@@ -8,7 +8,7 @@
 Usage:
     uv run scripts/audit.py [FILE] [--root DIR] [--no-urls] [--json]
                             [--fix] [--strict] [--context-max-words N]
-                            [--context-min-words N]
+                            [--context-min-words N] [--skill-max-lines N]
 """
 from __future__ import annotations
 
@@ -81,6 +81,15 @@ def main() -> None:
         default=100,
         help="Minimum word count for context file warnings (default: 100)",
     )
+    parser.add_argument(
+        "--skill-max-lines",
+        type=int,
+        default=200,
+        help=(
+            "Instruction line threshold for skill density warnings"
+            " (default: 200, 0 to disable)"
+        ),
+    )
     args = parser.parse_args()
 
     # Deferred imports — keeps --help fast
@@ -120,6 +129,33 @@ def main() -> None:
             else:
                 remaining.append(issue)
         issues = remaining
+
+    # Skill instruction density reporting
+    from wos.skill_audit import check_skill_sizes
+
+    skills_dir = root / "skills"
+    if skills_dir.is_dir():
+        summaries, skill_issues = check_skill_sizes(
+            skills_dir, max_lines=args.skill_max_lines,
+        )
+        issues.extend(skill_issues)
+
+        if summaries and not args.json_output:
+            print("Skill Instruction Density:", file=sys.stderr)
+            for s in sorted(summaries, key=lambda x: -x["total_lines"]):
+                flag = "  [warn]" if (
+                    args.skill_max_lines > 0
+                    and s["total_lines"] > args.skill_max_lines
+                ) else ""
+                print(
+                    f"  {s['name']:<20}"
+                    f" {s['skill_lines']:>4} (SKILL)"
+                    f" + {s['ref_lines']:>4} (refs)"
+                    f" = {s['total_lines']:>4} lines,"
+                    f" {s['words']:>5} words{flag}",
+                    file=sys.stderr,
+                )
+            print(file=sys.stderr)
 
     # Count by severity
     fail_count = sum(1 for i in issues if i["severity"] == "fail")
