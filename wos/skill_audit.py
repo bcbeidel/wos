@@ -19,11 +19,11 @@ def strip_frontmatter(text: str) -> str:
     """
     if not text.startswith("---"):
         return text
-    close = text.find("---", 3)
+    close = text.find("\n---", 3)
     if close == -1:
         return text
-    # Skip past the closing --- and the newline that follows it
-    after = close + 3
+    # Skip past the \n--- and the newline that follows it
+    after = close + 4
     if after < len(text) and text[after] == "\n":
         after += 1
     return text[after:]

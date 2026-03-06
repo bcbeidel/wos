@@ -19,6 +19,13 @@ class TestStripFrontmatter:
         text = "# Content\n\nSome text.\n"
         assert strip_frontmatter(text) == text
 
+    def test_dashes_inside_yaml_value_not_matched(self) -> None:
+        from wos.skill_audit import strip_frontmatter
+
+        text = "---\nname: foo---bar\n---\n# Content\n"
+        result = strip_frontmatter(text)
+        assert result.startswith("# Content")
+
     def test_unclosed_frontmatter_unchanged(self) -> None:
         from wos.skill_audit import strip_frontmatter
 

@@ -1,3 +1,11 @@
+---
+name: "Audit Validation Enhancements Implementation Plan"
+description: "TDD implementation plan for #132 (min word count) and #133 (skill density reporting)"
+related:
+  - docs/plans/2026-03-06-audit-validation-enhancements-design.md
+  - docs/research/2026-03-05-skill-density-threshold.md
+---
+
 # Audit Validation Enhancements Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
@@ -8,8 +16,24 @@
 
 **Tech Stack:** Python 3.9, stdlib only, pytest
 
-**Design doc:** `docs/plans/2026-03-06-audit-validation-enhancements-design.md`
-**Research doc:** `docs/research/2026-03-05-skill-density-threshold.md`
+**Branch:** `feat/132-133-audit-validation-enhancements`
+**PR:** #139
+
+---
+
+- [x] Task 1: Create branch
+- [x] Task 2: Add min_words failing tests (#132)
+- [x] Task 3: Implement min_words in check_content (#132)
+- [x] Task 4: Add --context-min-words CLI flag (#132)
+- [x] Task 5: Write failing tests for strip_frontmatter (#133)
+- [x] Task 6: Implement strip_frontmatter (#133)
+- [x] Task 7: Write failing tests for count_instruction_lines (#133)
+- [x] Task 8: Implement count_instruction_lines (#133)
+- [x] Task 9: Write failing tests for check_skill_sizes (#133)
+- [x] Task 10: Implement check_skill_sizes (#133)
+- [x] Task 11: Integrate skill density into audit script (#133)
+- [x] Task 12: Update CLAUDE.md and design doc
+- [x] Task 13: Run full validation and create PR
 
 ---
 
