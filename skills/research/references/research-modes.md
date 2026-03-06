@@ -35,54 +35,32 @@ vary in SIFT rigor, source requirements, and counter-evidence needs.
 
 See `references/challenge-phase.md` for detailed procedures.
 
-## Mode Descriptions
+## Mode Methodology
 
-### deep-dive
-**Question pattern:** "What do we know about X?"
-**Methodology:** Comprehensive investigation of a single topic. Cast a wide
-net, then narrow to highest-quality sources. Cover background, current state,
-key debates, and practical implications. Counter-evidence actively sought.
+Question patterns for mode detection live in SKILL.md. Below is the
+methodology guidance unique to each mode.
 
-### landscape
-**Question pattern:** "What's the landscape for X?"
-**Methodology:** Broad survey across a domain. Map the major players, trends,
-and categories. Prioritize breadth over depth. Goal is orientation, not
-exhaustive coverage.
-
-### technical
-**Question pattern:** "How does X work technically?"
-**Methodology:** Deep technical investigation. Focus on architecture,
-implementation details, performance characteristics, and tradeoffs.
-Prefer official documentation and expert practitioners. Counter-evidence
-required for claimed advantages.
-
-### feasibility
-**Question pattern:** "Can we do X given our constraints?"
-**Methodology:** Evaluate whether a goal is achievable given specific
-constraints (time, resources, technology, skills). Identify blockers,
-risks, and prerequisites. Counter-evidence required — actively search
-for reasons it might fail.
-
-### competitive
-**Question pattern:** "How does X compare to competitors?"
-**Methodology:** Systematic comparison across defined criteria. Identify
-differentiators, market positioning, and relative strengths. Watch for
-vendor bias in sources.
-
-### options
-**Question pattern:** "Should we use A or B?"
-**Methodology:** Structured comparison of specific alternatives against
-evaluation criteria. Each option gets equal investigation depth. Counter-
-evidence required — for each option, find arguments against it.
-
-### historical
-**Question pattern:** "How did X evolve?"
-**Methodology:** Trace the development of a topic over time. Identify key
-inflection points, decisions, and their consequences. Lower SIFT intensity
-since historical sources are often secondary.
-
-### open-source
-**Question pattern:** "What open source options exist for X?"
-**Methodology:** Survey available open-source projects. Evaluate by stars,
-maintenance activity, community health, documentation quality, and license
-compatibility. Use repository metrics as proxy for quality.
+- **deep-dive** — Comprehensive single-topic investigation. Cast a wide net,
+  then narrow to highest-quality sources. Cover background, current state,
+  key debates, and practical implications. Counter-evidence actively sought.
+- **landscape** — Broad domain survey. Map major players, trends, and
+  categories. Prioritize breadth over depth. Goal is orientation, not
+  exhaustive coverage.
+- **technical** — Deep technical investigation. Focus on architecture,
+  implementation details, performance characteristics, and tradeoffs.
+  Prefer official documentation and expert practitioners.
+- **feasibility** — Evaluate achievability given constraints (time, resources,
+  technology, skills). Identify blockers, risks, and prerequisites.
+  Actively search for reasons it might fail.
+- **competitive** — Systematic comparison across defined criteria. Identify
+  differentiators, market positioning, and relative strengths. Watch for
+  vendor bias in sources.
+- **options** — Structured comparison of alternatives against evaluation
+  criteria. Each option gets equal investigation depth. For each option,
+  find arguments against it.
+- **historical** — Trace development over time. Identify key inflection
+  points, decisions, and consequences. Lower SIFT intensity since historical
+  sources are often secondary.
+- **open-source** — Survey available projects. Evaluate by stars, maintenance
+  activity, community health, documentation quality, and license
+  compatibility. Use repository metrics as proxy for quality.

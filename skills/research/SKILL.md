@@ -101,11 +101,8 @@ related:
 ```
 
 Write the document directly, then run reindex and validate
-(see `references/python-utilities.md`).
-
-## Document Standards
-
-Follow the document standards in AGENTS.md for structure and frontmatter.
+(see `references/python-utilities.md`). Follow the document standards in
+AGENTS.md for structure and frontmatter.
 
 ## Key Rules
 
@@ -113,8 +110,8 @@ Follow the document standards in AGENTS.md for structure and frontmatter.
   See `references/sift-framework.md`.
 - **Source hierarchy matters.** Prefer official docs over blog posts.
   See `references/source-evaluation.md`.
-- **Counter-evidence is required** for deep-dive, options, and technical modes.
-  Actively search for disagreement.
+- **Counter-evidence is required** for deep-dive, technical, feasibility, and
+  options modes. Actively search for disagreement.
 - **Output is a research document.** Write the final artifact directly with
   `type: research` frontmatter, then run reindex and validate.
 - **Authority annotations.** Each source in the final document should note

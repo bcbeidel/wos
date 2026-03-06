@@ -117,17 +117,9 @@ Update this section after each search. Replace the JSON in the comment
 above with the current accumulated protocol.
 ```
 
-The search protocol JSON is stored in the document itself (inside the
-`<!-- search-protocol ... -->` comment), not in agent memory or frontmatter.
-This is operational metadata (workflow state for context reset recovery), not
-semantic metadata (document identity for discovery). It lives in an HTML
-comment because: (1) it survives context resets alongside the source list,
-(2) it's machine-readable but invisible to human readers, and (3) it has a
-different lifecycle than frontmatter — it's work-in-progress state that gets
-rendered to a markdown table in Phase 6. After each search, update the comment
-with the accumulated JSON.
-
-This checkpoint means the source list survives a context reset.
+The search protocol JSON lives in the `<!-- search-protocol ... -->` comment
+(not in memory or frontmatter) so it survives context resets. After each
+search, update the comment with the accumulated JSON.
 
 ## Phase 3: Verify & Evaluate
 
@@ -154,17 +146,8 @@ Mechanical URL verification followed by SIFT evaluation in a single phase.
 ### SIFT Evaluation
 
 Apply SIFT framework (see `references/sift-framework.md`) at the mode's
-intensity level.
-
-For each source:
-
-1. **Stop** — Is this source known to me? Flag as unverified if not.
-2. **Investigate** — Check domain authority, author credentials, bias.
-   Classify into source hierarchy tier (T1-T6, see `references/source-evaluation.md`).
-3. **Find better** — For key claims, search for the same information from a
-   higher-tier source. Upgrade when found.
-4. **Trace** — For critical claims, follow the citation chain to the primary
-   source. Verify the claim matches the original context.
+intensity level. Classify each source into a tier (T1-T6, see
+`references/source-evaluation.md`).
 
 After evaluation:
 - Drop sources below T5 unless no better source exists
