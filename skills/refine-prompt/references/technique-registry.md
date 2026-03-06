@@ -47,6 +47,10 @@ Use descriptive tag names. Nest when hierarchy is natural.
 **Evidence:** Anthropic Tier 1 documentation — XML tags provide up to 40%
 quality improvement on complex prompts. Claude uses tags as parsing boundaries.
 
+**Portability note:** XML tags are optimized for Claude. For prompts targeting
+other models or multi-model use, consider YAML in fenced code blocks or
+markdown section headers instead.
+
 ---
 
 ## 3. Completeness Fill
