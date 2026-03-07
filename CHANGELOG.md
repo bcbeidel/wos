@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-03-07
+
+### Changed
+
+- **Research skill: 9-phase workflow.** Restructured from 6 phases (with
+  5.5a/5.5b sub-phases) to a clean 9-phase sequence. Split old Phase 3
+  (Verify & Evaluate) into Phase 3 (Verify Sources — mechanical URL
+  checking) and Phase 4 (Evaluate Sources — SIFT judgment and tier
+  classification). Promoted 5.5a/5.5b to Phase 7 (Self-Verify Claims)
+  and Phase 8 (Citation Re-Verify). Finalize becomes Phase 9.
+- **Research skill: consolidated references.** Reduced from 8 reference
+  files (592 instruction lines) to 7 self-contained files (285 lines,
+  51% reduction). Each reference maps to specific phases for selective
+  loading during resume-after-context-reset. Merged `sift-framework.md` +
+  `source-evaluation.md` + `source-verification.md` → `source-quality.md`.
+  Rewrote `challenge-phase.md` → `challenge.md`. Extracted
+  `synthesis-guide.md` from workflow. Trimmed `claim-verification.md`.
+- **Research skill: description fixed.** Replaced "This skill should be
+  used when" (voice violation) with "Conducts structured investigations
+  using the SIFT framework" — leading with what the skill does.
+- **Init skill: broader description triggers.** Added "setting up context
+  structure" and "configuring project documentation" trigger phrases.
+- **Distill skill: added examples.** Two `<example>` blocks demonstrating
+  a distillation proposal table and a distilled context file with proper
+  frontmatter.
+
 ## [0.15.0] - 2026-03-06
 
 ### Added
