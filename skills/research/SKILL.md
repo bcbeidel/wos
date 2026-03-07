@@ -11,7 +11,6 @@ user-invocable: true
 compatibility: "Requires Python 3 (stdlib only), WOS plugin (audit, reindex), WebSearch, WebFetch"
 references:
   - references/research-workflow.md
-  - references/research-synthesis.md
   - references/sift-framework.md
   - references/source-evaluation.md
   - references/source-verification.md
@@ -102,8 +101,49 @@ related:
 ```
 
 Write the document directly, then run reindex and validate
-(see `references/python-utilities.md`). Follow the document standards in
-AGENTS.md for structure and frontmatter.
+(see `references/python-utilities.md`).
+
+## Document Standards
+
+Follow the document standards in AGENTS.md for structure and frontmatter.
+
+## Examples
+
+<example>
+**Sources table after Phase 3 (Verify & Evaluate):**
+
+| # | URL | Title | Author/Org | Date | Tier | Status |
+|---|-----|-------|-----------|------|------|--------|
+| 1 | https://docs.python.org/3/library/asyncio.html | asyncio — Asynchronous I/O | Python Software Foundation | 2024 | T1 | verified |
+| 2 | https://realpython.com/async-io-python/ | Async IO in Python | Real Python / Brad Solomon | 2023 | T3 | verified |
+| 3 | https://blog.example.com/asyncio-tips | My Asyncio Tips | unknown | 2022 | T5 | verified (403) |
+</example>
+
+<example>
+**Findings excerpt (Phase 5) for sub-question "How does asyncio handle concurrency?":**
+
+### How does asyncio handle concurrency?
+
+Asyncio uses a single-threaded event loop with cooperative multitasking [1][2].
+Tasks yield control at `await` points, allowing other tasks to run (HIGH —
+T1 + T3 sources converge). This differs from threading: no shared-state
+race conditions, but CPU-bound work blocks the loop (MODERATE — T3 source
+only, not directly confirmed in T1 docs).
+
+**Counter-evidence:** One source [3] claims asyncio supports true parallelism
+via `loop.run_in_executor()`, but this delegates to a thread pool — the event
+loop itself remains single-threaded (HIGH).
+</example>
+
+<example>
+**Claims table (Phase 5.5) with mixed resolution statuses:**
+
+| # | Claim | Type | Source | Status |
+|---|-------|------|--------|--------|
+| 1 | "asyncio was added in Python 3.4" | attribution | [1] | verified |
+| 2 | "3x faster than threading for I/O" | statistic | [2] | corrected (source says "up to 2x") |
+| 3 | "Guido van Rossum designed asyncio" | attribution | — | human-review |
+</example>
 
 ## Key Rules
 
@@ -111,8 +151,8 @@ AGENTS.md for structure and frontmatter.
   See `references/sift-framework.md`.
 - **Source hierarchy matters.** Prefer official docs over blog posts.
   See `references/source-evaluation.md`.
-- **Counter-evidence is required** for deep-dive, technical, feasibility, and
-  options modes. Actively search for disagreement.
+- **Counter-evidence is required** for deep-dive, options, and technical modes.
+  Actively search for disagreement.
 - **Output is a research document.** Write the final artifact directly with
   `type: research` frontmatter, then run reindex and validate.
 - **Authority annotations.** Each source in the final document should note
@@ -125,7 +165,7 @@ AGENTS.md for structure and frontmatter.
   See `references/research-workflow.md` Phase 2.
 - **Confidence levels on every finding.** Annotate each finding as HIGH,
   MODERATE, or LOW based on source convergence and tier. See
-  `references/research-synthesis.md` Phase 5.
+  `references/research-workflow.md` Phase 5.
 - **Verify claims before finalizing.** Every quote, statistic, attribution,
   and superlative must be registered and verified. See
   `references/claim-verification.md`.
