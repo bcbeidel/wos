@@ -44,10 +44,3 @@ mistakes. Prevents adversarial framing from poisoning collaboration.
 [How to respond given the most likely explanation]
 </output_format>
 
-<success_criteria>
-- Uncharitable interpretation is stated explicitly (not dodged)
-- At least 3 charitable alternatives generated
-- Alternatives are genuinely plausible, not straw men
-- Distinguishing evidence is concrete and obtainable
-- Response is calibrated to the most likely explanation, not the worst case
-</success_criteria>

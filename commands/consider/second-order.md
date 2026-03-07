@@ -40,10 +40,3 @@ repeatedly to uncover hidden costs, feedback loops, and unintended effects.
 [Should we proceed, modify, or abandon given full consequence chain?]
 </output_format>
 
-<success_criteria>
-- At least 3 first-order effects traced to second-order
-- At least 1 third-order consequence identified
-- Feedback loops explicitly identified (positive or negative)
-- Unintended consequences are non-obvious (not restating first-order effects)
-- Revised assessment shows the analysis changed or deepened the evaluation
-</success_criteria>

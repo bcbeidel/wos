@@ -42,10 +42,3 @@ becomes easier or unnecessary?"
 [What to deprioritize to protect focus on the one thing]
 </output_format>
 
-<success_criteria>
-- At least 4 candidate actions evaluated before selecting one
-- Domino effects are specific (not "it helps everything")
-- The one thing has clear causal connection to the broader goal
-- Definition of done is concrete and verifiable
-- "Say no to" list identifies real temptations, not straw men
-</success_criteria>

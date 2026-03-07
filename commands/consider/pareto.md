@@ -43,10 +43,3 @@ focus there for maximum leverage.
 [Where to redirect effort for maximum impact]
 </output_format>
 
-<success_criteria>
-- Inputs are specific and enumerable, not vague categories
-- Contribution estimates are grounded in evidence or reasoning
-- Clear separation between vital few and trivial many
-- Amplification strategies are concrete and actionable
-- Focus shift recommendation is specific to the situation
-</success_criteria>

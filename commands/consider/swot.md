@@ -44,10 +44,3 @@ defending weaknesses against threats.
 [Single most important action based on the analysis]
 </output_format>
 
-<success_criteria>
-- At least 3 items in each quadrant (S, W, O, T)
-- Strengths and weaknesses are internal (within control)
-- Opportunities and threats are external (outside direct control)
-- Cross-references produce specific strategic options, not vague platitudes
-- Priority action is concrete and justified by the analysis
-</success_criteria>

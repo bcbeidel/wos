@@ -42,10 +42,3 @@ from crowding out what actually matters.
 [What's crowding out the important-not-urgent work?]
 </output_format>
 
-<success_criteria>
-- All items explicitly placed in exactly one quadrant
-- Urgency and importance assessments are justified, not arbitrary
-- Q2 items identified (these are most commonly neglected)
-- At least one "urgency trap" identified (feels urgent, isn't important)
-- Next actions are specific and time-bound for Q1 and Q2
-</success_criteria>

@@ -42,10 +42,3 @@ up. Prevents tunnel vision on the chosen path.
 [Does the favored option justify its opportunity cost?]
 </output_format>
 
-<success_criteria>
-- At least 3 alternatives listed (including "do nothing")
-- Value estimates are specific, not vague hand-waving
-- Opportunity cost is explicitly named as the best foregone alternative
-- Hidden costs go beyond the obvious direct comparison
-- Verdict directly addresses whether opportunity cost is justified
-</success_criteria>

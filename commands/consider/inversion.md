@@ -41,10 +41,3 @@ Often clearer than direct optimization.
 [What failure modes might we be missing?]
 </output_format>
 
-<success_criteria>
-- At least 5 specific failure modes identified (not generic)
-- Failure modes ranked by both likelihood and severity
-- Each avoidance strategy is concrete and actionable
-- Positive plan follows logically from the avoidance strategies
-- Blind spots section demonstrates intellectual honesty
-</success_criteria>

@@ -42,10 +42,3 @@ gaps could cause problems.
 [How to verify the map against actual conditions]
 </output_format>
 
-<success_criteria>
-- The model/abstraction is stated explicitly (not vague)
-- Simplifications are specific, not just "it's simplified"
-- At least 2 items in each category (matches, simplifies, blank)
-- Risk assessments distinguish between dangerous and benign gaps
-- Reality check proposes a concrete, executable verification step
-</success_criteria>

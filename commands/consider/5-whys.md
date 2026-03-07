@@ -42,10 +42,3 @@ that, if addressed, prevents recurrence.
 [Specific step to address the root cause]
 </output_format>
 
-<success_criteria>
-- Problem statement describes a specific, observable symptom
-- Each "why" answer is causal (not just restating the previous level)
-- Chain reaches a systemic or structural root cause, not just blame
-- Root cause is verified against the original problem
-- Recommended action targets the root cause, not a symptom
-</success_criteria>

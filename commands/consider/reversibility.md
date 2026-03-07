@@ -44,10 +44,3 @@ of analysis.
 - **Recommendation:** Analyze thoroughly before committing
 </output_format>
 
-<success_criteria>
-- Classification is justified with specific reasoning, not gut feel
-- Cost, time, and blast radius of reversal are all assessed
-- Two-way doors get a bias toward action (not over-analysis)
-- One-way doors get suggestions for reducing irreversibility
-- Recommendation matches the classification (fast for 2-way, careful for 1-way)
-</success_criteria>

@@ -40,10 +40,3 @@ fundamentals to find novel solutions.
 [What changes when you reason from fundamentals vs convention]
 </output_format>
 
-<success_criteria>
-- At least 3 assumptions identified and explicitly challenged
-- Each assumption classified as fundamental, convention, or unverified
-- Rebuilt solution differs meaningfully from conventional approach
-- Key insight is specific and actionable, not generic
-- Analysis grounded in the specific topic, not abstract principles
-</success_criteria>

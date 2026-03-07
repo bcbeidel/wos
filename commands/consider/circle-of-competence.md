@@ -41,10 +41,3 @@ where possible, and explicitly flagging when you're operating outside it.
 [Stay inside / expand the circle / bring in outside expertise]
 </output_format>
 
-<success_criteria>
-- Honest self-assessment (not inflating what's "inside")
-- At least 2 items in each zone (inside, edge, outside)
-- Decision requirements clearly mapped to knowledge zones
-- Strategy acknowledges gaps rather than hand-waving them away
-- Specific people, resources, or experts identified for outside zones
-</success_criteria>

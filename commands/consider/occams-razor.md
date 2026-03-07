@@ -39,10 +39,3 @@ simplicity, but not at the cost of explanatory power.
 [What would confirm or rule out alternatives]
 </output_format>
 
-<success_criteria>
-- All known facts explicitly listed before generating explanations
-- At least 3 candidate explanations with different complexity levels
-- Assumption count is specific, not vague
-- Simplest explanation genuinely accounts for all listed facts
-- Distinguishing evidence is concrete and obtainable
-</success_criteria>

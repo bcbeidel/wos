@@ -41,10 +41,3 @@ unnecessary, or creating friction. Subtraction before addition.
 [Elements that seem removable but are load-bearing]
 </output_format>
 
-<success_criteria>
-- Current state inventoried before proposing removals
-- At least 5 elements evaluated for removal
-- Each removal candidate assessed for both upside and downside
-- At least one "looks removable but isn't" identified
-- Simplified version explicitly checked against core purpose
-</success_criteria>
