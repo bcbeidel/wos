@@ -75,6 +75,38 @@ For each approved finding:
    forward to the new context files
 3. Run `uv run <plugin-scripts-dir>/audit.py --root . --no-urls` to verify
 
+## Examples
+
+<example>
+**Distillation proposal table (Phase 3):**
+
+| # | Finding | Target Area | Filename | Words (est.) |
+|---|---------|-------------|----------|--------------|
+| 1 | Event loops use cooperative multitasking, not preemptive threading | docs/context/async/ | event-loop-model.md | ~350 |
+| 2 | `asyncio.gather()` vs `TaskGroup` tradeoffs for concurrent I/O | docs/context/async/ | concurrency-patterns.md | ~400 |
+| 3 | CPU-bound work blocks the event loop; use `run_in_executor()` | docs/context/async/ | cpu-bound-workarounds.md | ~250 |
+</example>
+
+<example>
+**Distilled context file (Phase 4):**
+
+```yaml
+---
+name: "Event Loop Model"
+description: "How asyncio's single-threaded event loop achieves concurrency through cooperative multitasking"
+type: reference
+sources:
+  - https://docs.python.org/3/library/asyncio-eventloop.html
+related:
+  - docs/research/2026-02-10-asyncio-deep-dive.md
+  - docs/context/async/concurrency-patterns.md
+---
+```
+
+Tasks yield control at `await` points, allowing other tasks to run on the
+same thread. This differs from threading...
+</example>
+
 ## Key Constraints
 
 - **User controls granularity.** They pick which findings become standalone

@@ -1,11 +1,12 @@
 ---
 name: research
 description: >
-  This skill should be used when the user wants to "investigate",
-  "research", "look into", "what do we know about", "compare options",
-  "evaluate feasibility", "analyze the landscape", "find out about",
-  "deep dive into", "explore alternatives", or any request to conduct
-  a structured investigation and produce a research document.
+  Conducts structured investigations using the SIFT framework and
+  produces verified research documents. Use when the user wants to
+  "investigate", "research", "look into", "what do we know about",
+  "compare options", "evaluate feasibility", "analyze the landscape",
+  "find out about", "deep dive into", "explore alternatives", or any
+  request to conduct a structured investigation.
 argument-hint: "[topic or question to investigate]"
 user-invocable: true
 compatibility: "Requires Python 3 (stdlib only), WOS plugin (audit, reindex), WebSearch, WebFetch"
