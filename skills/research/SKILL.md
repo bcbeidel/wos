@@ -11,6 +11,7 @@ user-invocable: true
 compatibility: "Requires Python 3 (stdlib only), WOS plugin (audit, reindex), WebSearch, WebFetch"
 references:
   - references/research-workflow.md
+  - references/research-synthesis.md
   - references/sift-framework.md
   - references/source-evaluation.md
   - references/source-verification.md
@@ -124,7 +125,7 @@ AGENTS.md for structure and frontmatter.
   See `references/research-workflow.md` Phase 2.
 - **Confidence levels on every finding.** Annotate each finding as HIGH,
   MODERATE, or LOW based on source convergence and tier. See
-  `references/research-workflow.md` Phase 5.
+  `references/research-synthesis.md` Phase 5.
 - **Verify claims before finalizing.** Every quote, statistic, attribution,
   and superlative must be registered and verified. See
   `references/claim-verification.md`.

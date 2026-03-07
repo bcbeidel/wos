@@ -110,6 +110,20 @@ skills. All `uv run` commands for `audit.py`, `reindex.py`, and `check_url.py`
 preserved. Phase gate structure unchanged. Every removal justified by
 duplication analysis, not word count targets.
 
+### Reference File Split
+
+Split `research-workflow.md` (1,912 words) at the Phase 3/Phase 4 boundary:
+
+| File | Words | Content |
+|------|-------|---------|
+| research-workflow.md | 943 | Phases 1-3 (Frame, Gather, Verify) + context reset resumption |
+| research-synthesis.md | 1,017 | Phases 4-6 (Challenge, Synthesize, Finalize) + Quality Checklist |
+
+This leverages the write-to-disk checkpoint design: on context reset, the
+model only needs the relevant half's instructions. SKILL.md references list
+updated; cross-references in claim-verification.md and SKILL.md updated to
+point to the correct file for each phase.
+
 ### Tests
 
 244 tests pass. All reference cross-links verified.

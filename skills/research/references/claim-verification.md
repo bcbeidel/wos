@@ -1,7 +1,7 @@
 # Claim Verification Reference
 
 Lookup reference for claim types, table format, resolution statuses, and edge
-cases. The step-by-step verification procedure lives in `research-workflow.md`
+cases. The step-by-step verification procedure lives in `research-synthesis.md`
 Phases 5.5a and 5.5b.
 
 ## Claim Types (4)
