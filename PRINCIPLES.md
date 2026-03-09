@@ -2,48 +2,126 @@
 
 ## What WOS cares about
 
-1. **Convention over configuration.** Good patterns — document structure, naming
-   conventions, source hierarchies — are documented for humans and LLMs to
-   follow voluntarily, not enforced in code.
+### 1. Convention over configuration
+Document patterns, don't enforce them.
 
-2. **Structure in code, quality in skills.** The code layer checks what's
-   deterministic — links resolve, frontmatter exists, indexes sync. The skill
-   layer guides content quality through research rigor, source verification,
-   and structured workflows. Neither does the other's job.
+**Rationale:** Projects that enforce conventions via tooling create coupling and
+rigidity. Documentation lets teams adopt patterns voluntarily and evolve them
+without breaking automation.
+**Boundary:** When safety-critical behavior requires enforcement (e.g.,
+preventing accidental data loss), use code checks or hooks instead of
+documentation alone.
+**Verification:** No WOS code rejects valid documents based on content quality.
+Validators check structure (frontmatter exists, links resolve), not content.
 
-3. **Single source of truth.** Navigation and indexes are derived from disk
-   state, never curated by hand. Anything maintained manually will drift.
+### 2. Structure in code, quality in skills
+Deterministic checks in Python, judgment in LLMs. Neither does the other's job.
+
+**Rationale:** Code excels at deterministic checks (does this file exist? does
+this URL resolve?). LLMs excel at judgment (is this research thorough?). Mixing
+responsibilities creates brittle, unreliable systems.
+**Boundary:** When a quality check can be made deterministic (e.g., instruction
+line count thresholds), it belongs in code. The test: can you write a unit test
+for it?
+**Verification:** `wos/validators.py` contains no content quality assessments.
+Skills contain no deterministic validation logic.
+
+### 3. Single source of truth
+Navigation and indexes are derived from disk state, never curated by hand.
+
+**Rationale:** Hand-maintained indexes drift from actual content. Auto-generation
+from disk state makes navigation correct by construction.
+**Boundary:** Preambles in `_index.md` files are hand-written and preserved
+across regeneration — human curation is appropriate for context that isn't
+derivable from file metadata.
+**Verification:** `scripts/reindex.py` regenerates all `_index.md` from disk
+state. `check_index_sync()` fails when indexes don't match directory contents.
 
 ## How WOS is built
 
-4. **Keep it simple.** No class hierarchies, no frameworks, no indirection.
-   When choosing between a flexible abstraction and a straightforward
-   implementation, choose the straightforward one.
+### 4. Keep it simple
+No class hierarchies, no frameworks, no indirection. Choose the straightforward
+implementation.
 
-5. **When in doubt, leave it out.** Every required field, every abstraction,
-   every feature must justify its presence. When choosing between adding
-   complexity and removing a case, remove it.
+**Rationale:** Simplicity reduces bug surface area, lowers onboarding cost, and
+makes the codebase navigable without specialized knowledge.
+**Boundary:** Skill workflows may involve multi-phase complexity (e.g., research
+skill's phased structure). Simplicity applies within each phase, not to overall
+workflow design.
+**Verification:** `wos/` uses no class inheritance. No module exceeds ~200
+lines. No abstractions exist that serve only one caller.
 
-6. **Omit needless words.** Every word in agent-facing output must earn its
-   place. Agents consume navigation and context on every conversation —
-   brevity is a feature.
+### 5. When in doubt, leave it out
+Every field, abstraction, and feature must justify its presence.
 
-7. **Depend on nothing.** The core package depends only on the standard
-   library. External dependencies are isolated to scripts that declare their
-   own.
+**Rationale:** Each addition increases maintenance burden, documentation surface,
+and cognitive load for agents. Removal is harder than non-addition.
+**Boundary:** Does not apply to structural requirements. If omitting a field
+causes silent downstream failures (validators expect it, navigation breaks), the
+field is load-bearing, not optional.
+**Verification:** Frontmatter requires only `name` and `description`. Optional
+fields (`type`, `sources`, `related`) are validated only when present.
 
-8. **One obvious way to run.** Every script, every skill, same entry point.
-   Consistency eliminates a class of failures.
+### 6. Omit needless words
+Every word in agent-facing output must earn its place.
+
+**Rationale:** Agents consume navigation and context on every conversation turn.
+Verbose output wastes attention budget and can push important information out of
+context windows.
+**Boundary:** When cutting text degrades output quality, the words aren't
+needless. Measure by outcome (does the skill still produce good results?), not
+by word count.
+**Verification:** Skill audit warns when instruction lines exceed 200 or
+SKILL.md body exceeds 500 lines. `_index.md` entries are single-line
+descriptions.
+
+### 7. Depend on nothing
+The core package depends only on the standard library. External dependencies are
+isolated to scripts that declare their own.
+
+**Rationale:** Eliminates version conflicts and supply-chain risk. Users install
+one tool, not a dependency tree.
+**Boundary:** Dev dependencies (pytest, ruff) are acceptable. Scripts may use
+PEP 723 inline metadata for their own isolated deps.
+**Verification:** `wos/` imports nothing outside stdlib. `scripts/` use only
+PEP 723 `[tool.uv]` dependencies.
+
+### 8. One obvious way to run
+Every script, every skill, same entry point. Consistency eliminates a class of
+failures.
+
+**Rationale:** When every script runs the same way, skills don't need
+special-case instructions and users don't need to remember invocation variants.
+**Boundary:** Test invocation (`uv run python -m pytest`) differs from script
+invocation (`uv run scripts/foo.py`) — acceptable because they're different
+tools, not different patterns for the same tool.
+**Verification:** All scripts in `scripts/` have PEP 723 inline metadata and
+run via `uv run`. No skill documentation uses bare `python3` invocation.
 
 ## How WOS operates
 
-9. **Separate reads from writes.** Audit observes and reports. Fixes require
-   explicit user action. No tool modifies files as a side effect of reading
-   them.
+### 9. Separate reads from writes
+Audit observes and reports. Fixes require explicit user action. No tool modifies
+files as a side effect of reading them.
 
-10. **Bottom line up front.** LLMs lose attention in the middle of long
-    documents. Key insights go at the top and bottom. This is convention
-    (principle 1), not enforcement.
+**Rationale:** Side-effect-free reads let users safely explore project state
+without worrying about unintended modifications. This builds trust in the
+tooling.
+**Boundary:** The `--fix` flag on audit explicitly opts into writes — this is
+the user choosing to modify, not a side effect of reading.
+**Verification:** `scripts/audit.py` without `--fix` modifies no files.
+`scripts/reindex.py` is a separate explicit command.
+
+### 10. Bottom line up front
+Key insights go at the top and bottom. Detail in the middle.
+
+**Rationale:** LLMs lose attention in the middle of long documents (the "lost in
+the middle" phenomenon). Front-loading conclusions maximizes comprehension.
+**Boundary:** Short documents (under ~50 lines) don't benefit from BLUF
+formatting — the overhead exceeds the value.
+**Verification:** Skill output formats place summaries and key findings before
+supporting detail. `_index.md` preambles provide area context before file
+listings.
 
 ## What these principles reject
 
