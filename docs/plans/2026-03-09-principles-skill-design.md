@@ -1,8 +1,8 @@
 # Principles Skill Design
 
 **Issue:** #134 — Add skill to capture and structure project principles
-**Branch:** TBD (implementation)
-**PR:** TBD
+**Branch:** `feat/principles-skill`
+**PR:** TBD (will be created after implementation)
 
 ## Summary
 
@@ -281,11 +281,11 @@ Design grounded in research from
 
 ## Implementation Checklist
 
-- [ ] Create `skills/principles/SKILL.md`
-- [ ] Create `skills/principles/references/principle-structure.md`
-- [ ] Create `skills/principles/references/extraction-heuristics.md`
-- [ ] Create `skills/principles/references/drift-detection.md`
-- [ ] Register skill in CLAUDE.md architecture table
-- [ ] Update CLAUDE.md skill count and table
-- [ ] Add tests for any new Python if needed (currently none planned)
-- [ ] Run audit to verify skill quality checks pass
+- [x] Create `skills/principles/SKILL.md`
+- [x] Create `skills/principles/references/principle-structure.md`
+- [x] Create `skills/principles/references/extraction-heuristics.md`
+- [x] Create `skills/principles/references/drift-detection.md`
+- [x] Register skill in CLAUDE.md architecture table
+- [x] Update CLAUDE.md skill count and table
+- [x] Add tests for any new Python if needed (currently none planned)
+- [x] Run audit to verify skill quality checks pass

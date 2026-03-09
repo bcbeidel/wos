@@ -74,7 +74,8 @@ Before writing, check:
    [principle-structure.md](references/principle-structure.md)
 2. If CLAUDE.md exists but does not contain `@PRINCIPLES.md`, add the
    reference (at the top, next to `@AGENTS.md` if present)
-3. Run: `uv run <plugin-scripts-dir>/audit.py --root . --no-urls`
+3. Run: `uv run <plugin-scripts-dir>/reindex.py --root .`
+4. Run: `uv run <plugin-scripts-dir>/audit.py --root . --no-urls`
    to verify the skill produced valid output
 
 ### 7. Propose cleanup
