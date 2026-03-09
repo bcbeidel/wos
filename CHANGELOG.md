@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.1] - 2026-03-09
+
+### Added
+
+- **Skill workflows documentation.** README now documents four recommended
+  skill composition patterns: research pipeline, project setup, feedback loop,
+  and standalone prompt improvement. Closes #127.
+
 ## [0.16.0] - 2026-03-07
 
 ### Changed
