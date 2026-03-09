@@ -62,6 +62,51 @@ def assess_file(path: str) -> dict:
     }
 
 
+def scan_directory(root: str, subdir: str = "docs/research") -> dict:
+    """Scan a directory for research documents and return summaries.
+
+    Args:
+        root: Project root directory.
+        subdir: Subdirectory relative to root to scan (default: docs/research).
+
+    Returns:
+        Dict with keys: directory, documents. Each document has:
+        file, name, draft_marker_present, word_count, sources_count.
+    """
+    scan_path = os.path.join(root, subdir)
+
+    if not os.path.isdir(scan_path):
+        return {"directory": scan_path, "documents": []}
+
+    documents: list = []
+    for filename in sorted(os.listdir(scan_path)):
+        if not filename.endswith(".md") or filename.startswith("_"):
+            continue
+
+        file_path = os.path.join(scan_path, filename)
+        if not os.path.isfile(file_path):
+            continue
+
+        try:
+            text = _read_file(file_path)
+            doc = parse_document(file_path, text)
+        except ValueError:
+            continue
+
+        if doc.type != "research":
+            continue
+
+        documents.append({
+            "file": file_path,
+            "name": doc.name,
+            "draft_marker_present": "<!-- DRAFT -->" in doc.content,
+            "word_count": len(doc.content.split()),
+            "sources_count": len(doc.sources),
+        })
+
+    return {"directory": scan_path, "documents": documents}
+
+
 def _read_file(path: str) -> str:
     """Read file content as UTF-8 text."""
     with open(path, encoding="utf-8") as f:
