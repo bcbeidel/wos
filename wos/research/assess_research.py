@@ -8,7 +8,7 @@ next actions from these facts.
 from __future__ import annotations
 
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from wos.document import parse_document
 
@@ -95,7 +95,7 @@ _SECTION_KEYWORDS = {
 def _detect_sections(content: str) -> Dict[str, bool]:
     """Detect presence of key sections by heading text.
 
-    Looks for markdown headings (## or ###) containing known keywords.
+    Looks for markdown headings containing known keywords.
     """
     found = {key: False for key in _SECTION_KEYWORDS}
     for line in content.split("\n"):
