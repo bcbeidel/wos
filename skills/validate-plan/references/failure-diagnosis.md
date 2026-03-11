@@ -85,8 +85,9 @@ Present suggested tasks to the user:
 > suggest [M] new tasks to address them. Add these tasks to the plan
 > (keeps status: executing), or abandon the plan?"
 
-If the user adds tasks, append them to the plan's Tasks section and
-update the plan file on disk.
+If the user adds tasks, insert them into the plan's **Tasks section**
+(before the Validation heading). Tasks placed after the Validation
+heading are invisible to `assess_plan.py`. Update the plan file on disk.
 
 ## When NOT to Add Tasks
 

@@ -109,12 +109,17 @@ If any criterion failed:
 5. Keep plan in `executing` state
 6. Ask user: add suggested tasks to plan, or abandon?
 
-If the user adds tasks, append them to the plan's Tasks section and
-update the plan file. The plan returns to active execution.
+If the user adds tasks, insert them into the plan's **Tasks section**
+(before the Validation heading, not after it). This is critical —
+`assess_plan.py` only parses tasks under task-related headings. Tasks
+appended after the Validation heading will be invisible to the execution
+tooling. Update the plan file and save. The plan returns to active
+execution.
 
 ### 7. On Success
 
-When all criteria pass (automated + human confirmed):
+When all criteria pass (automated + human confirmed) and none are
+marked uncertain:
 
 1. Update plan frontmatter: `status: completed`
 2. Output structured summary:
