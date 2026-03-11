@@ -2,7 +2,7 @@
 name: Plan Document Format Implementation
 description: Add status field to Document model, create plan-format reference, and retrofit existing plans — issue #157
 type: plan
-status: draft
+status: executing
 related:
   - docs/plans/2026-03-11-plan-document-format-design.md
 ---
@@ -37,7 +37,7 @@ checkboxes.
 - Modify: `wos/document.py:19-30` (Document dataclass)
 - Test: `tests/test_document.py`
 
-- [ ] **Step 1: Write failing test — status field exists on Document**
+- [x] **Step 1: Write failing test — status field exists on Document**
 
 ```python
 # In tests/test_document.py, add to TestDocument class:
@@ -53,12 +53,12 @@ def test_status_field_default(self) -> None:
     assert doc.status is None
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `uv run python -m pytest tests/test_document.py::TestDocument::test_status_field_default -v`
 Expected: FAIL — `Document.__init__() got an unexpected keyword argument` or `has no attribute 'status'`
 
-- [ ] **Step 3: Add status field to Document dataclass and _KNOWN_FIELDS**
+- [x] **Step 3: Add status field to Document dataclass and _KNOWN_FIELDS**
 
 In `wos/document.py`:
 
@@ -70,12 +70,12 @@ _KNOWN_FIELDS = {"name", "description", "type", "sources", "related", "status"}
     status: Optional[str] = None
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `uv run python -m pytest tests/test_document.py::TestDocument::test_status_field_default -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add wos/document.py tests/test_document.py
@@ -90,7 +90,7 @@ git commit -m "feat: add status field to Document dataclass"
 - Modify: `wos/document.py:63-80` (parse_document extraction and return)
 - Test: `tests/test_document.py`
 
-- [ ] **Step 1: Write failing test — status parsed from frontmatter**
+- [x] **Step 1: Write failing test — status parsed from frontmatter**
 
 ```python
 # In tests/test_document.py, add to TestParseDocument class:
@@ -111,12 +111,12 @@ def test_plan_with_status(self) -> None:
     assert doc.type == "plan"
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `uv run python -m pytest tests/test_document.py::TestParseDocument::test_plan_with_status -v`
 Expected: FAIL — `doc.status` is `None` because `parse_document` doesn't extract it yet
 
-- [ ] **Step 3: Add status extraction to parse_document()**
+- [x] **Step 3: Add status extraction to parse_document()**
 
 In `wos/document.py`, in the "Extract known fields" section (after line 70):
 
@@ -128,12 +128,12 @@ In `wos/document.py`, in the "Extract known fields" section (after line 70):
 
 And update the return statement to include `status=status`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `uv run python -m pytest tests/test_document.py::TestParseDocument::test_plan_with_status -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add wos/document.py tests/test_document.py
@@ -148,7 +148,7 @@ git commit -m "feat: parse status field from frontmatter"
 - Modify: `wos/document.py:63-80` (add validation after extraction)
 - Test: `tests/test_document.py`
 
-- [ ] **Step 1: Write failing test — invalid status raises ValueError**
+- [x] **Step 1: Write failing test — invalid status raises ValueError**
 
 ```python
 # In tests/test_document.py, add to TestParseDocument class:
@@ -168,7 +168,7 @@ def test_raises_on_invalid_status(self) -> None:
         parse_document("docs/plans/bad.md", text)
 ```
 
-- [ ] **Step 2: Write test — all valid statuses accepted**
+- [x] **Step 2: Write test — all valid statuses accepted**
 
 ```python
 def test_all_valid_statuses(self) -> None:
@@ -188,12 +188,12 @@ def test_all_valid_statuses(self) -> None:
         assert doc.status == status
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [x] **Step 3: Run tests to verify they fail**
 
 Run: `uv run python -m pytest tests/test_document.py::TestParseDocument::test_raises_on_invalid_status tests/test_document.py::TestParseDocument::test_all_valid_statuses -v`
 Expected: `test_raises_on_invalid_status` FAILS (no ValueError raised), `test_all_valid_statuses` PASSES
 
-- [ ] **Step 4: Add status validation to parse_document()**
+- [x] **Step 4: Add status validation to parse_document()**
 
 In `wos/document.py`, after status extraction, before the return statement:
 
@@ -206,12 +206,12 @@ In `wos/document.py`, after status extraction, before the return statement:
         )
 ```
 
-- [ ] **Step 5: Run all tests to verify they pass**
+- [x] **Step 5: Run all tests to verify they pass**
 
 Run: `uv run python -m pytest tests/test_document.py -v`
 Expected: ALL PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add wos/document.py tests/test_document.py
@@ -225,7 +225,7 @@ git commit -m "feat: validate status against allowed values"
 **Files:**
 - Modify: `tests/test_document.py:119-139` (`test_unknown_fields_ignored`)
 
-- [ ] **Step 1: Update test_unknown_fields_ignored**
+- [x] **Step 1: Update test_unknown_fields_ignored**
 
 The test currently asserts `not hasattr(doc, "status")`. Since `status` is now
 a known field, update it:
@@ -254,17 +254,17 @@ def test_unknown_fields_ignored(self) -> None:
     assert not hasattr(doc, "priority")
 ```
 
-- [ ] **Step 2: Run test to verify it passes**
+- [x] **Step 2: Run test to verify it passes**
 
 Run: `uv run python -m pytest tests/test_document.py::TestParseDocument::test_unknown_fields_ignored -v`
 Expected: PASS
 
-- [ ] **Step 3: Run full test suite**
+- [x] **Step 3: Run full test suite**
 
 Run: `uv run python -m pytest tests/ -v`
 Expected: ALL PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add tests/test_document.py
@@ -278,7 +278,7 @@ git commit -m "test: update test_unknown_fields_ignored for status field"
 **Files:**
 - Create: `skills/_shared/references/plan-format.md`
 
-- [ ] **Step 1: Write the reference document**
+- [x] **Step 1: Write the reference document**
 
 Create `skills/_shared/references/plan-format.md` with the full self-contained
 spec from the design doc: frontmatter schema, required sections table,
@@ -286,11 +286,11 @@ lifecycle state machine with transitions, task decomposition rules, and design
 justification table. This is the canonical reference for downstream skills
 (write-plan, execute-plan, validate-plan).
 
-- [ ] **Step 2: Verify the file reads correctly**
+- [x] **Step 2: Verify the file reads correctly**
 
 Visually verify it's well-formatted and self-contained. No broken references.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add skills/_shared/references/plan-format.md
@@ -304,7 +304,7 @@ git commit -m "docs: add plan-format reference for downstream skills"
 **Files:**
 - Modify: `docs/plans/2026-03-06-audit-validation-enhancements-plan.md` (frontmatter)
 
-- [ ] **Step 1: Add type: plan and status: completed to frontmatter**
+- [x] **Step 1: Add type: plan and status: completed to frontmatter**
 
 This is the only existing plan with checkboxes (13/13 checked). Add:
 
@@ -313,12 +313,12 @@ type: plan
 status: completed
 ```
 
-- [ ] **Step 2: Verify the document still parses correctly**
+- [x] **Step 2: Verify the document still parses correctly**
 
 Run: `uv run python -c "from wos.document import parse_document; import pathlib; t = pathlib.Path('docs/plans/2026-03-06-audit-validation-enhancements-plan.md').read_text(); d = parse_document('test', t); print(d.status, d.type)"`
 Expected: `completed plan`
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add docs/plans/2026-03-06-audit-validation-enhancements-plan.md
@@ -332,12 +332,12 @@ git commit -m "chore: retrofit plan with type and status frontmatter"
 **Files:**
 - Modify: `docs/plans/2026-03-11-plan-document-format-implementation.md` (this file)
 
-- [ ] **Step 1: Change status from draft to executing**
+- [x] **Step 1: Change status from draft to executing**
 
 Update the frontmatter of this plan file to `status: executing` now that
 execution has begun. This validates the lifecycle transition.
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add docs/plans/2026-03-11-plan-document-format-implementation.md
@@ -348,8 +348,8 @@ git commit -m "chore: transition plan status to executing"
 
 ## Validation
 
-- [ ] `uv run python -m pytest tests/ -v` — all tests pass
-- [ ] `uv run python -m pytest tests/test_document.py -v` — status-specific tests pass
-- [ ] `skills/_shared/references/plan-format.md` exists and is self-contained
-- [ ] At least one existing plan has `type: plan` and `status: completed`
-- [ ] This plan file itself uses the new format (`type: plan`, `status`)
+- [x] `uv run python -m pytest tests/ -v` — all tests pass
+- [x] `uv run python -m pytest tests/test_document.py -v` — status-specific tests pass
+- [x] `skills/_shared/references/plan-format.md` exists and is self-contained
+- [x] At least one existing plan has `type: plan` and `status: completed`
+- [x] This plan file itself uses the new format (`type: plan`, `status`)
