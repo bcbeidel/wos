@@ -151,3 +151,74 @@ class TestDetectSections:
         result = _detect_sections("")
         assert result["all_present"] is False
         assert all(v is False for k, v in result.items() if k != "all_present")
+
+
+class TestExtractFileChanges:
+    """Tests for _extract_file_changes() — file path extraction."""
+
+    def test_extracts_paths_from_file_changes_section(self) -> None:
+        """Paths extracted from Create/Modify/Delete/Test lines."""
+        from wos.plan.assess_plan import _extract_file_changes
+
+        content = (
+            "## File Changes\n"
+            "- Create: `wos/plan/__init__.py`\n"
+            "- Create: `wos/plan/assess_plan.py`\n"
+            "- Modify: `wos/document.py`\n"
+            "- Test: `tests/test_plan_assess.py`\n"
+            "\n"
+            "## Tasks\n"
+            "- [ ] Task 1\n"
+        )
+        files = _extract_file_changes(content)
+        assert "wos/plan/__init__.py" in files
+        assert "wos/plan/assess_plan.py" in files
+        assert "wos/document.py" in files
+        assert "tests/test_plan_assess.py" in files
+
+    def test_no_file_changes_section(self) -> None:
+        """Returns empty list when no File Changes section exists."""
+        from wos.plan.assess_plan import _extract_file_changes
+
+        content = "## Goal\n\nBuild it.\n\n## Tasks\n\n- [ ] Do it\n"
+        assert _extract_file_changes(content) == []
+
+    def test_paths_without_backticks(self) -> None:
+        """Paths without backticks still extracted."""
+        from wos.plan.assess_plan import _extract_file_changes
+
+        content = (
+            "## File Changes\n"
+            "- Create: wos/plan/__init__.py\n"
+            "- Modify: wos/document.py\n"
+            "\n"
+            "## Tasks\n"
+        )
+        files = _extract_file_changes(content)
+        assert "wos/plan/__init__.py" in files
+        assert "wos/document.py" in files
+
+    def test_stops_at_next_section(self) -> None:
+        """Only parses files within File Changes section."""
+        from wos.plan.assess_plan import _extract_file_changes
+
+        content = (
+            "## File Changes\n"
+            "- Create: `wos/plan/assess_plan.py`\n"
+            "\n"
+            "## Tasks\n"
+            "- Create: `not/a/file/change.py`\n"
+        )
+        files = _extract_file_changes(content)
+        assert files == ["wos/plan/assess_plan.py"]
+
+    def test_line_with_colon_and_range(self) -> None:
+        """Paths with line ranges like 'file.py:123-145' extract just path."""
+        from wos.plan.assess_plan import _extract_file_changes
+
+        content = (
+            "## File Changes\n"
+            "- Modify: `wos/document.py:72-81`\n"
+        )
+        files = _extract_file_changes(content)
+        assert files == ["wos/document.py"]

@@ -74,3 +74,37 @@ def _detect_sections(content: str) -> Dict[str, bool]:
         v for k, v in found.items() if k != "all_present"
     )
     return found
+
+
+_FILE_CHANGE_RE = re.compile(
+    r"^-\s*(?:Create|Modify|Delete|Test):\s*`?([^`\s]+?)(?::\d[\d\-]*)?`?\s*$",
+    re.IGNORECASE,
+)
+
+
+def _extract_file_changes(content: str) -> List[str]:
+    """Extract file paths from the File Changes section.
+
+    Parses lines like ``- Create: `path/to/file.py` `` between
+    the File Changes heading and the next heading.
+
+    Returns:
+        List of file path strings.
+    """
+    files: List[str] = []
+    in_section = False
+    for line in content.split("\n"):
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            heading = stripped.lstrip("#").strip().lower()
+            if "file changes" in heading:
+                in_section = True
+                continue
+            elif in_section:
+                break  # hit next section
+        if not in_section:
+            continue
+        match = _FILE_CHANGE_RE.match(stripped)
+        if match:
+            files.append(match.group(1))
+    return files
