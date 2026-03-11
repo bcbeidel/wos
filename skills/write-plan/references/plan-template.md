@@ -48,6 +48,8 @@ remove the bracketed instructions.
     - Create: `path/to/file.py`
     - Test: `tests/path/to/test_file.py`
 
+    **Depends on:** Task N  <!-- optional: omit if purely sequential -->
+
     - [ ] **Step 1:** [Action with specific detail]
     - [ ] **Step 2:** Verify: `[concrete command with expected output]`
     - [ ] **Step 3:** Commit
@@ -58,3 +60,6 @@ remove the bracketed instructions.
 
     - [ ] `[concrete command]` — [expected outcome]
     - [ ] `[concrete command]` — [expected outcome]
+
+    ## Notes (optional)
+    [Decisions made during execution, scope adjustments, lessons learned]

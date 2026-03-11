@@ -77,6 +77,9 @@ Every task ends with a verification step. Types:
 - CLI invocation: `uv run scripts/audit.py --root . | grep "0 failures"`
 - Manual check: `wc -l skills/foo/SKILL.md` (expected: under 500)
 - Read verification: confirm file exists and contains expected content
+- Human confirmation: present summary to user, confirm scope matches intent
+- Content verification: "Verify file contains [section/keyword]"
+- Structural check: "Confirm frontmatter has required fields: name, description, type"
 
 **Task naming:** Name tasks as deliverables, not activities.
 - Good: "Login endpoint with JWT response"
@@ -95,3 +98,10 @@ At least one criterion required. Each must be concrete:
 | Good | "`uv run scripts/audit.py --root .` — no failures for new skill" |
 | Bad | "Verify the feature works correctly" |
 | Bad | "Everything should be tested" |
+
+## Chunking Large Plans
+
+Group tasks into chunks of 3-5 by logical dependency — tasks within a
+chunk share files or build on each other. Each chunk should produce
+a verifiable intermediate state. Name chunks by outcome, not sequence:
+"Authentication endpoints" not "Chunk 1."

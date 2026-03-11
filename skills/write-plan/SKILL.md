@@ -95,8 +95,16 @@ ready for execution by an agent with zero prior context.
 
 - **Plans are files, not chat.** Save to disk with frontmatter. Plans that
   exist only in conversation are lost on context reset.
+- **Plans survive context resets.** A new session resumes by reading
+  the plan file — completed tasks are `[x]`, remaining are `[ ]`.
+  Write each task so it can be started from the current git state
+  without requiring conversation history.
 - **Every task gets a verification command.** If you can't verify it, you
   can't know it's done.
+- **Commit per task creates rollback boundaries.** Each completed
+  task gets its own git commit. On failure, the agent can diff
+  against the last passing commit and roll back cleanly. This is
+  why every task ends with a commit step.
 - **Middle altitude.** Observable outcomes, not implementation prescriptions.
   Too abstract: "Implement auth." Too granular: "Write if-statement on
   line 47." Right: "Add login endpoint. Verify: `curl POST /login`
@@ -108,6 +116,10 @@ ready for execution by an agent with zero prior context.
   creep during execution. Be explicit about what's excluded.
 - **Dependencies between tasks are explicit.** If task B requires task A,
   state the dependency. Default is sequential execution.
+- **Intermediates go to disk, not just context.** During execution,
+  write discovered information (decisions, edge cases, API findings)
+  to the plan file or a companion notes file. Context resets;
+  files persist.
 - **Chunk large plans.** Use `## Chunk N: <name>` headers for plans with
   10+ tasks, grouping by logical dependency.
 
