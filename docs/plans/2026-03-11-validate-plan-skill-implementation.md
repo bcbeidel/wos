@@ -2,7 +2,7 @@
 name: Validate Plan Skill Implementation
 description: Create wos:validate-plan skill with SKILL.md and three reference files — issue #161
 type: plan
-status: executing
+status: completed
 related:
   - docs/plans/2026-03-11-validate-plan-skill-design.md
   - skills/_shared/references/plan-format.md
