@@ -1,0 +1,143 @@
+---
+name: write-plan
+description: >
+  Use when you have a spec or requirements for a multi-step task,
+  before touching code. Creates structured implementation plans with
+  explicit lifecycle management and verification criteria. Use when
+  the user wants to "plan", "make an implementation plan", "break
+  this down into tasks", or needs to turn a design into actionable
+  work items.
+argument-hint: "[design doc path or feature description]"
+user-invocable: true
+references:
+  - references/format-guide.md
+  - references/plan-template.md
+  - references/examples/small-plan.md
+  - references/examples/medium-plan.md
+---
+
+# Write Plan
+
+Convert approved designs or requirements into structured implementation plans.
+The output is a plan document — not code, not a design.
+
+## Workflow
+
+### 1. Gather Context
+
+- Read the design doc (if invoked from brainstorm, check the `related` field).
+- Explore the codebase: identify files to create, modify, or delete.
+- Check `docs/plans/` for overlapping or related plans.
+- If no design doc exists, gather requirements from the user before proceeding.
+
+### 2. Scope Check
+
+If the plan would require >20 tasks or span >3 independent subsystems,
+suggest splitting into separate plans. Each plan should produce working,
+testable software on its own.
+
+> "This looks like [N] independent pieces: [list]. I'd suggest separate
+> plans — they can be built in any order. Which should we start with?"
+
+### 3. Write the Plan
+
+Save to `docs/plans/YYYY-MM-DD-<feature-name>.md` using the
+[Plan Document Format](../_shared/references/plan-format.md).
+
+See [Format Guide](references/format-guide.md) for how to write each section
+effectively. Use the [Plan Template](references/plan-template.md) as a
+starting skeleton.
+
+All 6 required sections: Goal, Scope, Approach, File Changes, Tasks,
+Validation. At least one concrete validation criterion — not "verify it
+works" but a specific command with expected output.
+
+### 4. Infeasibility Check
+
+If plan creation reveals the design cannot be implemented as specified,
+do not silently modify scope. Instead, produce structured feedback:
+
+    ## Feedback
+
+    **Infeasible:** [specific design element that cannot be implemented]
+    **Evidence:** [files checked, APIs tested, dependencies missing]
+    **Impact:** [which plan tasks are affected and how]
+    **Alternatives:** [suggested modifications, if any]
+
+Present the user with three options:
+
+1. **Return to brainstorm** — invoke `wos:brainstorm` with this feedback
+   to revise the design. Follow the "supersede, don't edit" pattern.
+2. **Proceed with modified scope** — adjust the plan's Must/Won't and
+   continue. Document what changed and why in the Approach section.
+3. **Abandon** — set `status: abandoned` with a reason in the plan.
+
+### 5. Review with User
+
+Present a summary:
+- Goal (1 sentence)
+- Task count and estimated file changes
+- Key scope boundaries (Must/Won't highlights)
+- Validation criteria
+
+Do not proceed until the user approves.
+
+### 6. Update Status
+
+When the user approves, set `status: approved` in the plan's frontmatter.
+
+### 7. Hand Off
+
+Offer to invoke `wos:execute-plan` for implementation. The plan should be
+ready for execution by an agent with zero prior context.
+
+## Key Instructions
+
+- **Plans are files, not chat.** Save to disk with frontmatter. Plans that
+  exist only in conversation are lost on context reset.
+- **Every task gets a verification command.** If you can't verify it, you
+  can't know it's done.
+- **Middle altitude.** Observable outcomes, not implementation prescriptions.
+  Too abstract: "Implement auth." Too granular: "Write if-statement on
+  line 47." Right: "Add login endpoint. Verify: `curl POST /login`
+  returns 200 with token."
+- **One plan per feature.** Multi-system changes get separate plans.
+- **Link to design docs.** Use the `related` field to connect plans to
+  their design specs, establishing traceability.
+- **Scope boundaries are load-bearing.** Won't-have items prevent scope
+  creep during execution. Be explicit about what's excluded.
+- **Dependencies between tasks are explicit.** If task B requires task A,
+  state the dependency. Default is sequential execution.
+- **Chunk large plans.** Use `## Chunk N: <name>` headers for plans with
+  10+ tasks, grouping by logical dependency.
+
+## Anti-Pattern Guards
+
+1. **Premature implementation** — writing code or invoking execution skills
+   before the plan is approved. The plan is the deliverable.
+2. **Vague validation** — "verify it works" is not a criterion. Every
+   validation item needs a concrete command or observable check.
+3. **Task granularity extremes** — tasks should be independently verifiable
+   outcomes. Neither "implement the feature" nor "add import statement."
+4. **Scope creep during planning** — if the plan grows beyond the design,
+   something is wrong. Check whether the design needs revision (step 4)
+   or the plan needs splitting (step 2).
+5. **Skipping the infeasibility check** — even if everything seems fine,
+   confirm the design's assumptions against the actual codebase before
+   presenting for review.
+
+## Output Format
+
+Plan documents use WOS frontmatter:
+
+    ---
+    name: Feature Name
+    description: One-sentence summary
+    type: plan
+    status: draft
+    related:
+      - docs/plans/YYYY-MM-DD-<name>-design.md
+    ---
+
+Save to `docs/plans/YYYY-MM-DD-<feature-name>.md`. The `related` field
+links to design docs, context files, or other plans.
