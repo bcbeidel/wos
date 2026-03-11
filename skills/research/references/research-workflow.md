@@ -48,26 +48,6 @@ Read the document fully to recover context before continuing.
 
 ## Phase 2: Gather Sources
 
-1. Breadth-first web searches across sub-questions. Aim for 10-20 candidates.
-2. For each candidate: record URL, title, publication date, author/org. Flag as **unverified**.
-3. Log each search:
-
-```json
-{"query": "terms", "source": "google", "date_range": "2024-2026", "results_found": 12, "results_used": 3}
-```
-
-4. After gathering, record skipped sources in `not_searched` with reasons.
-
-> **Fetch failures:** Retry failed `WebFetch` calls individually. Retry
-> 3xx with redirect URL. Keep 403 if from published venue. Retry timeouts
-> once, then skip. Do not drop sources solely because fetching failed.
-
-5. **Write to disk.** Create `docs/research/{date}-{slug}.md` with `type: research` frontmatter, a `<!-- DRAFT -->` marker, a sources table (# | URL | Title | Author/Org | Date | Status), and a `<!-- search-protocol ... -->` comment containing the accumulated JSON.
-
-> **Reflection checkpoints.** After every 2-3 searches, pause and assess:
-> What did I find? Which sub-questions have coverage? Are results
-> converging or diverging? Should I continue searching or move on?
-
 > **Search budgets by SIFT rigor:**
 >
 > | SIFT Rigor | Searches per sub-question | Total budget |
@@ -75,29 +55,58 @@ Read the document fully to recover context before continuing.
 > | Low        | 2-3                       | 5-10         |
 > | Medium     | 3-5                       | 10-15        |
 > | High       | 5-8                       | 15-25        |
->
-> If results converge before hitting the budget, stop early. If the budget
-> is exhausted without convergence, note the gap and move on.
+
+For each sub-question, repeat until coverage is sufficient or budget is
+exhausted:
+
+1. Execute a search. Aim for 10-20 candidates total across all sub-questions.
+2. For each candidate: record URL, title, publication date, author/org. Flag as **unverified**.
+3. Log the search:
+
+```json
+{"query": "terms", "source": "google", "date_range": "2024-2026", "results_found": 12, "results_used": 3}
+```
+
+4. **Reflect.** After every 2-3 searches, assess: which sub-questions have
+   coverage? Are results converging? Continue, shift to another sub-question,
+   or stop.
+
+> **Fetch failures:** Retry failed `WebFetch` calls individually. Retry
+> 3xx with redirect URL. Keep 403 if from published venue. Retry timeouts
+> once, then skip. Do not drop sources solely because fetching failed.
+
+After the loop completes:
+
+5. Record skipped sources in `not_searched` with reasons.
+6. **Write to disk.** Create `docs/research/{date}-{slug}.md` with `type: research` frontmatter, a `<!-- DRAFT -->` marker, a sources table (# | URL | Title | Author/Org | Date | Status), and a `<!-- search-protocol ... -->` comment containing the accumulated JSON.
 
 ## Phase 3: Extract Source Content
 
-For each fetched source, extract relevant content and discard noise.
-This is **lossless extraction**, not summarization — Phases 8-9 need
-original source content for claim verification.
+For each fetched source, extract relevant content verbatim and discard
+boilerplate (navigation, ads, sidebars, unrelated content). This is
+**lossless extraction**, not summarization — Phases 8-9 need original
+source content for claim verification.
 
-**Extract (verbatim):**
-- Passages directly relevant to sub-questions
-- Key data points, statistics, and direct quotes
-- Author, date, and publication metadata
-- The source URL attached to each extract
+Update the DRAFT document with structured extracts. Format per source:
 
-**Discard:**
-- Navigation, headers/footers, ads, sidebar content
-- Content unrelated to sub-questions
-- Duplicate passages across sources
+```markdown
+### Source [1]: asyncio — Asynchronous I/O
+- **URL:** https://docs.python.org/3/library/asyncio.html
+- **Author/Org:** Python Software Foundation | **Date:** 2024
 
-Update the DRAFT document: replace raw fetched content with structured
-extracts. Every extract retains its source URL for Phase 4+ verification.
+**Re: How does asyncio handle concurrency?**
+> "The library provides a foundation for writing single-threaded concurrent
+> code using coroutines, multiplexing I/O access over sockets and other
+> resources, running network clients and servers, and other related
+> primitives." (Introduction, para 1)
+
+**Re: What are the performance characteristics?**
+> "Running an asyncio Program... This function always creates a new event
+> loop and closes it at the end." (Runners section, para 1)
+```
+
+Each extract links to its sub-question, preserves exact wording, and
+notes location within the source for Phase 4+ verification.
 
 ## Phase 4: Verify Sources
 
