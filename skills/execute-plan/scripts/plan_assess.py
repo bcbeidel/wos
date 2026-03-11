@@ -7,7 +7,7 @@
 
 Usage:
     uv run skills/execute-plan/scripts/plan_assess.py --file PATH
-    uv run skills/execute-plan/scripts/plan_assess.py --scan [--root DIR]
+    uv run skills/execute-plan/scripts/plan_assess.py --scan [--root DIR] [--subdir PATH]
 """
 from __future__ import annotations
 
@@ -49,6 +49,11 @@ def main() -> None:
         default=".",
         help="Project root directory (default: current directory)",
     )
+    parser.add_argument(
+        "--subdir",
+        default="docs/plans",
+        help="Subdirectory to scan (default: docs/plans)",
+    )
     args = parser.parse_args()
 
     from wos.plan.assess_plan import assess_file, scan_plans
@@ -57,7 +62,7 @@ def main() -> None:
         result = assess_file(args.file)
     else:
         root = str(Path(args.root).resolve())
-        result = scan_plans(root)
+        result = scan_plans(root, subdir=args.subdir)
 
     print(json.dumps(result, indent=2))
 

@@ -7,6 +7,8 @@ related:
   - docs/plans/2026-03-11-plan-document-format-design.md
   - docs/plans/2026-03-11-write-plan-skill.md
   - docs/plans/2026-03-11-brainstorm-skill.md
+branch: feat/160-execute-plan-skill
+pull-request: https://github.com/bcbeidel/wos/pull/168
 ---
 
 # Execute Plan Skill Design

@@ -76,6 +76,49 @@ class TestParseTasks:
         tasks = _parse_tasks(content)
         assert len(tasks) == 2
 
+    def test_non_task_heading_closes_gate(self) -> None:
+        """Checkboxes after a non-task heading are excluded."""
+        from wos.plan.assess_plan import _parse_tasks
+
+        content = (
+            "## Tasks\n"
+            "\n"
+            "- [ ] Task 1: Real task\n"
+            "- [ ] Task 2: Also real\n"
+            "\n"
+            "## Validation\n"
+            "\n"
+            "- [ ] pytest passes\n"
+            "- [ ] linter clean\n"
+        )
+        tasks = _parse_tasks(content)
+        assert len(tasks) == 2
+
+    def test_non_task_non_validation_heading_closes_gate(self) -> None:
+        """Headings like 'File Changes' after Tasks close the task gate."""
+        from wos.plan.assess_plan import _parse_tasks
+
+        content = (
+            "## Goal\n"
+            "\n"
+            "- [ ] Not a task (in goal)\n"
+            "\n"
+            "## Tasks\n"
+            "\n"
+            "- [ ] Task 1: Real task\n"
+            "\n"
+            "## Notes\n"
+            "\n"
+            "- [ ] Not a task (in notes)\n"
+            "\n"
+            "## Validation\n"
+            "\n"
+            "- [ ] Not a task (in validation)\n"
+        )
+        tasks = _parse_tasks(content)
+        assert len(tasks) == 1
+        assert tasks[0]["title"] == "Real task"
+
     def test_title_without_task_prefix(self) -> None:
         """Checkboxes without 'Task N:' prefix use full text as title."""
         from wos.plan.assess_plan import _parse_tasks

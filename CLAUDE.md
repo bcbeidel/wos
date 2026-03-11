@@ -46,7 +46,7 @@ Full descriptions: [Design Principles](PRINCIPLES.md)
 
 ### Package Structure
 
-- `wos/` — importable Python package (10 modules)
+- `wos/` — importable Python package (10 modules + 2 subpackages)
   - `frontmatter.py` — custom YAML subset parser (stdlib-only)
   - `document.py` — `Document` dataclass + `parse_document()`
   - `index.py` — `_index.md` generation + sync checking (preamble-preserving)
@@ -57,6 +57,8 @@ Full descriptions: [Design Principles](PRINCIPLES.md)
   - `markers.py` — shared marker-based section replacement
   - `preferences.py` — communication preferences dimensions and rendering
   - `research_protocol.py` — search protocol logging (`SearchEntry`, `SearchProtocol`, formatters)
+  - `research/` — research skill support (`assess_research.py` — research document assessment)
+  - `plan/` — plan skill support (`assess_plan.py` — plan document structural assessment)
 - `scripts/` — thin CLI entry points with argparse and PEP 723 inline metadata
   - `audit.py` — run validation checks (`--root`, `--no-urls`, `--json`, `--fix`, `--strict`, `--context-min-words`, `--context-max-words`, `--skill-max-lines`)
   - `reindex.py` — regenerate all `_index.md` files (preamble-preserving)

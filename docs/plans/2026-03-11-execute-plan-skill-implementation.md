@@ -2,9 +2,11 @@
 name: Execute Plan Skill Implementation
 description: Implementation plan for wos:execute-plan skill — entry script, SKILL.md, and 4 reference files
 type: plan
-status: executing
+status: completed
 related:
   - docs/plans/2026-03-11-execute-plan-skill-design.md
+branch: feat/160-execute-plan-skill
+pull-request: https://github.com/bcbeidel/wos/pull/168
 ---
 
 # Execute Plan Skill Implementation
@@ -58,13 +60,13 @@ have no code dependencies.
 - Create: `wos/plan/assess_plan.py` (stub)
 - Create: `tests/test_plan_assess.py`
 
-- [ ] Create `wos/plan/__init__.py` with docstring:
+- [x] Create `wos/plan/__init__.py` with docstring:
 
 ```python
 """WOS plan skill support modules."""
 ```
 
-- [ ] Create `wos/plan/assess_plan.py` with module docstring and empty
+- [x] Create `wos/plan/assess_plan.py` with module docstring and empty
   `_parse_tasks` stub that raises `NotImplementedError`
 
 ```python
@@ -82,7 +84,7 @@ def _parse_tasks(content: str) -> list:
     raise NotImplementedError
 ```
 
-- [ ] Write failing tests in `tests/test_plan_assess.py`:
+- [x] Write failing tests in `tests/test_plan_assess.py`:
 
 ```python
 """Tests for wos/plan/assess_plan.py."""
@@ -100,8 +102,8 @@ class TestParseTasks:
         content = (
             "### Tasks\n"
             "\n"
-            "- [ ] Task 1: Create package structure\n"
-            "- [ ] Task 2: Write tests\n"
+            "- [x] Task 1: Create package structure\n"
+            "- [x] Task 2: Write tests\n"
         )
         tasks = _parse_tasks(content)
         assert len(tasks) == 2
@@ -115,7 +117,7 @@ class TestParseTasks:
         content = (
             "- [x] Task 1: Create package <!-- sha:a1b2c3d -->\n"
             "- [x] Task 2: Write tests <!-- sha:e4f5g6h -->\n"
-            "- [ ] Task 3: Implement parser\n"
+            "- [x] Task 3: Implement parser\n"
         )
         tasks = _parse_tasks(content)
         assert len(tasks) == 3
@@ -145,10 +147,10 @@ class TestParseTasks:
         from wos.plan.assess_plan import _parse_tasks
 
         content = (
-            "- [ ] Task 1: Create package\n"
-            "  - [ ] Step 1a: Write init file\n"
-            "  - [ ] Step 1b: Add docstring\n"
-            "- [ ] Task 2: Write tests\n"
+            "- [x] Task 1: Create package\n"
+            "  - [x] Step 1a: Write init file\n"
+            "  - [x] Step 1b: Add docstring\n"
+            "- [x] Task 2: Write tests\n"
         )
         tasks = _parse_tasks(content)
         assert len(tasks) == 2
@@ -157,19 +159,19 @@ class TestParseTasks:
         """Checkboxes without 'Task N:' prefix use full text as title."""
         from wos.plan.assess_plan import _parse_tasks
 
-        content = "- [ ] Create package structure\n- [ ] Write tests\n"
+        content = "- [x] Create package structure\n- [x] Write tests\n"
         tasks = _parse_tasks(content)
         assert tasks[0]["title"] == "Create package structure"
         assert tasks[1]["title"] == "Write tests"
 ```
 
-- [ ] Run tests — expected: all FAIL with `NotImplementedError`
+- [x] Run tests — expected: all FAIL with `NotImplementedError`
 
 ```bash
 uv run python -m pytest tests/test_plan_assess.py -v
 ```
 
-- [ ] Implement `_parse_tasks` in `wos/plan/assess_plan.py`:
+- [x] Implement `_parse_tasks` in `wos/plan/assess_plan.py`:
 
 ```python
 import re
@@ -187,7 +189,7 @@ _TASK_RE = re.compile(
 def _parse_tasks(content: str) -> List[dict]:
     """Extract top-level checkbox items from plan content.
 
-    Parses ``- [ ] Task N: title`` and ``- [x] Task N: title <!-- sha:abc -->``
+    Parses ``- [x] Task N: title`` and ``- [x] Task N: title <!-- sha:abc -->``
     patterns. Indented checkboxes (sub-steps) are ignored.
 
     Returns:
@@ -210,13 +212,13 @@ def _parse_tasks(content: str) -> List[dict]:
     return tasks
 ```
 
-- [ ] Run tests — expected: all PASS
+- [x] Run tests — expected: all PASS
 
 ```bash
 uv run python -m pytest tests/test_plan_assess.py -v
 ```
 
-- [ ] Commit
+- [x] Commit <!-- sha:b6f25c9 -->
 
 ### Task 2: Write tests for `_detect_sections` and implement
 
@@ -224,7 +226,7 @@ uv run python -m pytest tests/test_plan_assess.py -v
 - Modify: `wos/plan/assess_plan.py`
 - Modify: `tests/test_plan_assess.py`
 
-- [ ] Add tests to `tests/test_plan_assess.py`:
+- [x] Add tests to `tests/test_plan_assess.py`:
 
 ```python
 class TestDetectSections:
@@ -239,8 +241,8 @@ class TestDetectSections:
             "## Scope\n\nMust/Won't.\n\n"
             "## Approach\n\nHow.\n\n"
             "## File Changes\n\n- Create: foo.py\n\n"
-            "## Tasks\n\n- [ ] Do stuff\n\n"
-            "## Validation\n\n- [ ] pytest passes\n"
+            "## Tasks\n\n- [x] Do stuff\n\n"
+            "## Validation\n\n- [x] pytest passes\n"
         )
         result = _detect_sections(content)
         assert result == {
@@ -257,7 +259,7 @@ class TestDetectSections:
         """Missing sections reported as False, all_present is False."""
         from wos.plan.assess_plan import _detect_sections
 
-        content = "## Goal\n\nBuild it.\n\n## Tasks\n\n- [ ] Do it\n"
+        content = "## Goal\n\nBuild it.\n\n## Tasks\n\n- [x] Do it\n"
         result = _detect_sections(content)
         assert result["goal"] is True
         assert result["tasks"] is True
@@ -294,8 +296,8 @@ class TestDetectSections:
         assert all(v is False for k, v in result.items() if k != "all_present")
 ```
 
-- [ ] Run tests — expected: FAIL (function doesn't exist)
-- [ ] Implement `_detect_sections`:
+- [x] Run tests — expected: FAIL (function doesn't exist)
+- [x] Implement `_detect_sections`:
 
 ```python
 _PLAN_SECTIONS = {
@@ -327,8 +329,8 @@ def _detect_sections(content: str) -> Dict[str, bool]:
     return found
 ```
 
-- [ ] Run tests — expected: all PASS
-- [ ] Commit
+- [x] Run tests — expected: all PASS
+- [x] Commit <!-- sha:1d14ecf -->
 
 ### Task 3: Write tests for `_extract_file_changes` and implement
 
@@ -336,7 +338,7 @@ def _detect_sections(content: str) -> Dict[str, bool]:
 - Modify: `wos/plan/assess_plan.py`
 - Modify: `tests/test_plan_assess.py`
 
-- [ ] Add tests:
+- [x] Add tests:
 
 ```python
 class TestExtractFileChanges:
@@ -354,7 +356,7 @@ class TestExtractFileChanges:
             "- Test: `tests/test_plan_assess.py`\n"
             "\n"
             "## Tasks\n"
-            "- [ ] Task 1\n"
+            "- [x] Task 1\n"
         )
         files = _extract_file_changes(content)
         assert "wos/plan/__init__.py" in files
@@ -366,7 +368,7 @@ class TestExtractFileChanges:
         """Returns empty list when no File Changes section exists."""
         from wos.plan.assess_plan import _extract_file_changes
 
-        content = "## Goal\n\nBuild it.\n\n## Tasks\n\n- [ ] Do it\n"
+        content = "## Goal\n\nBuild it.\n\n## Tasks\n\n- [x] Do it\n"
         assert _extract_file_changes(content) == []
 
     def test_paths_without_backticks(self) -> None:
@@ -410,8 +412,8 @@ class TestExtractFileChanges:
         assert files == ["wos/document.py"]
 ```
 
-- [ ] Run tests — expected: FAIL
-- [ ] Implement `_extract_file_changes`:
+- [x] Run tests — expected: FAIL
+- [x] Implement `_extract_file_changes`:
 
 ```python
 _FILE_CHANGE_RE = re.compile(
@@ -448,8 +450,8 @@ def _extract_file_changes(content: str) -> List[str]:
     return files
 ```
 
-- [ ] Run tests — expected: all PASS
-- [ ] Commit
+- [x] Run tests — expected: all PASS
+- [x] Commit <!-- sha:ae6a68a -->
 
 ### Task 4: Write tests for `_map_task_files` and `_find_overlaps`, then implement
 
@@ -457,7 +459,7 @@ def _extract_file_changes(content: str) -> List[str]:
 - Modify: `wos/plan/assess_plan.py`
 - Modify: `tests/test_plan_assess.py`
 
-- [ ] Add tests:
+- [x] Add tests:
 
 ```python
 class TestMapTaskFiles:
@@ -503,8 +505,8 @@ class TestMapTaskFiles:
             "- Create: `bar.py`\n"
             "\n"
             "## Tasks\n"
-            "- [ ] Task A\n"
-            "- [ ] Task B\n"
+            "- [x] Task A\n"
+            "- [x] Task B\n"
         )
         result = _map_task_files(tasks, file_changes, content)
         assert result["1"] == ["foo.py", "bar.py"]
@@ -551,8 +553,8 @@ class TestFindOverlaps:
         assert _find_overlaps({}) == []
 ```
 
-- [ ] Run tests — expected: FAIL
-- [ ] Implement `_map_task_files` and `_find_overlaps`:
+- [x] Run tests — expected: FAIL
+- [x] Implement `_map_task_files` and `_find_overlaps`:
 
 ```python
 _TASK_HEADING_RE = re.compile(r"^#{2,4}\s+Task\s+(\d+)", re.IGNORECASE)
@@ -612,8 +614,8 @@ def _find_overlaps(task_file_map: Dict[str, List[str]]) -> List[dict]:
     return overlaps
 ```
 
-- [ ] Run tests — expected: all PASS
-- [ ] Commit
+- [x] Run tests — expected: all PASS
+- [x] Commit <!-- sha:4761c03 -->
 
 ### Task 5: Write tests for `assess_file` and `scan_plans`, then implement
 
@@ -623,7 +625,7 @@ def _find_overlaps(task_file_map: Dict[str, List[str]]) -> List[dict]:
 
 Depends on: Tasks 1-4
 
-- [ ] Add tests:
+- [x] Add tests:
 
 ```python
 class TestAssessFile:
@@ -644,7 +646,7 @@ class TestAssessFile:
             "## Approach\n\nHow.\n\n"
             f"## File Changes\n{file_changes_content}\n\n"
             f"## Tasks\n{tasks_content}\n\n"
-            "## Validation\n\n- [ ] pytest passes\n"
+            "## Validation\n\n- [x] pytest passes\n"
         )
         path.write_text(content)
 
@@ -655,7 +657,7 @@ class TestAssessFile:
         plan = tmp_path / "plan.md"
         self._write_plan(
             plan,
-            tasks_content="- [ ] Task 1: Do stuff\n- [ ] Task 2: More stuff\n",
+            tasks_content="- [x] Task 1: Do stuff\n- [x] Task 2: More stuff\n",
             file_changes_content="- Create: `foo.py`\n",
         )
         result = assess_file(str(plan))
@@ -679,8 +681,8 @@ class TestAssessFile:
             status="executing",
             tasks_content=(
                 "- [x] Task 1: Done <!-- sha:abc1234 -->\n"
-                "- [ ] Task 2: Pending\n"
-                "- [ ] Task 3: Also pending\n"
+                "- [x] Task 2: Pending\n"
+                "- [x] Task 3: Also pending\n"
             ),
         )
         result = assess_file(str(plan))
@@ -726,12 +728,12 @@ class TestAssessFile:
             "## File Changes\n"
             "- Create: `a.py`\n- Create: `b.py`\n- Create: `c.py`\n\n"
             "### Task 1: A\n\n**Files:**\n- Create: `a.py`\n\n"
-            "- [ ] Do A\n\n"
+            "- [x] Do A\n\n"
             "### Task 2: B\n\n**Files:**\n- Create: `b.py`\n\n"
-            "- [ ] Do B\n\n"
+            "- [x] Do B\n\n"
             "### Task 3: C\n\n**Files:**\n- Create: `c.py`\n\n"
-            "- [ ] Do C\n\n"
-            "## Validation\n\n- [ ] Works\n"
+            "- [x] Do C\n\n"
+            "## Validation\n\n- [x] Works\n"
         )
         plan.write_text(content)
         result = assess_file(str(plan))
@@ -755,12 +757,12 @@ class TestAssessFile:
             "## File Changes\n"
             "- Modify: `shared.py`\n- Create: `b.py`\n- Create: `c.py`\n\n"
             "### Task 1: A\n\n**Files:**\n- Modify: `shared.py`\n\n"
-            "- [ ] Do A\n\n"
+            "- [x] Do A\n\n"
             "### Task 2: B\n\n**Files:**\n- Modify: `shared.py`\n- Create: `b.py`\n\n"
-            "- [ ] Do B\n\n"
+            "- [x] Do B\n\n"
             "### Task 3: C\n\n**Files:**\n- Create: `c.py`\n\n"
-            "- [ ] Do C\n\n"
-            "## Validation\n\n- [ ] Works\n"
+            "- [x] Do C\n\n"
+            "## Validation\n\n- [x] Works\n"
         )
         plan.write_text(content)
         result = assess_file(str(plan))
@@ -835,8 +837,8 @@ class TestScanPlans:
         assert result["plans"] == []
 ```
 
-- [ ] Run tests — expected: FAIL
-- [ ] Implement `assess_file` and `scan_plans`:
+- [x] Run tests — expected: FAIL
+- [x] Implement `assess_file` and `scan_plans`:
 
 ```python
 def assess_file(path: str) -> dict:
@@ -984,13 +986,13 @@ def _read_file(path: str) -> str:
         return f.read()
 ```
 
-- [ ] Run full test suite — expected: all PASS
+- [x] Run full test suite — expected: all PASS
 
 ```bash
 uv run python -m pytest tests/test_plan_assess.py -v
 ```
 
-- [ ] Commit
+- [x] Commit <!-- sha:3e7617f -->
 
 ### Task 6: Create CLI wrapper script
 
@@ -999,13 +1001,13 @@ uv run python -m pytest tests/test_plan_assess.py -v
 
 Depends on: Task 5
 
-- [ ] Create directory structure:
+- [x] Create directory structure:
 
 ```bash
 mkdir -p skills/execute-plan/scripts
 ```
 
-- [ ] Write `skills/execute-plan/scripts/plan_assess.py`:
+- [x] Write `skills/execute-plan/scripts/plan_assess.py`:
 
 ```python
 #!/usr/bin/env python3
@@ -1076,7 +1078,7 @@ if __name__ == "__main__":
     main()
 ```
 
-- [ ] Test the CLI wrapper:
+- [x] Test the CLI wrapper:
 
 ```bash
 uv run skills/execute-plan/scripts/plan_assess.py --file docs/plans/2026-03-11-execute-plan-skill-design.md
@@ -1084,7 +1086,7 @@ uv run skills/execute-plan/scripts/plan_assess.py --file docs/plans/2026-03-11-e
 
 Expected: JSON output with plan assessment.
 
-- [ ] Test scan mode:
+- [x] Test scan mode:
 
 ```bash
 uv run skills/execute-plan/scripts/plan_assess.py --scan --root .
@@ -1092,7 +1094,7 @@ uv run skills/execute-plan/scripts/plan_assess.py --scan --root .
 
 Expected: JSON output (likely empty plans list since no executing plans).
 
-- [ ] Commit
+- [x] Commit <!-- sha:dcec7d4 -->
 
 ---
 
@@ -1105,7 +1107,7 @@ Expected: JSON output (likely empty plans list since no executing plans).
 
 Depends on: Task 6
 
-- [ ] Write `skills/execute-plan/SKILL.md` following the design spec's
+- [x] Write `skills/execute-plan/SKILL.md` following the design spec's
   workflow (Steps 1-6), key instructions, and anti-pattern guards. Must
   include:
   - Frontmatter with metadata, argument-hint, user-invocable, references
@@ -1117,20 +1119,20 @@ Depends on: Task 6
   - Key instructions (5 items)
   - Anti-pattern guards (5 items)
 
-- [ ] Verify line count under 500:
+- [x] Verify line count under 500:
 
 ```bash
 wc -l skills/execute-plan/SKILL.md
 ```
 
-- [ ] Commit
+- [x] Commit <!-- sha:bc1fffb -->
 
 ### Task 8: Write `references/execution-guide.md`
 
 **Files:**
 - Create: `skills/execute-plan/references/execution-guide.md`
 
-- [ ] Write execution guide covering:
+- [x] Write execution guide covering:
   - Task execution protocol (implement → verify → checkbox → SHA → commit)
   - Commit discipline (per-task, message format, chunk boundaries)
   - Three-tier verification model table (automated, structural, reasoning)
@@ -1147,20 +1149,20 @@ description: Core execution loop guidance — task protocol, commit discipline, 
 ---
 ```
 
-- [ ] Verify line count ~100:
+- [x] Verify line count ~100:
 
 ```bash
 wc -l skills/execute-plan/references/execution-guide.md
 ```
 
-- [ ] Commit
+- [x] Commit <!-- sha:39ef6a0 -->
 
 ### Task 9: Write `references/parallel-dispatch.md`
 
 **Files:**
 - Create: `skills/execute-plan/references/parallel-dispatch.md`
 
-- [ ] Write parallel dispatch reference covering:
+- [x] Write parallel dispatch reference covering:
   - Eligibility criteria (3+ tasks, no overlaps, user opt-in)
   - File-boundary analysis interpretation
   - Wave-based execution pattern
@@ -1178,20 +1180,20 @@ description: Platform-agnostic parallel execution protocol — eligibility, file
 ---
 ```
 
-- [ ] Verify line count ~100:
+- [x] Verify line count ~100:
 
 ```bash
 wc -l skills/execute-plan/references/parallel-dispatch.md
 ```
 
-- [ ] Commit
+- [x] Commit <!-- sha:39ef6a0 -->
 
 ### Task 10: Write `references/recovery-patterns.md`
 
 **Files:**
 - Create: `skills/execute-plan/references/recovery-patterns.md`
 
-- [ ] Write recovery patterns reference covering:
+- [x] Write recovery patterns reference covering:
   - Task splitting on partial completion
   - Retry protocol (2 retries / 3 total attempts)
   - Escalation format (tried, evidence, options, recommendation)
@@ -1208,20 +1210,20 @@ description: Failure handling — task splitting, retry protocol, escalation, gi
 ---
 ```
 
-- [ ] Verify line count ~90:
+- [x] Verify line count ~90:
 
 ```bash
 wc -l skills/execute-plan/references/recovery-patterns.md
 ```
 
-- [ ] Commit
+- [x] Commit <!-- sha:39ef6a0 -->
 
 ### Task 11: Write `references/multi-session-resumption.md`
 
 **Files:**
 - Create: `skills/execute-plan/references/multi-session-resumption.md`
 
-- [ ] Write multi-session resumption reference covering:
+- [x] Write multi-session resumption reference covering:
   - Session start protocol (5-step: script → pending task → git log → SHA confirm → resume)
   - Plan file as source of truth, git as secondary
   - No conversation context reliance
@@ -1238,13 +1240,13 @@ description: Session recovery protocol — plan file reading, SHA verification, 
 ---
 ```
 
-- [ ] Verify line count ~80:
+- [x] Verify line count ~80:
 
 ```bash
 wc -l skills/execute-plan/references/multi-session-resumption.md
 ```
 
-- [ ] Commit
+- [x] Commit <!-- sha:39ef6a0 -->
 
 ---
 
@@ -1257,7 +1259,7 @@ wc -l skills/execute-plan/references/multi-session-resumption.md
 
 Depends on: Tasks 1-11
 
-- [ ] Run full test suite:
+- [x] Run full test suite:
 
 ```bash
 uv run python -m pytest tests/ -v
@@ -1265,13 +1267,13 @@ uv run python -m pytest tests/ -v
 
 Expected: ALL PASS (including existing tests).
 
-- [ ] Run linter:
+- [x] Run linter:
 
 ```bash
 ruff check wos/plan/ tests/test_plan_assess.py skills/execute-plan/scripts/plan_assess.py
 ```
 
-- [ ] Run WOS audit:
+- [x] Run WOS audit:
 
 ```bash
 uv run scripts/audit.py --root .
@@ -1279,30 +1281,30 @@ uv run scripts/audit.py --root .
 
 Expected: No new failures from execute-plan files.
 
-- [ ] Verify SKILL.md under 500 lines:
+- [x] Verify SKILL.md under 500 lines:
 
 ```bash
 wc -l skills/execute-plan/SKILL.md
 ```
 
-- [ ] Verify entry script works end-to-end:
+- [x] Verify entry script works end-to-end:
 
 ```bash
 uv run skills/execute-plan/scripts/plan_assess.py --file docs/plans/2026-03-11-execute-plan-skill-design.md
 ```
 
-- [ ] Update this plan's status to `executing` (if not already)
-- [ ] Commit any fixes
+- [x] Update this plan's status to `executing` (if not already)
+- [x] Commit any fixes
 
 ---
 
 ## Validation
 
-- [ ] `uv run python -m pytest tests/ -v` — all tests pass (existing + new)
-- [ ] `ruff check wos/plan/ tests/test_plan_assess.py` — no lint errors
-- [ ] `uv run scripts/audit.py --root .` — no new failures
-- [ ] `wc -l skills/execute-plan/SKILL.md` — under 500 lines
-- [ ] Entry script `--file` mode returns valid JSON with all expected keys
-- [ ] Entry script `--scan` mode returns valid JSON
-- [ ] All 13 issue #160 acceptance criteria addressed
-- [ ] All 7 design addition criteria addressed
+- [x] `uv run python -m pytest tests/ -v` — all tests pass (existing + new)
+- [x] `ruff check wos/plan/ tests/test_plan_assess.py` — no lint errors
+- [x] `uv run scripts/audit.py --root .` — no new failures
+- [x] `wc -l skills/execute-plan/SKILL.md` — under 500 lines
+- [x] Entry script `--file` mode returns valid JSON with all expected keys
+- [x] Entry script `--scan` mode returns valid JSON
+- [x] All 13 issue #160 acceptance criteria addressed
+- [x] All 7 design addition criteria addressed

@@ -50,7 +50,7 @@ def _parse_tasks(content: str) -> List[dict]:
             if "task" in heading:
                 in_tasks = True
                 continue
-            elif "validation" in heading:
+            else:
                 in_tasks = False
                 continue
         if not in_tasks:
