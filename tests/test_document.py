@@ -24,6 +24,7 @@ class TestDocument:
         assert doc.type is None
         assert doc.sources == []
         assert doc.related == []
+        assert doc.status is None
 
     def test_all_fields(self) -> None:
         from wos.document import Document

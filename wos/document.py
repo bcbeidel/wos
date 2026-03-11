@@ -13,7 +13,7 @@ from typing import List, Optional
 from wos.frontmatter import parse_frontmatter
 
 # Known frontmatter fields extracted into Document attributes.
-_KNOWN_FIELDS = {"name", "description", "type", "sources", "related"}
+_KNOWN_FIELDS = {"name", "description", "type", "sources", "related", "status"}
 
 
 @dataclass
@@ -27,6 +27,7 @@ class Document:
     type: Optional[str] = None
     sources: List[str] = field(default_factory=list)
     related: List[str] = field(default_factory=list)
+    status: Optional[str] = None
 
 
 def parse_document(path: str, text: str) -> Document:
