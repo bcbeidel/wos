@@ -11,6 +11,7 @@ user-invocable: true
 references:
   - references/automated-validation.md
   - references/human-validation.md
+  - references/adhoc-validation.md
   - references/failure-diagnosis.md
   - ../_shared/references/preflight.md
   - ../_shared/references/plan-format.md
@@ -18,26 +19,67 @@ references:
 
 # Validate Work
 
-Verify that completed work meets the plan's validation criteria — not just
-that every task was checked off, but that the combined result satisfies
-acceptance criteria end-to-end.
+Verify that completed work meets validation criteria — either from a plan's
+Validation section or from a hypothesis built from git diff, project
+conventions, and project docs.
 
 **Announce at start:** "I'm using the validate-work skill to verify this work."
 
 ## Workflow
 
-### 1. Load Plan
+### 1. Determine Mode
 
-Read the plan file. If no path was provided, ask the user which plan to
-validate.
+**Plan mode:** A plan file path was provided, or the user references a
+plan. Read the plan file. Locate the **Validation** section. If it
+contains criteria, proceed to Step 2 (Plan Preconditions).
 
-Locate the **Validation** section. It contains a numbered list of criteria,
-prioritized, with embedded code blocks for runnable commands. If the
-Validation section is missing or empty, stop and report: "This plan has
-no validation criteria. Add concrete criteria to the Validation section
-before running validation."
+If the Validation section is missing or empty, stop and report: "This
+plan has no validation criteria. Add concrete criteria to the Validation
+section before running validation."
 
-### 2. Check Preconditions
+**Ad-hoc mode:** No plan provided or referenced. Proceed to Step 1b
+(Build Hypothesis).
+
+### 1b. Build Hypothesis (ad-hoc mode)
+
+Gather signals from three sources. See
+[adhoc-validation](references/adhoc-validation.md) for the full protocol.
+
+**Git diff:** Run `git diff main...HEAD --stat`, `git diff --stat`, and
+`git diff --cached --stat`. Categorize changed files (source, tests,
+config, docs).
+
+**Config files:** Scan for project config files to discover available
+checks (test runners, linters, type checkers, build tools). Only propose
+checks for tools actually configured.
+
+**Project docs:** Read `CLAUDE.md`, `AGENTS.md`, `README.md`, and
+`CONTRIBUTING.md` for explicit test/lint/build commands and conventions.
+
+### 1c. Present and Confirm (ad-hoc mode)
+
+Present the hypothesis:
+
+```
+Based on your changes and project setup, here's what I'd validate:
+
+Changes detected:
+- [N] source files modified ([list key files])
+- [N] test files modified
+- [N] doc files modified
+
+Proposed checks:
+1. [auto] `command` — description
+2. [auto] `command` — description
+3. [human] Description of qualitative check
+
+Add, remove, or modify any of these? Or confirm to run.
+```
+
+Every proposed check must cite its signal source (git diff, config file,
+or project doc). Wait for user confirmation before executing.
+
+### 2. Plan Preconditions (plan mode only)
 
 Run the preflight check (per `preflight.md`), then the entry script:
 
