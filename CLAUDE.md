@@ -144,8 +144,7 @@ Full skill ecosystem, lifecycle diagram, and layer descriptions: [OVERVIEW.md](O
   Each fallback line must include a comment documenting the path chain (e.g.,
   `# skills/research/scripts/ → skills/research/ → skills/ → plugin root`).
   Do NOT use marker-based walk-up (`pyproject.toml` search) — it finds the
-  user's project root instead of the plugin root. See
-  `docs/research/2026-03-10-plugin-root-discovery.md` for full rationale.
+  user's project root instead of the plugin root.
 - Validators return `list[dict]` with keys: `file`, `issue`, `severity`
 - Skills use free-text intake — users describe intent, Claude routes
 - `ValueError` + stdlib exceptions only (no custom exception hierarchy)

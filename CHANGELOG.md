@@ -11,17 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-- **Removed 33 completed/outdated docs.** Deleted 31 completed plan/design
-  files and 2 implemented research files (`llm-format-preferences`,
-  `skill-density-threshold`) that were adding noise to model context. Kept 2
-  pending plans (init-onboarding) and 4 active research files.
+- **Removed 37 completed/outdated docs.** Deleted 31 completed plan/design
+  files and all 6 research files that were adding noise to model context.
+  Removed empty `docs/research/` directory. Kept 2 pending plans
+  (init-onboarding).
 
 ### Fixed
 
-- **Fixed broken CLAUDE.md references.** Removed two links to plan files that
-  no longer exist (`architecture-reference`, `simplification-design`).
-- **Cleaned up stale `related` frontmatter.** Removed references to deleted
-  files in `plugin-root-discovery` and `skill-authoring-rubric` research docs.
+- **Fixed broken references.** Removed stale links in CLAUDE.md and AGENTS.md
+  pointing to deleted or non-existent files (`architecture-reference`,
+  `simplification-design`, `docs/designs/`, `docs/research/`).
 
 ## [0.22.0] - 2026-03-12
 
