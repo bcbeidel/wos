@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.25.0] - 2026-03-12
+
+### Changed
+
+- **Research-distill pipeline expanded from 3 phases to 7.** Execute-plan now
+  runs all user-facing gates in the foreground conversation: Frame (research
+  brief approval), Validate Research, Review, and Map (N:M distillation
+  mapping). Subagents are autonomous workers that receive approved inputs.
+  Fixes #190.
+
+### Added
+
+- **Self-contained research agent payload.** New reference
+  (`research-agent-payload.md`) assembles full-fidelity Phase 2-9 research
+  instructions into a single document inlined in subagent prompts, eliminating
+  plugin cache read dependencies that caused ~14% background agent failures.
+- **Distill mapping guide.** New reference (`distill-mapping-guide.md`)
+  provides boundary heuristics for N:M finding-to-context-file mappings,
+  replacing the previous 1:1 research-to-context assumption.
+- **Completeness constraint in distillation guidelines.** Verified findings
+  must not be dropped or diluted to achieve U-shape structure. Accuracy is
+  the constraint, U-shape is the goal.
+
 ## [0.24.0] - 2026-03-12
 
 ### Added
