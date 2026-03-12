@@ -100,10 +100,10 @@ Foundations) for understanding what agents can reliably do.
 - Create: `docs/research/agentic-planning-execution.md`
 - Create: `docs/context/agentic-planning-execution.md`
 
-- [ ] Run `/wos:research` (landscape mode): How LLM agents decompose goals into tasks, sequence work, track progress via artifacts (not memory), handle failures, and resume across sessions. Include plan formats, approval gates, checkpoint/rollback patterns. Compare approaches (ReAct, plan-and-execute, tree-of-thought).
-- [ ] Run `/wos:distill` to produce `docs/context/agentic-planning-execution.md`
-- [ ] Verify: context file exists, has frontmatter (name, description), 200-800 words
-- [ ] Commit
+- [x] Run `/wos:research` (landscape mode): How LLM agents decompose goals into tasks, sequence work, track progress via artifacts (not memory), handle failures, and resume across sessions. Include plan formats, approval gates, checkpoint/rollback patterns. Compare approaches (ReAct, plan-and-execute, tree-of-thought). <!-- sha:5916ce0 -->
+- [x] Run `/wos:distill` to produce `docs/context/agentic-planning-execution.md` <!-- sha:5916ce0 -->
+- [x] Verify: context file exists, has frontmatter (name, description), 200-800 words <!-- sha:5916ce0 -->
+- [x] Commit <!-- sha:5916ce0 -->
 
 ---
 
@@ -113,10 +113,10 @@ Foundations) for understanding what agents can reliably do.
 - Create: `docs/research/multi-agent-coordination.md`
 - Create: `docs/context/multi-agent-coordination.md`
 
-- [ ] Run `/wos:research` (landscape mode): Parallel dispatch patterns, context sharing between agents, conflict detection (file/resource overlap), scoping agent work to avoid interference. Include both framework-level coordination (CrewAI, AutoGen) and low-level patterns (fork-join, wave-based execution).
-- [ ] Run `/wos:distill` to produce `docs/context/multi-agent-coordination.md`
-- [ ] Verify: context file exists, has frontmatter (name, description), 200-800 words
-- [ ] Commit
+- [x] Run `/wos:research` (landscape mode): Parallel dispatch patterns, context sharing between agents, conflict detection (file/resource overlap), scoping agent work to avoid interference. Include both framework-level coordination (CrewAI, AutoGen) and low-level patterns (fork-join, wave-based execution). <!-- sha:5916ce0 -->
+- [x] Run `/wos:distill` to produce `docs/context/multi-agent-coordination.md` <!-- sha:5916ce0 -->
+- [x] Verify: context file exists, has frontmatter (name, description), 200-800 words <!-- sha:5916ce0 -->
+- [x] Commit <!-- sha:5916ce0 -->
 
 ---
 
@@ -126,10 +126,10 @@ Foundations) for understanding what agents can reliably do.
 - Create: `docs/research/tool-design-for-llms.md`
 - Create: `docs/context/tool-design-for-llms.md`
 
-- [ ] Run `/wos:research` (technical mode): What makes a good tool interface for an agent — input/output contracts, error signaling, idempotency requirements, how tool design affects agent reasoning. Include examples from Claude tool use, OpenAI function calling, and agent frameworks.
-- [ ] Run `/wos:distill` to produce `docs/context/tool-design-for-llms.md`
-- [ ] Verify: context file exists, has frontmatter (name, description), 200-800 words
-- [ ] Commit
+- [x] Run `/wos:research` (technical mode): What makes a good tool interface for an agent — input/output contracts, error signaling, idempotency requirements, how tool design affects agent reasoning. Include examples from Claude tool use, OpenAI function calling, and agent frameworks. <!-- sha:5916ce0 -->
+- [x] Run `/wos:distill` to produce `docs/context/tool-design-for-llms.md` <!-- sha:5916ce0 -->
+- [x] Verify: context file exists, has frontmatter (name, description), 200-800 words <!-- sha:5916ce0 -->
+- [x] Commit <!-- sha:5916ce0 -->
 
 ---
 
@@ -139,10 +139,10 @@ Foundations) for understanding what agents can reliably do.
 - Create: `docs/research/agent-state-persistence.md`
 - Create: `docs/context/agent-state-persistence.md`
 
-- [ ] Run `/wos:research` (technical mode): How agents maintain context across sessions — disk-as-truth patterns, checkpoint annotations, artifact-based resumption, memory systems (short-term, long-term, episodic). Compare conversation-based vs. file-based vs. database-backed persistence.
-- [ ] Run `/wos:distill` to produce `docs/context/agent-state-persistence.md`
-- [ ] Verify: context file exists, has frontmatter (name, description), 200-800 words
-- [ ] Commit
+- [x] Run `/wos:research` (technical mode): How agents maintain context across sessions — disk-as-truth patterns, checkpoint annotations, artifact-based resumption, memory systems (short-term, long-term, episodic). Compare conversation-based vs. file-based vs. database-backed persistence. <!-- sha:5916ce0 -->
+- [x] Run `/wos:distill` to produce `docs/context/agent-state-persistence.md` <!-- sha:5916ce0 -->
+- [x] Verify: context file exists, has frontmatter (name, description), 200-800 words <!-- sha:5916ce0 -->
+- [x] Commit <!-- sha:5916ce0 -->
 
 ---
 
