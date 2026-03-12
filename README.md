@@ -24,37 +24,9 @@ an areas table, metadata format, and communication preferences.
 
 ## Skills
 
-| Skill | Purpose |
-|-------|---------|
-| `/wos:init` | Initialize or update WOS project context |
-| `/wos:audit` | Validate project health (7 checks + auto-fix) |
-| `/wos:research` | SIFT-based research with source verification |
-| `/wos:distill` | Convert research artifacts into focused context files |
-| `/wos:consider` | Mental models for problem analysis |
-| `/wos:refine-prompt` | Assess and refine prompts using evidence-backed techniques |
-| `/wos:report-issue` | File GitHub issues against WOS repo |
-| `/wos:retrospective` | Session review and feedback submission |
-
-## Skill Workflows
-
-Skills compose into natural workflows. You don't need to memorize these —
-Claude will suggest next steps — but knowing the patterns helps.
-
-**Research pipeline:** `/wos:research` → `/wos:distill` → `/wos:audit`
-Research a topic with source verification, distill findings into focused
-context documents, then audit to catch quality issues before they accumulate.
-
-**Project setup:** `/wos:init` → `/wos:audit`
-Initialize project context structure, then validate everything is wired up
-correctly — AGENTS.md, indexes, and document quality.
-
-**Feedback loop:** `/wos:retrospective` → `/wos:report-issue`
-Review a session to capture what worked and what didn't. When action items
-point to WOS improvements, file them as issues directly.
-
-**Prompt improvement:** `/wos:refine-prompt` (standalone)
-Assess and improve prompts independently — no upstream or downstream
-dependencies.
+WOS provides 13 skills organized into four layers — knowledge, delivery,
+infrastructure, and feedback. See [OVERVIEW.md](OVERVIEW.md) for the full
+skill ecosystem diagram, lifecycle descriptions, and reference table.
 
 ## Project Structure
 

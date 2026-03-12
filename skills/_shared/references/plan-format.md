@@ -42,7 +42,7 @@ validation.
 | **Goal** | What this plan achieves and why. 2-3 sentences. State user-visible outcome. | Codex "Purpose / Big Picture"; observable acceptance criteria |
 | **Scope** | Must have / Won't have. Explicit exclusions prevent scope creep. | No tool does this; MoSCoW from PM research |
 | **Approach** | High-level technical strategy. How the goal will be achieved. | Codex "Plan of Work"; "middle altitude" specification |
-| **File Changes** | Every file created, modified, or deleted. | superpowers precedent; Cursor codebase-aware research |
+| **File Changes** | Every file created, modified, or deleted. | Prior art from planning tools; Cursor codebase-aware research |
 | **Tasks** | Decomposed work items as checkbox list with verification commands. | Checkbox convergence across all tools; 3-level verification |
 | **Validation** | How to verify the plan succeeded end-to-end. Observable behavior. At least one concrete criterion required. | Gap in comparative analysis; plan-level verification |
 

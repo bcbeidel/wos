@@ -64,7 +64,7 @@ do not silently modify scope. Instead, produce structured feedback:
     **Impact:** [which plan tasks are affected and how]
     **Alternatives:** [suggested modifications, if any]
 
-See [Feedback Loop](../../_shared/references/feedback-loop.md) for the
+See [Feedback Loop](../_shared/references/feedback-loop.md) for the
 full format, user options, and revision-vs-supersede decision tree.
 
 Present the user with three options:

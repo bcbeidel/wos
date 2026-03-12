@@ -87,26 +87,8 @@ instructions, areas table, metadata format, and communication preferences.
 
 ### Skills
 
-Prefix: `/wos:` (e.g., `/wos:init`, `/wos:audit`). 9 skills:
-
-| Skill | Purpose |
-|-------|---------|
-| `/wos:init` | Initialize or update WOS project context |
-| `/wos:audit` | Validate project health (7 checks + auto-fix) |
-| `/wos:research` | SIFT-based research with source verification |
-| `/wos:distill` | Convert research artifacts into focused context files |
-| `/wos:refine-prompt` | Assess and refine prompts using evidence-backed techniques |
-| `/wos:finish-work` | Structured work integration (merge/PR/keep/discard) |
-| `/wos:report-issue` | File GitHub issues against WOS repo |
-| `/wos:retrospective` | Session review and feedback submission |
-| `/wos:principles` | Capture and maintain project principles |
-
-### Commands
-
-| Command | Purpose |
-|---------|---------|
-| `/wos:consider` | Mental models for problem analysis (16 models) |
-| `/wos:consider:{model}` | Apply a specific mental model (e.g., `first-principles`, `inversion`) |
+Prefix: `/wos:` (e.g., `/wos:init`, `/wos:audit`). 13 skills + 1 command.
+Full skill ecosystem, lifecycle diagram, and layer descriptions: [OVERVIEW.md](OVERVIEW.md)
 
 ### Validation (8 checks, warn/fail severity)
 
@@ -130,6 +112,7 @@ Prefix: `/wos:` (e.g., `/wos:init`, `/wos:audit`). 9 skills:
 
 ## Reference
 
+- Skill ecosystem: [WOS Overview](OVERVIEW.md)
 - Architecture: [WOS Architecture Reference](docs/plans/2026-02-27-architecture-reference.md)
 - Design principles: [WOS Design Principles](PRINCIPLES.md)
 - Simplification history: [Simplification Design](docs/plans/2026-02-22-simplification-design.md)
