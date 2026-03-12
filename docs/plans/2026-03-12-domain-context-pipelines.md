@@ -240,10 +240,10 @@ Depends on Chunks 1-3.
 - Create: `docs/research/workflow-orchestration.md`
 - Create: `docs/context/workflow-orchestration.md`
 
-- [ ] Run `/wos:research` (landscape mode): State machines for multi-phase agent processes — lifecycle management, phase gates, transition rules, resumable and auditable workflows. Include both theoretical (Petri nets, state charts) and practical (agent workflow engines, DAG-based systems).
-- [ ] Run `/wos:distill` to produce `docs/context/workflow-orchestration.md`
-- [ ] Verify: context file exists, has frontmatter (name, description), 200-800 words
-- [ ] Commit
+- [x] Run `/wos:research` (landscape mode): State machines for multi-phase agent processes — lifecycle management, phase gates, transition rules, resumable and auditable workflows. Include both theoretical (Petri nets, state charts) and practical (agent workflow engines, DAG-based systems). <!-- sha:106f0f8 -->
+- [x] Run `/wos:distill` to produce `docs/context/workflow-orchestration.md` <!-- sha:106f0f8 -->
+- [x] Verify: context file exists, has frontmatter (name, description), 200-800 words <!-- sha:106f0f8 -->
+- [x] Commit <!-- sha:106f0f8 -->
 
 ---
 
@@ -253,10 +253,10 @@ Depends on Chunks 1-3.
 - Create: `docs/research/human-in-the-loop-design.md`
 - Create: `docs/context/human-in-the-loop-design.md`
 
-- [ ] Run `/wos:research` (landscape mode): When to gate on user approval vs. automate, how to present decisions that need input, trust calibration, cost/benefit of autonomy at each step. Include research on human-AI teaming, appropriate reliance, and automation bias.
-- [ ] Run `/wos:distill` to produce `docs/context/human-in-the-loop-design.md`
-- [ ] Verify: context file exists, has frontmatter (name, description), 200-800 words
-- [ ] Commit
+- [x] Run `/wos:research` (landscape mode): When to gate on user approval vs. automate, how to present decisions that need input, trust calibration, cost/benefit of autonomy at each step. Include research on human-AI teaming, appropriate reliance, and automation bias. <!-- sha:106f0f8 -->
+- [x] Run `/wos:distill` to produce `docs/context/human-in-the-loop-design.md` <!-- sha:106f0f8 -->
+- [x] Verify: context file exists, has frontmatter (name, description), 200-800 words <!-- sha:106f0f8 -->
+- [x] Commit <!-- sha:106f0f8 -->
 
 ---
 
@@ -266,10 +266,10 @@ Depends on Chunks 1-3.
 - Create: `docs/research/feedback-loop-design.md`
 - Create: `docs/context/feedback-loop-design.md`
 
-- [ ] Run `/wos:research` (technical mode): Capturing what works and what doesn't, closing the loop between execution and design, operationalizing learnings. Include structured feedback formats, retrospective patterns, and the supersede-don't-edit pattern for immutable artifacts.
-- [ ] Run `/wos:distill` to produce `docs/context/feedback-loop-design.md`
-- [ ] Verify: context file exists, has frontmatter (name, description), 200-800 words
-- [ ] Commit
+- [x] Run `/wos:research` (technical mode): Capturing what works and what doesn't, closing the loop between execution and design, operationalizing learnings. Include structured feedback formats, retrospective patterns, and the supersede-don't-edit pattern for immutable artifacts. <!-- sha:106f0f8 -->
+- [x] Run `/wos:distill` to produce `docs/context/feedback-loop-design.md` <!-- sha:106f0f8 -->
+- [x] Verify: context file exists, has frontmatter (name, description), 200-800 words <!-- sha:106f0f8 -->
+- [x] Commit <!-- sha:106f0f8 -->
 
 ---
 
@@ -279,10 +279,10 @@ Depends on Chunks 1-3.
 - Create: `docs/research/intent-classification-mode-selection.md`
 - Create: `docs/context/intent-classification-mode-selection.md`
 
-- [ ] Run `/wos:research` (technical mode): How agents detect user intent and adapt behavior — classification approaches, mode switching patterns, complexity calibration. Include examples from chatbot design, skill routing, and adaptive agent systems.
-- [ ] Run `/wos:distill` to produce `docs/context/intent-classification-mode-selection.md`
-- [ ] Verify: context file exists, has frontmatter (name, description), 200-800 words
-- [ ] Commit
+- [x] Run `/wos:research` (technical mode): How agents detect user intent and adapt behavior — classification approaches, mode switching patterns, complexity calibration. Include examples from chatbot design, skill routing, and adaptive agent systems. <!-- sha:106f0f8 -->
+- [x] Run `/wos:distill` to produce `docs/context/intent-classification-mode-selection.md` <!-- sha:106f0f8 -->
+- [x] Verify: context file exists, has frontmatter (name, description), 200-800 words <!-- sha:106f0f8 -->
+- [x] Commit <!-- sha:106f0f8 -->
 
 ---
 
