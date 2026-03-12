@@ -15,6 +15,8 @@ related:
   - docs/context/llm-capabilities-limitations.md
   - docs/context/tool-design-for-llms.md
   - docs/context/context-engineering.md
+  - docs/context/cross-model-prompt-portability.md
+  - docs/context/reasoning-mode-divergence.md
 ---
 
 ## Key Insight
