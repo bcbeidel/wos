@@ -16,6 +16,7 @@ related:
   - docs/research/prompt-engineering.md
   - docs/context/prompt-engineering.md
   - docs/context/context-window-management.md
+  - docs/context/tool-design-for-llms.md
 ---
 
 LLMs are reliable generators but unreliable verifiers. They produce coherent text, extract patterns, and approximate knowledge well. They fail at autonomous planning, self-correction without external feedback, and consistent reasoning over complex multi-step tasks. Agent architectures must treat LLMs as draft-generators paired with external verification, not as autonomous reasoners.

@@ -12,6 +12,7 @@ related:
   - docs/research/prompt-engineering.md
   - docs/context/context-window-management.md
   - docs/context/llm-capabilities-limitations.md
+  - docs/context/tool-design-for-llms.md
 ---
 
 ## Key Insight

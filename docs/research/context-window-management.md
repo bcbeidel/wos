@@ -16,6 +16,7 @@ sources:
   - https://platform.claude.com/docs/en/docs/build-with-claude/prompt-engineering/long-context-tips
 related:
   - docs/research/prompt-engineering.md
+  - docs/research/agent-state-persistence.md
   - docs/context/context-window-management.md
 ---
 
