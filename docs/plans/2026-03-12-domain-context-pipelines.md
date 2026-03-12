@@ -341,10 +341,10 @@ Depends on Chunks 1-3.
 - Create: `docs/research/convention-driven-design.md`
 - Create: `docs/context/convention-driven-design.md`
 
-- [ ] Run `/wos:research` (technical mode): How to establish implicit contracts (naming, file layout, metadata formats) that agents discover and follow without configuration. The "derive from disk, never hand-curate" philosophy. Include convention-over-configuration in Rails, Go, and agent systems.
-- [ ] Run `/wos:distill` to produce `docs/context/convention-driven-design.md`
-- [ ] Verify: context file exists, has frontmatter (name, description), 200-800 words
-- [ ] Commit
+- [x] Run `/wos:research` (technical mode): How to establish implicit contracts (naming, file layout, metadata formats) that agents discover and follow without configuration. The "derive from disk, never hand-curate" philosophy. Include convention-over-configuration in Rails, Go, and agent systems. <!-- sha:75b3dc9 -->
+- [x] Run `/wos:distill` to produce `docs/context/convention-driven-design.md` <!-- sha:75b3dc9 -->
+- [x] Verify: context file exists, has frontmatter (name, description), 200-800 words <!-- sha:75b3dc9 -->
+- [x] Commit <!-- sha:75b3dc9 -->
 
 ---
 
@@ -354,10 +354,10 @@ Depends on Chunks 1-3.
 - Create: `docs/research/plugin-extension-architecture.md`
 - Create: `docs/context/plugin-extension-architecture.md`
 
-- [ ] Run `/wos:research` (landscape mode): How host systems discover, load, and invoke plugins — registration mechanisms, script execution patterns, sandboxing constraints, version management. Include Claude Code plugins, VS Code extensions, Vim plugins, and other extension models.
-- [ ] Run `/wos:distill` to produce `docs/context/plugin-extension-architecture.md`
-- [ ] Verify: context file exists, has frontmatter (name, description), 200-800 words
-- [ ] Commit
+- [x] Run `/wos:research` (landscape mode): How host systems discover, load, and invoke plugins — registration mechanisms, script execution patterns, sandboxing constraints, version management. Include Claude Code plugins, VS Code extensions, Vim plugins, and other extension models. <!-- sha:75b3dc9 -->
+- [x] Run `/wos:distill` to produce `docs/context/plugin-extension-architecture.md` <!-- sha:75b3dc9 -->
+- [x] Verify: context file exists, has frontmatter (name, description), 200-800 words <!-- sha:75b3dc9 -->
+- [x] Commit <!-- sha:75b3dc9 -->
 
 ---
 
@@ -367,10 +367,10 @@ Depends on Chunks 1-3.
 - Create: `docs/research/validation-architecture.md`
 - Create: `docs/context/validation-architecture.md`
 
-- [ ] Run `/wos:research` (technical mode): How to separate deterministic structure checks from heuristic quality assessment, severity models (warn/fail), what to validate at which layer. Include validation patterns from compilers, linters, CI pipelines, and how they apply to agent-produced content.
-- [ ] Run `/wos:distill` to produce `docs/context/validation-architecture.md`
-- [ ] Verify: context file exists, has frontmatter (name, description), 200-800 words
-- [ ] Commit
+- [x] Run `/wos:research` (technical mode): How to separate deterministic structure checks from heuristic quality assessment, severity models (warn/fail), what to validate at which layer. Include validation patterns from compilers, linters, CI pipelines, and how they apply to agent-produced content. <!-- sha:75b3dc9 -->
+- [x] Run `/wos:distill` to produce `docs/context/validation-architecture.md` <!-- sha:75b3dc9 -->
+- [x] Verify: context file exists, has frontmatter (name, description), 200-800 words <!-- sha:75b3dc9 -->
+- [x] Commit <!-- sha:75b3dc9 -->
 
 ---
 
@@ -380,10 +380,10 @@ Depends on Chunks 1-3.
 - Create: `docs/research/idempotency-convergent-operations.md`
 - Create: `docs/context/idempotency-convergent-operations.md`
 
-- [ ] Run `/wos:research` (technical mode): Designing operations safe to run repeatedly — convergent state, idempotent writes, safe retries in agent systems. Include infrastructure-as-code parallels (Terraform, Ansible), database migrations, and how these patterns apply to document/context management.
-- [ ] Run `/wos:distill` to produce `docs/context/idempotency-convergent-operations.md`
-- [ ] Verify: context file exists, has frontmatter (name, description), 200-800 words
-- [ ] Commit
+- [x] Run `/wos:research` (technical mode): Designing operations safe to run repeatedly — convergent state, idempotent writes, safe retries in agent systems. Include infrastructure-as-code parallels (Terraform, Ansible), database migrations, and how these patterns apply to document/context management. <!-- sha:75b3dc9 -->
+- [x] Run `/wos:distill` to produce `docs/context/idempotency-convergent-operations.md` <!-- sha:75b3dc9 -->
+- [x] Verify: context file exists, has frontmatter (name, description), 200-800 words <!-- sha:75b3dc9 -->
+- [x] Commit <!-- sha:75b3dc9 -->
 
 ---
 
