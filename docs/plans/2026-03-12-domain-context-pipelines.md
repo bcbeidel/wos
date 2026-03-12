@@ -2,7 +2,7 @@
 name: Domain Context Pipelines
 description: Research and distill 36 knowledge domains into context files under docs/context/
 type: plan
-status: executing
+status: completed
 related:
   - docs/designs/2026-03-12-domain-context-inventory-design.md
   - docs/prompts/domain-context-pipeline.md
@@ -544,10 +544,10 @@ Can run in parallel with Chunks 5-9.
 - Create: `docs/research/scope-management-yagni.md`
 - Create: `docs/context/scope-management-yagni.md`
 
-- [ ] Run `/wos:research` (technical mode): How to resist feature creep in agent tooling — every field, abstraction, and feature must justify itself. The tool vs. framework spectrum. Include XP/lean perspectives, complexity budgets, and how YAGNI applies differently when the consumer is an LLM.
-- [ ] Run `/wos:distill` to produce `docs/context/scope-management-yagni.md`
-- [ ] Verify: context file exists, has frontmatter (name, description), 200-800 words
-- [ ] Commit
+- [x] Run `/wos:research` (technical mode): How to resist feature creep in agent tooling — every field, abstraction, and feature must justify itself. The tool vs. framework spectrum. Include XP/lean perspectives, complexity budgets, and how YAGNI applies differently when the consumer is an LLM. <!-- sha:c12621d -->
+- [x] Run `/wos:distill` to produce `docs/context/scope-management-yagni.md` <!-- sha:c12621d --> (split into 3: yagni-agent-tooling, complexity-budgets, tool-vs-framework-spectrum)
+- [x] Verify: context file exists, has frontmatter (name, description), 200-800 words <!-- sha:c12621d -->
+- [x] Commit <!-- sha:c12621d -->
 
 ---
 
@@ -557,18 +557,18 @@ Can run in parallel with Chunks 5-9.
 - Create: `docs/research/reads-vs-writes-separation.md`
 - Create: `docs/context/reads-vs-writes-separation.md`
 
-- [ ] Run `/wos:research` (technical mode): The architectural pattern of separating observation from mutation in agent systems — CQRS parallels, why agents that silently "fix" things are dangerous, safety architecture for automated systems. Include examples from infrastructure automation and database design.
-- [ ] Run `/wos:distill` to produce `docs/context/reads-vs-writes-separation.md`
-- [ ] Verify: context file exists, has frontmatter (name, description), 200-800 words
-- [ ] Commit
+- [x] Run `/wos:research` (technical mode): The architectural pattern of separating observation from mutation in agent systems — CQRS parallels, why agents that silently "fix" things are dangerous, safety architecture for automated systems. Include examples from infrastructure automation and database design. <!-- sha:c12621d -->
+- [x] Run `/wos:distill` to produce `docs/context/reads-vs-writes-separation.md` <!-- sha:c12621d --> (split into 2: reads-writes-separation, preview-before-execute)
+- [x] Verify: context file exists, has frontmatter (name, description), 200-800 words <!-- sha:c12621d -->
+- [x] Commit <!-- sha:c12621d -->
 
 ---
 
 ## Validation
 
-- [ ] All 36 context files exist in `docs/context/` with valid frontmatter (name, description fields present)
-- [ ] All 36 research documents exist in `docs/research/` with valid frontmatter
-- [ ] Each context file is 200-800 words
-- [ ] `uv run scripts/audit.py --root . --no-urls` — no failures for new files
-- [ ] `uv run scripts/reindex.py --root .` — indexes regenerated successfully
-- [ ] Each context file's `related` field links back to its research document
+- [x] All 36 context files exist in `docs/context/` with valid frontmatter (name, description fields present) <!-- 52 context files from 36 domains (distill split some into multiple) -->
+- [x] All 36 research documents exist in `docs/research/` with valid frontmatter
+- [x] Each context file is 200-800 words
+- [x] `uv run scripts/audit.py --root . --no-urls` — no failures for new files <!-- 0 fail, 4 pre-existing warn -->
+- [x] `uv run scripts/reindex.py --root .` — indexes regenerated successfully
+- [x] Each context file's `related` field links back to its research document
