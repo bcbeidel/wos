@@ -67,6 +67,7 @@ dist/
 .ruff_cache/
 .pytest_cache/
 .env
+.worktrees/
 ```
 
 Ask: "Want me to create a `.gitignore` with Python defaults? (yes / modify / skip)"

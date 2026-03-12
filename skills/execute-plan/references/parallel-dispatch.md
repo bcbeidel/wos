@@ -87,6 +87,20 @@ this, but it's not infallible): escalate to the user. Do not attempt
 automatic conflict resolution — the risk of introducing subtle bugs
 outweighs the convenience.
 
+## Worktree Location
+
+Use `.worktrees/` in the project root as the default worktree directory.
+This is model-agnostic — it works the same regardless of which AI coding
+tool dispatches the subagents.
+
+Ensure `.worktrees/` is in the project's `.gitignore` (the `wos:init`
+skill includes this automatically for new projects).
+
+**Platform overrides:** Some platforms default to vendor-specific paths
+(e.g., `.claude/worktrees/`). When dispatching, prefer specifying
+`.worktrees/<branch-name>` explicitly so worktrees land in a consistent
+location across tools.
+
 ## Worktree Cleanup
 
 After merging a worktree's changes, remove the worktree and its branch
@@ -102,8 +116,8 @@ git branch -d <worktree-branch>
 Example:
 
 ```bash
-git worktree remove .claude/worktrees/agent-task-3
-git branch -d worktree-agent-task-3
+git worktree remove .worktrees/task-3
+git branch -d worktree-task-3
 ```
 
 If `git worktree remove` fails because of untracked files, use
