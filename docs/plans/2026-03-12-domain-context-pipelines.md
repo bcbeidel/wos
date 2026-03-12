@@ -398,10 +398,10 @@ Depends on Chunks 1-4.
 - Create: `docs/research/onboarding-progressive-disclosure.md`
 - Create: `docs/context/onboarding-progressive-disclosure.md`
 
-- [ ] Run `/wos:research` (landscape mode): How to layer complexity for different contexts — empty-repo first-run vs. mature project, guiding first actions without overwhelming. Include UX research on progressive disclosure, CLI onboarding patterns, and developer tool adoption.
-- [ ] Run `/wos:distill` to produce `docs/context/onboarding-progressive-disclosure.md`
-- [ ] Verify: context file exists, has frontmatter (name, description), 200-800 words
-- [ ] Commit
+- [x] Run `/wos:research` (landscape mode): How to layer complexity for different contexts — empty-repo first-run vs. mature project, guiding first actions without overwhelming. Include UX research on progressive disclosure, CLI onboarding patterns, and developer tool adoption. <!-- sha:852f8d2 -->
+- [x] Run `/wos:distill` to produce `docs/context/onboarding-progressive-disclosure.md` <!-- sha:852f8d2 -->
+- [x] Verify: context file exists, has frontmatter (name, description), 200-800 words <!-- sha:852f8d2 -->
+- [x] Commit <!-- sha:852f8d2 -->
 
 ---
 
@@ -411,10 +411,10 @@ Depends on Chunks 1-4.
 - Create: `docs/research/git-workflow-integration.md`
 - Create: `docs/context/git-workflow-integration.md`
 
-- [ ] Run `/wos:research` (technical mode): Commits as rollback boundaries, branch naming conventions, PR automation, making agent-driven development compatible with team git workflows. Include git worktree patterns, conventional commits, and how CI/CD interacts with agent-produced code.
-- [ ] Run `/wos:distill` to produce `docs/context/git-workflow-integration.md`
-- [ ] Verify: context file exists, has frontmatter (name, description), 200-800 words
-- [ ] Commit
+- [x] Run `/wos:research` (technical mode): Commits as rollback boundaries, branch naming conventions, PR automation, making agent-driven development compatible with team git workflows. Include git worktree patterns, conventional commits, and how CI/CD interacts with agent-produced code. <!-- sha:852f8d2 -->
+- [x] Run `/wos:distill` to produce `docs/context/git-workflow-integration.md` <!-- sha:852f8d2 -->
+- [x] Verify: context file exists, has frontmatter (name, description), 200-800 words <!-- sha:852f8d2 -->
+- [x] Commit <!-- sha:852f8d2 -->
 
 ---
 
@@ -424,10 +424,10 @@ Depends on Chunks 1-4.
 - Create: `docs/research/cli-design.md`
 - Create: `docs/context/cli-design.md`
 
-- [ ] Run `/wos:research` (technical mode): Argument patterns, output formatting (human-readable vs. JSON), exit codes, making scripts usable by both humans and agents. Include POSIX conventions, 12-factor CLI patterns, and agent-specific considerations (parseable output, deterministic formatting).
-- [ ] Run `/wos:distill` to produce `docs/context/cli-design.md`
-- [ ] Verify: context file exists, has frontmatter (name, description), 200-800 words
-- [ ] Commit
+- [x] Run `/wos:research` (technical mode): Argument patterns, output formatting (human-readable vs. JSON), exit codes, making scripts usable by both humans and agents. Include POSIX conventions, 12-factor CLI patterns, and agent-specific considerations (parseable output, deterministic formatting). <!-- sha:852f8d2 -->
+- [x] Run `/wos:distill` to produce `docs/context/cli-design.md` <!-- sha:852f8d2 -->
+- [x] Verify: context file exists, has frontmatter (name, description), 200-800 words <!-- sha:852f8d2 -->
+- [x] Commit <!-- sha:852f8d2 -->
 
 ---
 
@@ -437,10 +437,10 @@ Depends on Chunks 1-4.
 - Create: `docs/research/issue-tracking-external-integration.md`
 - Create: `docs/context/issue-tracking-external-integration.md`
 
-- [ ] Run `/wos:research` (landscape mode): How agent systems file issues (templates, deduplication), interact with external APIs, handle authentication, and close feedback loops with project management tools. Include GitHub Issues/Actions, Linear, Jira patterns.
-- [ ] Run `/wos:distill` to produce `docs/context/issue-tracking-external-integration.md`
-- [ ] Verify: context file exists, has frontmatter (name, description), 200-800 words
-- [ ] Commit
+- [x] Run `/wos:research` (landscape mode): How agent systems file issues (templates, deduplication), interact with external APIs, handle authentication, and close feedback loops with project management tools. Include GitHub Issues/Actions, Linear, Jira patterns. <!-- sha:852f8d2 -->
+- [x] Run `/wos:distill` to produce `docs/context/issue-tracking-external-integration.md` <!-- sha:852f8d2 -->
+- [x] Verify: context file exists, has frontmatter (name, description), 200-800 words <!-- sha:852f8d2 -->
+- [x] Commit <!-- sha:852f8d2 -->
 
 ---
 
