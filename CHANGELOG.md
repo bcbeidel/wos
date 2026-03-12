@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-03-12
+
+### Added
+
+- **Empty-repo onboarding in `/wos:init`.** When initializing an empty repo,
+  init now offers three optional steps: `.gitignore` with Python defaults,
+  `README.md` stub from a project-intent question, and guided first-action
+  suggesting WOS skill sequences. All steps are skippable; non-empty repos
+  are unaffected.
+  ([#172](https://github.com/bcbeidel/wos/issues/172),
+  [#182](https://github.com/bcbeidel/wos/pull/182))
+
 ## [0.19.0] - 2026-03-12
 
 ### Changed
