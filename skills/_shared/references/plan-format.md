@@ -16,7 +16,7 @@ description: One-sentence summary of what this plan achieves
 type: plan
 status: draft
 related:
-  - docs/plans/YYYY-MM-DD-<topic>-design.md
+  - docs/designs/YYYY-MM-DD-<topic>-design.md
 ---
 ```
 
