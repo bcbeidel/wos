@@ -455,10 +455,10 @@ Depends on Chunks 1-4.
 - Create: `docs/research/testing-non-deterministic-systems.md`
 - Create: `docs/context/testing-non-deterministic-systems.md`
 
-- [ ] Run `/wos:research` (technical mode): How to test agent-driven workflows when outputs aren't identical — behavioral testing, structural assertions, property-based testing, testing deterministic and LLM layers independently. Include eval frameworks, snapshot testing, and contract testing patterns.
-- [ ] Run `/wos:distill` to produce `docs/context/testing-non-deterministic-systems.md`
-- [ ] Verify: context file exists, has frontmatter (name, description), 200-800 words
-- [ ] Commit
+- [x] Run `/wos:research` (technical mode): How to test agent-driven workflows when outputs aren't identical — behavioral testing, structural assertions, property-based testing, testing deterministic and LLM layers independently. Include eval frameworks, snapshot testing, and contract testing patterns. <!-- sha:4baf459 -->
+- [x] Run `/wos:distill` to produce `docs/context/testing-non-deterministic-systems.md` <!-- sha:4baf459 --> (split into 3: agent-testing-pyramid, llm-as-judge-evaluation, eval-framework-landscape)
+- [x] Verify: context file exists, has frontmatter (name, description), 200-800 words <!-- sha:4baf459 -->
+- [x] Commit <!-- sha:4baf459 -->
 
 ---
 
@@ -468,10 +468,10 @@ Depends on Chunks 1-4.
 - Create: `docs/research/error-handling-agent-systems.md`
 - Create: `docs/context/error-handling-agent-systems.md`
 
-- [ ] Run `/wos:research` (technical mode): How agents should handle failures — escalation thresholds, structured failure reporting, distinguishing retryable errors from design-level blockers. Include graceful degradation, circuit breaker patterns, and how error handling differs when the "code" is an LLM.
-- [ ] Run `/wos:distill` to produce `docs/context/error-handling-agent-systems.md`
-- [ ] Verify: context file exists, has frontmatter (name, description), 200-800 words
-- [ ] Commit
+- [x] Run `/wos:research` (technical mode): How agents should handle failures — escalation thresholds, structured failure reporting, distinguishing retryable errors from design-level blockers. Include graceful degradation, circuit breaker patterns, and how error handling differs when the "code" is an LLM. <!-- sha:4baf459 -->
+- [x] Run `/wos:distill` to produce `docs/context/error-handling-agent-systems.md` <!-- sha:4baf459 --> (split into 3: error-classification-agent-systems, escalation-circuit-breakers, llm-error-handling-fundamentals)
+- [x] Verify: context file exists, has frontmatter (name, description), 200-800 words <!-- sha:4baf459 -->
+- [x] Commit <!-- sha:4baf459 -->
 
 ---
 
@@ -481,10 +481,10 @@ Depends on Chunks 1-4.
 - Create: `docs/research/observability-audit-trails.md`
 - Create: `docs/context/observability-audit-trails.md`
 
-- [ ] Run `/wos:research` (technical mode): Making agent activity inspectable — logging strategies, search protocol recording, checkpoint annotations, trace formats. Include OpenTelemetry for agents, structured logging, and "show your work" patterns that enable debugging and trust.
-- [ ] Run `/wos:distill` to produce `docs/context/observability-audit-trails.md`
-- [ ] Verify: context file exists, has frontmatter (name, description), 200-800 words
-- [ ] Commit
+- [x] Run `/wos:research` (technical mode): Making agent activity inspectable — logging strategies, search protocol recording, checkpoint annotations, trace formats. Include OpenTelemetry for agents, structured logging, and "show your work" patterns that enable debugging and trust. <!-- sha:4baf459 -->
+- [x] Run `/wos:distill` to produce `docs/context/observability-audit-trails.md` <!-- sha:4baf459 --> (split into 3: agent-observability-tracing, show-your-work-patterns, observability-trust-debuggability)
+- [x] Verify: context file exists, has frontmatter (name, description), 200-800 words <!-- sha:4baf459 -->
+- [x] Commit <!-- sha:4baf459 -->
 
 ---
 
