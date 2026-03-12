@@ -1,12 +1,14 @@
 ---
 name: validate-work
 description: >
-  Verifies that completed work meets the plan's acceptance criteria.
+  Verifies completed work against validation criteria. Works in two
+  modes: with a plan (runs the plan's Validation section) or ad-hoc
+  (builds checks from git diff, project config, and project docs).
   Use when the user wants to "validate the work", "verify the work",
-  "check if done", "run validation", "are we done", "did it work",
-  or after completing all tasks in a plan. Handles both automated
-  (command) and human (judgment) validation criteria.
-argument-hint: "[plan file path]"
+  "check my work", "verify my changes", "does this look right",
+  "run checks", "check if done", "are we done", "did it work",
+  or after completing all tasks in a plan.
+argument-hint: "[plan file path (optional)]"
 user-invocable: true
 references:
   - references/automated-validation.md
