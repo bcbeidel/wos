@@ -153,7 +153,7 @@ Plan documents use WOS frontmatter:
     type: plan
     status: draft
     related:
-      - docs/plans/YYYY-MM-DD-<name>-design.md
+      - docs/designs/YYYY-MM-DD-<name>-design.md
     ---
 
 Save to `docs/plans/YYYY-MM-DD-<feature-name>.md`. The `related` field
