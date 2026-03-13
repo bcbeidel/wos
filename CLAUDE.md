@@ -14,6 +14,8 @@ using it.
 
 ## Build & Test
 
+Always use the project venv Python: `.venv/bin/python`
+
 ```bash
 python -m pytest tests/ -v
 ```
