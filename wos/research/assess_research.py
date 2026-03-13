@@ -12,7 +12,6 @@ agent's exit condition in the research pipeline.
 from __future__ import annotations
 
 import os
-import re
 from typing import Dict, List, Optional, Tuple
 
 from wos.document import parse_document

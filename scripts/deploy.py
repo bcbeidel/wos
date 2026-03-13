@@ -114,7 +114,8 @@ def main() -> None:
     actions = deploy(_plugin_root, target, dry_run=args.dry_run)
 
     if args.dry_run:
-        print(f"Dry run: {len(actions)} files would be deployed to {target / '.agents'}")
+        agents = target / ".agents"
+        print(f"Dry run: {len(actions)} files would be deployed to {agents}")
         for action in actions:
             print(f"  {action}")
     else:
