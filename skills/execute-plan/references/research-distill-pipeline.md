@@ -40,25 +40,14 @@ research-distill execution mode.
 
 **Actions:**
 
-For each research task in the current chunk:
+For each research task in the current chunk, follow the framing process
+from `frame.md` (loaded as a shared reference):
 
 1. Extract the research question from the plan task description.
-2. Identify the research mode from the question framing:
-   - "What do we know about X?" → deep-dive
-   - "What's the landscape for X?" → landscape
-   - "How does X work technically?" → technical
-   - "Can we do X with our constraints?" → feasibility
-   - "How does X compare to competitors?" → competitive
-   - "Should we use A or B?" → options
-   - "How did X evolve?" → historical
-   - "What open source options exist for X?" → open-source
+2. Identify the research mode (see `research-modes.md`).
 3. Break into 2-4 sub-questions that structure the investigation.
 4. Declare search strategy: initial search terms and source types.
-5. Write a 1-paragraph research brief:
-   - State the question
-   - List all stated constraints (time period, domain, stack, etc.)
-   - Mark unstated dimensions as explicitly open-ended
-   - Specify preferred source types
+5. Write a 1-paragraph research brief per `frame.md`.
 
 Present all briefs to the user as a batch. For each brief, the user
 can **approve** or **reject with feedback**. Rejected briefs are revised
@@ -99,10 +88,20 @@ instructions **inlined in the prompt** — subagents do NOT invoke
 >
 > ---
 >
-> [Full content of research-agent-payload.md inlined here]
+> [Read and inline the content of these shared reference files:]
+> - `../_shared/references/research/gather-and-extract.md`
+> - `../_shared/references/research/verify-sources.md`
+> - `../_shared/references/research/evaluate-sources-sift.md`
+> - `../_shared/references/research/challenge.md`
+> - `../_shared/references/research/synthesize.md`
+> - `../_shared/references/research/self-verify-claims.md`
+> - `../_shared/references/research/citation-reverify.md`
+> - `../_shared/references/research/finalize.md`
+> - `../_shared/references/research/research-modes.md`
+> - `../_shared/references/research/cli-commands.md`
 
 All research subagents must complete before proceeding to Phase 3.
-Failed agents are re-dispatched with the same inlined payload. After
+Failed agents are re-dispatched with the same inlined references. After
 3 total failures for the same task, escalate to user.
 
 **Gate:** All research subagents returned (DONE, NEEDS_HELP, or BLOCKED).
@@ -168,7 +167,7 @@ research documents from the batch. The agent:
 
 1. Identifies discrete findings across the full research corpus
 2. Applies boundary heuristics from
-   [distill-mapping-guide.md](distill-mapping-guide.md) to determine
+   `mapping-guide.md` (loaded as a shared reference) to determine
    concept boundaries
 3. Proposes an N:M mapping as a table:
 
@@ -212,6 +211,9 @@ files). Each subagent receives its instructions **inlined in the prompt**
 >
 > **Instructions:**
 >
+> [Read and inline the content of this shared reference file:]
+> - `../_shared/references/distill/distillation-guidelines.md`
+>
 > For each target file, write a 200-800 word context file with this
 > frontmatter:
 >
@@ -228,18 +230,6 @@ files). Each subagent receives its instructions **inlined in the prompt**
 >   - [Path to existing context files in the same area]
 > ---
 > ```
->
-> **Structure:** Key insights first, detailed explanation in the middle,
-> takeaways at the bottom (U-shape for retrieval).
->
-> **Completeness constraint:** Verified findings must not be dropped or
-> diluted to achieve U-shape structure. Accuracy and completeness are
-> the constraints; U-shape is the goal.
->
-> **Confidence mapping:**
-> - HIGH — state directly: "X works because Y"
-> - MODERATE — qualify: "Evidence suggests X, based on Y"
-> - LOW — flag: "Early evidence indicates X, but Z remains uncertain"
 >
 > **Bidirectional linking:** Every context file must link to its source
 > research doc via `related:`. Include cross-references to sibling

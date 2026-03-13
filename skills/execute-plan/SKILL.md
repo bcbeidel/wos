@@ -15,8 +15,11 @@ references:
   - references/recovery-patterns.md
   - references/multi-session-resumption.md
   - references/research-distill-pipeline.md
-  - references/research-agent-payload.md
-  - references/distill-mapping-guide.md
+  - ../_shared/references/research/frame.md
+  - ../_shared/references/research/research-modes.md
+  - ../_shared/references/research/cli-commands.md
+  - ../_shared/references/distill/distillation-guidelines.md
+  - ../_shared/references/distill/mapping-guide.md
 ---
 
 # Execute Plan
