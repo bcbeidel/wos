@@ -2,7 +2,7 @@
 name: Pipeline Subagent Definitions
 description: Create 9 self-contained agent definitions with deterministic gate checks, update skills to dispatch them, simplify pipeline to pure orchestration
 type: plan
-status: executing
+status: completed
 branch: pipeline-subagents
 related:
   - docs/designs/2026-03-12-pipeline-subagents-design.md
