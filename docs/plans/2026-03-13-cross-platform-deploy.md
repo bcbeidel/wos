@@ -2,7 +2,7 @@
 name: Cross-Platform Skill Deployment
 description: Deploy script that exports WOS skills to .agents/ for Copilot and other Agent Skills-compatible copilots
 type: plan
-status: executing
+status: completed
 related:
   - docs/designs/2026-03-13-cross-platform-deploy-design.md
   - docs/research/2026-03-13-copilot-skill-format.md
