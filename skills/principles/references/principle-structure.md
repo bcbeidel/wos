@@ -65,7 +65,7 @@ finding: principles with embedded verification criteria outperform pure
 declarative principles.
 
 Good: "No class inherits more than one concrete class."
-Good: "Every script runs via `uv run` with PEP 723 metadata."
+Good: "Every script runs via `python` with no external dependencies."
 Bad: "Code should feel simple."
 
 ## Density Guidance

@@ -6,8 +6,8 @@
 """Assess plan document state for skill execution and resumption.
 
 Usage:
-    uv run skills/execute-plan/scripts/plan_assess.py --file PATH
-    uv run skills/execute-plan/scripts/plan_assess.py --scan [--root DIR] [--subdir PATH]
+    python skills/execute-plan/scripts/plan_assess.py --file PATH
+    python skills/execute-plan/scripts/plan_assess.py --scan [--root DIR] [--subdir PATH]
 """
 from __future__ import annotations
 

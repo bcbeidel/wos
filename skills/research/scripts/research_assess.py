@@ -6,10 +6,10 @@
 """Assess research document state for skill resumption.
 
 Usage:
-    uv run skills/research/scripts/research_assess.py --file PATH
-    uv run skills/research/scripts/research_assess.py --file PATH --gate all
-    uv run skills/research/scripts/research_assess.py --file PATH --gate evaluator_exit
-    uv run skills/research/scripts/research_assess.py --scan [--root DIR] [--subdir PATH]
+    python skills/research/scripts/research_assess.py --file PATH
+    python skills/research/scripts/research_assess.py --file PATH --gate all
+    python skills/research/scripts/research_assess.py --file PATH --gate evaluator_exit
+    python skills/research/scripts/research_assess.py --scan [--root DIR] [--subdir PATH]
 """
 from __future__ import annotations
 

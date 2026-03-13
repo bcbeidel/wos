@@ -9,7 +9,6 @@ description: >
 argument-hint: "[check|audit|review|coverage|freshness]"
 user-invocable: true
 references:
-  - ../_shared/references/preflight.md
   - references/skill-authoring-guide.md
 ---
 
@@ -20,29 +19,27 @@ does not modify any files (unless `--fix` is used for index regeneration).
 
 ## How to Run
 
-**Prerequisite:** Follow the preflight check in the [preflight reference](../_shared/references/preflight.md) before running.
-
 ```bash
 # Default: run all checks including URL reachability
-uv run <plugin-scripts-dir>/audit.py --root .
+python <plugin-scripts-dir>/audit.py --root .
 
 # Skip URL reachability checks (fast, offline-friendly)
-uv run <plugin-scripts-dir>/audit.py --root . --no-urls
+python <plugin-scripts-dir>/audit.py --root . --no-urls
 
 # Validate a single file
-uv run <plugin-scripts-dir>/audit.py path/to/file.md --root . --no-urls
+python <plugin-scripts-dir>/audit.py path/to/file.md --root . --no-urls
 
 # JSON output for programmatic use
-uv run <plugin-scripts-dir>/audit.py --root . --json
+python <plugin-scripts-dir>/audit.py --root . --json
 
 # Auto-fix out-of-sync or missing _index.md files
-uv run <plugin-scripts-dir>/audit.py --root . --fix
+python <plugin-scripts-dir>/audit.py --root . --fix
 
 # Exit 1 on any issue (including warnings)
-uv run <plugin-scripts-dir>/audit.py --root . --strict
+python <plugin-scripts-dir>/audit.py --root . --strict
 
 # Custom word count threshold for context files (default: 800)
-uv run <plugin-scripts-dir>/audit.py --root . --context-max-words 500
+python <plugin-scripts-dir>/audit.py --root . --context-max-words 500
 ```
 
 Exit code: 1 if any `fail`, 0 if only `warn`. Use `--strict` to exit 1 on any issue.
@@ -134,7 +131,7 @@ After presenting audit results, offer to help resolve actionable warnings:
      - User says dead → offer to remove it from the document's `sources:`
        list. Show the proposed edit and get approval before writing.
      - User provides a replacement URL → offer to update the `sources:`
-       entry. Verify the new URL with `uv run <plugin-scripts-dir>/check_url.py URL`
+       entry. Verify the new URL with `python <plugin-scripts-dir>/check_url.py URL`
        before writing.
 
   Process URLs one at a time. Do not batch-ask about all URLs at once.

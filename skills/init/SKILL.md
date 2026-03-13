@@ -8,16 +8,12 @@ description: >
 argument-hint: ""
 user-invocable: true
 references:
-  - ../_shared/references/preflight.md
   - references/capture-workflow.md
 ---
 
 # Init WOS
 
 Initialize or update WOS project context. Idempotent — safe to re-run.
-
-**Prerequisite:** Before running any `uv run` command below, follow the
-preflight check in the [preflight reference](../_shared/references/preflight.md).
 
 ## Workflow
 
@@ -109,7 +105,7 @@ If the user declines or skips, move on without suggesting.
 
 ### 3. Reindex
 
-Run: `uv run <plugin-scripts-dir>/reindex.py --root .`
+Run: `python <plugin-scripts-dir>/reindex.py --root .`
 
 This creates `_index.md` files in each directory and updates the AGENTS.md
 areas table if AGENTS.md exists.
@@ -136,7 +132,7 @@ Run the full capture workflow in `references/capture-workflow.md`:
 1. Ask the freeform communication style question
 2. Map response to dimensions
 3. Confirm with user
-4. Write to AGENTS.md via `uv run <plugin-scripts-dir>/update_preferences.py --root .`
+4. Write to AGENTS.md via `python <plugin-scripts-dir>/update_preferences.py --root .`
 
 **If preferences already exist:**
 

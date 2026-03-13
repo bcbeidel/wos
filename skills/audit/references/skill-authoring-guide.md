@@ -139,7 +139,7 @@ instruction lines total (well under threshold).
 
 **Body:** 5 sequential workflow phases, each 3-6 lines. High-freedom
 for judgment calls (what to distill), low-freedom for integration
-steps (exact `uv run` commands).
+steps (exact `python` commands).
 
 **Reference:** One file (`distillation-guidelines.md`) at 41 lines,
 covering splitting heuristics and word count rationale.
