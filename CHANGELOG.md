@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.28.0] - 2026-03-13
+
+### Changed
+
+- **Agent elimination — compose subagent prompts from references.** Deleted all
+  9 static agent definitions (`agents/` directory). Subagent prompts are now
+  composed dynamically at dispatch time from enriched reference files and
+  MANIFEST.md. Zero information loss — all agent-unique content (tools,
+  contracts, constraints, behavioral guidance) migrated into reference files.
+  Fixes #196.
+- **Enriched reference files.** All 11 primary reference files now include
+  `tools:` frontmatter, expanded Input/Output contract sections, and Constraints
+  sections previously only in agent definitions.
+- **MANIFEST.md expanded.** Both pipeline tables now have 6 columns (Stage,
+  Role, Files, Tools, Entry Gate, Purpose) — serves as the single lookup for
+  prompt composition.
+- **SKILL.md dispatch rewritten.** Research and distill SKILL.md dispatch
+  instructions now compose prompts from reference files per MANIFEST.md instead
+  of naming static agents.
+
 ## [0.27.0] - 2026-03-13
 
 ### Added
