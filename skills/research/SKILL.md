@@ -148,38 +148,67 @@ Present the brief to the user. If rejected, re-dispatch
 `research-framer` with the user's feedback. Do not proceed without
 approval.
 
-### Step 4: Dispatch Research Chain
+### Step 4: Execute Research Chain
 
-Dispatch agents sequentially with gate validation between each. After
-each agent completes, run the exit gate check before dispatching the
-next.
+Execute stages sequentially with gate validation between each. For each
+stage, consult the Mode Defaults table (see Execution Mode above) to
+determine whether to run inline or delegate. Gate checks are identical
+in both paths.
+
+**For each stage in the chain:**
+
+1. **Check execution mode** — look up the stage in the Mode Defaults
+   table for the detected research mode. Apply override conditions
+   (e.g., >15 sources forces evaluator to delegate).
+2. **Execute the stage:**
+   - **Delegate:** Dispatch the named agent (e.g., `research-gatherer`)
+     with the DRAFT path. The agent starts with a fresh context.
+   - **Inline:** Read the stage's reference files (per MANIFEST.md),
+     then execute the methodology directly in-thread. Write results
+     to the DRAFT file on disk, same as a delegated agent would.
+3. **Run gate check:** `research_assess.py --file <path> --gate <stage>_exit`
+4. **Proceed or retry** (see Step 5 for error handling).
 
 ```
-Dispatch research-gatherer (brief fields + output path)
+DELEGATE research-gatherer (brief fields + output path)
   → Gate: research_assess.py --file <path> --gate gatherer_exit
 
-Dispatch research-evaluator (path to DRAFT)
+INLINE or DELEGATE research-evaluator (path to DRAFT)
   → Gate: research_assess.py --file <path> --gate evaluator_exit
 
-Dispatch research-challenger (path to DRAFT)
+INLINE or DELEGATE research-challenger (path to DRAFT)
   → Gate: research_assess.py --file <path> --gate challenger_exit
 
-Dispatch research-synthesizer (path to DRAFT)
+INLINE or DELEGATE research-synthesizer (path to DRAFT)
   → Gate: research_assess.py --file <path> --gate synthesizer_exit
 
-Dispatch research-verifier (path to DRAFT)
+INLINE or DELEGATE research-verifier (path to DRAFT)
   → Gate: research_assess.py --file <path> --gate verifier_exit
 
-Dispatch research-finalizer (path to DRAFT)
+INLINE or DELEGATE research-finalizer (path to DRAFT)
   → Gate: research_assess.py --file <path> --gate finalizer_exit
 ```
 
-Announce each dispatch and gate result as the chain progresses:
+**Inline execution:** When running a stage inline, read the reference
+files listed in MANIFEST.md for that stage. Follow the methodology
+exactly as written — the reference file is the instruction set. Write
+all output to the DRAFT file on disk. The gate check verifies the
+result is structurally identical to what a delegated agent would produce.
+
+**Context pressure override:** If context feels heavy after inline
+stages (~50% utilization), switch remaining stages to delegate mode.
+Do not force inline when context pressure risks degrading output quality.
+
+**Parallelization note:** Delegation is also acceptable when parallel
+execution opportunities exist — a delegated stage can run in a worktree
+or background context while other work proceeds.
+
+Announce each execution and gate result as the chain progresses:
 ```
-Dispatching research-gatherer...
-  → gatherer_exit gate: PASS (4/4 checks)
-Dispatching research-evaluator...
+Executing research-evaluator inline...
   → evaluator_exit gate: PASS (2/2 checks)
+Delegating research-challenger...
+  → challenger_exit gate: PASS (1/1 checks)
 ```
 
 ### Step 5: Error Handling Between Dispatches
