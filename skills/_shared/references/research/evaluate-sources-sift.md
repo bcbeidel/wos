@@ -1,37 +1,19 @@
-# Source Quality Reference
+---
+name: Evaluate Sources (SIFT)
+description: Phase 4 — apply SIFT framework to classify sources by tier, drop low-quality sources
+---
 
-Used during Phase 3 (Verify Sources) and Phase 4 (Evaluate Sources).
-
-## URL Verification (Phase 3)
-
-Verify all source URLs are reachable before evaluation:
-
-```bash
-uv run <plugin-scripts-dir>/check_url.py URL1 URL2 ...
-```
-
-- **404 or status 0 (DNS failure):** Drop from source list.
-- **403 or 5xx:** Keep source, note access issue.
-- **All sources removed:** Stop and gather new sources before proceeding.
-
-**Example — Phase 3→4 progression:**
-
-| # | URL | Title | Status | Tier |
-|---|-----|-------|--------|------|
-| 1 | https://docs.python.org/... | asyncio docs | verified → | T1 |
-| 2 | https://blog.example.com/... | My Tips | removed (404) → | — |
-| 3 | https://realpython.com/... | Async Guide | verified (403) → | T3 |
-
-Phase 3 updates the Status column. Phase 4 adds the Tier column.
-
-## SIFT Steps (Phase 4)
+# Phase 4: Evaluate Sources (SIFT)
 
 Apply SIFT (Stop, Investigate, Find better, Trace) to each source:
 
 1. **Stop** — Flag as "unverified" until remaining steps complete.
-2. **Investigate** — Check domain authority, author credentials, publication reliability. Classify into tier (see Source Hierarchy below).
-3. **Find better** — For key claims, search for higher-tier sources. If found, upgrade. Note claims with limited sourcing.
-4. **Trace** — For critical claims, follow citation chains to primary source. Verify claim matches original context.
+2. **Investigate** — Check domain authority, author credentials, publication
+   reliability. Classify into tier (see Source Hierarchy below).
+3. **Find better** — For key claims, search for higher-tier sources. If
+   found, upgrade. Note claims with limited sourcing.
+4. **Trace** — For critical claims, follow citation chains to primary
+   source. Verify claim matches original context.
 
 After evaluation: drop sources below T5, never cite T6.
 
@@ -73,3 +55,7 @@ Annotate tiers in the document body, not the frontmatter:
 - Outdated information relative to domain currency
 - Conflict of interest — vendor-sponsored research about own product
 - Survivorship bias — only success stories, no failures
+
+### Phase Gate: Phase 4 → Phase 5
+
+Sources table has Tier + Status columns for all remaining sources.
