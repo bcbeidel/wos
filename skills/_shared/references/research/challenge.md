@@ -5,6 +5,14 @@ stage: challenge
 pipeline: research
 ---
 
+## Purpose
+
+Test assumptions, find counter-evidence, and run structured critical thinking exercises to prevent confirmation bias.
+
+## Input
+
+DRAFT document with evaluated sources (Tier + Status columns in sources table).
+
 # Challenge Reference
 
 Used during Phase 5 (Challenge). Three sub-steps applied based on
@@ -55,3 +63,11 @@ Output format:
 | Failure Reason | Plausibility | Impact on Conclusion |
 |----------------|-------------|---------------------|
 | [reason] | medium | Qualifies finding #2 |
+
+## Output
+
+`## Challenge` section added to the DRAFT document containing assumptions check, ACH results (if applicable), and premortem.
+
+## Gate
+
+Gate: `challenger_exit` — `## Challenge` section exists on disk.

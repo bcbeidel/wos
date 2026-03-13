@@ -5,6 +5,9 @@ stage: shared
 pipeline: research
 ---
 
+## Purpose
+Enables research phase detection from disk state alone, allowing work to resume after a context reset without re-reading the entire document.
+
 # Resuming After Context Reset
 
 If `docs/research/{date}-{slug}.md` exists with `<!-- DRAFT -->`, read

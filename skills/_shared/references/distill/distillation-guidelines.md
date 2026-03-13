@@ -5,6 +5,9 @@ stage: write
 pipeline: distill
 ---
 
+## Purpose
+Quality criteria and constraints for context files distilled from research. Ensures files are atomic, actionable, traceable, and concise while carrying forward confidence levels and source attribution.
+
 # Distillation Guidelines
 
 ## What Makes a Good Context File

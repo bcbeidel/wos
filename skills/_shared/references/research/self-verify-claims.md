@@ -5,6 +5,14 @@ stage: verify
 pipeline: research
 ---
 
+## Purpose
+
+Extract claims from findings and run Chain-of-Verification (CoVe) to catch fabrication, statistical errors, and misattributions.
+
+## Input
+
+DRAFT document with `## Findings` section completed.
+
 # Phase 7: Self-Verify Claims (CoVe)
 
 Extract every quote, statistic, attribution, and superlative from
@@ -49,6 +57,10 @@ Chain-of-Verification catches fabrication from parametric knowledge.
 When CoVe contradicts a claim: if the claim has a cited source, escalate
 to Phase 8 — the source is the tiebreaker between draft and CoVe. If no
 source, assign `human-review`.
+
+## Output
+
+`## Claims` table with all claims extracted and CoVe verification applied. Each claim categorized by type (quote, statistic, attribution, superlative).
 
 ### Phase Gate: Phase 7 → Phase 8
 

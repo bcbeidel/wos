@@ -5,6 +5,9 @@ stage: frame
 pipeline: research
 ---
 
+## Purpose
+Defines the eight research modes and their methodology intensity parameters. Used by the framer to select the appropriate mode and by other stages to determine conditional behavior (e.g., which challenge sub-steps to apply).
+
 # Research Modes
 
 Eight modes with distinct methodology and intensity. All produce a
