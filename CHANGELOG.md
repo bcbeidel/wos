@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.27.0] - 2026-03-13
+
+### Added
+
+- **Composable pipeline with runtime inline/delegate decisions.** Research
+  pipeline stages can now run inline (orchestrator executes methodology directly)
+  or delegate to subagents at runtime, based on mode-conditional heuristics.
+  Low-stakes modes inline 5 of 7 stages; high-stakes modes preserve context
+  isolation. Fixes #195.
+- **MANIFEST.md discovery index.** Machine-readable stage-to-reference-file
+  mapping for cross-platform agent discovery (referenced from research and
+  distill SKILL.md).
+- **Standardized reference file contracts.** All 14 reference files now have
+  `stage`/`pipeline` frontmatter and Purpose/Input/Output/Gate contract sections
+  for dual use as inline instructions and agent definition sources.
+- **Gate fixture tests.** 7 test fixtures covering each stage boundary in the
+  research pipeline, with parametrized pytest assertions against `check_single_gate`.
+- **Conditional distill worker.** Worker inlines for small mappings (1-3 context
+  files) and delegates for large mappings (>3 files).
+
+## [0.26.0] - 2026-03-12
+
+### Added
+
+- **Pipeline subagent definitions with deterministic gate checks.** 9 named
+  agents for the research-distill pipeline with `check_single_gate()` API
+  for structural validation between stages. Fixes #194.
+
 ## [0.25.0] - 2026-03-12
 
 ### Changed
