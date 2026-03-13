@@ -15,7 +15,6 @@ references:
   - references/human-validation.md
   - references/adhoc-validation.md
   - references/failure-diagnosis.md
-  - ../_shared/references/preflight.md
   - ../_shared/references/plan-format.md
 ---
 
@@ -83,11 +82,10 @@ or project doc). Wait for user confirmation before executing.
 
 ### 2. Plan Preconditions (plan mode only)
 
-Run the preflight check (per `preflight.md`), then the entry script:
+Run the entry script:
 
 ```bash
-uv run <plugin-scripts-dir>/check_runtime.py
-uv run <plugin-skills-dir>/execute-plan/scripts/plan_assess.py --file <path>
+python <plugin-skills-dir>/execute-plan/scripts/plan_assess.py --file <path>
 ```
 
 Parse the JSON output. All task checkboxes must be checked
@@ -126,7 +124,7 @@ Show the full numbered list with results:
 
 ```
 Validation Results:
-1. [PASS] `uv run python -m pytest tests/ -v` — 42 passed
+1. [PASS] `python python -m pytest tests/ -v` — 42 passed
 2. [FAIL] `ruff check src/` — 3 errors found
 3. [PENDING] All API responses use consistent error format
 4. [PENDING] Documentation covers all new endpoints

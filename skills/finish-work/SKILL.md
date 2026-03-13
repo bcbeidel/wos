@@ -11,7 +11,6 @@ user-invocable: true
 references:
   - references/option-execution.md
   - references/retrospective-format.md
-  - ../_shared/references/preflight.md
   - ../_shared/references/plan-format.md
 ---
 
@@ -56,8 +55,7 @@ If the user provided a plan path as an argument, use it. Otherwise, search
 for a plan file:
 
 ```bash
-uv run <plugin-scripts-dir>/check_runtime.py
-uv run <plugin-skills-dir>/execute-plan/scripts/plan_assess.py --scan --root <project-root>
+python <plugin-skills-dir>/execute-plan/scripts/plan_assess.py --scan --root <project-root>
 ```
 
 Parse the JSON output to find plans with `status: executing` or

@@ -36,4 +36,3 @@ into dispatch prompts for delegation.
 |------|---------|
 | research/resumption.md | Phase detection from disk state after context reset |
 | research/cli-commands.md | Shared utility commands (audit, reindex, url_checker) |
-| preflight.md | uv availability check, canary script validation |

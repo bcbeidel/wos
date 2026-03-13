@@ -23,7 +23,6 @@ references:
   - ../_shared/references/research/finalize.md
   - ../_shared/references/research/research-modes.md
   - ../_shared/references/research/cli-commands.md
-  - ../_shared/references/preflight.md
   - ../_shared/references/MANIFEST.md
 ---
 
@@ -107,17 +106,14 @@ script before proceeding. This reports structural facts (word count, draft
 marker, section presence, source count) so you can determine the current
 state without re-reading the entire document.
 
-Before running any `uv run` command below, follow the preflight check in
-the [preflight reference](../_shared/references/preflight.md).
-
 **Single document (known file):**
 ```bash
-uv run <plugin-skills-dir>/research/scripts/research_assess.py --file <path>
+python <plugin-skills-dir>/research/scripts/research_assess.py --file <path>
 ```
 
 **Discovery (what's in progress?):**
 ```bash
-uv run <plugin-skills-dir>/research/scripts/research_assess.py --scan --root .
+python <plugin-skills-dir>/research/scripts/research_assess.py --scan --root .
 ```
 
 Use the JSON output to determine which phase the document is in and what

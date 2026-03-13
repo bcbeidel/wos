@@ -10,15 +10,12 @@ user-invocable: true
 references:
   - ../_shared/references/distill/distillation-guidelines.md
   - ../_shared/references/distill/mapping-guide.md
-  - ../_shared/references/preflight.md
   - ../_shared/references/MANIFEST.md
 ---
 
 # Distill
 
 Convert research artifacts into focused context files.
-
-**Prerequisite:** Before running any `uv run` command below, follow the preflight check in the [preflight reference](../_shared/references/preflight.md).
 
 ## Execution Mode
 

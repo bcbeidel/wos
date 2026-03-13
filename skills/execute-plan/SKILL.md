@@ -9,7 +9,6 @@ description: >
 argument-hint: "[plan file path]"
 user-invocable: true
 references:
-  - ../_shared/references/preflight.md
   - references/execution-guide.md
   - references/parallel-dispatch.md
   - references/recovery-patterns.md
@@ -33,17 +32,16 @@ tracking, and multi-session resumption.
 
 ### 1. Load Plan
 
-Run the preflight check (per `preflight.md`), then the entry script:
+Run the entry script:
 
 ```bash
-uv run <plugin-scripts-dir>/check_runtime.py
-uv run <plugin-skills-dir>/execute-plan/scripts/plan_assess.py --file <path>
+python <plugin-skills-dir>/execute-plan/scripts/plan_assess.py --file <path>
 ```
 
 If no plan path was provided, use `--scan` mode to find executing plans:
 
 ```bash
-uv run <plugin-skills-dir>/execute-plan/scripts/plan_assess.py --scan --root <project-root>
+python <plugin-skills-dir>/execute-plan/scripts/plan_assess.py --scan --root <project-root>
 ```
 
 Read the plan file. Parse the JSON output for status, task state, file

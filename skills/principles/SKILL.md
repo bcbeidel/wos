@@ -8,7 +8,6 @@ description: >
 argument-hint: ""
 user-invocable: true
 references:
-  - ../_shared/references/preflight.md
   - references/principle-structure.md
   - references/extraction-heuristics.md
   - references/drift-detection.md
@@ -19,9 +18,6 @@ references:
 Capture and maintain project principles in `PRINCIPLES.md` at the repo root.
 Idempotent — first run extracts and creates, re-runs detect drift and
 propose updates.
-
-**Prerequisite:** Before running any `uv run` command below, follow the
-preflight check in the [preflight reference](../_shared/references/preflight.md).
 
 ## Workflow
 
@@ -74,8 +70,8 @@ Before writing, check:
    [principle-structure.md](references/principle-structure.md)
 2. If CLAUDE.md exists but does not contain `@PRINCIPLES.md`, add the
    reference (at the top, next to `@AGENTS.md` if present)
-3. Run: `uv run <plugin-scripts-dir>/reindex.py --root .`
-4. Run: `uv run <plugin-scripts-dir>/audit.py --root . --no-urls`
+3. Run: `python <plugin-scripts-dir>/reindex.py --root .`
+4. Run: `python <plugin-scripts-dir>/audit.py --root . --no-urls`
    to verify the skill produced valid output
 
 ### 7. Propose cleanup
@@ -115,7 +111,7 @@ New candidates go through the full articulation step (step 4).
 
 Update `PRINCIPLES.md` with approved changes only. Do not touch
 unapproved principles. Run:
-`uv run <plugin-scripts-dir>/audit.py --root . --no-urls`
+`python <plugin-scripts-dir>/audit.py --root . --no-urls`
 
 Report what changed and what remained unchanged.
 
