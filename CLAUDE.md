@@ -17,7 +17,7 @@ using it.
 Always use the project venv Python: `.venv/bin/python`
 
 ```bash
-.venv/bin/python -m pytest tests/ -v
+python -m pytest tests/ -v
 ```
 
 Lint:
