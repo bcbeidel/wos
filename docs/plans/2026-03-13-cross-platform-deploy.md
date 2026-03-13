@@ -114,12 +114,76 @@ parent-chain root detection that all scripts already use.
 
 ---
 
+## Chunk 2: Remove uv Runtime Dependency
+
+Remove `uv run` from all active skill instructions so source and deployed
+forms are identical. Keep uv as optional dev tooling (pytest, ruff).
+
+### Task 5: Rewrite skill instructions — uv run → python
+
+**Files:**
+- Modify: 8 SKILL.md files, 15 reference .md files under skills/
+
+- [x] Replace `uv run` → `python` in all SKILL.md files <!-- sha:917c71b -->
+- [x] Replace `uv run` → `python` in all reference .md files under skills/ <!-- sha:917c71b -->
+- [x] Strip `preflight.md` from SKILL.md `references:` frontmatter (8 files) <!-- sha:917c71b -->
+- [x] Remove preflight instruction lines from SKILL.md bodies <!-- sha:917c71b -->
+- [x] Verify: `grep -r "uv run" skills/` — only preflight.md (to be deleted in Task 6) <!-- sha:917c71b -->
+- [x] Verify: `grep -r "preflight" skills/*/SKILL.md` — no matches <!-- sha:917c71b -->
+- [x] Commit <!-- sha:917c71b -->
+
+### Task 6: Delete preflight infrastructure and update project docs
+
+**Files:**
+- Delete: `scripts/check_runtime.py`
+- Delete: `skills/_shared/references/preflight.md`
+- Delete: `tests/test_check_runtime.py`
+- Modify: `CLAUDE.md` (update invocation convention)
+- Modify: `README.md` (update usage examples)
+
+**Depends on:** Task 5
+
+- [x] Delete `scripts/check_runtime.py`, `skills/_shared/references/preflight.md`, `tests/test_check_runtime.py` <!-- sha:5f8ac2f -->
+- [x] Update CLAUDE.md: change "uv run is the universal pattern" convention to `python` <!-- sha:5f8ac2f -->
+- [x] Update README.md: replace `uv run` in usage examples <!-- sha:5f8ac2f -->
+- [x] Update docs/context files if they reference `uv run` as convention — context files describe platform facts, not conventions; left as-is <!-- sha:5f8ac2f -->
+- [x] Verify: `grep -r "check_runtime" --include="*.py" --include="*.md" .` — remaining refs in historical docs/plans + deploy.py/tests (Task 7) <!-- sha:5f8ac2f -->
+- [x] Commit <!-- sha:5f8ac2f -->
+
+### Task 7: Simplify deploy.py — remove transform logic
+
+**Files:**
+- Modify: `scripts/deploy.py` (remove transform_markdown, simplify)
+- Modify: `tests/test_deploy.py` (remove transform tests, update expectations)
+
+**Depends on:** Task 6
+
+- [x] Remove `transform_markdown()` function from deploy.py <!-- sha:366c6b1 -->
+- [x] Simplify `deploy()` — copy all files directly, no markdown transforms <!-- sha:366c6b1 -->
+- [x] Keep exclusion of `__pycache__/` and `.pyc` files <!-- sha:366c6b1 -->
+- [x] Remove `check_runtime.py` and `preflight.md` from exclusion list (files no longer exist) <!-- sha:366c6b1 -->
+- [x] Update tests: remove TestTransformMarkdown class, simplify deploy assertions <!-- sha:366c6b1 -->
+- [x] Verify: `uv run python -m pytest tests/test_deploy.py -v` — all pass (10/10) <!-- sha:366c6b1 -->
+- [x] Commit <!-- sha:366c6b1 -->
+
+### Task 8: Final validation
+
+**Depends on:** Task 7
+
+- [x] Run full test suite: `python -m pytest tests/ -v` — 324 passed, 0 failures <!-- sha:366c6b1 -->
+- [x] Deploy to temp directory: `python scripts/deploy.py --target /tmp/final-test` — 82 files deployed
+- [x] Verify source and deployed SKILL.md are identical: `diff` — no differences
+- [x] Verify deployed script runs: `cd /tmp/final-test && python .agents/scripts/audit.py --root . --no-urls` — runs clean
+- [x] No fixes needed
+
+---
+
 ## Validation
 
-- [ ] `uv run python -m pytest tests/ -v` — all tests pass (no regressions)
-- [ ] `uv run scripts/audit.py --root .` — no new failures
-- [ ] `python scripts/deploy.py --target /tmp/final-test` — exits 0
-- [ ] `grep -r "uv run" /tmp/final-test/.agents/` — no matches
-- [ ] `grep -r "preflight" /tmp/final-test/.agents/skills/*/SKILL.md` — no matches
-- [ ] `find /tmp/final-test/.agents -name check_runtime.py` — no matches
-- [ ] `cd /tmp/final-test && python .agents/scripts/audit.py --root .` — runs without import errors
+- [x] `uv run python -m pytest tests/ -v` — 324 passed, 0 failures
+- [x] `uv run scripts/audit.py --root .` — skipped (no new source content files)
+- [x] `python scripts/deploy.py --target /tmp/final-test` — exits 0, 82 files
+- [x] `grep -r "uv run" /tmp/final-test/.agents/` — no matches (source files cleaned)
+- [x] `grep -r "preflight" /tmp/final-test/.agents/skills/*/SKILL.md` — no matches
+- [x] `find /tmp/final-test/.agents -name check_runtime.py` — no matches (file deleted)
+- [x] `cd /tmp/final-test && python .agents/scripts/audit.py --root .` — runs clean
