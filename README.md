@@ -52,7 +52,7 @@ skills/                # Skill definitions (SKILL.md + references/)
   _shared/references/  # Shared references (research, distill pipelines)
 tests/                 # pytest tests
 docs/                  # Documentation, plans, and research
-  context/             # Topic areas (created by /wos:init)
+  context/             # Topic areas (created by /wos:init-wos)
   plans/               # Design docs and implementation plans
   research/            # Research artifacts
 ```
