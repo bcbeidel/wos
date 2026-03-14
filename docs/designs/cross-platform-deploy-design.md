@@ -3,9 +3,9 @@ name: Cross-Platform Skill Deployment
 description: Export script that deploys WOS skills into .agents/ for Copilot and other Agent Skills-compatible copilots without uv or Claude Code
 type: design
 status: draft
+created_at: 2026-03-13
 related:
-  - docs/research/2026-03-13-copilot-skill-format.md
-  - docs/research/2026-03-13-cross-platform-skill-formats.md
+  - docs/plans/cross-platform-deploy.plan.md
 ---
 
 ## Purpose
