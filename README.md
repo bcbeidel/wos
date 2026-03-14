@@ -65,6 +65,16 @@ claude --plugin-dir /path/to/wos
 
 Or add to Claude Code settings for automatic loading.
 
+## Cross-Platform Deployment
+
+WOS skills can be deployed to GitHub Copilot, Cursor, Windsurf, Codex,
+Gemini CLI, and other platforms. See [DEPLOYING.md](DEPLOYING.md) for
+the full guide.
+
+```bash
+python scripts/deploy.py --platform copilot   # or --target /path/to/project
+```
+
 ## Script Invocation
 
 All scripts use [PEP 723](https://peps.python.org/pep-0723/) inline metadata
