@@ -1,79 +1,103 @@
-"""Tests for scripts/deploy.py — cross-platform skill deployment."""
+"""Tests for scripts/deploy.py — symlink-based skill deployment."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
 from scripts.deploy import (
+    PLATFORMS,
     deploy,
-    discover_files,
-    should_exclude,
+    discover_skills,
+    resolve_platform_path,
 )
 
 
-class TestShouldExclude:
-    def test_excludes_pycache_dir(self) -> None:
-        assert should_exclude(Path("wos/__pycache__/document.cpython-39.pyc"))
-
-    def test_excludes_pyc_files(self) -> None:
-        assert should_exclude(Path("wos/document.pyc"))
-
-    def test_allows_normal_python(self) -> None:
-        assert not should_exclude(Path("scripts/audit.py"))
-
-    def test_allows_normal_markdown(self) -> None:
-        assert not should_exclude(Path("skills/audit/SKILL.md"))
-
-
-class TestDiscoverFiles:
-    def test_finds_expected_source_files(self) -> None:
+class TestDiscoverSkills:
+    def test_finds_skill_directories(self) -> None:
         plugin_root = Path(__file__).resolve().parent.parent
-        files = discover_files(plugin_root)
-        names = {f.name for f in files}
-        assert "audit.py" in names
-        assert "SKILL.md" in names
-        assert "__init__.py" in names
+        skills = discover_skills(plugin_root)
+        assert "audit" in skills
+        assert "research" in skills
+
+    def test_excludes_hidden_dirs(self, tmp_path: Path) -> None:
+        (tmp_path / "skills" / ".hidden").mkdir(parents=True)
+        (tmp_path / "skills" / "visible").mkdir(parents=True)
+        skills = discover_skills(tmp_path)
+        assert skills == ["visible"]
+
+
+class TestResolvePlatformPath:
+    def test_copilot_path(self) -> None:
+        path = resolve_platform_path("copilot")
+        assert path == Path.home() / ".copilot"
+
+    def test_all_platforms_resolve(self) -> None:
+        for name in PLATFORMS:
+            path = resolve_platform_path(name)
+            assert path.is_absolute()
 
 
 class TestDeploy:
-    def test_creates_agents_directory_structure(self, tmp_path: Path) -> None:
+    def test_creates_skill_symlinks(self, tmp_path: Path) -> None:
         plugin_root = Path(__file__).resolve().parent.parent
         deploy(plugin_root, tmp_path)
 
-        agents = tmp_path / ".agents"
-        assert (agents / "wos" / "__init__.py").exists()
-        assert (agents / "scripts" / "audit.py").exists()
-        assert (agents / "skills" / "audit" / "SKILL.md").exists()
+        skills_dir = tmp_path / "skills"
+        assert skills_dir.is_dir()
+        audit_link = skills_dir / "audit"
+        assert audit_link.is_symlink()
+        assert audit_link.resolve() == (plugin_root / "skills" / "audit").resolve()
+        assert (audit_link / "SKILL.md").exists()
+
+    def test_creates_support_dir_symlinks(self, tmp_path: Path) -> None:
+        plugin_root = Path(__file__).resolve().parent.parent
+        deploy(plugin_root, tmp_path)
+
+        assert (tmp_path / "scripts").is_symlink()
+        assert (tmp_path / "scripts").resolve() == (plugin_root / "scripts").resolve()
+        assert (tmp_path / "wos").is_symlink()
+        assert (tmp_path / "wos").resolve() == (plugin_root / "wos").resolve()
 
     def test_idempotent(self, tmp_path: Path) -> None:
         plugin_root = Path(__file__).resolve().parent.parent
         actions1 = deploy(plugin_root, tmp_path)
         actions2 = deploy(plugin_root, tmp_path)
-        assert actions1 == actions2
+        # Second run should skip all (already linked)
+        assert all("skip" in a for a in actions2)
+        # But first run should have created links
+        assert any("link" in a for a in actions1)
 
     def test_dry_run_writes_nothing(self, tmp_path: Path) -> None:
         plugin_root = Path(__file__).resolve().parent.parent
         actions = deploy(plugin_root, tmp_path, dry_run=True)
 
         assert len(actions) > 0
-        assert not (tmp_path / ".agents").exists()
+        assert not (tmp_path / "skills").exists()
+        assert not (tmp_path / "scripts").exists()
 
-    def test_preserves_directory_structure(self, tmp_path: Path) -> None:
+    def test_backs_up_existing_directory(self, tmp_path: Path) -> None:
         plugin_root = Path(__file__).resolve().parent.parent
+        # Create a real directory where a symlink will go
+        (tmp_path / "scripts").mkdir()
+        (tmp_path / "scripts" / "existing.txt").write_text("keep")
+
         deploy(plugin_root, tmp_path)
 
-        agents = tmp_path / ".agents"
-        # skills/, scripts/, wos/ should be siblings under .agents/
-        assert (agents / "skills").is_dir()
-        assert (agents / "scripts").is_dir()
-        assert (agents / "wos").is_dir()
+        # Original should now be a symlink
+        assert (tmp_path / "scripts").is_symlink()
+        # Backup should exist
+        backups = list(tmp_path.glob("scripts.backup_*"))
+        assert len(backups) == 1
+        assert (backups[0] / "existing.txt").read_text() == "keep"
 
-    def test_deployed_source_matches_original(self, tmp_path: Path) -> None:
-        """Verify deployed files are identical copies (no transforms)."""
+    def test_replaces_stale_symlink(self, tmp_path: Path) -> None:
         plugin_root = Path(__file__).resolve().parent.parent
+        # Create a symlink pointing to wrong target
+        stale_target = tmp_path / "wrong"
+        stale_target.mkdir()
+        (tmp_path / "scripts").symlink_to(stale_target, target_is_directory=True)
+
         deploy(plugin_root, tmp_path)
 
-        agents = tmp_path / ".agents"
-        skill_src = plugin_root / "skills" / "audit" / "SKILL.md"
-        skill_dst = agents / "skills" / "audit" / "SKILL.md"
-        assert skill_src.read_text() == skill_dst.read_text()
+        assert (tmp_path / "scripts").is_symlink()
+        assert (tmp_path / "scripts").resolve() == (plugin_root / "scripts").resolve()

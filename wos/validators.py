@@ -11,6 +11,7 @@ Each check returns a list of issue dicts with keys: file, issue, severity.
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 from typing import List
 
@@ -71,6 +72,53 @@ def check_frontmatter(doc: Document, context_path: str = "docs/context") -> List
             "issue": "Context file has no related fields",
             "severity": "warn",
         })
+
+    return issues
+
+
+_ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def check_timestamps(doc: Document) -> List[dict]:
+    """Warn when created_at or updated_at have invalid ISO 8601 date format.
+
+    Expected format: YYYY-MM-DD. Also warns if updated_at is earlier than
+    created_at.
+
+    Args:
+        doc: A parsed Document instance.
+
+    Returns:
+        List of issue dicts with severity 'warn'.
+    """
+    issues: List[dict] = []
+
+    for field_name in ("created_at", "updated_at"):
+        value = getattr(doc, field_name)
+        if value is None:
+            continue
+        if not _ISO_DATE_RE.match(value):
+            issues.append({
+                "file": doc.path,
+                "issue": (
+                    f"'{field_name}' is not a valid ISO 8601 date"
+                    f" (YYYY-MM-DD): {value}"
+                ),
+                "severity": "warn",
+            })
+
+    if doc.created_at and doc.updated_at:
+        if (_ISO_DATE_RE.match(doc.created_at)
+                and _ISO_DATE_RE.match(doc.updated_at)
+                and doc.updated_at < doc.created_at):
+            issues.append({
+                "file": doc.path,
+                "issue": (
+                    f"'updated_at' ({doc.updated_at}) is before"
+                    f" 'created_at' ({doc.created_at})"
+                ),
+                "severity": "warn",
+            })
 
     return issues
 
@@ -295,6 +343,7 @@ def validate_file(
 
     issues: List[dict] = []
     issues.extend(check_frontmatter(doc))
+    issues.extend(check_timestamps(doc))
     issues.extend(check_content(
         doc, max_words=context_max_words, min_words=context_min_words,
     ))
