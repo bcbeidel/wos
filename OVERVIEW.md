@@ -25,7 +25,7 @@ flowchart TB
     context --> brainstorm
 
     subgraph Infrastructure["Infrastructure Layer"]
-        init["/wos:init"] -."creates".-> discovery["Frontmatter\n_index.md\nAGENTS.md"]
+        init["/wos:init-wos"] -."creates".-> discovery["Frontmatter\n_index.md\nAGENTS.md"]
         audit["/wos:audit"] -."validates".-> discovery
     end
 
@@ -82,7 +82,7 @@ Skills that operate independently at any point in the lifecycle:
 
 | Skill | Purpose |
 |-------|---------|
-| `/wos:init` | Initialize or update WOS project context |
+| `/wos:init-wos` | Initialize or update WOS project context |
 | `/wos:audit` | Validate project health (8 checks + auto-fix) |
 | `/wos:research` | SIFT-based research with source verification |
 | `/wos:distill` | Convert research artifacts into focused context files |

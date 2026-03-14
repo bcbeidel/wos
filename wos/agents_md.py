@@ -7,6 +7,7 @@ content using marker-based replacement.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -15,16 +16,20 @@ from typing import Dict, List, Optional
 BEGIN_MARKER = "<!-- wos:begin -->"
 END_MARKER = "<!-- wos:end -->"
 
+_LAYOUT_RE = re.compile(r"<!--\s*wos:layout:\s*(\S+)\s*-->")
+
+VALID_LAYOUTS = frozenset({"separated", "co-located", "flat", "none"})
+
 
 # ── Discovery ────────────────────────────────────────────────────
 
 
 def discover_areas(root: Path) -> List[Dict[str, str]]:
-    """Discover areas by scanning docs/context/ subdirectories.
+    """Discover areas by scanning for directories with managed documents.
 
-    Walks ``docs/context/`` under *root*, reads each subdirectory's
-    ``_index.md`` preamble as the area description, and returns a
-    sorted list of area dicts suitable for ``render_wos_section()``.
+    Walks the project tree using the discovery module, finds all
+    directories containing managed documents, and returns them as
+    navigable areas with ``_index.md`` preambles as descriptions.
 
     Args:
         root: Project root directory.
@@ -32,23 +37,67 @@ def discover_areas(root: Path) -> List[Dict[str, str]]:
     Returns:
         Sorted list of dicts with 'name' and 'path' keys.
     """
+    from wos.discovery import discover_document_dirs
     from wos.index import extract_preamble
 
-    context_dir = root / "docs" / "context"
-    if not context_dir.is_dir():
+    doc_dirs = discover_document_dirs(root)
+    if not doc_dirs:
         return []
 
     areas: List[Dict[str, str]] = []
-    for entry in sorted(context_dir.iterdir()):
-        if not entry.is_dir():
-            continue
-        index_path = entry / "_index.md"
+    for directory in doc_dirs:
+        index_path = directory / "_index.md"
         preamble = extract_preamble(index_path)
-        name = preamble if preamble else entry.name
-        rel_path = str(entry.relative_to(root))
+        name = preamble if preamble else directory.name
+        try:
+            rel_path = str(directory.relative_to(root))
+        except ValueError:
+            rel_path = str(directory)
         areas.append({"name": name, "path": rel_path})
 
     return areas
+
+
+# ── Layout hint ──────────────────────────────────────────────────
+
+
+def read_layout_hint(content: str) -> Optional[str]:
+    """Extract layout pattern from AGENTS.md WOS section.
+
+    Looks for ``<!-- wos:layout: <pattern> -->`` within the WOS-managed
+    section.
+
+    Args:
+        content: Full AGENTS.md file content.
+
+    Returns:
+        Layout pattern string (e.g. 'separated', 'co-located'), or
+        None if no hint found.
+    """
+    begin_idx = content.find(BEGIN_MARKER)
+    end_idx = content.find(END_MARKER)
+    if begin_idx == -1 or end_idx == -1:
+        return None
+
+    wos_section = content[begin_idx:end_idx]
+    match = _LAYOUT_RE.search(wos_section)
+    if match:
+        layout = match.group(1)
+        if layout in VALID_LAYOUTS:
+            return layout
+    return None
+
+
+def write_layout_hint(layout: str) -> str:
+    """Return the comment marker string for a layout pattern.
+
+    Args:
+        layout: One of 'separated', 'co-located', 'flat', 'none'.
+
+    Returns:
+        HTML comment string like ``<!-- wos:layout: co-located -->``.
+    """
+    return f"<!-- wos:layout: {layout} -->"
 
 
 # ── Render ───────────────────────────────────────────────────────
@@ -57,17 +106,23 @@ def discover_areas(root: Path) -> List[Dict[str, str]]:
 def render_wos_section(
     areas: List[Dict[str, str]],
     preferences: Optional[List[str]] = None,
+    layout: Optional[str] = None,
 ) -> str:
     """Render the WOS-managed section for AGENTS.md.
 
     Args:
         areas: List of dicts with 'name' and 'path' keys.
         preferences: Optional list of preference strings.
+        layout: Optional layout pattern to include as a hint comment.
 
     Returns:
         Markdown string wrapped in begin/end markers.
     """
     lines: List[str] = [BEGIN_MARKER]
+
+    # ── Layout hint (if set) ──────────────────────────────────────
+    if layout and layout in VALID_LAYOUTS:
+        lines.append(write_layout_hint(layout))
 
     # ── Context Navigation header ────────────────────────────────
     lines.append("## Context Navigation")
@@ -75,11 +130,14 @@ def render_wos_section(
     lines.append(
         "Each directory has an `_index.md` listing all files with descriptions."
     )
-    lines.append("- `docs/context/_index.md` -- all topic areas")
-    lines.append("- `docs/plans/_index.md` -- plans")
-    lines.append("- `docs/designs/_index.md` -- designs")
-    lines.append("- `docs/research/_index.md` -- research")
+
+    # Dynamic navigation: list areas with _index.md links
+    if areas:
+        for area in areas:
+            path = area["path"]
+            lines.append(f"- `{path}/_index.md` -- {area['name']}")
     lines.append("")
+
     lines.append(
         "Each `.md` file starts with YAML metadata (between `---` lines)."
     )
@@ -191,6 +249,7 @@ def update_agents_md(
     content: str,
     areas: List[Dict[str, str]],
     preferences: Optional[List[str]] = None,
+    layout: Optional[str] = None,
 ) -> str:
     """Replace or append the WOS section in AGENTS.md content.
 
@@ -198,15 +257,22 @@ def update_agents_md(
     If markers don't exist, appends the section to the end.
     Content outside markers is never touched.
 
+    Preserves existing layout hint if no new layout is specified.
+
     Args:
         content: The existing AGENTS.md content.
         areas: List of dicts with 'name' and 'path' keys.
         preferences: Optional list of preference strings.
+        layout: Optional layout pattern. If None, preserves existing.
 
     Returns:
         Updated AGENTS.md content with the new WOS section.
     """
     from wos.markers import replace_marker_section
 
-    section = render_wos_section(areas, preferences)
+    # Preserve existing layout if not explicitly provided
+    if layout is None:
+        layout = read_layout_hint(content)
+
+    section = render_wos_section(areas, preferences, layout=layout)
     return replace_marker_section(content, BEGIN_MARKER, END_MARKER, section)

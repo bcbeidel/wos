@@ -16,15 +16,21 @@ class TestDiscoverAreas:
         from wos.agents_md import discover_areas
         from wos.index import generate_index
 
-        # Create two area directories with _index.md preambles
+        # Create two area directories with _index.md preambles and docs
         api_dir = tmp_path / "docs" / "context" / "api"
         api_dir.mkdir(parents=True)
+        (api_dir / "endpoints.md").write_text(
+            "---\nname: Endpoints\ndescription: API endpoints\n---\n"
+        )
         (api_dir / "_index.md").write_text(
             generate_index(api_dir, preamble="API documentation")
         )
 
         testing_dir = tmp_path / "docs" / "context" / "testing"
         testing_dir.mkdir(parents=True)
+        (testing_dir / "unit.md").write_text(
+            "---\nname: Unit Tests\ndescription: Unit testing\n---\n"
+        )
         (testing_dir / "_index.md").write_text(
             generate_index(testing_dir, preamble="Testing guides")
         )
@@ -44,18 +50,18 @@ class TestDiscoverAreas:
         self, tmp_path: Path,
     ) -> None:
         from wos.agents_md import discover_areas
-        from wos.index import generate_index
 
         area_dir = tmp_path / "docs" / "context" / "my-area"
         area_dir.mkdir(parents=True)
-        # No preamble
-        (area_dir / "_index.md").write_text(generate_index(area_dir))
+        (area_dir / "topic.md").write_text(
+            "---\nname: Topic\ndescription: A topic\n---\n"
+        )
 
         areas = discover_areas(tmp_path)
         assert len(areas) == 1
         assert areas[0]["name"] == "my-area"
 
-    def test_returns_empty_when_no_context_dir(
+    def test_returns_empty_when_no_docs(
         self, tmp_path: Path,
     ) -> None:
         from wos.agents_md import discover_areas
@@ -63,27 +69,33 @@ class TestDiscoverAreas:
         areas = discover_areas(tmp_path)
         assert areas == []
 
-    def test_ignores_files_in_context_dir(self, tmp_path: Path) -> None:
+    def test_discovers_areas_anywhere(self, tmp_path: Path) -> None:
+        """discover_areas finds document dirs outside docs/."""
         from wos.agents_md import discover_areas
 
-        context_dir = tmp_path / "docs" / "context"
-        context_dir.mkdir(parents=True)
-        (context_dir / "_index.md").write_text("# Context\n")
+        project_dir = tmp_path / "project-x"
+        project_dir.mkdir()
+        (project_dir / "notes.md").write_text(
+            "---\nname: Notes\ndescription: Project notes\n---\n"
+        )
 
         areas = discover_areas(tmp_path)
-        assert areas == []
+        assert len(areas) == 1
+        assert areas[0]["path"] == "project-x"
 
     def test_sorted_alphabetically(self, tmp_path: Path) -> None:
         from wos.agents_md import discover_areas
 
-        context_dir = tmp_path / "docs" / "context"
         for name in ["zebra", "alpha", "middle"]:
-            d = context_dir / name
+            d = tmp_path / "docs" / name
             d.mkdir(parents=True)
+            (d / "topic.md").write_text(
+                f"---\nname: {name}\ndescription: {name}\n---\n"
+            )
 
         areas = discover_areas(tmp_path)
-        names = [a["name"] for a in areas]
-        assert names == ["alpha", "middle", "zebra"]
+        paths = [a["path"] for a in areas]
+        assert paths == ["docs/alpha", "docs/middle", "docs/zebra"]
 
 
 # ── render_wos_section ──────────────────────────────────────────
