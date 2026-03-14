@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.30.0] - 2026-03-13
+
+### Added
+
+- **Flexible document layout.** WOS documents can now live anywhere in the
+  repository, not just under `docs/`. New `wos/discovery.py` module provides
+  gitignore-aware tree walking and frontmatter-based document detection.
+  Validators key off `doc.type` instead of directory paths. Fixes #206.
+- **Deployment guide.** New `DEPLOYING.md` covers project-level and
+  platform-level deployment for all 7 supported platforms.
+
+### Changed
+
+- **Validators use type-based filtering.** `check_frontmatter` and
+  `check_content` now key off `doc.type` instead of file path, supporting
+  documents in any location.
+- **Updated deploy design doc.** Reflects current symlink-based approach
+  with `--platform` support (was stale, described removed copy-based approach).
+
 ## [0.29.0] - 2026-03-13
 
 ### Added
