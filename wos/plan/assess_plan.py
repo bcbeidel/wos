@@ -283,45 +283,50 @@ def assess_file(path: str) -> dict:
     }
 
 
-def scan_plans(root: str, subdir: str = "docs/plans") -> dict:
-    """Find plans with status: executing in a directory.
+def scan_plans(root: str, subdir: str = "") -> dict:
+    """Find plans with status: executing in the project.
+
+    Uses the discovery module to find all type: plan documents with
+    status: executing. If subdir is provided, restricts to that
+    subdirectory.
 
     Args:
         root: Project root directory.
-        subdir: Subdirectory to scan (default: docs/plans).
+        subdir: Optional subdirectory to restrict scan (default: full tree).
 
     Returns:
         Dict with keys: directory, plans. Each plan has: file, name,
         status, total_tasks, completed_tasks, pending_tasks.
     """
-    scan_path = os.path.join(root, subdir)
+    from pathlib import Path
 
-    if not os.path.isdir(scan_path):
-        return {"directory": scan_path, "plans": []}
+    from wos.discovery import discover_documents
+
+    root_path = Path(root)
+    docs = discover_documents(root_path)
+
+    # Filter to executing plans
+    plan_docs = [
+        d for d in docs
+        if d.type == "plan" and d.status == "executing"
+    ]
+
+    # Optionally restrict to subdir
+    if subdir:
+        plan_docs = [
+            d for d in plan_docs
+            if d.path.startswith(subdir + "/") or d.path.startswith(subdir)
+        ]
+
+    scan_label = os.path.join(root, subdir) if subdir else root
 
     plans: list = []
-    for filename in sorted(os.listdir(scan_path)):
-        if not filename.endswith(".md") or filename.startswith("_"):
-            continue
-
-        file_path = os.path.join(scan_path, filename)
-        if not os.path.isfile(file_path):
-            continue
-
-        try:
-            text = _read_file(file_path)
-            doc = parse_document(file_path, text)
-        except ValueError:
-            continue
-
-        if doc.type != "plan" or doc.status != "executing":
-            continue
-
+    for doc in plan_docs:
         tasks = _parse_tasks(doc.content)
         completed = sum(1 for t in tasks if t["completed"])
 
         plans.append({
-            "file": file_path,
+            "file": os.path.join(root, doc.path),
             "name": doc.name,
             "status": doc.status,
             "total_tasks": len(tasks),
@@ -329,4 +334,4 @@ def scan_plans(root: str, subdir: str = "docs/plans") -> dict:
             "pending_tasks": len(tasks) - completed,
         })
 
-    return {"directory": scan_path, "plans": plans}
+    return {"directory": scan_label, "plans": plans}

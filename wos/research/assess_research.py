@@ -66,49 +66,50 @@ def assess_file(path: str) -> dict:
     }
 
 
-def scan_directory(root: str, subdir: str = "docs/research") -> dict:
-    """Scan a directory for research documents and return summaries.
+def scan_directory(root: str, subdir: str = "") -> dict:
+    """Scan for research documents and return summaries.
+
+    Uses the discovery module to find all type: research documents.
+    If subdir is provided, restricts to that subdirectory.
 
     Args:
         root: Project root directory.
-        subdir: Subdirectory relative to root to scan (default: docs/research).
+        subdir: Optional subdirectory to restrict scan (default: full tree).
 
     Returns:
         Dict with keys: directory, documents. Each document has:
         file, name, draft_marker_present, word_count, sources_count.
     """
-    scan_path = os.path.join(root, subdir)
+    from pathlib import Path
 
-    if not os.path.isdir(scan_path):
-        return {"directory": scan_path, "documents": []}
+    from wos.discovery import discover_documents
+
+    root_path = Path(root)
+    docs = discover_documents(root_path)
+
+    # Filter to research type
+    research_docs = [d for d in docs if d.type == "research"]
+
+    # Optionally restrict to subdir
+    if subdir:
+        research_docs = [
+            d for d in research_docs
+            if d.path.startswith(subdir + "/") or d.path.startswith(subdir)
+        ]
+
+    scan_label = os.path.join(root, subdir) if subdir else root
 
     documents: list = []
-    for filename in sorted(os.listdir(scan_path)):
-        if not filename.endswith(".md") or filename.startswith("_"):
-            continue
-
-        file_path = os.path.join(scan_path, filename)
-        if not os.path.isfile(file_path):
-            continue
-
-        try:
-            text = _read_file(file_path)
-            doc = parse_document(file_path, text)
-        except ValueError:
-            continue
-
-        if doc.type != "research":
-            continue
-
+    for doc in research_docs:
         documents.append({
-            "file": file_path,
+            "file": os.path.join(root, doc.path),
             "name": doc.name,
             "draft_marker_present": "<!-- DRAFT -->" in doc.content,
             "word_count": len(doc.content.split()),
             "sources_count": len(doc.sources),
         })
 
-    return {"directory": scan_path, "documents": documents}
+    return {"directory": scan_label, "documents": documents}
 
 
 def _read_file(path: str) -> str:

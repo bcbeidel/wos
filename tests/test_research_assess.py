@@ -358,7 +358,7 @@ class TestScanDirectory:
 
         result = scan_directory(str(tmp_path))
 
-        assert result["directory"] == str(research_dir)
+        assert result["directory"] == str(tmp_path)
         assert len(result["documents"]) == 2
         names = {d["name"] for d in result["documents"]}
         assert names == {"Topic A", "Topic B"}
