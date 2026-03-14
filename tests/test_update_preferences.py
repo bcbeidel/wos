@@ -54,9 +54,12 @@ class TestUpdatePreferencesWritesAgentsMd:
         assert END_MARKER in content
 
     def test_preserves_areas(self, tmp_path: Path) -> None:
-        # Set up project with an area
+        # Set up project with an area containing a managed doc
         area_dir = tmp_path / "docs" / "context" / "api"
         area_dir.mkdir(parents=True)
+        (area_dir / "endpoints.md").write_text(
+            "---\nname: Endpoints\ndescription: API endpoints\n---\n"
+        )
         (area_dir / "_index.md").write_text(
             generate_index(area_dir, preamble="API docs")
         )
