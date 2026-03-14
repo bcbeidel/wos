@@ -10,7 +10,6 @@ Each check returns a list of issue dicts with keys: file, issue, severity.
 
 from __future__ import annotations
 
-import os
 import re
 from pathlib import Path
 from typing import List
@@ -22,12 +21,11 @@ from wos.url_checker import check_urls
 # ── Individual checks ──────────────────────────────────────────
 
 
-def check_frontmatter(doc: Document, context_path: str = "docs/context") -> List[dict]:
+def check_frontmatter(doc: Document) -> List[dict]:
     """Check frontmatter fields: required fields, research sources, type issues.
 
     Args:
         doc: A parsed Document instance.
-        context_path: Path prefix for context files (for related-field check).
 
     Returns:
         List of issue dicts with severity 'fail' or 'warn'.
@@ -66,7 +64,7 @@ def check_frontmatter(doc: Document, context_path: str = "docs/context") -> List
             })
 
     # WARN: context files should have related fields
-    if doc.path.startswith(context_path + "/") and not doc.related:
+    if doc.type == "context" and not doc.related:
         issues.append({
             "file": doc.path,
             "issue": "Context file has no related fields",
@@ -125,25 +123,23 @@ def check_timestamps(doc: Document) -> List[dict]:
 
 def check_content(
     doc: Document,
-    context_path: str = "docs/context",
     max_words: int = 800,
     min_words: int = 100,
 ) -> List[dict]:
-    """Warn when context files exceed or fall below word count thresholds.
+    """Warn when context-type files exceed or fall below word count thresholds.
 
-    Only checks files under context_path. Non-context files and _index.md
-    files are excluded.
+    Only checks documents with type ``context``. Non-context files and
+    _index.md files are excluded.
 
     Args:
         doc: A parsed Document instance.
-        context_path: Path prefix for context files.
         max_words: Upper word count threshold (default 800).
         min_words: Lower word count threshold (default 100).
 
     Returns:
         List of issue dicts. Empty if within thresholds.
     """
-    if not doc.path.startswith(context_path + "/"):
+    if doc.type != "context":
         return []
     if doc.path.endswith("_index.md"):
         return []
@@ -375,7 +371,7 @@ def check_project_files(root: Path) -> List[dict]:
     if not agents_path.is_file():
         issues.append({
             "file": "AGENTS.md",
-            "issue": "No AGENTS.md found. Run /wos:init to initialize.",
+            "issue": "No AGENTS.md found. Run /wos:init-wos to initialize.",
             "severity": "warn",
         })
     else:
@@ -394,7 +390,7 @@ def check_project_files(root: Path) -> List[dict]:
     if not claude_path.is_file():
         issues.append({
             "file": "CLAUDE.md",
-            "issue": "No CLAUDE.md found. Run /wos:init to initialize.",
+            "issue": "No CLAUDE.md found. Run /wos:init-wos to initialize.",
             "severity": "warn",
         })
     else:
@@ -421,11 +417,11 @@ def validate_project(
     context_max_words: int = 800,
     context_min_words: int = 100,
 ) -> List[dict]:
-    """Validate all markdown files in a project.
+    """Validate all managed documents in a project.
 
-    Walks the docs/ subtree under root. Runs index sync checks on
-    each directory, and per-file checks on each .md file (excluding
-    _index.md files). Also checks project-level files (AGENTS.md,
+    Discovers documents by walking the project tree and checking for
+    valid frontmatter. Runs index sync checks on directories containing
+    managed documents. Also checks project-level files (AGENTS.md,
     CLAUDE.md).
 
     Args:
@@ -435,35 +431,29 @@ def validate_project(
     Returns:
         List of all issue dicts found.
     """
+    from wos.discovery import discover_document_dirs, discover_documents
+
     issues: List[dict] = []
 
     # Project-level checks
     issues.extend(check_project_files(root))
 
-    docs_dir = root / "docs"
-    if not docs_dir.is_dir():
-        return issues
+    # Discover and validate all managed documents
+    documents = discover_documents(root)
+    for doc in documents:
+        issues.extend(check_frontmatter(doc))
+        issues.extend(check_timestamps(doc))
+        issues.extend(check_content(
+            doc, max_words=context_max_words, min_words=context_min_words,
+        ))
+        issues.extend(check_draft_markers(doc))
+        if verify_urls:
+            issues.extend(check_source_urls(doc))
+        issues.extend(check_related_paths(doc, root))
 
-    for subdir in sorted(docs_dir.iterdir()):
-        if not subdir.is_dir():
-            continue
-
-        # Index sync checks (recursive)
-        issues.extend(check_all_indexes(subdir))
-
-        # Per-file checks on all .md files (excluding _index.md)
-        for dirpath, _dirnames, filenames in os.walk(subdir):
-            for filename in sorted(filenames):
-                if filename == "_index.md":
-                    continue
-                if not filename.endswith(".md"):
-                    continue
-                file_path = Path(dirpath) / filename
-                issues.extend(validate_file(
-                    file_path, root,
-                    verify_urls=verify_urls,
-                    context_max_words=context_max_words,
-                    context_min_words=context_min_words,
-                ))
+    # Index sync checks on directories containing managed documents
+    doc_dirs = discover_document_dirs(root)
+    for directory in doc_dirs:
+        issues.extend(check_all_indexes(directory))
 
     return issues

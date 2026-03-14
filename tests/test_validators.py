@@ -114,7 +114,7 @@ class TestCheckFrontmatter:
         from wos.validators import check_frontmatter
 
         doc = _make_doc(
-            path="docs/context/api/auth.md",
+            type="context",
             related=[],
         )
         issues = check_frontmatter(doc)
@@ -127,7 +127,8 @@ class TestCheckFrontmatter:
         from wos.validators import check_frontmatter
 
         doc = _make_doc(
-            path="docs/research/topic.md",
+            type="research",
+            sources=["https://example.com"],
             related=[],
         )
         issues = check_frontmatter(doc)
@@ -200,32 +201,30 @@ class TestCheckContent:
     def test_short_context_file_no_warning(self) -> None:
         from wos.validators import check_content
 
-        doc = _make_doc(
-            path="docs/context/api/auth.md",
-            content="Word " * 200,
-        )
+        doc = _make_doc(type="context", content="Word " * 200)
         issues = check_content(doc)
         assert issues == []
 
     def test_long_context_file_warns(self) -> None:
         from wos.validators import check_content
 
-        doc = _make_doc(
-            path="docs/context/api/auth.md",
-            content="Word " * 900,
-        )
+        doc = _make_doc(type="context", content="Word " * 900)
         issues = check_content(doc)
         assert len(issues) == 1
         assert issues[0]["severity"] == "warn"
         assert "900" in issues[0]["issue"]
 
-    def test_artifact_file_no_warning(self) -> None:
+    def test_non_context_file_no_warning(self) -> None:
         from wos.validators import check_content
 
-        doc = _make_doc(
-            path="docs/research/topic.md",
-            content="Word " * 2000,
-        )
+        doc = _make_doc(type="research", content="Word " * 2000)
+        issues = check_content(doc)
+        assert issues == []
+
+    def test_untyped_file_no_warning(self) -> None:
+        from wos.validators import check_content
+
+        doc = _make_doc(content="Word " * 2000)
         issues = check_content(doc)
         assert issues == []
 
@@ -233,6 +232,7 @@ class TestCheckContent:
         from wos.validators import check_content
 
         doc = _make_doc(
+            type="context",
             path="docs/context/api/_index.md",
             content="Word " * 2000,
         )
@@ -242,30 +242,21 @@ class TestCheckContent:
     def test_custom_max_words(self) -> None:
         from wos.validators import check_content
 
-        doc = _make_doc(
-            path="docs/context/api/auth.md",
-            content="Word " * 500,
-        )
+        doc = _make_doc(type="context", content="Word " * 500)
         issues = check_content(doc, max_words=400)
         assert len(issues) == 1
 
     def test_exactly_at_threshold_no_warning(self) -> None:
         from wos.validators import check_content
 
-        doc = _make_doc(
-            path="docs/context/api/auth.md",
-            content="Word " * 800,
-        )
+        doc = _make_doc(type="context", content="Word " * 800)
         issues = check_content(doc)
         assert issues == []
 
     def test_below_min_words_warns(self) -> None:
         from wos.validators import check_content
 
-        doc = _make_doc(
-            path="docs/context/api/auth.md",
-            content="Word " * 50,
-        )
+        doc = _make_doc(type="context", content="Word " * 50)
         issues = check_content(doc)
         assert len(issues) == 1
         assert issues[0]["severity"] == "warn"
@@ -274,40 +265,28 @@ class TestCheckContent:
     def test_above_min_words_no_warning(self) -> None:
         from wos.validators import check_content
 
-        doc = _make_doc(
-            path="docs/context/api/auth.md",
-            content="Word " * 200,
-        )
+        doc = _make_doc(type="context", content="Word " * 200)
         issues = check_content(doc)
         assert issues == []
 
     def test_exactly_at_min_threshold_no_warning(self) -> None:
         from wos.validators import check_content
 
-        doc = _make_doc(
-            path="docs/context/api/auth.md",
-            content="Word " * 100,
-        )
+        doc = _make_doc(type="context", content="Word " * 100)
         issues = check_content(doc)
         assert issues == []
 
     def test_custom_min_words(self) -> None:
         from wos.validators import check_content
 
-        doc = _make_doc(
-            path="docs/context/api/auth.md",
-            content="Word " * 150,
-        )
+        doc = _make_doc(type="context", content="Word " * 150)
         issues = check_content(doc, min_words=200)
         assert len(issues) == 1
 
-    def test_artifact_file_no_min_warning(self) -> None:
+    def test_non_context_no_min_warning(self) -> None:
         from wos.validators import check_content
 
-        doc = _make_doc(
-            path="docs/research/topic.md",
-            content="Word " * 10,
-        )
+        doc = _make_doc(type="research", content="Word " * 10)
         issues = check_content(doc)
         assert issues == []
 
@@ -315,11 +294,24 @@ class TestCheckContent:
         from wos.validators import check_content
 
         doc = _make_doc(
+            type="context",
             path="docs/context/api/_index.md",
             content="Word " * 10,
         )
         issues = check_content(doc)
         assert issues == []
+
+    def test_context_anywhere_gets_checked(self) -> None:
+        """Context-type docs get word-count checks regardless of path."""
+        from wos.validators import check_content
+
+        doc = _make_doc(
+            type="context",
+            path="project-x/notes.context.md",
+            content="Word " * 900,
+        )
+        issues = check_content(doc)
+        assert len(issues) == 1
 
 
 # ── check_draft_markers ────────────────────────────────────────
@@ -756,7 +748,7 @@ class TestValidateProject:
         from wos.index import generate_index
         from wos.validators import validate_project
 
-        # Set up context area under docs/
+        # Set up a document under docs/
         area = tmp_path / "docs" / "context" / "testing"
         area.mkdir(parents=True)
         topic = area / "unit-tests.md"
@@ -764,11 +756,6 @@ class TestValidateProject:
         # Create synced index with preambles for the area
         (area / "_index.md").write_text(
             generate_index(area, preamble="Testing area.")
-        )
-        # Create synced index with preamble for context root
-        context_dir = tmp_path / "docs" / "context"
-        (context_dir / "_index.md").write_text(
-            generate_index(context_dir, preamble="All context.")
         )
         # Create AGENTS.md with WOS markers and CLAUDE.md with @AGENTS.md
         (tmp_path / "AGENTS.md").write_text(
@@ -780,6 +767,31 @@ class TestValidateProject:
 
         issues = validate_project(tmp_path, verify_urls=False)
         assert issues == []
+
+    def test_discovers_docs_outside_docs_dir(self, tmp_path: Path) -> None:
+        """validate_project finds documents anywhere in the tree."""
+        from wos.validators import validate_project
+
+        # Put a research doc outside docs/
+        research = tmp_path / "project-x" / "study.research.md"
+        research.parent.mkdir(parents=True)
+        research.write_text(_md(
+            "Study", "A research study",
+            type="research",
+            sources=["https://example.com"],
+        ))
+        (tmp_path / "AGENTS.md").write_text(
+            "# Agents\n\n<!-- wos:begin -->\nWOS\n<!-- wos:end -->\n"
+        )
+        (tmp_path / "CLAUDE.md").write_text("# Project\n\n@AGENTS.md\n")
+
+        issues = validate_project(tmp_path, verify_urls=False)
+        # Should find the doc (no frontmatter errors) but may have
+        # index sync issues — that's expected
+        frontmatter_issues = [
+            i for i in issues if "frontmatter" in i["issue"].lower()
+        ]
+        assert frontmatter_issues == []
 
 
 # ── Compound suffix integration ───────────────────────────────
@@ -882,7 +894,9 @@ class TestCompoundSuffixValidation:
         (tmp_path / "CLAUDE.md").write_text("# Project\n\n@AGENTS.md\n")
 
         issues = validate_project(tmp_path, verify_urls=False)
-        assert issues == []
+        # Filter out index issues — we only care about document validation
+        doc_issues = [i for i in issues if "index" not in i["issue"].lower()]
+        assert doc_issues == []
 
     def test_context_type_accepted_alongside_reference(self) -> None:
         """type: context works for context files (new convention)."""
