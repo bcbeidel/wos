@@ -25,12 +25,14 @@ class TestDocument:
         assert doc.sources == []
         assert doc.related == []
         assert doc.status is None
+        assert doc.created_at is None
+        assert doc.updated_at is None
 
     def test_all_fields(self) -> None:
         from wos.document import Document
 
         doc = Document(
-            path="docs/research/2026-02-20-api-review.md",
+            path="docs/research/api-review.md",
             name="API Review",
             description="Research on REST API patterns",
             content="# API Review\n\nFindings.\n",
@@ -91,7 +93,7 @@ class TestParseDocument:
             "\n"
             "Research findings.\n"
         )
-        doc = parse_document("docs/research/2026-02-20-api-review.md", text)
+        doc = parse_document("docs/research/api-review.md", text)
         assert doc.type == "research"
         assert doc.sources == [
             "https://example.com/rest-guide",
@@ -319,7 +321,7 @@ class TestParseDocument:
             "---\n"
             "# Deploy Plan\n"
         )
-        doc = parse_document("docs/plans/2026-03-13-deploy.plan.md", text)
+        doc = parse_document("docs/plans/deploy.plan.md", text)
         assert doc.type == "plan"
 
     def test_frontmatter_type_takes_precedence_over_suffix(self) -> None:
@@ -391,7 +393,7 @@ class TestParseDocument:
             "---\n"
             "# Feature Design\n"
         )
-        doc = parse_document("docs/designs/2026-03-13-feature.design.md", text)
+        doc = parse_document("docs/designs/feature.design.md", text)
         assert doc.type == "design"
 
     def test_type_inferred_from_context_suffix(self) -> None:
@@ -421,3 +423,51 @@ class TestParseDocument:
         )
         doc = parse_document("docs/prompts/code-review.prompt.md", text)
         assert doc.type == "prompt"
+
+    def test_timestamps_parsed(self) -> None:
+        """created_at and updated_at are extracted from frontmatter."""
+        from wos.document import parse_document
+
+        text = (
+            "---\n"
+            "name: Timestamped\n"
+            "description: Has timestamps\n"
+            "created_at: 2026-03-13\n"
+            "updated_at: 2026-03-14\n"
+            "---\n"
+            "# Content\n"
+        )
+        doc = parse_document("test.md", text)
+        assert doc.created_at == "2026-03-13"
+        assert doc.updated_at == "2026-03-14"
+
+    def test_timestamps_optional(self) -> None:
+        """Documents without timestamps default to None."""
+        from wos.document import parse_document
+
+        text = (
+            "---\n"
+            "name: No Timestamps\n"
+            "description: No timestamp fields\n"
+            "---\n"
+            "# Content\n"
+        )
+        doc = parse_document("test.md", text)
+        assert doc.created_at is None
+        assert doc.updated_at is None
+
+    def test_created_at_only(self) -> None:
+        """Only created_at without updated_at works."""
+        from wos.document import parse_document
+
+        text = (
+            "---\n"
+            "name: Created Only\n"
+            "description: Has only created_at\n"
+            "created_at: 2026-01-15\n"
+            "---\n"
+            "# Content\n"
+        )
+        doc = parse_document("test.md", text)
+        assert doc.created_at == "2026-01-15"
+        assert doc.updated_at is None
