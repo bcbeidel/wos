@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.29.0] - 2026-03-13
+
+### Added
+
+- **Symlink-based cross-platform deployment.** `deploy.py` now creates symlinks
+  instead of file copies. Individual skill directories are symlinked (preserving
+  non-WOS skills), with `scripts/` and `wos/` as whole-directory links. Inspired
+  by the [ShareSkills](https://github.com/fALECX/shareskills) approach. Fixes #204.
+- **Platform registry.** `--platform` flag deploys to home-level platform
+  directories: copilot, cursor, claude, codex, gemini, windsurf, opencode.
+  Example: `python scripts/deploy.py --platform copilot`.
+- **Compound typed file suffixes.** Documents can infer `type` from filename
+  pattern `name.TYPE.md` (e.g., `cross-platform-deploy.plan.md`). Frontmatter
+  `type:` still takes precedence. Supported types: research, plan, design,
+  context, prompt.
+- **Document timestamp fields.** `created_at` and `updated_at` optional
+  frontmatter fields with ISO 8601 date validation and chronological ordering
+  checks.
+
+### Changed
+
+- **Deploy is symlink-only.** The file-copy deployment mode has been removed.
+  `--target` now creates symlinks into `<target>/.agents/` instead of copies.
+- **Removed uv runtime dependency.** All scripts and skills use `python` directly.
+  Deleted `scripts/check_runtime.py` and `skills/_shared/references/preflight.md`.
+
+### Removed
+
+- Stale plans, designs, prompts, and research documents from prior iterations.
+
 ## [0.28.0] - 2026-03-13
 
 ### Changed
