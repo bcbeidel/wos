@@ -1,104 +1,112 @@
 ---
 name: Cross-Platform Skill Deployment
-description: Export script that deploys WOS skills into .agents/ for Copilot and other Agent Skills-compatible copilots without uv or Claude Code
+description: Deploy script that symlinks WOS skills to project or platform directories for cross-platform agent discovery
 type: design
-status: draft
+status: approved
 created_at: 2026-03-13
+updated_at: 2026-03-13
 related:
   - docs/plans/cross-platform-deploy.plan.md
+  - docs/designs/2026-03-13-deploy-documentation.design.md
 ---
 
 ## Purpose
 
-A deploy script that exports WOS skills into a target project's `.agents/`
-directory, making them discoverable by GitHub Copilot (and other Agent
-Skills-compatible copilots) without requiring `uv` or Claude Code.
+A deploy script that symlinks WOS skills into a target project's `.agents/`
+directory or a platform's home directory, making them discoverable by
+GitHub Copilot, Cursor, Windsurf, Codex, Gemini CLI, OpenCode, and
+Claude Code itself.
 
 ## Context
 
-The Agent Skills open standard (agentskills.io) uses the same `SKILL.md`
-format WOS already uses. `.agents/skills/` is the cross-platform neutral
-discovery path supported by Copilot, Cursor, Windsurf, and Codex. WOS is
-90% compatible — the gaps are script invocation (`uv run` → `python`),
-preflight removal, and deployment packaging.
+The Agent Skills open standard uses the same `SKILL.md` format WOS already
+uses. `.agents/skills/` is the cross-platform neutral discovery path
+supported by multiple platforms. Symlinks keep deployed skills in sync
+with the source — no re-deployment needed after plugin updates.
 
-## Deployed Structure
+## Deployment Modes
+
+### Project-level (`--target`)
+
+```
+python scripts/deploy.py --target /path/to/project
+```
+
+Symlinks into `<target>/.agents/`:
 
 ```
 <target-project>/
   .agents/
-    wos/                              # Python package (for script imports)
-      __init__.py
-      document.py
-      frontmatter.py
-      index.py
-      validators.py
-      ...
-    scripts/                          # Shared scripts (stdlib-only)
-      audit.py
-      reindex.py
-      check_url.py
-      update_preferences.py
-      get_version.py
+    wos/              → <plugin-root>/wos/         # Python package
+    scripts/          → <plugin-root>/scripts/      # CLI scripts
     skills/
-      _shared/references/             # Shared refs (preflight.md excluded)
-      audit/
-        SKILL.md                      # Rewritten: uv run → python
-        references/
-      research/
-        SKILL.md
-        scripts/research_assess.py
-        references/
-      ...                             # All other skills
+      audit/          → <plugin-root>/skills/audit/
+      research/       → <plugin-root>/skills/research/
+      ...             # One symlink per skill directory
 ```
 
-This structure preserves the same relative depth as the source repo.
-`scripts/audit.py` is 2 levels below root. `skills/research/scripts/
-research_assess.py` is 4 levels below root. The root is `.agents/`
-instead of the plugin directory. Existing `__file__` parent-chain root
-detection works without modification.
+Use this when skills should be available for a specific project.
+
+### Platform-level (`--platform`)
+
+```
+python scripts/deploy.py --platform copilot
+```
+
+Symlinks into the platform's home directory (e.g., `~/.copilot/`):
+
+```
+~/.copilot/
+  wos/              → <plugin-root>/wos/
+  scripts/          → <plugin-root>/scripts/
+  skills/
+    audit/          → <plugin-root>/skills/audit/
+    ...
+```
+
+Use this when skills should be available across all projects for
+that platform.
+
+### Platform Registry
+
+| Key | Platform | Deploy Path |
+|-----|----------|-------------|
+| `copilot` | GitHub Copilot | `~/.copilot/` |
+| `cursor` | Cursor | `~/.cursor/` |
+| `claude` | Claude Code | `~/.claude/` |
+| `codex` | Codex CLI | `~/.codex/` |
+| `gemini` | Gemini CLI | `~/.gemini/` |
+| `windsurf` | Windsurf | `~/.codeium/windsurf/` |
+| `opencode` | OpenCode | `~/.config/opencode/` |
 
 ## Deploy Script Behavior
 
-`scripts/deploy.py --target /path/to/project [--dry-run]`
+### What it does
 
-### Four operations
+1. **Symlinks support directories** — `scripts/` and `wos/` from the
+   plugin root are symlinked directly into the target directory.
 
-1. **Copy** — Copies `skills/`, `scripts/`, and `wos/` into
-   `<target>/.agents/`, preserving directory structure.
+2. **Symlinks individual skill directories** — each skill directory
+   under `skills/` gets its own symlink under `<target>/skills/`.
 
-2. **Rewrite invocations** — Replaces `uv run <path>` → `python <path>`
-   in all `.md` files under the deployed tree.
+3. **Backs up existing content** — if a target path already exists
+   (directory or stale symlink), it is renamed with a timestamped
+   `.backup_YYYYMMDDTHHMMSS` suffix before creating the new symlink.
 
-3. **Remove preflight** — Strips `preflight.md` from SKILL.md `references:`
-   frontmatter. Removes preflight instruction blocks from SKILL.md bodies.
-   The 3-step uv canary check is meaningless without uv.
-
-4. **Skip non-deployable content** — Excludes `check_runtime.py` (uv canary,
-   only script with external dependency) and `preflight.md`.
-
-### What it does NOT do
-
-- Does not modify the source repo — export only.
-- Does not touch existing files in the target `.agents/` directory outside
-  WOS-managed paths.
-- Does not modify Python scripts — only markdown rewriting. Scripts already
-  have `__file__` fallback that works without `CLAUDE_PLUGIN_ROOT`.
+4. **Skips correct links** — if a symlink already points to the
+   correct source, it is left untouched (idempotent).
 
 ### Flags
 
-- `--target PATH` (required) — target project directory
-- `--dry-run` — show what would be copied/rewritten without writing
+- `--target PATH` — target project directory (mutually exclusive with `--platform`)
+- `--platform KEY` — target platform from the registry (mutually exclusive with `--target`)
+- `--dry-run` — show what would be done without writing
 
-### Idempotent
+### What it does NOT do
 
-Safe to re-run. Overwrites previously deployed WOS files.
-
-## Constraints
-
-- `deploy.py` is stdlib-only, runnable with `python scripts/deploy.py`
-- Python 3.9+ (matching repo convention)
-- No changes to existing Claude Code plugin functionality
+- Does not modify the source repo
+- Does not copy files — symlinks only
+- Does not touch existing files outside WOS-managed paths
 
 ## Root Detection
 
@@ -112,17 +120,21 @@ _plugin_root = (
 )
 ```
 
-In deployed mode, `CLAUDE_PLUGIN_ROOT` is not set. The `__file__` fallback
-resolves to `.agents/` because the relative depth is preserved. No changes
-to existing scripts required.
+When accessed via symlink, `Path(__file__).resolve()` follows the symlink
+back to the real file in the plugin directory. Root detection works
+without modification.
+
+## Constraints
+
+- `deploy.py` is stdlib-only, runnable with `python scripts/deploy.py`
+- Python 3.9+ (matching repo convention)
+- No changes to existing Claude Code plugin functionality
 
 ## Acceptance Criteria
 
-1. Skills discoverable by Copilot from `.agents/skills/`
-2. All deployed scripts run with `python` — no uv required
-3. Scripts can `import wos` via existing `__file__` parent-chain detection
-4. No `uv run` references remain in any deployed `.md` file
-5. No `preflight.md` reference remains in any deployed SKILL.md frontmatter
-6. Source repo unchanged after deploy
-7. Re-running deploy on same target produces identical output
-8. `--dry-run` shows planned operations without side effects
+1. Skills discoverable from deployed `skills/` directory
+2. All deployed scripts run with `python` — no external dependencies
+3. Scripts can `import wos` via `__file__` resolution through symlinks
+4. Re-running deploy on same target is idempotent (skips correct links)
+5. `--dry-run` shows planned operations without side effects
+6. Existing content is backed up before relinking
