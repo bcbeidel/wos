@@ -5,9 +5,10 @@
 
 Each directory has an `_index.md` listing all files with descriptions.
 - `docs/context/_index.md` -- Project context documents covering domain knowledge, patterns, and conventions.
+- `docs/context/eval/_index.md` -- Distilled context files for designing a generic prompt/skill evaluation framework.
 - `docs/designs/_index.md` -- Design documents for WOS features.
 - `docs/plans/_index.md` -- Implementation plans for WOS features.
-- `docs/research/_index.md` -- research
+- `docs/research/_index.md` -- Research investigations using the SIFT framework.
 
 Each `.md` file starts with YAML metadata (between `---` lines).
 Read the `description` field before reading the full file.
@@ -17,9 +18,10 @@ Documents put key insights first and last; supplemental detail in the middle.
 | Area | Path |
 |------|------|
 | Project context documents covering domain knowledge, patterns, and conventions. | docs/context |
+| Distilled context files for designing a generic prompt/skill evaluation framework. | docs/context/eval |
 | Design documents for WOS features. | docs/designs |
 | Implementation plans for WOS features. | docs/plans |
-| research | docs/research |
+| Research investigations using the SIFT framework. | docs/research |
 
 ### File Metadata Format
 ```yaml
