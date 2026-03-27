@@ -2,14 +2,18 @@
 name: Challenge Skill Implementation Plan
 description: Step-by-step plan to implement /wos:challenge — Python discovery module, CLI script, SKILL.md, reference docs, and tests
 type: plan
-status: draft
+status: complete
 related:
   - docs/designs/2026-03-23-challenge-skill.design.md
 ---
 
 # /wos:challenge Implementation Plan
 
+<<<<<<< HEAD
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
+=======
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+>>>>>>> origin/main
 
 **Goal:** Implement the `/wos:challenge` skill — a feedback-layer skill that extracts assumptions from LLM output, sanity-checks them against project context and research documents, and proposes corrections for gaps.
 
@@ -45,7 +49,11 @@ The scoring function is the foundation. Build and test it first.
 - Create: `wos/challenge/discover.py`
 - Create: `tests/test_challenge_discover.py`
 
+<<<<<<< HEAD
+- [x] **Step 1: Write the failing test for `keyword_score()`**
+=======
 - [ ] **Step 1: Write the failing test for `keyword_score()`**
+>>>>>>> origin/main
 
 ```python
 """Tests for wos/challenge/discover.py."""
@@ -93,12 +101,20 @@ def test_keyword_score_filters_short_tokens():
     assert score > 0.0
 ```
 
+<<<<<<< HEAD
+- [x] **Step 2: Run tests to verify they fail**
+=======
 - [ ] **Step 2: Run tests to verify they fail**
+>>>>>>> origin/main
 
 Run: `python -m pytest tests/test_challenge_discover.py -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'wos.challenge'`
 
+<<<<<<< HEAD
+- [x] **Step 3: Create `__init__.py` and implement `keyword_score()`**
+=======
 - [ ] **Step 3: Create `__init__.py` and implement `keyword_score()`**
+>>>>>>> origin/main
 
 `wos/challenge/__init__.py`:
 ```python
@@ -141,12 +157,20 @@ def keyword_score(assumption: str, text: str) -> float:
     return len(overlap) / len(assumption_tokens)
 ```
 
+<<<<<<< HEAD
+- [x] **Step 4: Run tests to verify they pass**
+=======
 - [ ] **Step 4: Run tests to verify they pass**
+>>>>>>> origin/main
 
 Run: `python -m pytest tests/test_challenge_discover.py -v`
 Expected: All 5 tests PASS
 
+<<<<<<< HEAD
+- [x] **Step 5: Commit**
+=======
 - [ ] **Step 5: Commit**
+>>>>>>> origin/main
 
 ```bash
 git add wos/challenge/__init__.py wos/challenge/discover.py tests/test_challenge_discover.py
@@ -163,7 +187,11 @@ Parses an artifact's `related` frontmatter and returns parsed documents.
 - Modify: `wos/challenge/discover.py`
 - Modify: `tests/test_challenge_discover.py`
 
+<<<<<<< HEAD
+- [x] **Step 1: Write the failing tests for `discover_related()`**
+=======
 - [ ] **Step 1: Write the failing tests for `discover_related()`**
+>>>>>>> origin/main
 
 Add to `tests/test_challenge_discover.py`:
 
@@ -234,12 +262,20 @@ def test_discover_related_artifact_not_found():
     assert docs == []
 ```
 
+<<<<<<< HEAD
+- [x] **Step 2: Run tests to verify they fail**
+=======
 - [ ] **Step 2: Run tests to verify they fail**
+>>>>>>> origin/main
 
 Run: `python -m pytest tests/test_challenge_discover.py::test_discover_related_resolves_paths -v`
 Expected: FAIL with `ImportError` (function not defined)
 
+<<<<<<< HEAD
+- [x] **Step 3: Implement `discover_related()`**
+=======
 - [ ] **Step 3: Implement `discover_related()`**
+>>>>>>> origin/main
 
 Add to `wos/challenge/discover.py`:
 
@@ -293,12 +329,20 @@ def discover_related(artifact_path: str, project_root: str) -> List[Document]:
     return results
 ```
 
+<<<<<<< HEAD
+- [x] **Step 4: Run tests to verify they pass**
+=======
 - [ ] **Step 4: Run tests to verify they pass**
+>>>>>>> origin/main
 
 Run: `python -m pytest tests/test_challenge_discover.py -v`
 Expected: All 8 tests PASS
 
+<<<<<<< HEAD
+- [x] **Step 5: Commit**
+=======
 - [ ] **Step 5: Commit**
+>>>>>>> origin/main
 
 ```bash
 git add wos/challenge/discover.py tests/test_challenge_discover.py
@@ -315,7 +359,11 @@ Scans all managed documents and scores them against assumptions.
 - Modify: `wos/challenge/discover.py`
 - Modify: `tests/test_challenge_discover.py`
 
+<<<<<<< HEAD
+- [x] **Step 1: Write the failing tests for `discover_by_relevance()`**
+=======
 - [ ] **Step 1: Write the failing tests for `discover_by_relevance()`**
+>>>>>>> origin/main
 
 Add to `tests/test_challenge_discover.py`:
 
@@ -416,12 +464,20 @@ def test_discover_by_relevance_multiple_assumptions(tmp_path):
     assert "PostgreSQL schema design" in results
 ```
 
+<<<<<<< HEAD
+- [x] **Step 2: Run tests to verify they fail**
+=======
 - [ ] **Step 2: Run tests to verify they fail**
+>>>>>>> origin/main
 
 Run: `python -m pytest tests/test_challenge_discover.py::test_discover_by_relevance_matches_keywords -v`
 Expected: FAIL with `ImportError`
 
+<<<<<<< HEAD
+- [x] **Step 3: Implement `discover_by_relevance()`**
+=======
 - [ ] **Step 3: Implement `discover_by_relevance()`**
+>>>>>>> origin/main
 
 Add to `wos/challenge/discover.py`:
 
@@ -470,12 +526,20 @@ def discover_by_relevance(
     return results
 ```
 
+<<<<<<< HEAD
+- [x] **Step 4: Run tests to verify they pass**
+=======
 - [ ] **Step 4: Run tests to verify they pass**
+>>>>>>> origin/main
 
 Run: `python -m pytest tests/test_challenge_discover.py -v`
 Expected: All 11 tests PASS
 
+<<<<<<< HEAD
+- [x] **Step 5: Commit**
+=======
 - [ ] **Step 5: Commit**
+>>>>>>> origin/main
 
 ```bash
 git add wos/challenge/discover.py tests/test_challenge_discover.py
@@ -492,7 +556,11 @@ Exposes the discovery module as a JSON CLI tool for SKILL.md invocation.
 - Create: `scripts/discover_context.py`
 - Create: `tests/test_discover_context_script.py`
 
+<<<<<<< HEAD
+- [x] **Step 1: Write the failing integration test**
+=======
 - [ ] **Step 1: Write the failing integration test**
+>>>>>>> origin/main
 
 ```python
 """Tests for scripts/discover_context.py CLI."""
@@ -603,12 +671,20 @@ def test_discover_context_no_matches(tmp_path):
     assert data[0]["matches"] == []
 ```
 
+<<<<<<< HEAD
+- [x] **Step 2: Run tests to verify they fail**
+=======
 - [ ] **Step 2: Run tests to verify they fail**
+>>>>>>> origin/main
 
 Run: `python -m pytest tests/test_discover_context_script.py -v`
 Expected: FAIL (script doesn't exist yet)
 
+<<<<<<< HEAD
+- [x] **Step 3: Implement `scripts/discover_context.py`**
+=======
 - [ ] **Step 3: Implement `scripts/discover_context.py`**
+>>>>>>> origin/main
 
 ```python
 #!/usr/bin/env python3
@@ -726,12 +802,20 @@ if __name__ == "__main__":
     main()
 ```
 
+<<<<<<< HEAD
+- [x] **Step 4: Run tests to verify they pass**
+=======
 - [ ] **Step 4: Run tests to verify they pass**
+>>>>>>> origin/main
 
 Run: `python -m pytest tests/test_discover_context_script.py -v`
 Expected: All 3 tests PASS
 
+<<<<<<< HEAD
+- [x] **Step 5: Commit**
+=======
 - [ ] **Step 5: Commit**
+>>>>>>> origin/main
 
 ```bash
 git add scripts/discover_context.py tests/test_discover_context_script.py
@@ -748,13 +832,21 @@ These guide the LLM's judgment during Phases 1 and 3.
 - Create: `skills/challenge/references/assumption-quality.md`
 - Create: `skills/challenge/references/gap-analysis-guide.md`
 
+<<<<<<< HEAD
+- [x] **Step 1: Create `references/` directory**
+=======
 - [ ] **Step 1: Create `references/` directory**
+>>>>>>> origin/main
 
 ```bash
 mkdir -p skills/challenge/references
 ```
 
+<<<<<<< HEAD
+- [x] **Step 2: Write `assumption-quality.md`**
+=======
 - [ ] **Step 2: Write `assumption-quality.md`**
+>>>>>>> origin/main
 
 ```markdown
 # Assumption Quality Guide
@@ -793,7 +885,11 @@ A well-stated assumption is:
   be worth challenging.
 ```
 
+<<<<<<< HEAD
+- [x] **Step 3: Write `gap-analysis-guide.md`**
+=======
 - [ ] **Step 3: Write `gap-analysis-guide.md`**
+>>>>>>> origin/main
 
 ```markdown
 # Gap Analysis Guide
@@ -858,7 +954,11 @@ assumptions the knowledge base is genuinely silent on.
    false alignment — they prompt review rather than false confidence.
 ```
 
+<<<<<<< HEAD
+- [x] **Step 4: Commit**
+=======
 - [ ] **Step 4: Commit**
+>>>>>>> origin/main
 
 ```bash
 git add skills/challenge/references/assumption-quality.md skills/challenge/references/gap-analysis-guide.md
@@ -874,7 +974,11 @@ The core skill definition that orchestrates the four-phase workflow.
 **Files:**
 - Create: `skills/challenge/SKILL.md`
 
+<<<<<<< HEAD
+- [x] **Step 1: Write SKILL.md**
+=======
 - [ ] **Step 1: Write SKILL.md**
+>>>>>>> origin/main
 
 ```markdown
 ---
@@ -1024,7 +1128,11 @@ After user approval:
    because Z." The user has final say.
 ```
 
+<<<<<<< HEAD
+- [x] **Step 2: Verify skill structure**
+=======
 - [ ] **Step 2: Verify skill structure**
+>>>>>>> origin/main
 
 Run: `ls -R skills/challenge/`
 Expected:
@@ -1038,12 +1146,20 @@ assumption-quality.md
 gap-analysis-guide.md
 ```
 
+<<<<<<< HEAD
+- [x] **Step 3: Run the audit to check skill quality**
+=======
 - [ ] **Step 3: Run the audit to check skill quality**
+>>>>>>> origin/main
 
 Run: `python scripts/audit.py --root . --no-urls 2>&1 | grep -i challenge`
 Expected: No fail-severity issues for the challenge skill.
 
+<<<<<<< HEAD
+- [x] **Step 4: Commit**
+=======
 - [ ] **Step 4: Commit**
+>>>>>>> origin/main
 
 ```bash
 git add skills/challenge/SKILL.md
@@ -1059,22 +1175,38 @@ Verify everything works together.
 **Files:**
 - No new files. Verification only.
 
+<<<<<<< HEAD
+- [x] **Step 1: Run full test suite**
+=======
 - [ ] **Step 1: Run full test suite**
+>>>>>>> origin/main
 
 Run: `python -m pytest tests/ -v`
 Expected: All tests PASS, including new challenge tests.
 
+<<<<<<< HEAD
+- [x] **Step 2: Run linter**
+=======
 - [ ] **Step 2: Run linter**
+>>>>>>> origin/main
 
 Run: `ruff check wos/ tests/ scripts/`
 Expected: No errors. Fix any issues found.
 
+<<<<<<< HEAD
+- [x] **Step 3: Run audit on the project**
+=======
 - [ ] **Step 3: Run audit on the project**
+>>>>>>> origin/main
 
 Run: `python scripts/audit.py --root . --no-urls`
 Expected: No new fail-severity issues introduced.
 
+<<<<<<< HEAD
+- [x] **Step 4: Commit any lint fixes**
+=======
 - [ ] **Step 4: Commit any lint fixes**
+>>>>>>> origin/main
 
 If lint fixes were needed:
 ```bash
