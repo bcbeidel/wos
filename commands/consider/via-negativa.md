@@ -1,7 +1,6 @@
 ---
 description: Improve by removing problems rather than adding solutions
-metadata:
-  argument-hint: "[system, process, or situation to improve]"
+argument-hint: "[system, process, or situation to improve]"
 ---
 
 <objective>

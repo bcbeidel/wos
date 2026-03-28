@@ -1,7 +1,6 @@
 ---
 description: Think through the consequences of consequences before acting
-metadata:
-  argument-hint: "[decision or action to evaluate]"
+argument-hint: "[decision or action to evaluate]"
 ---
 
 <objective>

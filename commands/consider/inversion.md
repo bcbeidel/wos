@@ -1,7 +1,6 @@
 ---
 description: Solve problems backwards by identifying what would guarantee failure
-metadata:
-  argument-hint: "[goal or outcome to achieve]"
+argument-hint: "[goal or outcome to achieve]"
 ---
 
 <objective>

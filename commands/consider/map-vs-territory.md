@@ -1,7 +1,6 @@
 ---
 description: Recognize where your mental model diverges from reality
-metadata:
-  argument-hint: "[situation where assumptions may not match reality]"
+argument-hint: "[situation where assumptions may not match reality]"
 ---
 
 <objective>

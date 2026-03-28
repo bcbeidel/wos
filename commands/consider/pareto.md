@@ -1,7 +1,6 @@
 ---
 description: Apply the 80/20 rule to find the highest-leverage inputs
-metadata:
-  argument-hint: "[area where effort and results feel misaligned]"
+argument-hint: "[area where effort and results feel misaligned]"
 ---
 
 <objective>

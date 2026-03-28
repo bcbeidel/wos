@@ -1,7 +1,6 @@
 ---
 description: Break down assumptions and rebuild reasoning from fundamental truths
-metadata:
-  argument-hint: "[problem or system to deconstruct]"
+argument-hint: "[problem or system to deconstruct]"
 ---
 
 <objective>

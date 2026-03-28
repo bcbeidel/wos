@@ -1,7 +1,6 @@
 ---
 description: Identify the single highest-leverage action that makes everything else easier
-metadata:
-  argument-hint: "[goal or area where focus is needed]"
+argument-hint: "[goal or area where focus is needed]"
 ---
 
 <objective>

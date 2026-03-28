@@ -1,7 +1,6 @@
 ---
 description: Assess decision risk by classifying as one-way or two-way door
-metadata:
-  argument-hint: "[decision to evaluate for reversibility]"
+argument-hint: "[decision to evaluate for reversibility]"
 ---
 
 <objective>

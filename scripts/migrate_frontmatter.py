@@ -29,8 +29,15 @@ sys.path.insert(0, str(_plugin_root))
 
 from wos.frontmatter import parse_frontmatter  # noqa: E402
 
-# Fields that stay top-level (Agent Skills base fields).
-_TOP_LEVEL = {"name", "description"}
+# Fields that stay top-level (Agent Skills base + Claude Code skill fields).
+_TOP_LEVEL = {
+    # Agent Skills base
+    "name", "description",
+    # Claude Code skill/command frontmatter
+    "argument-hint", "disable-model-invocation", "user-invocable",
+    "allowed-tools", "model", "effort", "context", "agent",
+    "hooks", "paths", "shell",
+}
 
 # Files to skip (not WOS-managed documents).
 _SKIP_NAMES = {"_index.md", "SKILL.md", "AGENTS.md", "CLAUDE.md", "README.md"}
