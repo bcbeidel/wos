@@ -2,7 +2,7 @@
 name: Rule Extraction and Enforcement
 description: Implement LLM-driven extract-rules and check-rules skills with rule templates and hook guidance
 type: plan
-status: executing
+status: completed
 branch: rule-extraction-enforcement
 related:
   - docs/designs/2026-04-07-rule-extraction-enforcement.design.md
@@ -147,7 +147,7 @@ the user's `docs/rules/` on adoption.
   Verify: each template has valid frontmatter with name, description,
   type, scope, and severity fields.
 
-- [ ] **Task 6: Create hook setup reference and update indexes.**
+- [x] **Task 6: Create hook setup reference and update indexes.** <!-- sha:c72900c -->
   `skills/check-rules/references/hook-setup.md` covering:
   - How to wire check-rules into Claude Code `settings.json` as a hook
   - Example hook configuration for pre-commit
