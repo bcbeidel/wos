@@ -17,6 +17,8 @@ Evaluate files against project rules in `docs/rules/`. Each rule is
 matched by scope glob, then evaluated semantically by Claude using the
 locked rubric pattern — one rule, one file, one verdict.
 
+Include each rule file verbatim in the evaluation. Never summarize rules.
+
 ## Workflow
 
 ### 1. Discover Rules
@@ -81,6 +83,38 @@ After the file-by-file report, provide a summary:
 1 pass, 1 fail, 1 warn
 ```
 
+## Example
+
+<example>
+Rule file (`docs/rules/staging-layer-purity.rule.md`):
+- scope: "models/staging/**/*.sql"
+- severity: warn
+- Intent: staging models must only cast, rename, deduplicate
+
+Target file (`models/staging/stg_customers.sql`):
+```sql
+select
+    id as customer_id,
+    cast(name as varchar(100)) as customer_name,
+    case when lifetime_value > 1000 then 'premium' else 'standard' end as tier
+from {{ source('raw', 'customers') }}
+```
+
+Evaluation chain-of-thought:
+1. Rule requires: only casts, renames, and deduplication in staging
+2. Non-compliant pattern: business logic like calculations or case statements
+3. Line 4 contains a `case when` expression classifying customers into tiers
+   — this is business logic (customer segmentation)
+4. Lines 2-3 are compliant (rename and cast)
+5. Verdict: FAIL — business logic present
+
+Output:
+```
+WARN  models/staging/stg_customers.sql — Staging layer purity
+  "Customer tier classification (line 4) is business logic — move to marts layer"
+```
+</example>
+
 ## Key Instructions
 
 - The full rule file is included verbatim in each evaluation. Never
@@ -95,6 +129,7 @@ After the file-by-file report, provide a summary:
 - If a target file is binary, empty, or cannot be meaningfully evaluated
   against the rule, report PASS with a note: "File type not applicable
   to this rule."
+- Include each rule file verbatim in the evaluation. Never summarize rules.
 
 ## Anti-Pattern Guards
 

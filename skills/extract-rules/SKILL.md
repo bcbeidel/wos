@@ -10,8 +10,11 @@ references:
 # /wos:extract-rules
 
 Extract codebase conventions into structured rule files in `docs/rules/`.
-Rules are evaluated by Claude for semantic compliance — they handle
+Rules are evaluated by Claude for semantic compliance — they capture
 patterns too nuanced for traditional linters.
+
+Every rule MUST have both a non-compliant and compliant example.
+Do not write a rule without examples.
 
 ## Workflow
 
@@ -28,7 +31,7 @@ Determine the extraction mode from the user's input:
 If ambiguous, ask: "Would you like to describe the rule, point me at
 exemplary code, or provide a reference document?"
 
-### 2. Gather Rule Details
+### 2. Elicit Rule Details
 
 **Conversation mode:**
 - Ask clarifying questions one at a time, multiple-choice preferred
@@ -38,16 +41,25 @@ exemplary code, or provide a reference document?"
 
 **From-code mode:**
 - Read the exemplary files the user identified
-- Infer the convention: what pattern do these files share?
+- Identify the shared pattern: what convention do these files follow?
 - Propose the rule with examples drawn directly from the actual code
 - Ask the user to confirm or refine the inferred convention
 
 **From-source mode:**
 - Read the provided document (style guide, RFC, wiki page)
-- Identify enforceable conventions — statements that can produce a
+- Identify enforceable conventions — statements that produce a
   clear pass/fail judgment on a single file
 - Present candidate rules as a numbered list
 - User selects which to keep
+
+**Edge cases:**
+- If exemplary code has no discernible shared pattern, say so and ask
+  the user to describe the convention they see
+- If an external source contains no enforceable statements, report
+  this and suggest conversation mode instead
+- If the user describes something a traditional linter handles
+  (syntax, formatting, import ordering), recommend the appropriate
+  linter tool instead
 
 ### 3. Draft the Rule
 
@@ -60,8 +72,8 @@ Required elements:
 - **Non-compliant example:** shown FIRST — what a violation looks like
 - **Compliant example:** what correct code looks like
 
-Research shows non-compliant examples placed before compliant examples
-improve classification accuracy. Both examples serve as concrete anchors
+Non-compliant examples placed before compliant examples improve
+classification accuracy. Both examples serve as concrete anchors
 that disambiguate intent far more effectively than additional prose.
 
 ### 4. Check for Duplicates
@@ -72,15 +84,66 @@ Before writing, read existing rules in `docs/rules/`:
 - If overlap found, present to user: "This overlaps with [existing rule].
   Merge, replace, or keep both?"
 
-### 5. Present for Approval
+### 5. Self-Check
+
+Before presenting the rule to the user, verify:
+- Frontmatter contains all required fields (name, description, type, scope, severity)
+- Body contains an `## Intent` section
+- Body contains a `## Non-Compliant Example` section with a code block
+- Body contains a `## Compliant Example` section with a code block
+- Scope glob is specific (not `**/*` or `**/*.py` without a directory prefix)
+- Severity is `warn` or `fail`
+
+If any check fails, fix it before presenting.
+
+### 6. Present for Approval
 
 Show the complete rule file to the user. Do not write until approved.
 
-### 6. Write the Rule
+### 7. Write the Rule
 
 - Create `docs/rules/` directory if it doesn't exist
 - Write the rule file as `docs/rules/<slug>.rule.md`
 - Derive the slug from the rule name (lowercase, hyphens)
+
+## Example
+
+<example>
+User: "I want staging models to only do casts, renames, and deduplication"
+
+Assistant asks: "Which files should this apply to?"
+User: "models/staging/**/*.sql"
+
+Assistant asks: "Should violations block (fail) or just warn?"
+User: "warn for now"
+
+Assistant drafts and presents:
+
+```yaml
+---
+name: Staging layer purity
+description: Staging models must only cast, rename, and deduplicate — no business logic
+type: rule
+scope: "models/staging/**/*.sql"
+severity: warn
+---
+```
+
+```markdown
+## Intent
+
+Staging models provide a clean interface over raw source data. Business
+logic here couples source schema changes to business definitions.
+
+## Non-Compliant Example
+[code showing revenue calculation in staging]
+
+## Compliant Example
+[code showing only casts, renames, deduplication]
+```
+
+User approves → file written to `docs/rules/staging-layer-purity.rule.md`
+</example>
 
 ## Key Instructions
 
@@ -88,22 +151,23 @@ Show the complete rule file to the user. Do not write until approved.
   Rules without examples produce unreliable enforcement.
 - Default severity is `warn`. Only use `fail` when the user explicitly
   requests it or the convention is a hard constraint.
-- Scope patterns should be as specific as possible. Broad scopes
+- Scope patterns must be as specific as possible. Broad scopes
   (e.g., `**/*.py`) cause rules to fire on irrelevant files,
   increasing false positives and eroding trust.
-- Rules should target semantic conventions that traditional linters
-  cannot catch — layer boundaries, architectural constraints,
-  naming intent, documentation quality.
+- Target semantic conventions that traditional linters cannot catch —
+  layer boundaries, architectural constraints, naming intent,
+  documentation quality.
 - One convention per rule. If a user describes multiple conventions,
   create separate rule files.
+- Do not write a rule file without both examples. This is non-negotiable.
 
 ## Anti-Pattern Guards
 
-1. **Rules without examples** — refuse to write. Examples are the single
-   highest-leverage addition to any rule (4x reliability improvement).
+1. **Rules without examples** — refuse to write. Examples improve
+   enforcement reliability by 4x.
 2. **Overly broad scope** — flag and suggest narrowing. `**/*` is almost
    never correct.
-3. **Rules that a linter handles better** — suggest the appropriate linter
-   instead. LLM-based rules are for semantic understanding, not syntax.
+3. **Rules that a linter handles better** — recommend the appropriate
+   linter instead. LLM-based rules are for semantic understanding.
 4. **Multiple conventions in one rule** — split into separate rules.
    One rule, one convention.
