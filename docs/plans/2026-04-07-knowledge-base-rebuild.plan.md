@@ -169,7 +169,7 @@ they're considered high-quality (adoption, design, documentation, test
 coverage). These serve as both implementation references and exemplars
 for WOS's own development.
 
-- [ ] **Task 2: Research Cluster 1 — Core LLM Patterns (8 topics).** <!-- progress:5/8 topics complete (1.1-1.5), resume at Topic 1.6 -->
+- [x] **Task 2: Research Cluster 1 — Core LLM Patterns (8 topics).** <!-- sha:19f80ab -->
   Invoke `/wos:research` sequentially for each topic:
 
   **Topic 1.1: Prompt Engineering & Instruction Design**
