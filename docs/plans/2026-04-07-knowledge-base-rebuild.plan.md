@@ -121,18 +121,20 @@ All research documents created in Tasks 2-14 (value captured in context)
 
 ### Chunk 1: Setup
 
-- [ ] **Task 1: Archive existing knowledge base and clean directories.**
+- [ ] **Task 1: Archive existing knowledge base, remove deprecated skills, and clean directories.**
   Create a git tag `knowledge-base-v1-archive` on the current commit to
-  preserve the existing knowledge base in git history. Then delete all
-  files in `docs/context/` (except `_index.md` and the `eval/`
-  subdirectory — eval is out of scope for this rebuild). Delete all files
-  in `docs/research/` (except `_index.md`). Also delete any untracked
-  research files (the `2026-03-23-eval-*.research.md` files).
+  preserve the existing knowledge base in git history. Then:
+  1. Delete deprecated skills: `skills/report-issue/`, `skills/principles/`,
+     `skills/challenge/` (including all SKILL.md, references/, scripts/).
+  2. Delete all files in `docs/context/` (except `_index.md` and the `eval/`
+     subdirectory — eval is out of scope for this rebuild).
+  3. Delete all files in `docs/research/` (except `_index.md`). Also delete
+     any untracked research files (the `2026-03-23-eval-*.research.md` files).
   Run `python scripts/reindex.py --root .` to update indexes. Commit
-  with message: `chore: archive and clean knowledge base for rebuild`.
+  with message: `chore: archive knowledge base, remove deprecated skills`.
   Verify: `docs/context/` contains only `_index.md` and `eval/`;
-  `docs/research/` contains only `_index.md`. No untracked research
-  files remain outside `eval/`.
+  `docs/research/` contains only `_index.md`; `skills/report-issue/`,
+  `skills/principles/`, and `skills/challenge/` no longer exist.
 
 ### Chunk 2: Research (13 tasks, parallel eligible)
 
