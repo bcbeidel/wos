@@ -4,7 +4,7 @@ description: Clean-sweep rebuild of the WOS knowledge base — archive existing 
 type: plan
 status: executing
 branch: feat-rebuild-knowlege-base
-related: []
+related:
 ---
 
 ## Goal
@@ -169,7 +169,7 @@ they're considered high-quality (adoption, design, documentation, test
 coverage). These serve as both implementation references and exemplars
 for WOS's own development.
 
-- [ ] **Task 2: Research Cluster 1 — Core LLM Patterns (8 topics).**
+- [ ] **Task 2: Research Cluster 1 — Core LLM Patterns (8 topics).** <!-- progress:5/8 topics complete (1.1-1.5), resume at Topic 1.6 -->
   Invoke `/wos:research` sequentially for each topic:
 
   **Topic 1.1: Prompt Engineering & Instruction Design**
