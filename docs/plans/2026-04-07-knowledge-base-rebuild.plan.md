@@ -315,7 +315,7 @@ for WOS's own development.
 
   Verify: 6 research documents exist with valid frontmatter and sources.
 
-- [ ] **Task 4: Research Cluster 3 — Knowledge Management (4 topics).**
+- [x] **Task 4: Research Cluster 3 — Knowledge Management (4 topics).** <!-- sha:f191e68 -->
   Invoke `/wos:research` sequentially for each topic:
 
   **Topic 3.1: Information Architecture & Retrieval**
