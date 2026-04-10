@@ -936,7 +936,7 @@ for WOS's own development.
 
 ### Phase 3: Validate & Review Research (human gate)
 
-- [ ] **Task 15: Validate all research documents.**
+- [x] **Task 15: Validate all research documents.**
   Run `python scripts/audit.py --root . --no-urls` to check structural
   validity of all research documents. For each document, verify:
   1. Frontmatter present with `type: research`
