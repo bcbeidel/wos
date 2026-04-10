@@ -4,6 +4,7 @@
 ## Context Navigation
 
 Each directory has an `_index.md` listing all files with descriptions.
+- `docs/context/_index.md` -- Project context documents covering domain knowledge, patterns, and conventions.
 - `docs/plans/_index.md` -- Implementation plans for WOS features.
 - `docs/prompts/_index.md` -- prompts
 - `docs/research/_index.md` -- Research investigations using the SIFT framework.
@@ -15,6 +16,7 @@ Documents put key insights first and last; supplemental detail in the middle.
 ### Areas
 | Area | Path |
 |------|------|
+| Project context documents covering domain knowledge, patterns, and conventions. | docs/context |
 | Implementation plans for WOS features. | docs/plans |
 | prompts | docs/prompts |
 | Research investigations using the SIFT framework. | docs/research |

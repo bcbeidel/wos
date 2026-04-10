@@ -973,7 +973,7 @@ Follow the distillation rules from the Approach section:
 - Merge overlapping findings across research docs into single context files
 - Derive filenames from finding content, not research topic name
 
-- [ ] **Task 17: Distill Cluster 1 — Core LLM Patterns.**
+- [x] **Task 17: Distill Cluster 1 — Core LLM Patterns.**
   Invoke `/wos:distill` with the 8 research documents from Task 2.
   Expected output: 10-16 context files covering prompt engineering,
   context engineering, LLM-as-judge evaluation, writing for LLM
