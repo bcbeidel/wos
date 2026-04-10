@@ -804,7 +804,7 @@ for WOS's own development.
 
   Verify: 4 research documents exist with valid frontmatter and sources.
 
-- [ ] **Task 13: Research Cluster 9 — Digital Marketing (6 topics).**
+- [x] **Task 13: Research Cluster 9 — Digital Marketing (6 topics).** <!-- sha:4f4356b -->
   Invoke `/wos:research` sequentially for each topic:
 
   **Topic 9.1: Marketing Analytics & Attribution**
@@ -869,7 +869,7 @@ for WOS's own development.
 
   Verify: 6 research documents exist with valid frontmatter and sources.
 
-- [ ] **Task 14: Research Cluster 10 — Data Science & Analytics (6 topics).**
+- [x] **Task 14: Research Cluster 10 — Data Science & Analytics (6 topics).** <!-- sha:30989f3 -->
   Invoke `/wos:research` sequentially for each topic:
 
   **Topic 10.1: Statistical Modeling & Inference**
