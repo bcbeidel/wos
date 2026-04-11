@@ -1014,7 +1014,7 @@ Follow the distillation rules from the Approach section:
   design thinking, specification patterns, LLM security, and CI/CD.
   Verify: context files exist with valid frontmatter, 200-800 words each.
 
-- [ ] **Task 23: Distill Cluster 5C — Engineering Disciplines.**
+- [x] **Task 23: Distill Cluster 5C — Engineering Disciplines.** <!-- sha:82b335d -->
   Invoke `/wos:distill` with the 6 research documents from Task 8.
   Expected output: 8-12 context files covering AI code review, prompt
   versioning, token economics, AI pair programming, documentation-driven
