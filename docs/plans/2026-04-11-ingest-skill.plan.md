@@ -2,7 +2,7 @@
 name: /wos:ingest Skill
 description: Add skills/ingest/SKILL.md — universal source intake that updates 5–15 wiki pages per invocation with append-only semantics
 type: plan
-status: executing
+status: completed
 branch: feat/ingest-skill
 pr: ~
 related:
@@ -110,7 +110,7 @@ python scripts/lint.py --root .
 # Expected: no failures for skills/ingest/SKILL.md
 ```
 
-**Commit:** `feat: add /wos:ingest skill (closes #219)`
+**Commit:** `feat: add /wos:ingest skill (closes #219)` <!-- sha:30c42b5 -->
 
 ---
 
