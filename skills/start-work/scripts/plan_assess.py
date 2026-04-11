@@ -6,8 +6,8 @@
 """Assess plan document state for skill execution and resumption.
 
 Usage:
-    python skills/execute-plan/scripts/plan_assess.py --file PATH
-    python skills/execute-plan/scripts/plan_assess.py --scan [--root DIR] [--subdir PATH]
+    python skills/start-work/scripts/plan_assess.py --file PATH
+    python skills/start-work/scripts/plan_assess.py --scan [--root DIR] [--subdir PATH]
 """
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ from pathlib import Path
 # Prefer CLAUDE_PLUGIN_ROOT env var (set by Claude Code for hooks/MCP);
 # fall back to navigating from __file__ (required for skill-invoked scripts).
 _env_root = os.environ.get("CLAUDE_PLUGIN_ROOT", "")
-# skills/execute-plan/scripts/ → skills/execute-plan/ → skills/ → plugin root
+# skills/start-work/scripts/ → skills/start-work/ → skills/ → plugin root
 _plugin_root = (
     Path(_env_root) if _env_root and os.path.isdir(_env_root)
     else Path(__file__).resolve().parent.parent.parent.parent

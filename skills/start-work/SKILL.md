@@ -1,11 +1,11 @@
 ---
-name: execute-plan
+name: start-work
 description: >
   Use when you have an approved implementation plan to execute.
   Handles sequential execution, parallel subagent dispatch, progress
   tracking, and recovery. Enforces the approval gate. Use when the
   user wants to "execute the plan", "run the plan", "implement this
-  plan", or "start building".
+  plan", "start work", or "start building".
 argument-hint: "[plan file path]"
 user-invocable: true
 references:
@@ -21,12 +21,12 @@ references:
   - ../_shared/references/distill/mapping-guide.md
 ---
 
-# Execute Plan
+# Start Work
 
 Execute approved implementation plans with lifecycle enforcement, progress
 tracking, and multi-session resumption.
 
-**Announce at start:** "I'm using the execute-plan skill to implement this plan."
+**Announce at start:** "I'm using the start-work skill to implement this plan."
 
 ## Workflow
 
@@ -35,13 +35,13 @@ tracking, and multi-session resumption.
 Run the entry script:
 
 ```bash
-python <plugin-skills-dir>/execute-plan/scripts/plan_assess.py --file <path>
+python <plugin-skills-dir>/start-work/scripts/plan_assess.py --file <path>
 ```
 
 If no plan path was provided, use `--scan` mode to find executing plans:
 
 ```bash
-python <plugin-skills-dir>/execute-plan/scripts/plan_assess.py --scan --root <project-root>
+python <plugin-skills-dir>/start-work/scripts/plan_assess.py --scan --root <project-root>
 ```
 
 Read the plan file. Parse the JSON output for status, task state, file
@@ -123,11 +123,11 @@ On failure, consult [recovery patterns](references/recovery-patterns.md).
 ### 6. Validate
 
 When all tasks are checked, present to user: "All tasks complete. Ready
-to invoke `/wos:validate-work` to verify the plan succeeded — proceed?"
+to invoke `/wos:check-work` to verify the plan succeeded — proceed?"
 
 Wait for user confirmation before invoking the skill.
 
-- **User confirms** — invoke `/wos:validate-work`, which runs validation
+- **User confirms** — invoke `/wos:check-work`, which runs validation
   and handles the `status: completed` transition on success.
 - **User declines** — update frontmatter to `status: completed` directly.
   The user accepts responsibility for skipping plan-level validation.
@@ -172,4 +172,4 @@ Wait for user confirmation before invoking the skill.
 
 **Receives:** Plan file path (`.plan.md`) with `status: approved`
 **Produces:** Implemented code and files per plan; plan tasks marked `[x]` with commit SHAs
-**Chainable to:** validate-work
+**Chainable to:** check-work
