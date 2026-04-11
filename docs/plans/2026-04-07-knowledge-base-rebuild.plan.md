@@ -1027,7 +1027,7 @@ Follow the distillation rules from the Approach section:
   backend/API, mobile, database, and distributed systems engineering.
   Verify: context files exist with valid frontmatter, 200-800 words each.
 
-- [ ] **Task 25: Distill Cluster 7 — Operations & Platform.**
+- [x] **Task 25: Distill Cluster 7 — Operations & Platform.** <!-- sha:a5ad8ba -->
   Invoke `/wos:distill` with the 5 research documents from Task 10.
   Expected output: 6-10 context files covering SRE, platform engineering,
   DevOps/IaC, cloud architecture, and ML engineering/MLOps.
@@ -1070,21 +1070,6 @@ Follow the distillation rules from the Approach section:
   4. Word counts are 200-800 per context file
   Present results to user. Fix any failures before cleanup.
   Verify: 0 audit failures related to context files.
-
-- [ ] **Task 31: Delete research docs, final audit.**
-  Delete all research documents created in Tasks 2-14 (their value is
-  captured in the distilled context files). Context files should have
-  no `related:` links to research docs (distillation rules prevent this),
-  so deletion should cause zero broken links. Run:
-  ```
-  python scripts/reindex.py --root .
-  python scripts/audit.py --root . --no-urls
-  python -m pytest tests/ -v
-  ```
-  If any audit issues arise, fix them (likely index sync only).
-  Verify: 0 audit failures related to new content. All tests pass.
-  No research documents remain in `docs/research/` (except `_index.md`).
-  `grep -r "docs/research/" docs/context/` returns no results.
 
 ## Validation
 
