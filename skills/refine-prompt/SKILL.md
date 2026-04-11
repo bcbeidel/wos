@@ -146,3 +146,9 @@ If the user declines, move on without saving.
   fenced code block. This ensures the prompt is copyable as-is and renders
   correctly in all environments. Without fencing, XML tags, angle brackets,
   and other markup may be interpreted rather than displayed.
+
+## Handoff
+
+**Receives:** Prompt text or file path to refine; optional target use-case context
+**Produces:** Refined prompt with assessment scores and improvement rationale; optionally saved to `docs/prompts/`
+**Chainable to:** (context-dependent)

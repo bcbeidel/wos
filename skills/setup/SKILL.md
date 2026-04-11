@@ -183,3 +183,9 @@ Report what was done:
 - **Already present:** note anything that was already in place
 
 If everything was already set up, confirm: "WOS is up to date. No changes needed."
+
+## Handoff
+
+**Receives:** Project root path (new or existing); optional communication preferences
+**Produces:** Initialized WOS project structure — AGENTS.md, docs/ directories, `_index.md` files
+**Chainable to:** lint
