@@ -152,6 +152,8 @@ ready for execution by an agent with zero prior context.
 5. **Skipping the infeasibility check** — even if everything seems fine,
    confirm the design's assumptions against the actual codebase before
    presenting for review.
+6. **Session-dependent task descriptions** — tasks that reference conversation context ("as discussed", "the approach we agreed on") cannot be resumed in a new session. Plans are procedural memory, not session notes. Every task must be startable with zero conversation history and no access to this chat.
+7. **Missing branch in frontmatter** — the `branch:` field is load-bearing for multi-session execution. An executor resuming in a new session cannot determine where to work without it. Always set it before handing off to execute-plan.
 
 ## Output Format
 

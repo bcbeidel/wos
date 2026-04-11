@@ -157,8 +157,7 @@ Wait for user confirmation before invoking the skill.
 
 ## Anti-Pattern Guards
 
-1. **Checking boxes without verification** — the plan file becomes
-   unreliable and resumption breaks. Every `[x]` needs proof.
+1. **Checking boxes without a commit SHA** — `[x]` without `<!-- sha:abc1234 -->` is a lost-update anti-pattern. A new session cannot verify what was done or roll back to a known-good state. Every checkbox requires both verification evidence and a commit SHA.
 2. **Skipping the approval gate** — executing draft plans wastes work
    on unapproved designs. Always check status first.
 3. **Autonomous recovery beyond 2 retries** (3 total attempts) —
@@ -167,6 +166,7 @@ Wait for user confirmation before invoking the skill.
    changes, pause and discuss with the user.
 5. **Relying on conversation context** — sessions end; plan files
    persist. Always read the plan file and git log to orient.
+6. **Skipping per-task commits** — the commit after each task IS the checkpoint. Without it, a failure forces a full restart rather than a partial rollback. "I'll commit at the end" negates the rollback boundary that per-task commits create.
 
 ## Handoff
 
