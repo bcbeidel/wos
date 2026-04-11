@@ -133,3 +133,9 @@ same thread. This differs from threading...
   original evidence via `sources:` URLs.
 - **Bidirectional linking.** New files link to research via `related:`.
   Research links to new files via `related:`. Ask before modifying.
+
+## Handoff
+
+**Receives:** Path to one or more research artifacts in `docs/research/`
+**Produces:** Focused context documents saved to `docs/context/`
+**Chainable to:** ingest, write-plan
