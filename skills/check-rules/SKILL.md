@@ -141,3 +141,9 @@ WARN  models/staging/stg_customers.sql — Staging layer purity
    "Doesn't comply" is not actionable feedback.
 4. **Checking files with no matching rules** — skip silently. Don't
    report "no rules apply" for every unmatched file.
+
+## Handoff
+
+**Receives:** File path, directory, or list of git-changed files to check against project rules
+**Produces:** Rule compliance report listing violations with file and rule references
+**Chainable to:** —

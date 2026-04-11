@@ -175,3 +175,9 @@ Skill Evaluation: [skill-name]
 ```
 
 Only report issues — if a criterion passes, omit it.
+
+## Handoff
+
+**Receives:** Project root path (defaults to CWD); optional flags (--no-urls, --strict, --fix)
+**Produces:** Validation report listing warnings and failures by file; read-only — no modifications made
+**Chainable to:** —

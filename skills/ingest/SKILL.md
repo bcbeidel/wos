@@ -121,3 +121,9 @@ The high-rigor path is never required. It is appropriate when the user wants to 
 **Pasted text:**
 > "Ingest this: [user pastes a block of notes]"
 → Use pasted text as source → read wiki context → proceed
+
+## Handoff
+
+**Receives:** URL, file path, or pasted text representing an external source
+**Produces:** One or more wiki context pages added or updated under `docs/context/`
+**Chainable to:** lint

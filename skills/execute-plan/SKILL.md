@@ -167,3 +167,9 @@ Wait for user confirmation before invoking the skill.
    changes, pause and discuss with the user.
 5. **Relying on conversation context** — sessions end; plan files
    persist. Always read the plan file and git log to orient.
+
+## Handoff
+
+**Receives:** Plan file path (`.plan.md`) with `status: approved`
+**Produces:** Implemented code and files per plan; plan tasks marked `[x]` with commit SHAs
+**Chainable to:** validate-work

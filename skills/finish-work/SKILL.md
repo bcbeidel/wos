@@ -157,3 +157,9 @@ If no plan was found, skip this step entirely.
 5. **Forcing plan requirement** — if no plan is found, proceed with the
    pure git workflow. Do not ask the user to create a plan just to finish
    their work.
+
+## Handoff
+
+**Receives:** Plan file path; completed, validated implementation on a feature branch
+**Produces:** PR opened or merge completed; branch cleaned up; roadmap checkbox updated
+**Chainable to:** —

@@ -168,3 +168,9 @@ Plan documents use WOS frontmatter:
 
 Save location follows the project's layout hint (see step 3 above).
 The `related` field links to design docs, context files, or other plans.
+
+## Handoff
+
+**Receives:** Design doc path or feature description; optional issue number and roadmap context
+**Produces:** Implementation plan document saved to `docs/plans/` with tasks, file changes, and validation criteria
+**Chainable to:** execute-plan

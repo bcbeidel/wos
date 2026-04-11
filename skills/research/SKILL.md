@@ -338,3 +338,9 @@ loop itself remains single-threaded (HIGH).
 - **Log every search** during Phase 2 and include the protocol in the final document.
 - **Confidence levels on every finding** — HIGH, MODERATE, or LOW. See `synthesize.md`.
 - **Verify all claims** before finalizing — quotes, statistics, attributions, superlatives. See `self-verify-claims.md` and `citation-reverify.md`.
+
+## Handoff
+
+**Receives:** Topic or question to investigate; optional scope constraints or prior context files
+**Produces:** Verified research document saved to `docs/research/` with sources, findings, and confidence ratings
+**Chainable to:** distill, ingest, write-plan

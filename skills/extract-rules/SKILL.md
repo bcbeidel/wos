@@ -171,3 +171,9 @@ User approves → file written to `docs/rules/staging-layer-purity.rule.md`
    linter instead. LLM-based rules are for semantic understanding.
 4. **Multiple conventions in one rule** — split into separate rules.
    One rule, one convention.
+
+## Handoff
+
+**Receives:** Convention description, code examples, or style-guide text to formalize
+**Produces:** Structured rule files saved to `docs/rules/`
+**Chainable to:** check-rules

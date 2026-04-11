@@ -143,3 +143,9 @@ Design docs use WOS frontmatter:
 Save location follows the project's layout hint (see step 4 above).
 The `related` field links to context files, research docs, or other
 design docs.
+
+## Handoff
+
+**Receives:** User-described topic or problem to explore; optional seed research or constraints
+**Produces:** Design document saved to `docs/designs/` with structured requirements and scope boundaries
+**Chainable to:** write-plan, research

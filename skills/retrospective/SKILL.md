@@ -31,3 +31,9 @@ Follow the steps in `references/retrospective-workflow.md`.
   confirmation before filing.
 - **Target repo is hardcoded:** `bcbeidel/wos`
 - **One issue per retrospective.** Don't split into multiple issues.
+
+## Handoff
+
+**Receives:** Optional focus area or session context
+**Produces:** Structured feedback submitted as a GitHub Issue
+**Chainable to:** —
