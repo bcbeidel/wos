@@ -1,5 +1,5 @@
 ---
-name: audit-hook
+name: check-hook
 description: >
   Audits Claude Code hooks configuration for event coverage, script safety,
   async and blocking contradictions, Stop hook loop risks, rule overlap,
@@ -10,7 +10,7 @@ argument-hint: "[settings.json path]"
 user-invocable: true
 ---
 
-# Audit Hook
+# Check Hook
 
 Inspect a project's Claude Code hooks configuration for coverage gaps,
 misconfigurations, unsafe patterns, and redundancy. Read-only — reports

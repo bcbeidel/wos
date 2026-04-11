@@ -1,5 +1,5 @@
 ---
-name: audit-command
+name: check-command
 description: >
   Audits Claude Code slash commands for description clarity, argument
   handling, scope creep, and overlap with existing skills. Use when the
@@ -10,7 +10,7 @@ argument-hint: "[command name | path to command file]"
 user-invocable: true
 ---
 
-# Audit Command
+# Check Command
 
 Inspect `.claude/commands/` files for quality and redundancy. Read-only —
 reports findings but does not modify any files.

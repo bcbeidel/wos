@@ -1,5 +1,5 @@
 ---
-name: audit-skill
+name: check-skill
 description: >
   Audit an existing SKILL.md for quality issues. Use when the user wants
   to "audit a skill", "review a skill", "check skill quality", "find
@@ -8,7 +8,7 @@ argument-hint: "[path/to/SKILL.md — omit to audit all skills]"
 user-invocable: true
 ---
 
-# Audit Skill
+# Check Skill
 
 Audit one skill or all skills against ten research-backed quality criteria,
 then offer an opt-in repair loop.
