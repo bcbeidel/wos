@@ -1,5 +1,5 @@
 ---
-name: write-plan
+name: plan-work
 description: >
   Use when you have a spec or requirements for a multi-step task,
   before touching code. Creates structured implementation plans with
@@ -16,7 +16,7 @@ references:
   - references/examples/medium-plan.md
 ---
 
-# Write Plan
+# Plan Work
 
 Convert approved designs or requirements into structured implementation plans.
 The output is a plan document — not code, not a design.
@@ -25,7 +25,7 @@ The output is a plan document — not code, not a design.
 
 ### 1. Gather Context
 
-- Read the design doc (if invoked from brainstorm, check the `related` field).
+- Read the design doc (if invoked from scope-work, check the `related` field).
 - Explore the codebase: identify files to create, modify, or delete.
 - Check `docs/plans/` for overlapping or related plans.
 - If no design doc exists, gather requirements from the user before proceeding.
@@ -76,7 +76,7 @@ full format, user options, and revision-vs-supersede decision tree.
 
 Present the user with three options:
 
-1. **Return to brainstorm** — invoke `wos:brainstorm` with this feedback
+1. **Return to scope-work** — invoke `wos:scope-work` with this feedback
    to revise the design. Follow the "supersede, don't edit" pattern.
 2. **Proceed with modified scope** — revise the plan in-place: update
    Must/Won't boundaries, adjust or remove affected tasks, and document
@@ -100,7 +100,7 @@ When the user approves, set `status: approved` in the plan's frontmatter.
 
 ### 7. Hand Off
 
-Present to user: "Plan approved. Ready to invoke `/wos:execute-plan` to
+Present to user: "Plan approved. Ready to invoke `/wos:start-work` to
 begin implementation — proceed?"
 
 Wait for user confirmation before invoking the skill. The plan should be
@@ -153,7 +153,7 @@ ready for execution by an agent with zero prior context.
    confirm the design's assumptions against the actual codebase before
    presenting for review.
 6. **Session-dependent task descriptions** — tasks that reference conversation context ("as discussed", "the approach we agreed on") cannot be resumed in a new session. Plans are procedural memory, not session notes. Every task must be startable with zero conversation history and no access to this chat.
-7. **Missing branch in frontmatter** — the `branch:` field is load-bearing for multi-session execution. An executor resuming in a new session cannot determine where to work without it. Always set it before handing off to execute-plan.
+7. **Missing branch in frontmatter** — the `branch:` field is load-bearing for multi-session execution. An executor resuming in a new session cannot determine where to work without it. Always set it before handing off to start-work.
 
 ## Output Format
 
@@ -175,4 +175,4 @@ The `related` field links to design docs, context files, or other plans.
 
 **Receives:** Design doc path or feature description; optional issue number and roadmap context
 **Produces:** Implementation plan document saved to `docs/plans/` with tasks, file changes, and validation criteria
-**Chainable to:** execute-plan
+**Chainable to:** start-work
