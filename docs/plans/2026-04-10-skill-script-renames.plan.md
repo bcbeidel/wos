@@ -2,7 +2,7 @@
 name: Skill and Script Renames (v0.36.0)
 description: Rename audit-wos→lint, init-wos→setup, audit.py→lint.py, and update all cross-references
 type: plan
-status: executing
+status: completed
 branch: feat/wiki-schema-infrastructure
 pr: ~
 related:
