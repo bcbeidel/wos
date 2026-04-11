@@ -56,7 +56,7 @@ Won't have:
 **Files:**
 - Create: `skills/audit/SKILL.md`
 
-- [ ] **Step 1:** Create `skills/audit/` directory and write `SKILL.md` with the following structure:
+- [x] **Step 1:** Create `skills/audit/` directory and write `SKILL.md` with the following structure: <!-- sha:25f393e -->
   - Frontmatter: `name: audit`, description, `argument-hint`, `user-invocable: true`
   - **Announce step:** instruct skill to announce "I'm using the `/wos:audit` skill..."
   - **Step 1 — Structural check:** run `python <plugin-scripts-dir>/lint.py --root . --no-urls`; collect all findings; tag lint `fail` as Critical, lint `warn` as High
@@ -69,8 +69,8 @@ Won't have:
   - `## Anti-Pattern Guards` section (at least: don't run LLM checks before lint; don't auto-apply fixes; don't run audit-chain/wiki when no files exist)
   - `## Handoff` section: Receives (project root; defaults to CWD), Produces (prioritized health report; optionally triggers sub-skill repair loops), Chainable-to (lint, audit-skill, audit-rule, audit-chain)
 
-- [ ] **Step 2:** Verify: `python scripts/lint.py --root . --no-urls 2>&1 | grep "audit/"` — no `fail` findings for the new skill; `warn` count does not increase
-- [ ] **Step 3:** Commit: `git add skills/audit/SKILL.md && git commit -m "feat: add /wos:audit orchestrator skill"`
+- [x] **Step 2:** Verify: `python scripts/lint.py --root . --no-urls 2>&1 | grep "audit/"` — no `fail` findings for the new skill; `warn` count does not increase <!-- sha:25f393e -->
+- [x] **Step 3:** Commit: `git add skills/audit/SKILL.md && git commit -m "feat: add /wos:audit orchestrator skill"` <!-- sha:25f393e -->
 
 ---
 
@@ -81,14 +81,14 @@ Won't have:
 
 **Depends on:** Task 1 committed
 
-- [ ] **Step 1:** Open `OVERVIEW.md` and locate the `## Skills Reference` table. Add a row for `/wos:audit` above `/wos:lint` (it is the highest-level entry point):
+- [x] **Step 1:** Open `OVERVIEW.md` and locate the `## Skills Reference` table. Add a row for `/wos:audit` above `/wos:lint` (it is the highest-level entry point): <!-- sha:f68da33 -->
 
   ```
   | `/wos:audit` | Full project health check — orchestrates lint, audit-skill, audit-rule, audit-chain, and wiki validation into a prioritized report |
   ```
 
-- [ ] **Step 2:** Verify: `grep "/wos:audit" OVERVIEW.md` → matches; `python scripts/lint.py --root . --no-urls` → clean pass (no new failures)
-- [ ] **Step 3:** Commit: `git add OVERVIEW.md && git commit -m "docs: add /wos:audit to OVERVIEW.md skills reference"`
+- [x] **Step 2:** Verify: `grep "/wos:audit" OVERVIEW.md` → matches; `python scripts/lint.py --root . --no-urls` → clean pass (no new failures) <!-- sha:f68da33 -->
+- [x] **Step 3:** Commit: `git add OVERVIEW.md && git commit -m "docs: add /wos:audit to OVERVIEW.md skills reference"` <!-- sha:f68da33 -->
 
 ---
 
