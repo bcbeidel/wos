@@ -3,7 +3,7 @@ name: Skill and Script Renames (v0.36.0)
 description: Rename audit-wos→lint, init-wos→setup, audit.py→lint.py, and update all cross-references
 type: plan
 status: executing
-branch: feat/221-skill-script-renames
+branch: feat/wiki-schema-infrastructure
 pr: ~
 related:
   - docs/plans/2026-04-10-roadmap-v036-v039.plan.md
@@ -84,39 +84,39 @@ cause; Task 4 ends with the full suite.
 
 ### Task 1 — Rename `audit-wos` skill to `lint`
 
-- [ ] `git mv skills/audit-wos skills/lint`
-- [ ] Edit `skills/lint/SKILL.md`: set `name: lint`, update description to use "lint"/"lint checks" terminology, update trigger phrases (add "lint", "run lint", "check lint"), replace all `audit.py` command references with `lint.py`
-- [ ] Verify: `ls skills/lint/SKILL.md && ! ls skills/audit-wos 2>/dev/null && echo ok`
-- [ ] `python -m pytest tests/ -v --ignore=tests/test_audit.py --ignore=tests/test_script_syspath.py -k "not audit"` — existing tests pass
-- [ ] Commit: `rename: audit-wos skill → lint`
+- [x] `git mv skills/audit-wos skills/lint` <!-- sha:25952f0 -->
+- [x] Edit `skills/lint/SKILL.md`: set `name: lint`, update description to use "lint"/"lint checks" terminology, update trigger phrases (add "lint", "run lint", "check lint"), replace all `audit.py` command references with `lint.py` <!-- sha:25952f0 -->
+- [x] Verify: `ls skills/lint/SKILL.md && ! ls skills/audit-wos 2>/dev/null && echo ok` <!-- sha:25952f0 -->
+- [x] `python -m pytest tests/ -v --ignore=tests/test_audit.py --ignore=tests/test_script_syspath.py -k "not audit"` — existing tests pass <!-- sha:25952f0 -->
+- [x] Commit: `rename: audit-wos skill → lint` <!-- sha:25952f0 -->
 
 ### Task 2 — Rename `scripts/audit.py` and its test to `lint.py`
 
-- [ ] `git mv scripts/audit.py scripts/lint.py`
-- [ ] `git mv tests/test_audit.py tests/test_lint.py`
-- [ ] Edit `tests/test_lint.py`: replace all `from scripts.audit import` with `from scripts.lint import`; replace all `"audit.py"` argv references with `"lint.py"`
-- [ ] Edit `tests/test_script_syspath.py`: rename class `TestAuditSysPath` → `TestLintSysPath`, update test method name, replace `"audit.py"` path reference with `"lint.py"`
-- [ ] Verify: `python scripts/lint.py --help` — shows flags `--root`, `--no-urls`, `--json`, `--fix`, `--strict`, `--context-max-words`, `--context-min-words`, `--skill-max-lines`
-- [ ] `python -m pytest tests/test_lint.py tests/test_script_syspath.py -v` — all tests pass
-- [ ] Commit: `rename: scripts/audit.py → scripts/lint.py, test_audit.py → test_lint.py`
+- [x] `git mv scripts/audit.py scripts/lint.py` <!-- sha:54fbeb6 -->
+- [x] `git mv tests/test_audit.py tests/test_lint.py` <!-- sha:54fbeb6 -->
+- [x] Edit `tests/test_lint.py`: replace all `from scripts.audit import` with `from scripts.lint import`; replace all `"audit.py"` argv references with `"lint.py"` <!-- sha:54fbeb6 -->
+- [x] Edit `tests/test_script_syspath.py`: rename class `TestAuditSysPath` → `TestLintSysPath`, update test method name, replace `"audit.py"` path reference with `"lint.py"` <!-- sha:54fbeb6 -->
+- [x] Verify: `python scripts/lint.py --help` — shows flags `--root`, `--no-urls`, `--json`, `--fix`, `--strict`, `--context-max-words`, `--context-min-words`, `--skill-max-lines` <!-- sha:54fbeb6 -->
+- [x] `python -m pytest tests/test_lint.py tests/test_script_syspath.py -v` — all tests pass <!-- sha:54fbeb6 -->
+- [x] Commit: `rename: scripts/audit.py → scripts/lint.py, test_audit.py → test_lint.py` <!-- sha:54fbeb6 -->
 
 ### Task 3 — Rename `init-wos` skill to `setup`
 
-- [ ] `git mv skills/init-wos skills/setup`
-- [ ] Edit `skills/setup/SKILL.md`: set `name: setup`
-- [ ] Verify: `ls skills/setup/SKILL.md && ! ls skills/init-wos 2>/dev/null && echo ok`
-- [ ] `python -m pytest tests/ -v -k "not audit"` — existing tests pass
-- [ ] Commit: `rename: init-wos skill → setup`
+- [x] `git mv skills/init-wos skills/setup` <!-- sha:afaeaf0 -->
+- [x] Edit `skills/setup/SKILL.md`: set `name: setup` <!-- sha:afaeaf0 -->
+- [x] Verify: `ls skills/setup/SKILL.md && ! ls skills/init-wos 2>/dev/null && echo ok` <!-- sha:afaeaf0 -->
+- [x] `python -m pytest tests/ -v -k "not audit"` — existing tests pass <!-- sha:afaeaf0 -->
+- [x] Commit: `rename: init-wos skill → setup` <!-- sha:afaeaf0 -->
 
 ### Task 4 — Sweep all remaining cross-references and update root docs
 
-- [ ] Run `grep -r "audit-wos\|init-wos\|audit\.py" --include="*.md" --include="*.py" . --exclude-dir=".git" -l` — enumerate all remaining files
-- [ ] Replace `audit-wos` → `lint`, `init-wos` → `setup`, `audit.py` → `lint.py` in every file returned, verifying each replacement is contextually correct
-- [ ] In `README.md` and `OVERVIEW.md`: update skill list, invocation examples, and skill ecosystem tables
-- [ ] In `CHANGELOG.md`: add v0.36.0 entry — "Renamed `audit-wos` → `lint`, `init-wos` → `setup`, `scripts/audit.py` → `scripts/lint.py`"
-- [ ] `python -m pytest tests/ -v` — full suite passes (zero failures)
-- [ ] `python scripts/lint.py --root . --no-urls` — clean pass (no new failures introduced)
-- [ ] Commit: `chore: update all audit-wos/init-wos/audit.py references to lint/setup/lint.py`
+- [x] Run `grep -r "audit-wos\|init-wos\|audit\.py" --include="*.md" --include="*.py" . --exclude-dir=".git" -l` — enumerate all remaining files <!-- sha:5591a89 -->
+- [x] Replace `audit-wos` → `lint`, `init-wos` → `setup`, `audit.py` → `lint.py` in every file returned, verifying each replacement is contextually correct <!-- sha:5591a89 -->
+- [x] In `README.md` and `OVERVIEW.md`: update skill list, invocation examples, and skill ecosystem tables <!-- sha:5591a89 -->
+- [x] In `CHANGELOG.md`: add v0.36.0 entry — "Renamed `audit-wos` → `lint`, `init-wos` → `setup`, `scripts/audit.py` → `scripts/lint.py`" <!-- sha:5591a89 -->
+- [x] `python -m pytest tests/ -v` — full suite passes (399 passed, zero failures) <!-- sha:5591a89 -->
+- [x] `python scripts/lint.py --root . --no-urls` — clean pass (no new failures introduced) <!-- sha:5591a89 -->
+- [x] Commit: `chore: update all audit-wos/init-wos/audit.py references to lint/setup/lint.py` <!-- sha:5591a89 -->
 
 ## Validation
 
