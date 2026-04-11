@@ -2,7 +2,7 @@
 name: WORKFLOW.md Lifecycle Guide
 description: Create WORKFLOW.md at project root documenting the canonical WOS workflows — development lifecycle, knowledge management, self-improvement loop, skill chain design, and primitive taxonomy.
 type: plan
-status: executing
+status: completed
 branch: feat/workflow-doc
 pr: ~
 related:
