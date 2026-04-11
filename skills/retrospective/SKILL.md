@@ -32,6 +32,25 @@ Follow the steps in `references/retrospective-workflow.md`.
 - **Target repo is hardcoded:** `bcbeidel/wos`
 - **One issue per retrospective.** Don't split into multiple issues.
 
+## Anti-Pattern Guards
+
+1. **Fabricating session events** — every observation must map to something
+   that actually happened in this session. Hypothetical failure modes,
+   "could have gone wrong" scenarios, or behaviors from previous sessions
+   are not valid inputs. If you cannot point to a specific moment, omit
+   the observation.
+2. **Scope inflation** — retrospectives that accumulate feature requests
+   without session grounding become wish lists, not feedback. Each
+   observation should name the moment in the session it came from. If it
+   cannot, it belongs in a separate issue, not here.
+3. **Feedback without effect** — "X was confusing" without explaining what
+   the agent or user did as a result is not actionable. Every observation
+   needs: what happened, what the effect was, and what change would prevent it.
+4. **Reconstructing from compressed context** — long sessions may have
+   lossy context near the end. If key session events are unclear because
+   context was compressed or reset, note the uncertainty explicitly
+   rather than filling gaps with plausible-sounding reconstruction.
+
 ## Handoff
 
 **Receives:** Optional focus area or session context

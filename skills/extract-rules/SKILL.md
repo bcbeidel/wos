@@ -171,6 +171,15 @@ User approves → file written to `docs/rules/staging-layer-purity.rule.md`
    linter instead. LLM-based rules are for semantic understanding.
 4. **Multiple conventions in one rule** — split into separate rules.
    One rule, one convention.
+5. **Vague criterion language** — terms like "good structure", "appropriate
+   naming", or "clear intent" without behavioral anchors produce variable
+   evaluation results. Require concrete, observable behaviors that distinguish
+   compliant from non-compliant. Question-specific rubrics with explicit
+   anchors outperform vague ones ~4× on inter-evaluator agreement.
+6. **Missing default-closed stance** — a rule that doesn't specify how
+   to handle borderline cases will default to PASS, hiding real violations.
+   Add a note in the rule's Intent section describing how uncertain cases
+   should resolve (e.g., "When evidence is borderline, prefer WARN over PASS").
 
 ## Handoff
 
