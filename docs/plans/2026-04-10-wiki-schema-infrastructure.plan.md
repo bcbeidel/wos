@@ -2,7 +2,7 @@
 name: Wiki Schema Infrastructure
 description: Add wos/wiki.py validators, validate_wiki() in validators.py, wiki auto-detection in scripts/lint.py, and a default SCHEMA.md template — Python foundation for the wiki feature.
 type: plan
-status: executing
+status: completed
 branch: feat/wiki-schema-infrastructure
 pr: ~
 related:
