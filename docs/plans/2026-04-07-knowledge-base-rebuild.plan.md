@@ -1039,19 +1039,19 @@ Follow the distillation rules from the Approach section:
   engineering, accessibility, project management, and program management.
   Verify: context files exist with valid frontmatter, 200-800 words each.
 
-- [ ] **Task 27: Distill Cluster 8B — Product, Content & Revenue.**
+- [x] **Task 27: Distill Cluster 8B — Product, Content & Revenue.** <!-- sha:468a9d1 -->
   Invoke `/wos:distill` with the 4 research documents from Task 12.
   Expected output: 5-8 context files covering product design/UX, content
   strategy/operations, AI product management, and sales/revenue operations.
   Verify: context files exist with valid frontmatter, 200-800 words each.
 
-- [ ] **Task 28: Distill Cluster 9 — Digital Marketing.**
+- [x] **Task 28: Distill Cluster 9 — Digital Marketing.** <!-- sha:ae2d87b -->
   Invoke `/wos:distill` with the 6 research documents from Task 13.
   Expected output: 8-12 context files covering marketing analytics,
   SEO/content, paid media, CDPs/martech, marketing automation, and CRO.
   Verify: context files exist with valid frontmatter, 200-800 words each.
 
-- [ ] **Task 29: Distill Cluster 10 — Data Science & Analytics.**
+- [x] **Task 29: Distill Cluster 10 — Data Science & Analytics.** <!-- sha:4d3aaa4 -->
   Invoke `/wos:distill` with the 6 research documents from Task 14.
   Expected output: 8-12 context files covering statistical modeling,
   ML for business, data visualization, customer analytics, data governance,
