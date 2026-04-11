@@ -153,3 +153,28 @@ grep -l "^type: concept" docs/context/*.context.md | xargs -I{} basename {} | gr
 - Source distribution: 177 files have 3+ sources (→ `high`), 13 have 1-2 (→ `medium`), 0 have zero
 - All context files share the same git-log date (`2026-04-10`, from the v0.35.0 bulk rebuild commit `cdd02ab`)
 - Roadmap Task 3 checkbox update happens at PR merge; fill `<!-- sha: -->` with the merge commit SHA
+
+## Retrospective
+
+### Completed
+
+5/5 tasks completed across 6 commits on `feat/context-migration`.
+
+- All 190 `docs/context/*.context.md` files received `confidence`, `created`, `updated`, and updated `type` fields
+- Confidence distribution: 177 `high`, 13 `medium` — not uniform
+- Type distribution: 167 `concept`, 21 `comparison`, 2 `entity` — all valid wiki schema types
+- `scripts/migrate_context.py` written, executed, and deleted as planned
+- Lint baseline maintained: `1 fail, 7 warn` (identical to pre-migration)
+- 415 tests pass
+
+### Deviations
+
+- **One heuristic miss caught in manual review:** `bayesian-mmm-tool-selection-meridian-robyn.context.md` was assigned `concept` by the script (no keyword in filename), but the document name contains "Meridian vs. Robyn" — correctly updated to `comparison` in Task 4.
+- **`docs/context/_index.md` went out of sync** after the migration commit. The reindex run from planning (before migration) didn't survive the frontmatter changes. Fixed by running `reindex.py` in Task 5 before the cleanup commit. Plan didn't anticipate this — worth adding a "run reindex after bulk frontmatter changes" note to future migration plans.
+- **Ruff linter blocked the first commit** — pre-commit hook requires `ruff`, which wasn't in the worktree. Resolved by symlinking `.venv` from the main repo. The worktree shares git hooks with the parent repo but not the venv.
+
+### Lessons
+
+- **Worktrees need a venv symlink when the pre-commit hook requires it.** The hook uses `$(git rev-parse --show-toplevel)/.venv/bin/ruff`, which resolves to the worktree root — not the main repo. Either document this in the branch setup step or symlink as part of worktree initialization.
+- **`parse_frontmatter` preserves YAML quotes as part of string values.** When writing a round-trip frontmatter renderer, check for pre-quoted strings before applying additional quoting. The fix (detecting `value.startswith('"')`) was straightforward but not obvious from the module docstring.
+- **Bulk git log calls are slow for 190 files.** Each file required a subprocess call to `git log`. For a larger corpus, batching or using `git log --name-only` across the full tree would be faster. Not a problem at this scale.
