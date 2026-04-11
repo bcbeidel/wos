@@ -2,40 +2,47 @@
 name: Wiki + Structural Refactor
 description: Add /wos:ingest wiki skill, rename audit-wos→lint and init-wos→setup, migrate docs/ areas to project root
 type: plan
-status: draft
+status: superseded
 branch: feat-rebuild-knowledge-base
 pr: ~
 related:
   - docs/research/2026-04-09-llm-wiki-knowledge-base-pattern.research.md
 ---
 
+> **Superseded.** This plan was drafted before the 2026-04-10 design session. Implementation is now tracked in GitHub issues. Where this plan conflicts with the session decisions below, the session decisions take precedence.
+>
+> **Key decisions that expand the original scope:**
+> - **Ingest is universal** — accepts any source (URL, file path, pasted text, research doc, PDF), not just research documents. Tracked in #219.
+> - **Context files ARE wiki pages** — `docs/context/` files get wiki schema fields (`confidence`, `created`, `updated`). No separate wiki system. Tracked in #220.
+> - **`docs/` migration is deferred** — moving `docs/research/`, `docs/plans/`, etc. to root-level is not part of v0.36.0. Chunk 3 below is on hold.
+>
+> **Replacement issues (v0.36.0):** #218 (wiki infra), #219 (ingest), #220 (context migration), #221 (renames)
+
 # Wiki + Structural Refactor
 
-Extend WOS with a persistent wiki skill set and migrate all WOS-managed
-document areas from `docs/<area>/` to root-level directories. Rename
-`audit-wos` → `lint` and `init-wos` → `setup` to drop redundant suffixes
-and adopt developer-native terminology. Net result: users get `/wos:setup`,
-`/wos:lint`, and `/wos:ingest` as a coherent wiki workflow, with a flatter,
-more intuitive project structure.
+Extend WOS with a persistent wiki skill set. Rename `audit-wos` → `lint`
+and `init-wos` → `setup` to drop redundant suffixes and adopt
+developer-native terminology.
 
 ## Scope
 
 **Must have:**
 - `/wos:lint` (rename of `audit-wos`) — all existing checks preserved, wiki-aware
-- `/wos:setup` (rename of `init-wos`) — root-level area scaffolding + wiki opt-in
-- `/wos:ingest` — new skill: one source → 5–15 wiki page updates, append-only
+- `/wos:setup` (rename of `init-wos`) — wiki opt-in step added
+- `/wos:ingest` — universal intake: any source → 5–15 wiki page updates, append-only
 - `wos/wiki.py` — `parse_schema()` + wiki frontmatter validators
 - `scripts/lint.py` — renamed from `audit.py`, all existing CLI flags preserved
 - Wiki checks in `scripts/lint.py`: orphan pages, schema violations, missing fields
 - `wiki/SCHEMA.md` default template (in `skills/setup/references/`)
-- WOS repo self-migration: `docs/research/` → `research/`, `docs/plans/` → `plans/`, `docs/prompts/` → `prompts/`
-- All cross-references updated (README, OVERVIEW, CLAUDE.md, skill docs, tests)
+- `docs/context/` migration — add `confidence`, `created`, `updated` fields to all ~170 context files
+
+**Deferred (not v0.36.0):**
+- `docs/` directory migration to root-level (Chunk 3 below)
 
 **Won't have:**
 - `/wos:wiki-query` skill
 - Vector/embedding search
 - MCP server wrapper
-- `docs/context/` migration (WOS repo has no context area)
 
 ## Approach
 
