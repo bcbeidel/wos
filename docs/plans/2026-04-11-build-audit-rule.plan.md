@@ -177,7 +177,7 @@ Won't have:
 
 **Depends on:** Tasks 1 and 2 (must exist before directing users to replacements)
 
-- [ ] **Step 1:** Prepend the following deprecation block to `skills/check-rules/SKILL.md`, immediately before `# /wos:check-rules`:
+- [x] **Step 1:** Prepend the following deprecation block to `skills/check-rules/SKILL.md`, immediately before `# /wos:check-rules`:
 
   ```markdown
   > **Deprecated.** This skill is replaced by `/wos:audit-rule`.
@@ -189,7 +189,7 @@ Won't have:
 
   Then ask the user "Proceed anyway? (y/n)" and only continue the existing check-rules workflow if the user confirms.
 
-- [ ] **Step 2:** Prepend the following deprecation block to `skills/extract-rules/SKILL.md`, immediately before `# /wos:extract-rules`:
+- [x] **Step 2:** Prepend the following deprecation block to `skills/extract-rules/SKILL.md`, immediately before `# /wos:extract-rules`:
 
   ```markdown
   > **Deprecated.** This skill is replaced by `/wos:build-rule`.
@@ -202,19 +202,19 @@ Won't have:
 
   Then ask the user "Proceed anyway? (y/n)" and only continue the existing extract-rules workflow if the user confirms.
 
-- [ ] **Step 3:** Verify deprecation blocks are in place:
+- [x] **Step 3:** Verify deprecation blocks are in place:
   ```bash
   grep -A2 "Deprecated" skills/check-rules/SKILL.md skills/extract-rules/SKILL.md
   ```
   Expected: both files contain "Deprecated" notice near the top.
 
-- [ ] **Step 4:** Run full lint clean:
+- [x] **Step 4:** Run full lint clean:
   ```bash
   python scripts/lint.py --root /Users/bbeidel/Documents/git/wos-build-rule --no-urls
   ```
   Expected: no new failures; any existing warnings are pre-existing.
 
-- [ ] **Step 5:** Commit:
+- [x] **Step 5:** Commit: <!-- sha:8cf9149 -->
   ```bash
   git -C /Users/bbeidel/Documents/git/wos-build-rule add skills/check-rules/SKILL.md skills/extract-rules/SKILL.md
   git -C /Users/bbeidel/Documents/git/wos-build-rule commit -m "feat: deprecate check-rules and extract-rules in favor of audit-rule and build-rule"
