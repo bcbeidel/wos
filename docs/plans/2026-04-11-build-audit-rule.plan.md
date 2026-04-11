@@ -2,7 +2,7 @@
 name: build-rule + audit-rule skills
 description: Add /wos:build-rule and /wos:audit-rule as the build-X/audit-X pair for Claude Code rules, replacing deprecated check-rules and extract-rules
 type: plan
-status: executing
+status: completed
 related:
   - docs/context/llm-rule-structural-characteristics.context.md
   - docs/context/linter-patterns-transferable-to-llm-rules.context.md
