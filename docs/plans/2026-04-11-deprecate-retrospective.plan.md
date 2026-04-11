@@ -4,7 +4,7 @@ description: Add deprecation header and notice to the retrospective skill, updat
 type: plan
 status: completed
 branch: feat/deprecate-retrospective
-pr: ~
+pr: bcbeidel/wos#240
 related:
   - docs/plans/2026-04-10-roadmap-v036-v039.plan.md
 ---
