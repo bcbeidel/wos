@@ -157,6 +157,7 @@ If no plan was found, skip this step entirely.
 5. **Forcing plan requirement** — if no plan is found, proceed with the
    pure git workflow. Do not ask the user to create a plan just to finish
    their work.
+6. **Presenting options without reversibility context** — Options 1-4 are not equivalent. Discard is irreversible; the others are not. When presenting options, ensure the user understands which actions cannot be undone. Never normalize an irreversible action by presenting it in a flat list alongside reversible ones without distinction.
 
 ## Handoff
 

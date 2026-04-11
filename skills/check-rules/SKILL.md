@@ -141,6 +141,15 @@ WARN  models/staging/stg_customers.sql — Staging layer purity
    "Doesn't comply" is not actionable feedback.
 4. **Checking files with no matching rules** — skip silently. Don't
    report "no rules apply" for every unmatched file.
+5. **Treating uncertain compliance as PASS** — when a rule is ambiguous or
+   evidence is borderline, surface the verdict as WARN (uncertain), not PASS.
+   Default-closed: unknown states should surface for review, never silently
+   pass. Models default to assuming pass:true when criteria lack behavioral
+   anchors — surface that uncertainty rather than hiding it.
+6. **Evaluating anchor-free rules** — rules without non-compliant examples
+   produce near-random verdicts on borderline cases. If the rule lacks a
+   `## Non-Compliant Example` section, flag it before evaluating and suggest
+   the user run `/wos:extract-rules` to add anchors.
 
 ## Handoff
 
