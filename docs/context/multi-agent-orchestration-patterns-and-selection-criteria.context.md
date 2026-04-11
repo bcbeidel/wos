@@ -7,10 +7,12 @@ sources:
   - https://blog.langchain.com/langgraph-multi-agent-workflows/
   - https://arxiv.org/abs/2601.13671
   - https://dev.to/jose_gurusup_dev/agent-orchestration-patterns-swarm-vs-mesh-vs-hierarchical-vs-pipeline-b40
+  - https://arxiv.org/html/2604.02460v1
 related:
   - docs/context/agent-tool-portability-and-mcp-as-transport-layer.context.md
   - docs/context/multi-agent-shared-state-failure-mechanisms.context.md
   - docs/context/agentic-planning-hybrid-global-plan-local-react.context.md
+  - docs/context/skill-chain-sequential-and-recursive-design-rules.context.md
 ---
 
 # Multi-Agent Orchestration Patterns and Selection Criteria
@@ -56,6 +58,14 @@ Best for: exploration tasks and parallel discovery where the optimal path is unk
 
 Most production systems combine patterns: a hierarchical system where leaf-level teams use mesh coordination internally, or a pipeline where one stage launches a swarm for parallel data collection. The selection principle: match control flow structure to how information actually flows in the task, not to how many agents you have.
 
+## Important Caveat: Single Agents Often Match Multi-Agent
+
+A 2026 empirical study (arXiv 2604.02460, April 2026) found that under matched thinking-token budgets, single-agent systems consistently match or outperform multi-agent systems on multi-hop reasoning tasks. The key finding: MAS advantages reported in prior literature frequently stem from unaccounted computation differences rather than architectural benefits. Single agents are the strongest default architecture for multi-hop reasoning when compute is controlled.
+
+MAS becomes competitive only when a single agent's effective context genuinely degrades — through context deletion, masking, or distraction injection — or when tasks are truly parallelizable and independent. Economic analysis (Iterathon 2026) suggests that for the majority of use cases, a well-prompted single agent delivers equivalent results at approximately one-third the cost.
+
+The selection criteria above remain valid as qualitative tradeoffs between patterns. The higher-order selection criterion is: **verify that a single agent with tools does not suffice before adopting multi-agent architecture**. Pattern selection is a secondary decision.
+
 ## Takeaway
 
-Start with orchestrator-worker unless you have a clear reason not to — it offers the best debuggability and is directly confirmed by Anthropic and LangGraph. Add hierarchical tiers when context window constraints or organizational scale require it. Treat numeric thresholds (N(N-1)/2 mesh connections, 50-agent orchestrator bottleneck) as rough intuition from a single practitioner source, not empirical design criteria.
+Start with orchestrator-worker unless you have a clear reason not to — it offers the best debuggability and is directly confirmed by Anthropic and LangGraph. But first: verify that a single agent with tools does not suffice. Multi-agent systems are justified when context genuinely degrades or tasks are truly parallelizable — not as a general upgrade from single agents. Add hierarchical tiers when context window constraints or organizational scale require it. Treat numeric thresholds (N(N-1)/2 mesh connections, 50-agent orchestrator bottleneck) as rough intuition from a single practitioner source, not empirical design criteria.

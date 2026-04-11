@@ -13,6 +13,7 @@ sources:
 related:
   - docs/context/hitl-oversight-as-tuned-policy-and-reversibility-gate.context.md
   - docs/context/agentic-fault-taxonomy-and-interface-mismatch-pattern.context.md
+  - docs/context/skill-chain-handoff-signaling-and-evidence-packs.context.md
 ---
 
 # Approval Gate Trust Calibration and Overconfidence
@@ -61,6 +62,16 @@ The Levels of Autonomy paper (arXiv, T3) names this explicitly as an unresolved 
 
 Exception-only review is the mature operational pattern: auto-approve unless a policy rule fires (low confidence, sensitive data detected, unusual parameter values). This trades coverage for engagement quality.
 
+## Evidence Packs as the Alternative to Confidence Scores
+
+The automation bias literature points to a concrete design alternative: replace confidence scores with evidence packs. When a reviewer sees the reasoning behind a decision, source data, and a clear statement of what will happen next and how to reverse it, they have what they need to evaluate — without being manipulated by a number.
+
+The evidence pack design (StackAI) for approval gates: action summary, agent reasoning, source data, policy flags, preconditions, rollback plan. Concise by default, expandable on request. This is the "15-second decision" design as opposed to the "15-minute investigation."
+
+The clinical evidence for avoiding confidence percentages is direct: a 2025 study found that AI assistance with systematic bias dropped clinician diagnostic accuracy from 73% to 61.7% — not because clinicians lacked knowledge but because they deferred to the system's apparent confidence. The failure mode is automation bias, not miscalibration alone.
+
+Use approximate language over numerical precision: "~high confidence" is more honest and less prone to false precision than "94.7%." Agentic Design (CVP patterns) recommends expressing uncertainty ranges, not point estimates.
+
 ## Takeaway
 
-Do not implement confidence-threshold escalation without first calibrating the model's confidence scores against actual accuracy. Displaying raw logit-derived confidence values is worse than useless — it gives reviewers a false signal. Apply post-hoc calibration or use behavioral triggers (repeated rephrasing, explicit user request, parameter value anomalies) as more reliable escalation signals than model self-reported confidence.
+Do not implement confidence-threshold escalation without first calibrating the model's confidence scores against actual accuracy. Displaying raw logit-derived confidence values is worse than useless — it gives reviewers a false signal. Apply post-hoc calibration or use behavioral triggers (repeated rephrasing, explicit user request, parameter value anomalies) as more reliable escalation signals than model self-reported confidence. At approval gates, surface evidence packs — reasoning, sources, preconditions, rollback — rather than a confidence percentage. Design gates to interrupt automation bias, not display a score.

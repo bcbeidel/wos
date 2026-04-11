@@ -14,6 +14,8 @@ related:
   - docs/context/approval-gate-trust-calibration-and-overconfidence.context.md
   - docs/context/agentic-fault-taxonomy-and-interface-mismatch-pattern.context.md
   - docs/context/agentic-resilience-infrastructure-primitives.context.md
+  - docs/context/skill-chain-human-control-and-interruption-design.context.md
+  - docs/context/skill-chain-hitl-patterns-and-cli-translation-gap.context.md
 ---
 
 # HITL Oversight as Tuned Policy and Reversibility Gate
@@ -61,6 +63,16 @@ This behavioral pattern could reflect earned trust or habituation. Design system
 
 **The unresolved problem**: "determining whether actions are consequential when not pre-specified by users" is named in the academic literature (arXiv, Levels of Autonomy, T3) as a fundamental unsolved problem for gatekeeping mechanisms.
 
+## Approval Fatigue and Rubber-Stamping
+
+Approval gate presence does not equal approval gate effectiveness. Documented failure mode: after approximately ten consecutive approval requests, teams begin clicking through without reading — "by lunch they're not even looking at the screen" (Molten.Bot, 2025). MIT Sloan Management Review confirms the structural problem: without meaningful explainability, "human overseers are reduced to rubber-stamping decisions made by machines."
+
+Gates require explainability to function. A gate that shows raw skill output produces rubber-stamping. A gate that shows a structured evidence pack — what was produced, the reasoning, what comes next, reversibility status — produces genuine review. This is the distinction between gate presence and gate quality.
+
+## Autonomy Dial Positioning
+
+Smashing Magazine (2026) describes an autonomy dial from "Observe & Suggest" through "Act Autonomously." wos chains, where the human confirms at every gate, sit at the high-safety, low-autonomy end by design. This is appropriate for a developer tool where the human is also the author making consequential decisions. The design task is not reducing gates — it is making each gate fast and substantive enough to prevent fatigue from degrading review quality.
+
 ## Takeaway
 
-Define an explicit escalation policy: what triggers approval, what runs automatically. Target a specific escalation rate and measure it. Use the reversibility/stakes/affordances trifecta as the primary decision criterion. Build monitoring and interrupt capability before building approval queues.
+Define an explicit escalation policy: what triggers approval, what runs automatically. Target a specific escalation rate and measure it. Use the reversibility/stakes/affordances trifecta as the primary decision criterion. Build monitoring and interrupt capability before building approval queues. Fix gate quality (evidence packs, explainability) before reducing gate quantity — fatigue is a gate quality problem, not a gate quantity problem.
