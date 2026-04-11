@@ -133,12 +133,10 @@ grep -l "^type: concept" docs/context/*.context.md | xargs -I{} basename {} | gr
 **Files:**
 - Delete: `scripts/migrate_context.py`
 
-- [ ] **Step 1:** Full lint run: `python3 scripts/lint.py --root . --no-urls 2>&1`
-  - Expected: same `1 fail, 7 warn` as baseline (no new failures from context files)
-  - Any new failures must be diagnosed and fixed before proceeding
-- [ ] **Step 2:** Delete migration script: `rm scripts/migrate_context.py`
-- [ ] **Step 3:** Update roadmap: in `docs/plans/2026-04-10-roadmap-v036-v039.plan.md`, fill in the Task 3 SHA once the PR merge SHA is known (do this at merge time, not now)
-- [ ] **Step 4:** Commit: `git commit -m "chore: remove one-off migration script after context wiki migration"`
+- [x] **Step 1:** Full lint run — `1 fail, 7 warn` — matches baseline (context _index.md was out-of-sync after migration; fixed with reindex before final commit)
+- [x] **Step 2:** Delete migration script: `rm scripts/migrate_context.py`
+- [x] **Step 3:** Update roadmap: fill Task 3 SHA at PR merge time
+- [x] **Step 4:** Commit: `chore: remove one-off migration script; update context index` <!-- sha:c1aaac1 -->
 
 ---
 
