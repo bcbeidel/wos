@@ -19,9 +19,10 @@ Explore ideas and turn them into design specifications through structured
 dialogue. The output is a design document — not a plan, not code.
 
 <HARD-GATE>
-Do NOT invoke any planning or implementation skill, write any code, or take
-any implementation action until you have presented a design and the user has
-approved it. This applies to EVERY task regardless of perceived simplicity.
+Present the design and wait for user approval before invoking any planning
+or implementation skill, writing code, or taking any implementation action.
+This applies to every task regardless of perceived simplicity. The design
+is the deliverable at this stage — not code, not a plan.
 </HARD-GATE>
 
 ## Workflow
@@ -126,6 +127,7 @@ feedback format and revision-vs-supersede decision tree.
 5. **False confidence from spec compliance** — a confident-sounding but
    incorrect specification is worse than no specification. The spec must
    be verified by the user (Step 5), not just by the agent that produced it.
+6. **Single-option proposal** — presenting one approach gives the user nothing to evaluate. A user approving the only option presented is not making a real choice. If two or three approaches genuinely cannot be identified, say so explicitly rather than dressing up one approach as "the recommendation."
 
 ## Output Format
 
