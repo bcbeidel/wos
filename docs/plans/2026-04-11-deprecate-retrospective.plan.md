@@ -2,7 +2,7 @@
 name: Deprecate /wos:retrospective
 description: Add deprecation header and notice to the retrospective skill, update OVERVIEW.md and README.md to reflect deprecated status ahead of removal in v0.39.0
 type: plan
-status: executing
+status: completed
 branch: feat/deprecate-retrospective
 pr: ~
 related:
