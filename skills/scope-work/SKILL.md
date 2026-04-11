@@ -1,5 +1,5 @@
 ---
-name: brainstorm
+name: scope-work
 description: >
   Use before creating implementation plans. Explores user intent,
   requirements, and design through structured divergent-then-convergent
@@ -13,7 +13,7 @@ references:
   - references/exploration-patterns.md
 ---
 
-# Brainstorm
+# Scope Work
 
 Explore ideas and turn them into design specifications through structured
 dialogue. The output is a design document — not a plan, not code.
@@ -32,7 +32,7 @@ is the deliverable at this stage — not code, not a plan.
 - Explore project context — read relevant files, docs, recent commits.
 - Assess scope: if the request describes multiple independent subsystems,
   flag this immediately. Don't refine details of a project that needs
-  decomposition first. Each sub-project gets its own brainstorm → plan cycle.
+  decomposition first. Each sub-project gets its own scope-work → plan-work cycle.
 - Ask clarifying questions one at a time, multiple-choice preferred.
   Establish what and why before how.
 
@@ -75,7 +75,7 @@ conventions and examples.
 
 ### 6. Hand Off
 
-- Present to user: "Design approved. Ready to invoke `/wos:write-plan`
+- Present to user: "Design approved. Ready to invoke `/wos:plan-work`
   to turn this into an implementation plan — proceed?"
 - Wait for user confirmation before invoking the skill.
 - The plan should reference this design doc via its `related` field,
@@ -96,7 +96,7 @@ conventions and examples.
 - **YAGNI.** Remove unnecessary features from all designs. Every element
   must justify its presence.
 
-## Receiving Feedback from Write-Plan
+## Receiving Feedback from Plan-Work
 
 When invoked with a plan file path containing a `## Feedback` section:
 
@@ -104,7 +104,7 @@ When invoked with a plan file path containing a `## Feedback` section:
 2. Identify which design decisions are affected by the infeasibility.
 3. Present the feedback to the user with your assessment of what needs
    to change in the design.
-4. Revise the affected sections through the normal brainstorm dialogue
+4. Revise the affected sections through the normal scope-work dialogue
    (steps 2-5 of the workflow above).
 5. For the revised design, follow the "supersede, don't edit" pattern:
    create a new design doc with a `related:` link to the original.
@@ -150,4 +150,4 @@ design docs.
 
 **Receives:** User-described topic or problem to explore; optional seed research or constraints
 **Produces:** Design document saved to `docs/designs/` with structured requirements and scope boundaries
-**Chainable to:** write-plan, research
+**Chainable to:** plan-work, research
