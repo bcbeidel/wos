@@ -2,7 +2,7 @@
 name: /wos:build-command + /wos:audit-command + /wos:build-hook + /wos:audit-hook
 description: Add 4 SKILL.md files completing the build/audit family for Claude Code commands and hooks (issue #229)
 type: plan
-status: executing
+status: completed
 branch: feat/build-audit-command-hook
 pr: TBD
 related:
