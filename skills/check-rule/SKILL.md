@@ -105,7 +105,7 @@ Close with a summary line:
 ## Example
 
 <example>
-User: `/wos:audit-rule docs/rules/`
+User: `/wos:check-rule docs/rules/`
 
 Step 1 — Discovers 3 rules: staging-layer-purity.rule.md, api-input-validation.rule.md, naming-conventions.rule.md
 

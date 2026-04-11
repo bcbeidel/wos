@@ -93,7 +93,7 @@ For each selected finding:
 
 **Receives:** Path to a SKILL.md (or no argument for all-skills audit)
 **Produces:** Structured findings table in `scripts/lint.py` format (file, issue, severity); optionally, targeted edits applied to the audited skill(s)
-**Chainable to:** build-skill (to create a replacement), execute-plan (for bulk repair across skills)
+**Chainable to:** build-skill (to create a replacement), start-work (for bulk repair across skills)
 
 ## Key Instructions
 

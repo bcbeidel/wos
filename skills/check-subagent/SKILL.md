@@ -17,7 +17,7 @@ Inspect Claude Code custom subagent definitions for structural quality,
 tool set hygiene, description clarity, and handoff contract completeness.
 Produces structured findings in the same format as `scripts/lint.py`.
 
-**Announce at start:** "I'm using the audit-subagent skill to inspect these
+**Announce at start:** "I'm using the check-subagent skill to inspect these
 agent definitions."
 
 ## Workflow
