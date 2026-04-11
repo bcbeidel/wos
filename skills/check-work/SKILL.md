@@ -1,5 +1,5 @@
 ---
-name: validate-work
+name: check-work
 description: >
   Verifies completed work against validation criteria. Works in two
   modes: with a plan (runs the plan's Validation section) or ad-hoc
@@ -18,13 +18,13 @@ references:
   - ../_shared/references/plan-format.md
 ---
 
-# Validate Work
+# Check Work
 
 Verify that completed work meets validation criteria — either from a plan's
 Validation section or from a hypothesis built from git diff, project
 conventions, and project docs.
 
-**Announce at start:** "I'm using the validate-work skill to verify this work."
+**Announce at start:** "I'm using the check-work skill to verify this work."
 
 ## Workflow
 
@@ -85,7 +85,7 @@ or project doc). Wait for user confirmation before executing.
 Run the entry script:
 
 ```bash
-python <plugin-skills-dir>/execute-plan/scripts/plan_assess.py --file <path>
+python <plugin-skills-dir>/start-work/scripts/plan_assess.py --file <path>
 ```
 
 Parse the JSON output. All task checkboxes must be checked
@@ -248,4 +248,4 @@ Results:
 
 **Receives:** Plan file path (optional); validates current working state against plan criteria
 **Produces:** Validation report with pass/fail verdict per criterion
-**Chainable to:** finish-work (on pass), execute-plan (on fail)
+**Chainable to:** finish-work (on pass), start-work (on fail)
