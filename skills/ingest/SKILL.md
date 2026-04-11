@@ -122,6 +122,14 @@ The high-rigor path is never required. It is appropriate when the user wants to 
 > "Ingest this: [user pastes a block of notes]"
 → Use pasted text as source → read wiki context → proceed
 
+## Anti-Pattern Guards
+
+1. **Overwriting existing prose** — every `git diff` after ingest should show only additions. Rewriting existing content destroys the provenance trail and may silently lose validated information. If existing content is wrong, flag a contradiction marker instead.
+2. **Skipping Pre-Ingest reads** — proceeding without reading `wiki/_index.md` and `wiki/SCHEMA.md` causes type/confidence misassignment and duplicate page creation. These are required reads, not optional context.
+3. **Silent contradiction** — when source content conflicts with an existing page, the anti-pattern is choosing one version silently. The correct action is the contradiction marker. Unresolved conflicts belong to the user, not the ingest operation.
+4. **Padding to hit the 5-page minimum** — if a narrow source genuinely affects fewer than 5 pages, proceed with what applies. Forcing connections to reach a target count produces low-quality updates that degrade the wiki.
+5. **Assigning confidence without cross-referencing** — confidence tier should reflect corroboration across pages, not just the source's claimed authority. A single primary source warrants `medium` at best until cross-referenced with existing wiki content.
+
 ## Handoff
 
 **Receives:** URL, file path, or pasted text representing an external source

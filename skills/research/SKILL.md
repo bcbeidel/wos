@@ -339,6 +339,14 @@ loop itself remains single-threaded (HIGH).
 - **Confidence levels on every finding** — HIGH, MODERATE, or LOW. See `synthesize.md`.
 - **Verify all claims** before finalizing — quotes, statistics, attributions, superlatives. See `self-verify-claims.md` and `citation-reverify.md`.
 
+## Anti-Pattern Guards
+
+1. **Self-referential verification only** — CoVe (Chain-of-Verification) uses the same model that generated the error to check it. It is a first-pass filter, not a substitute for tool-based URL resolution. Every cited URL must be verified via HEAD request; CoVe alone is not sufficient for novel claims or post-cutoff information.
+2. **Skipping the search protocol log** — research without a logged query trail cannot be reproduced or updated. Every search query, database, date, and result count must appear in the final document's protocol section. "I searched the web" is not a protocol.
+3. **Omitting counter-evidence** — for deep-dive, options, and technical modes, a document with no counter-evidence signals incomplete coverage, not consensus. If no counter-evidence was found, state that explicitly with the searches attempted.
+4. **Treating tier classification as final** — a T3 source can become T1 if it cites a primary study; a T1 source can be unreliable if the paper has been retracted. Tier is assigned at time of evaluation; claim confidence reflects the source tier at that moment, not the source's permanent standing.
+5. **Finalizing without claim verification** — statistics, attributions, and superlatives ("the fastest", "the only") are the highest-risk claim types. Every such claim must be traced to its original source and verified to say what the document claims it says.
+
 ## Handoff
 
 **Receives:** Topic or question to investigate; optional scope constraints or prior context files

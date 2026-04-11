@@ -134,6 +134,14 @@ same thread. This differs from threading...
 - **Bidirectional linking.** New files link to research via `related:`.
   Research links to new files via `related:`. Ask before modifying.
 
+## Anti-Pattern Guards
+
+1. **Proceeding without mapping approval** — the mapper's output is a proposal, not a plan. Writing context files without explicit user approval of the mapping wastes work if the user has a different granularity in mind. The approval gate is non-negotiable.
+2. **Merging multiple distinct findings into one file** — one concept per context file. If two findings share a theme but have different decision implications, they belong in separate files. A merged file forces the user to read everything to find the relevant part.
+3. **Unidirectional linking** — when a new context file lists research in `related:`, the source research document must list the context file in return. A link in one direction only is a dead end for agents traversing from the other side.
+4. **Distilling without sources** — context files must trace findings back to the original research document. A context file with no `related:` pointing to its source research cannot be validated or updated when the research is revised.
+5. **Exceeding 800 words without noting it** — the target is 200–800 words. Going over is sometimes justified, but it must be noted and the user must decide whether to split. Silent oversized files become the context rot that degrades retrieval quality over time.
+
 ## Handoff
 
 **Receives:** Path to one or more research artifacts in `docs/research/`
