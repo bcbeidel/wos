@@ -2,7 +2,7 @@
 name: Chain Infrastructure
 description: Add wos/chain.py validators, validate_chain() in validators.py, and lint.py auto-detection for *.chain.md manifests.
 type: plan
-status: executing
+status: completed
 branch: feat/chain-infrastructure
 pr: TBD
 related:
