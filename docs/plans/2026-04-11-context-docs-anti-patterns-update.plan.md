@@ -102,10 +102,10 @@ Edit `docs/context/instruction-file-authoring-anti-patterns.context.md`:
 
 ## Task 4: Bump frontmatter date and final validation
 
-- [ ] **Step 1:** Update `updated:` date in frontmatter of `docs/context/instruction-file-authoring-anti-patterns.context.md` to `2026-04-11`.
-- [ ] **Step 2:** Update `description:` field in frontmatter to reflect 12 anti-patterns: replace `"Ten ranked anti-patterns` with `"Twelve ranked anti-patterns` (and update the count sentence).
-- [ ] **Step 3:** `python scripts/lint.py --root . --no-urls` → clean (zero warnings, zero failures)
-- [ ] **Step 4:** Commit: `git commit -m "docs: add anti-patterns #11 and #12 to authoring context doc (G11 + L2/L3 collapse)"`
+- [x] **Step 1:** Update `updated:` date in frontmatter of `docs/context/instruction-file-authoring-anti-patterns.context.md` to `2026-04-11`.
+- [x] **Step 2:** Update `description:` field in frontmatter to reflect 12 anti-patterns: replace `"Ten ranked anti-patterns` with `"Twelve ranked anti-patterns` (and update the count sentence).
+- [x] **Step 3:** `python scripts/lint.py --root . --no-urls` → clean (zero warnings, zero failures)
+- [x] **Step 4:** Commit: `git commit -m "docs: add anti-patterns #11 and #12 to authoring context doc (G11 + L2/L3 collapse)"` <!-- sha:4318544 -->
 
 ---
 

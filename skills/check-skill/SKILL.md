@@ -10,7 +10,7 @@ user-invocable: true
 
 # Check Skill
 
-Audit one skill or all skills against ten research-backed quality criteria,
+Audit one skill or all skills against thirteen research-backed quality criteria,
 then offer an opt-in repair loop.
 
 ## Workflow
@@ -32,7 +32,7 @@ always run these before LLM checks.
 
 ### 3. Run LLM Checks
 
-For each skill, read the SKILL.md body and assess the remaining eight criteria:
+For each skill, read the SKILL.md body and assess the remaining eleven criteria:
 
 **Structural checks:**
 
@@ -42,7 +42,9 @@ For each skill, read the SKILL.md body and assess the remaining eight criteria:
 | 4 | Anti-pattern guards | `## Anti-Pattern Guards` section present with at least one guard |
 | 5 | Gate checks | At least one explicit gate (user approval, lint verification, precondition) before a consequential step |
 | 6 | Examples | At least one concrete example — illustrative invocation, sample output, or table row with a real case |
-| 7 | Description routing quality | First sentence front-loads the primary trigger phrase; no second-person ("you can", "you should") or passive voice |
+| 7 | Description routing quality | First sentence front-loads the primary trigger phrase; no second-person ("you can", "you should") or passive voice. If routing behavior is uncertain after static assessment, flag as "recommend trigger evaluation": generate 8–10 should-trigger queries and 8–10 should-NOT-trigger queries (near-miss cases), test each against the skill's description — pass when both hit rates exceed 80%. |
+| 11 | Won't-do scope | `## Key Instructions` contains at least one explicit scope exclusion ("Won't…", "Does not…", "Excluded:", or equivalent negative boundary statement). Acceptable pass if the skill's entire Workflow is read-only and the Handoff Receives/Produces fields unambiguously constrain scope with no plausible overreach. |
+| 13 | Routing guidance placement | The skill body contains no sections titled or framed as "When to Use This Skill", "When to invoke", or equivalent routing-condition guidance. All trigger conditions must appear in the `description` frontmatter — the body is loaded after triggering and routing guidance inside it is never evaluated at routing time. |
 
 **Content-quality checks (from HIGH-evidence research anti-patterns):**
 
@@ -51,11 +53,16 @@ For each skill, read the SKILL.md body and assess the remaining eight criteria:
 | 8 | Vagueness | Each rule produces a consistent decision; two developers reading it would make the same choice in the same situation |
 | 9 | Removal test | Each significant rule would cause a mistake if removed; rules that restate model defaults or code-visible conventions are noise |
 | 10 | Persona framing | No "act as X" or "you are a senior X expert" constructions; OpenSSF 2025 found persona framing reduces performance on the intended tasks |
+| 12 | Contradiction-free | No two rules in the skill body produce explicitly opposite directives for the same scenario. Flag as fail only when Rule A says "always X" and Rule B says "never X" in the same or overlapping trigger context within `## Key Instructions` or `## Anti-Pattern Guards`. Semantic tension and trade-off language ("prefer X unless Y") is not a contradiction. |
 
-**Note on directive density (check #2):** newer frontier models are more
-responsive to normal prompting than earlier versions — aggressive emphasis
-(must/never/always-style directives) causes overtriggering more than it
-enforces compliance. Flag ≥3 per skill body as a warning, same as `scripts/lint.py`.
+**Note on directive density (check #2):** newer frontier models respond better
+to rationale-based instructions than directives. When flagging ALL-CAPS density
+≥3: (a) if `tested_with` is present and lists only sub-frontier models (e.g.,
+haiku), downgrade to informational — stronger directives are calibrated
+differently for lower-tier targets; (b) for all other cases, suggest the
+transformation pattern: convert "ALWAYS X" to "X — because [reason why X
+matters in this skill's context]." This produces smarter adaptation than
+compliance enforcement.
 
 ### 4. Report Findings
 
@@ -68,7 +75,7 @@ Output a findings table:
 ```
 
 Summary line at top and bottom: `N fail, N warn` across N skills.
-Sort: fail before warn; structural (checks 3–7) before content-quality (8–10).
+Sort: fail before warn; structural (checks 3–7, 11, 13) before content-quality (8–10, 12).
 
 ### 5. Opt-In Repair Loop
 
