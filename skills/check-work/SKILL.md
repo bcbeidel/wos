@@ -20,6 +20,7 @@ references:
 
 # Check Work
 
+
 Verify that completed work meets validation criteria — either from a plan's
 Validation section or from a hypothesis built from git diff, project
 conventions, and project docs.
