@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.40.0] - 2026-04-12
+
+### Changed
+
+- **`/wos:build-skill` rebuilt on Anthropic skill-creator baseline.** Full
+  overhaul: three specialist subagents (`analyzer`, `comparator`, `grader`),
+  eight automation scripts (`run_eval`, `run_loop`, `aggregate_benchmark`,
+  `generate_report`, `improve_description`, `package_skill`, `quick_validate`),
+  eval-viewer with HTML report generation, and five reference docs covering
+  eval workflow, schemas, platform notes, description optimization, and skill
+  writing guide.
+
+- **`/wos:check-skill` and `/wos:lint` aligned to the new authoring baseline.**
+  SKILL.md instructions updated for consistency with the rebuilt build-skill.
+  Skill authoring guide added as a reference under lint.
+
+### Removed
+
+- **`OVERVIEW.md` and `PRINCIPLES.md`** — content consolidated into CLAUDE.md
+  and AGENTS.md; standalone files removed to reduce navigation surface.
+
 ## [0.39.0] - 2026-04-11
 
 ### Added

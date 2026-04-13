@@ -1,10 +1,10 @@
 ---
 name: "Instruction File Authoring Anti-Patterns"
-description: "Ten ranked anti-patterns in instruction file authoring, from vagueness and length bloat to persona instructions and redundancy with project docs — the top five have HIGH evidence from practitioner research and empirical studies"
+description: "Twelve ranked anti-patterns in instruction file authoring, from vagueness and length bloat to body-embedded routing guidance and L2/L3 collapse — the top five and two new skill-specific patterns have HIGH evidence from practitioner research and empirical studies"
 type: concept
 confidence: high
 created: 2026-04-10
-updated: 2026-04-10
+updated: 2026-04-11
 sources:
   - https://code.claude.com/docs/en/best-practices
   - https://www.humanlayer.dev/blog/writing-a-good-claude-md
@@ -31,15 +31,17 @@ Ten anti-patterns appear consistently across practitioner research and empirical
 | # | Anti-Pattern | Evidence | Source |
 |---|---|---|---|
 | 1 | Vagueness — rules without actionable decision trees | HIGH | VirtusLab, MindStudio, community analysis |
-| 2 | Length bloat — files exceeding 200–300 lines | HIGH | Claude Code docs, Chroma context-rot, HumanLayer |
+| 2 | Length bloat — files exceeding 200–300 lines | HIGH | Claude Code docs, Chroma context-rot, HumanLayer, OpenAI Codex skill-creator ('context window is a public good'); Yarmoluk guide |
 | 3 | Redundancy with model defaults | HIGH | Claude Code docs, ETH Zurich 2602.11988 |
 | 4 | Delegating style/format to instruction files instead of linters | HIGH | HumanLayer, Factory.ai, Cursor docs |
 | 5 | Stale rules — outdated APIs, deprecated patterns | HIGH | MindStudio, Cursor docs, Trigger.dev |
 | 6 | Copying community templates wholesale | MODERATE | Cursor docs, OpenSSF, community analysis |
 | 7 | Contradictory rules | MODERATE | MindStudio, GitHub Copilot docs |
-| 8 | Missing negative rules | MODERATE | MindStudio, VirtusLab |
+| 8 | Missing negative rules | MODERATE | MindStudio, VirtusLab, WOS build-skill (elicits won't-dos at creation) |
 | 9 | Persona instructions ("act as a senior security expert") | MODERATE | OpenSSF (Sept 2025) |
 | 10 | Redundancy with existing project documentation | MODERATE | ETH Zurich 2602.11988 |
+| 11 | Body-embedded routing guidance — "When to Use This Skill" in the body | HIGH | OpenAI Codex skill-creator; WOS L1/L2/L3 architecture |
+| 12 | L2/L3 collapse — embedding reference-level material in the body instead of references/ | HIGH | WOS loading model; OpenAI Codex skill-creator; Yarmoluk guide |
 
 ## Top Anti-Patterns Explained
 
@@ -56,3 +58,7 @@ Ten anti-patterns appear consistently across practitioner research and empirical
 **Persona instructions.** OpenSSF's security guide (Sept 2025) found that telling the system it is an expert ("act as a senior security expert") often makes it perform worse on the tasks the persona is meant to improve. Persona framing consumes tokens without grounding the model in concrete, actionable constraints. Prefer specific rules over identity framing.
 
 **Redundancy with project documentation.** ETH Zurich's exception case isolates this: when existing project markdown was stripped, generated context files improved task success by +2.7%. The anti-pattern is duplication of what agents can already read, not the existence of context files. Before adding a rule, check whether the information is already in a README or linked doc.
+
+**Body-embedded routing guidance.** Any 'When to Use This Skill' section or trigger-condition guidance written in the skill body is routing-blind: the body loads only after the skill triggers, so routing guidance inside it is never evaluated at routing time. Authors who write 'Use this skill when...' in the body believe they have addressed routing; they have not. All trigger conditions, activation phrases, and use-case descriptions must appear in the `description` frontmatter field. Evidence: OpenAI Codex skill-creator explicitly prohibits this pattern; consistent with WOS's L1/L2/L3 loading model in which L1 (description) is the only pre-trigger signal.
+
+**L2/L3 collapse.** Embedding domain documentation, schemas, lookup tables, or long examples directly in the skill body violates the progressive disclosure contract: L2 is for instructions, L3 is for reference material. Body bloat from reference content dilutes instruction density, consumes context window tokens on every invocation regardless of whether the reference is needed, and defeats lazy loading. The test: if a section of the body would be skipped for most invocations of the skill, it belongs in a named `references/` file cited from the body. Evidence: consistent across WOS architecture, OpenAI Codex skill-creator references/ guidance, and Yarmoluk's token efficiency principles (three independent convergences = HIGH).
