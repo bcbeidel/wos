@@ -9,6 +9,8 @@ description: >
   or "make a custom agent".
 argument-hint: "[subagent name or description]"
 user-invocable: true
+references:
+  - ../_shared/references/primitive-routing.md
 ---
 
 # Build Subagent
@@ -23,28 +25,20 @@ The output is a `.claude/agents/<name>.md` file — not code, not a plan.
 
 ### 1. Justify the Subagent
 
-Before any intake, assess whether a subagent is the right primitive.
-A subagent is a full context fork — high cost, separate context window.
-Ask the user: "Before we build this, let me check — is a subagent the right
-choice here?"
+Before any intake, confirm a subagent is the right primitive. Full decision matrix: [primitive-routing.md](../_shared/references/primitive-routing.md).
 
-A subagent is justified only when at least one of these conditions holds:
+A subagent is a full context fork — high cost, separate context window. Ask: "Before we build this, is a subagent the right choice here?"
 
-- **Parallelism or scope** — the task is genuinely isolated and the context
-  window cost of a full fork is justified by parallel workstreams or large scope
-- **Permission isolation** — the task requires tool access or permissions the
-  parent agent should not hold
-- **Context pressure** — the task is large enough that running it in-context
-  would degrade the parent's reasoning quality
+A subagent is justified only when at least one holds:
+- **Parallelism or scope** — task is genuinely isolated; context fork cost is justified by workstream size or parallel execution
+- **Permission isolation** — task requires tool access or permissions the parent agent should not hold
+- **Context pressure** — intermediate work (search results, large file reads) is large enough to degrade the parent's reasoning quality
 
 If none apply, recommend a skill instead:
 
-> "A skill may be more appropriate here — it has lower overhead and handles
-> procedural workflows without a context fork. Would you like to use
-> `/wos:build-skill` instead?"
+> "A skill may be more appropriate here — lower overhead, same-context execution, no fork required. Use `/wos:build-skill` instead?"
 
-Do not proceed to intake until the user confirms a subagent is the right
-primitive.
+Do not proceed to intake until the user confirms a subagent is the right primitive.
 
 ### 2. Elicit Requirements
 

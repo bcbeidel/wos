@@ -8,6 +8,8 @@ description: >
   after tool use", or "block dangerous operations automatically".
 argument-hint: "[hook event] [enforcement goal]"
 user-invocable: true
+references:
+  - ../_shared/references/primitive-routing.md
 ---
 
 # Build Hook
@@ -19,15 +21,14 @@ gates deterministically, bypassing LLM interpretation.
 
 ## Route
 
-Determine whether a hook is the right primitive before asking hook-specific questions.
+Determine whether a hook is the right primitive before asking hook-specific questions. Full decision matrix: [primitive-routing.md](../_shared/references/primitive-routing.md).
 
 - **Goal is an unconditional permanent block** (never allow tool X, no conditions, ever) →
-  suggest `settings.json` `permissions.deny` instead. `permissions.deny` has no logic,
-  cannot be bypassed by conditional hook exit codes, and requires no script. Ask if that
-  fits the goal before continuing to hook authoring.
+  suggest `settings.json` `permissions.deny` instead. No logic, no script, cannot be bypassed by exit codes.
 - **Goal is advisory guidance or procedural instruction** (prefer X, follow this convention) →
-  suggest CLAUDE.md or a skill instead. Hooks are for mandatory behavior that must fire
-  regardless of LLM judgment — not for preferences.
+  suggest CLAUDE.md or `/wos:build-skill` instead. Hooks enforce mandatory behavior regardless of LLM judgment — not preferences.
+- **Goal is a semantic judgment on file content** (convention too nuanced for grep) →
+  suggest `/wos:build-rule` instead. Rules use LLM evaluation; hooks use shell scripts.
 - **Goal has a specific lifecycle trigger and must fire regardless of LLM judgment** →
   proceed to Elicit.
 

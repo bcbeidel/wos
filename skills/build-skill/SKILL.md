@@ -17,6 +17,7 @@ references:
   - references/description-optimization.md
   - references/skill-writing-guide.md
   - references/eval-workflow.md
+  - ../_shared/references/primitive-routing.md
 ---
 
 # Skill Creator
@@ -60,7 +61,15 @@ It's OK to briefly explain terms if you're in doubt, and feel free to clarify te
 
 ### Confirm Primitive
 
-Before eliciting, confirm you're building the right artifact: "Building this as a **skill** (triggered instruction set) — right primitive? Or did you mean a hook (automated shell command), script (standalone executable), context doc (knowledge file), or subagent (spawned agent)?" Proceed without a gate if intent is unambiguous; ask one clarifying question if uncertain.
+Before eliciting, confirm a skill is the right artifact. Full decision matrix: [primitive-routing.md](../_shared/references/primitive-routing.md).
+
+Ask: "Building this as a **skill** (triggered instruction set) — right primitive?" Redirect if:
+- Must fire at a lifecycle event regardless of LLM judgment → `/wos:build-hook`
+- Evaluates static file content for semantic compliance → `/wos:build-rule`
+- Needs context isolation or different tool permissions → `/wos:build-subagent`
+- Is advisory always-on context (not a procedure) → CLAUDE.md section
+
+Proceed without a gate if intent is unambiguous; ask one clarifying question if uncertain.
 
 ### Capture Intent
 

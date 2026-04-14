@@ -6,6 +6,7 @@ user-invocable: true
 references:
   - references/rule-format-guide.md
   - references/rule-testing-guide.md
+  - ../_shared/references/primitive-routing.md
 ---
 
 # /wos:build-rule
@@ -18,6 +19,17 @@ Every rule requires both a non-compliant and compliant example from real code.
 Every rule requires a fix-safety declaration. Do not write a rule without these.
 
 ## Workflow
+
+### 0. Verify Primitive
+
+Before proceeding, confirm a rule is the right mechanism. Full decision matrix: [primitive-routing.md](../_shared/references/primitive-routing.md).
+
+**Not right — redirect instead:**
+- Check is shell-expressible (grep, file existence, regex) → recommend a hook or linter
+- Enforcement must fire at a lifecycle event (pre-commit, pre-tool-use) → redirect to `/wos:build-hook`
+- Convention is procedural (multi-step workflow Claude should follow) → redirect to CLAUDE.md or `/wos:build-skill`
+
+**A rule is right when:** enforcement requires LLM judgment on static file content and the convention is too nuanced for grep or an AST linter. Proceed only when this holds.
 
 ### 1. Detect Format
 
