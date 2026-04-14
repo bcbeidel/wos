@@ -176,11 +176,11 @@ Read the current file before making any changes.
 
 Read the current `skills/check-rule/SKILL.md` before making any changes.
 
-- [ ] **Step 3 (Semantic Audit):** Specify the 6-element prompt anatomy that the LLM evaluation call must include. The call must contain: (1) criterion statement (the specific dimension being evaluated), (2) PASS/FAIL scale declaration with behavioral definitions, (3) one PASS anchor example and one FAIL anchor example, (4) explicit CoT requirement ("explain your reasoning before stating your verdict"), (5) structured output format (dimension, verdict, evidence, recommendation), (6) default-closed instruction ("when evidence is borderline, surface as WARN"). Reference `skills/check-rule/references/audit-dimensions.md` for the locked rubric text.
-- [ ] **Step 5 (Report Findings):** Each FAIL or WARN finding must now include a `Recommendation:` line with the canonical repair strategy from `skills/check-rule/references/repair-playbook.md`. Example output format: `WARN  docs/rules/foo.rule.md — Specificity: scope glob too broad\n  Recommendation: Add directory prefix to scope (e.g., src/api/**/*.py instead of **/*.py)`
-- [ ] **Anti-Pattern Guards:** Add: (6) generic repair suggestions ("fix this") with no actionable instruction — every recommendation must name the specific change; (7) omitting the criterion statement from the evaluation prompt — removing it drops human correlation by 26%.
-- [ ] Verify: `python scripts/lint.py --root skills/check-rule --no-urls` — no failures; `wc -l skills/check-rule/SKILL.md` outputs ≤500
-- [ ] Commit: `feat: rebuild check-rule — prompt anatomy, repair recommendations in output`
+- [x] **Step 3 (Semantic Audit):** Specify the 6-element prompt anatomy that the LLM evaluation call must include. The call must contain: (1) criterion statement (the specific dimension being evaluated), (2) PASS/FAIL scale declaration with behavioral definitions, (3) one PASS anchor example and one FAIL anchor example, (4) explicit CoT requirement ("explain your reasoning before stating your verdict"), (5) structured output format (dimension, verdict, evidence, recommendation), (6) default-closed instruction ("when evidence is borderline, surface as WARN"). Reference `skills/check-rule/references/audit-dimensions.md` for the locked rubric text.
+- [x] **Step 5 (Report Findings):** Each FAIL or WARN finding must now include a `Recommendation:` line with the canonical repair strategy from `skills/check-rule/references/repair-playbook.md`. Example output format: `WARN  docs/rules/foo.rule.md — Specificity: scope glob too broad\n  Recommendation: Add directory prefix to scope (e.g., src/api/**/*.py instead of **/*.py)`
+- [x] **Anti-Pattern Guards:** Add: (6) generic repair suggestions ("fix this") with no actionable instruction — every recommendation must name the specific change; (7) omitting the criterion statement from the evaluation prompt — removing it drops human correlation by 26%.
+- [x] Verify: `python scripts/lint.py --root skills/check-rule --no-urls` — no failures; `wc -l skills/check-rule/SKILL.md` outputs ≤500
+- [x] Commit: `feat: rebuild check-rule — prompt anatomy, repair recommendations in output` <!-- sha:1963299 -->
 
 ---
 
@@ -191,10 +191,10 @@ Read the current `skills/check-rule/SKILL.md` before making any changes.
 
 Read the current file before making any changes.
 
-- [ ] For each of the 5 Tier 2 dimensions, add a **Canonical Repair** subsection after the Pass/Fail signals. Each repair section names the specific change for the most common failure pattern in that dimension (drawn from `docs/context/rule-repair-strategies-by-failure-mode.context.md`).
-- [ ] Add a new **Evaluation Prompt Template** section at the end of the Tier 2 block. Provide a skeleton prompt showing all 6 required elements (criterion statement placeholder, scale, anchor examples, CoT instruction, output format schema, default-closed instruction). This is the template the executor uses to construct each per-rule LLM call.
-- [ ] Verify: file still passes lint; all 5 dimensions have a Canonical Repair section
-- [ ] Commit: `feat: update audit-dimensions — canonical repair per dimension, evaluation prompt template`
+- [x] For each of the 5 Tier 2 dimensions, add a **Canonical Repair** subsection after the Pass/Fail signals. Each repair section names the specific change for the most common failure pattern in that dimension (drawn from `docs/context/rule-repair-strategies-by-failure-mode.context.md`).
+- [x] Add a new **Evaluation Prompt Template** section at the end of the Tier 2 block. Provide a skeleton prompt showing all 6 required elements (criterion statement placeholder, scale, anchor examples, CoT instruction, output format schema, default-closed instruction). This is the template the executor uses to construct each per-rule LLM call.
+- [x] Verify: file still passes lint; all 5 dimensions have a Canonical Repair section
+- [x] Commit: `feat: update audit-dimensions — canonical repair per dimension, evaluation prompt template` <!-- sha:5b2bbfe -->
 
 ---
 
@@ -203,10 +203,10 @@ Read the current file before making any changes.
 **Files:**
 - Create: `skills/check-rule/references/repair-playbook.md`
 
-- [ ] Create reference doc with a repair entry for each of the 5 audit dimensions plus conflicts. Each entry: (a) failure signal that triggers this repair, (b) canonical fix with specific language (not just "make it more specific" but "replace vague terms with behavioral definitions: instead of 'good' write 'contains all four required sections'"), (c) intent-preservation constraint (repair must leave the original criterion unchanged — do not silently expand or contract scope), (d) when to archive instead of repair (if the convention itself no longer applies, archiving is correct). Include the staleness decision tree (update examples → archive → delete, in that preference order).
-- [ ] Add a `references:` entry for this file in `skills/check-rule/SKILL.md` frontmatter.
-- [ ] Verify: `python scripts/lint.py --root skills/check-rule --no-urls` — no failures
-- [ ] Commit: `feat: add repair-playbook reference to check-rule`
+- [x] Create reference doc with a repair entry for each of the 5 audit dimensions plus conflicts. Each entry: (a) failure signal that triggers this repair, (b) canonical fix with specific language (not just "make it more specific" but "replace vague terms with behavioral definitions: instead of 'good' write 'contains all four required sections'"), (c) intent-preservation constraint (repair must leave the original criterion unchanged — do not silently expand or contract scope), (d) when to archive instead of repair (if the convention itself no longer applies, archiving is correct). Include the staleness decision tree (update examples → archive → delete, in that preference order).
+- [x] Add a `references:` entry for this file in `skills/check-rule/SKILL.md` frontmatter.
+- [x] Verify: `python scripts/lint.py --root skills/check-rule --no-urls` — no failures
+- [x] Commit: `feat: add repair-playbook reference to check-rule` <!-- sha:5a1123d -->
 
 ---
 
@@ -217,9 +217,9 @@ Read the current file before making any changes.
 **Files:**
 - Modify: all `_index.md` files (auto-generated)
 
-- [ ] Run `python scripts/reindex.py --all-dirs` — verify output: "Wrote N _index.md files, no errors"
-- [ ] Run `python scripts/lint.py --no-urls` — verify: 0 FAIL findings; any WARN findings reviewed and addressed or documented as acceptable
-- [ ] Commit: `chore: reindex after rule skill rebuild`
+- [x] Run `python scripts/reindex.py --all-dirs` — verify output: "Wrote N _index.md files, no errors"
+- [x] Run `python scripts/lint.py --no-urls` — verify: 0 FAIL findings; any WARN findings reviewed and addressed or documented as acceptable
+- [x] Commit: `chore: reindex after rule skill rebuild` <!-- sha:212e042 -->
 
 ---
 
