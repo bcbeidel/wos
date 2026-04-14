@@ -2,7 +2,7 @@
 name: Rebuild build-rule and check-rule Skills
 description: Rebuild the build-rule and check-rule skills to incorporate new research on rule taxonomy, Intent section quality, example construction, validation methodology, and repair strategies.
 type: plan
-status: executing
+status: completed
 branch: feat/rebuild-rule-skills
 related:
   - docs/research/2026-04-13-rule-taxonomy-intent-quality.research.md
