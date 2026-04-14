@@ -1,16 +1,17 @@
 ---
 name: check-rule
-description: Check a rule library for quality issues — conflicts, specificity, staleness, fix-safety, and rubric instability. Use when the user wants to "audit rules", "check rule quality", "find conflicting rules", "review my rules", or "are my rules well-formed".
+description: Check a rule library for quality issues — conflicts, specificity, staleness, fix-safety, rubric instability, and Intent completeness. Use when the user wants to "audit rules", "check rule quality", "find conflicting rules", "review my rules", or "are my rules well-formed".
 argument-hint: "[path to rule file or directory — scans project if omitted]"
 user-invocable: true
 references:
   - references/audit-dimensions.md
+  - references/repair-playbook.md
 ---
 
 # /wos:check-rule
 
 Evaluate the quality of an existing rule library. Checks format validity
-deterministically, then evaluates five semantic quality dimensions per rule
+deterministically, then evaluates six semantic quality dimensions per rule
 using a locked rubric, then detects cross-rule conflicts.
 
 This skill evaluates the rules themselves — not files against rules.
@@ -46,17 +47,20 @@ This step requires no LLM call. Use grep and read operations only.
 
 ### 3. Semantic Audit (One LLM Call per Rule)
 
-For each structurally valid rule, make one LLM evaluation call containing:
+For each structurally valid rule, construct one LLM evaluation call with all six required elements (evaluating six semantic dimensions simultaneously):
 
-1. The full rule file verbatim (never summarize)
-2. All five semantic dimension rubrics from [audit-dimensions.md](references/audit-dimensions.md) presented simultaneously as a locked rubric
+1. **Criterion statement** — for each dimension, a single precise behavioral definition of what is being evaluated (drawn from the locked rubric in [audit-dimensions.md](references/audit-dimensions.md), not generated per-audit)
+2. **PASS/FAIL scale declaration** — binary with behavioral definitions of what PASS and WARN mean in observable terms; no 1–5 or percentage scales
+3. **Anchor examples** — one PASS anchor and one FAIL anchor per dimension demonstrating the criterion; without these the evaluator defaults to PASS on ambiguous cases
+4. **CoT requirement** — explicit instruction: "Explain your reasoning and cite the specific text from the rule before stating your verdict"
+5. **Structured output format** — constrain output to: `Dimension | Evidence (quoted from rule) | Reasoning | Verdict (WARN or PASS) | Recommendation`; evidence must appear before verdict
+6. **Default-closed instruction** — "When evidence is borderline, surface as WARN, not PASS"
 
-Score all five dimensions in one pass. Never split into per-dimension calls —
-per-criterion separate calls score 11.5 points lower on average and are
-excessively stringent (Hong et al., 2026).
+Include the full rule file verbatim (never summarize). Present all six dimension rubrics simultaneously — never split into per-dimension calls. Per-criterion separate calls score 11.5 points lower on average.
 
-For each dimension, produce: verdict (WARN or PASS), evidence (specific text
-that triggered the verdict), and recommendation (what to change).
+The output format enforces evidence-before-verdict ordering: `evidence → reasoning → verdict → recommendation`. If the LLM emits a verdict in the first sentence, the prompt is not enforcing evidence-first ordering — revise the output schema.
+
+Repair recommendations are a separate concern from evaluation. The evaluation call produces evidence and verdict per dimension. The `Recommendation:` field in Step 5 is populated from [repair-playbook.md](references/repair-playbook.md) based on the verdict — it is not generated within the evaluation reasoning itself.
 
 ### 4. Conflict Detection (Separate LLM Pass)
 
@@ -76,10 +80,17 @@ Output all findings in `scripts/lint.py` format (file, issue, severity).
 Sort: FAIL findings first, WARN findings second, alphabetically by file within
 each severity tier.
 
+Each FAIL or WARN finding must include a `Recommendation:` line with a specific,
+actionable repair drawn from [repair-playbook.md](references/repair-playbook.md).
+Generic suggestions ("fix this") are not acceptable — name the exact change.
+
 ```
 FAIL  docs/rules/staging-layer-purity.rule.md — Missing required field: severity
+  Recommendation: Add `severity: warn` to frontmatter (default for new rules)
 WARN  docs/rules/api-handler.rule.md — Specificity: scope "**/*.py" has no directory prefix
+  Recommendation: Narrow scope to target architectural layer (e.g., `src/api/**/*.py`)
 WARN  docs/rules/naming.rule.md — Fix-safety classification missing
+  Recommendation: Add `fix-safety: requires-review` to frontmatter (default for convention rules)
 ```
 
 Close with a summary line:
@@ -89,7 +100,7 @@ Close with a summary line:
 ## Key Instructions
 
 - Run deterministic checks before invoking the LLM — do not send malformed rules to LLM evaluation
-- Present all five semantic dimensions as a locked rubric in one call per rule; never make per-dimension calls
+- Present all six semantic dimensions as a locked rubric in one call per rule; never make per-dimension calls
 - Include the full rule file verbatim in every LLM evaluation — never summarize
 - Only compare rules with overlapping scope globs for conflict detection
 - Default-closed: borderline evidence surfaces as WARN, never silently PASS
@@ -101,6 +112,8 @@ Close with a summary line:
 3. **Treating ambiguous compliance as PASS** — default-closed; surface as WARN
 4. **Reporting vague findings** — every FAIL/WARN must cite the specific rule file and the exact criterion that failed
 5. **Comparing non-overlapping rules for conflicts** — only rules whose scope globs overlap can contradict each other
+6. **Generic repair suggestions** — "fix this" or "improve specificity" with no actionable instruction; every Recommendation must name the specific change (what to add, remove, or replace, and what with)
+7. **Omitting the criterion statement from the evaluation prompt** — this is the highest-leverage element; removing it drops correlation with human judgment from 0.666 to 0.487; always include the behavioral definition from audit-dimensions.md verbatim
 
 ## Example
 
@@ -115,18 +128,21 @@ Step 2 — Deterministic check:
 - naming-conventions.rule.md: missing `## Intent` → FAIL (excluded from LLM step)
 
 Step 3 — Semantic audit on 2 rules:
-- staging-layer-purity.rule.md: all 5 dimensions PASS
-- api-input-validation.rule.md: Dimension 4 WARN (fix-safety missing, confirmed by LLM too)
+- staging-layer-purity.rule.md: all 6 dimensions PASS
+- api-input-validation.rule.md: Dimension 4 WARN (fix-safety missing), Dimension 6 WARN (Intent lacks failure cost and exception policy)
 
 Step 4 — Conflict detection: staging-layer-purity and api-input-validation have non-overlapping scopes → no comparison needed
 
 Output:
 ```
 FAIL  docs/rules/naming-conventions.rule.md — Missing required section: ## Intent
+  Recommendation: Add ## Intent section covering all five components: violation, failure cost, principle, exception policy, fix-safety signal
 WARN  docs/rules/api-input-validation.rule.md — Fix-safety classification missing
-  "Add fix-safety: requires-review to frontmatter"
+  Recommendation: Add `fix-safety: requires-review` to frontmatter (default for security rules)
+WARN  docs/rules/api-input-validation.rule.md — Intent completeness: missing failure cost and exception policy
+  Recommendation: Add sentence naming what breaks and who bears the cost; add "Exception: [case]" line
 
-2 rules audited (1 excluded — structural failure), 2 findings (1 fail, 1 warn)
+2 rules audited (1 excluded — structural failure), 3 findings (1 fail, 2 warn)
 ```
 </example>
 
