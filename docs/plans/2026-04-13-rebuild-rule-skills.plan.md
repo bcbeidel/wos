@@ -130,13 +130,13 @@ Won't have:
 
 Read the current `skills/build-rule/SKILL.md` before making any changes.
 
-- [ ] **Step 2 (Elicit Pattern):** After determining scope and severity, add a category classification step. Present the 8 categories (reference `rule-type-taxonomy-and-structural-properties.context.md`); ask which best describes the rule. Use the answer to set: fix-safety default (auto-remediable for correctness/style; requires-review for security/suspicious/complexity/LLM directive), binary vs. ordinal framing, and severity recommendation.
-- [ ] **Step 4 (Draft Rule):** Add explicit Intent section requirements. The Intent must contain all 5 components: what the rule catches (violation), what goes wrong if violated (failure cost), what underlying value this protects (principle), when disabling is legitimate (exception policy), and whether the fix is always safe (fix-safety signal). Flag and require any missing component before proceeding.
-- [ ] **Step 5 (Validate Structure):** Extend the 9 validation criteria checklist with: (10) Intent has all 5 components — no weak signals present (hedging language, prohibition-without-consequence, no exception policy); (11) Primary example is single and canonical — flag if multiple examples risk conflicting signals; (12) Examples have file path comments or realistic identifiers — flag if synthetic.
-- [ ] **Step 7 (Write the Rule):** After writing the rule file, also write a co-located test file at `<same-dir>/<slug>.tests.md` with a minimum of 3 PASS cases and 3 FAIL cases, each with rationale. Reference `skills/build-rule/references/rule-testing-guide.md` for format.
-- [ ] **Key Instructions + Anti-Pattern Guards:** Add: missing Intent components must be resolved before writing; missing test file is a delivery failure; single canonical example preferred over multiple.
-- [ ] Verify: `python scripts/lint.py --root skills/build-rule --no-urls` — no failures; `wc -l skills/build-rule/SKILL.md` outputs ≤500
-- [ ] Commit: `feat: rebuild build-rule — taxonomy, Intent model, example checks, test file output`
+- [x] **Step 2 (Elicit Pattern):** After determining scope and severity, add a category classification step. Present the 8 categories (reference `rule-type-taxonomy-and-structural-properties.context.md`); ask which best describes the rule. Use the answer to set: fix-safety default (auto-remediable for correctness/style; requires-review for security/suspicious/complexity/LLM directive), binary vs. ordinal framing, and severity recommendation.
+- [x] **Step 4 (Draft Rule):** Add explicit Intent section requirements. The Intent must contain all 5 components: what the rule catches (violation), what goes wrong if violated (failure cost), what underlying value this protects (principle), when disabling is legitimate (exception policy), and whether the fix is always safe (fix-safety signal). Flag and require any missing component before proceeding.
+- [x] **Step 5 (Validate Structure):** Extend the 9 validation criteria checklist with: (10) Intent has all 5 components — no weak signals present (hedging language, prohibition-without-consequence, no exception policy); (11) Primary example is single and canonical — flag if multiple examples risk conflicting signals; (12) Examples have file path comments or realistic identifiers — flag if synthetic.
+- [x] **Step 7 (Write the Rule):** After writing the rule file, also write a co-located test file at `<same-dir>/<slug>.tests.md` with a minimum of 3 PASS cases and 3 FAIL cases, each with rationale. Reference `skills/build-rule/references/rule-testing-guide.md` for format.
+- [x] **Key Instructions + Anti-Pattern Guards:** Add: missing Intent components must be resolved before writing; missing test file is a delivery failure; single canonical example preferred over multiple.
+- [x] Verify: `python scripts/lint.py --root skills/build-rule --no-urls` — no failures; `wc -l skills/build-rule/SKILL.md` outputs ≤500
+- [x] Commit: `feat: rebuild build-rule — taxonomy, Intent model, example checks, test file output` <!-- sha:b465454 -->
 
 ---
 
@@ -147,11 +147,11 @@ Read the current `skills/build-rule/SKILL.md` before making any changes.
 
 Read the current file before making any changes.
 
-- [ ] Add a "Rule Categories" section before the Format Detection section. Include the 8-category table with: category name, ESLint/Biome analog, fix-safety default, binary-or-ordinal framing. Keep it compact — this is a lookup reference, not prose explanation.
-- [ ] Add an "Intent Section Template" to the Writing Effective Rules section. Show the 5-component structure with inline labels and a worked example demonstrating strong vs. weak Intent for the same rule.
-- [ ] Update the Fix-Safety Classification table to note category-level defaults (currently the table only has the two values and when-to-use; add a column or note mapping categories to defaults).
-- [ ] Verify: `python scripts/lint.py --root skills/build-rule --no-urls` — no failures
-- [ ] Commit: `feat: update rule-format-guide — category table, Intent template, fix-safety defaults by type`
+- [x] Add a "Rule Categories" section before the Format Detection section. Include the 8-category table with: category name, ESLint/Biome analog, fix-safety default, binary-or-ordinal framing. Keep it compact — this is a lookup reference, not prose explanation.
+- [x] Add an "Intent Section Template" to the Writing Effective Rules section. Show the 5-component structure with inline labels and a worked example demonstrating strong vs. weak Intent for the same rule.
+- [x] Update the Fix-Safety Classification table to note category-level defaults (currently the table only has the two values and when-to-use; add a column or note mapping categories to defaults).
+- [x] Verify: `python scripts/lint.py --root skills/build-rule --no-urls` — no failures
+- [x] Commit: `feat: update rule-format-guide — category table, Intent template, fix-safety defaults by type` <!-- sha:b465454 -->
 
 ---
 
@@ -160,10 +160,10 @@ Read the current file before making any changes.
 **Files:**
 - Create: `skills/build-rule/references/rule-testing-guide.md`
 
-- [ ] Create reference doc covering: test file naming convention (`<slug>.tests.md` co-located with rule file); PASS / FAIL section structure with rationale-note field per case; minimum viable set (3 PASS + 3 FAIL for Gate 1 warn deployment; 8–10 cases for Gate 2 fail promotion); what makes a good test case (one from obvious pattern, one borderline, one known FP/FN candidate); do not use the same code as the rule's own compliant/non-compliant examples (those anchor the rule; tests must be independent). Include a short worked example.
-- [ ] Add a `references:` entry for this file in `skills/build-rule/SKILL.md` frontmatter.
-- [ ] Verify: `python scripts/lint.py --root skills/build-rule --no-urls` — no failures
-- [ ] Commit: `feat: add rule-testing-guide reference to build-rule`
+- [x] Create reference doc covering: test file naming convention (`<slug>.tests.md` co-located with rule file); PASS / FAIL section structure with rationale-note field per case; minimum viable set (3 PASS + 3 FAIL for Gate 1 warn deployment; 8–10 cases for Gate 2 fail promotion); what makes a good test case (one from obvious pattern, one borderline, one known FP/FN candidate); do not use the same code as the rule's own compliant/non-compliant examples (those anchor the rule; tests must be independent). Include a short worked example.
+- [x] Add a `references:` entry for this file in `skills/build-rule/SKILL.md` frontmatter.
+- [x] Verify: `python scripts/lint.py --root skills/build-rule --no-urls` — no failures
+- [x] Commit: `feat: add rule-testing-guide reference to build-rule` <!-- sha:b465454 -->
 
 ---
 
