@@ -115,7 +115,7 @@ does not call reindex.
 
 ### Chunk 1: Delete /distill and dead artifacts
 
-- [ ] Task 1: Delete the `skills/distill/` directory entirely (SKILL.md +
+- [x] Task 1: Delete the `skills/distill/` directory entirely (SKILL.md + <!-- sha:e8807d8 -->
   _index.md). Update `skills/research/SKILL.md` Handoff — change
   "Chainable to: distill, ingest, plan-work" to "Chainable to: ingest,
   plan-work". Update `skills/build-skill/SKILL.md` Handoff — remove
