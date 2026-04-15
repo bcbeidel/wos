@@ -8,6 +8,7 @@ parse_document is kept as a module-level alias for backwards compatibility.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import ClassVar, List, Optional
@@ -133,6 +134,65 @@ class Document:
             True if the document has no fail-severity issues.
         """
         return not any(i["severity"] == "fail" for i in self.issues(root))
+
+    # ── Scan ──────────────────────────────────────────────────────
+
+    @classmethod
+    def scan(
+        cls,
+        root: str,
+        subdir: str = "",
+        status: Optional[str] = None,
+    ) -> List[Document]:
+        """Walk the project tree and return documents of this type.
+
+        Uses isinstance(doc, cls) to filter by type, so subclasses
+        automatically restrict to their own type:
+            Document.scan(root)                          # all documents
+            ResearchDocument.scan(root)                  # research only
+            PlanDocument.scan(root, status="executing")  # executing plans
+
+        Skips hidden directories, common build/tool directories,
+        and _index.md files.
+
+        Args:
+            root: Project root directory (string path).
+            subdir: Optional subdirectory to restrict search (relative to root).
+            status: Optional status value to filter on (e.g. 'executing').
+
+        Returns:
+            List of parsed Document instances (or subclass instances).
+        """
+        _SKIP = frozenset({
+            "node_modules", "__pycache__", "venv", ".venv",
+            "dist", "build", ".tox", ".mypy_cache", ".pytest_cache",
+        })
+
+        root_path = Path(root)
+        search_path = root_path / subdir if subdir else root_path
+        docs: List[Document] = []
+
+        for dirpath, dirnames, filenames in os.walk(search_path):
+            dirnames[:] = sorted(
+                d for d in dirnames
+                if not d.startswith(".") and d not in _SKIP
+            )
+            for filename in sorted(filenames):
+                if not filename.endswith(".md") or filename == "_index.md":
+                    continue
+                path = Path(dirpath) / filename
+                try:
+                    rel = str(path.relative_to(root_path))
+                    doc = Document.parse(rel, path.read_text(encoding="utf-8"))
+                except (OSError, ValueError):
+                    continue
+                if not isinstance(doc, cls):
+                    continue
+                if status and doc.status != status:
+                    continue
+                docs.append(doc)
+
+        return docs
 
     # ── Registry ──────────────────────────────────────────────────
 

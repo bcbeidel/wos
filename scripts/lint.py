@@ -7,7 +7,7 @@
 
 Usage:
     python scripts/lint.py [FILE] [--root DIR] [--no-urls] [--json]
-                           [--fix] [--strict] [--context-max-words N]
+                           [--strict] [--context-max-words N]
                            [--context-min-words N] [--skill-max-lines N]
 """
 from __future__ import annotations
@@ -57,11 +57,6 @@ def main() -> None:
         help="Output issues as JSON",
     )
     parser.add_argument(
-        "--fix",
-        action="store_true",
-        help="Regenerate out-of-sync or missing _index.md files",
-    )
-    parser.add_argument(
         "--strict",
         action="store_true",
         help="Exit 1 on any issue (including warnings)",
@@ -87,15 +82,9 @@ def main() -> None:
             " (default: 500, 0 to disable)"
         ),
     )
-    parser.add_argument(
-        "--all-dirs",
-        action="store_true",
-        help="Index-check all directories (skip default exclusions)",
-    )
     args = parser.parse_args()
 
     # Deferred imports — keeps --help fast
-    from wos.index import extract_preamble, generate_index
     from wos.project import validate_file, validate_project
 
     root = Path(args.root).resolve()
@@ -110,39 +99,12 @@ def main() -> None:
             context_min_words=args.context_min_words,
         )
     else:
-        exclude = frozenset() if args.all_dirs else None
         issues = validate_project(
             root,
             verify_urls=not args.no_urls,
             context_max_words=args.context_max_words,
             context_min_words=args.context_min_words,
-            exclude_dirs=exclude,
         )
-
-    # --fix: regenerate _index.md files that are out of sync or missing
-    if args.fix:
-        fixed: list[str] = []
-        remaining: list[dict] = []
-        for issue in issues:
-            file_path_str = issue["file"]
-            msg = issue["issue"]
-            if (
-                file_path_str.endswith("_index.md")
-                and ("out of sync" in msg or "missing" in msg)
-            ):
-                idx_path = Path(file_path_str)
-                directory = idx_path.parent
-                preamble = extract_preamble(idx_path)
-                content = generate_index(directory, preamble=preamble)
-                idx_path.write_text(content, encoding="utf-8")
-                fixed.append(file_path_str)
-                print(
-                    f"Fixed: {_relative_path(file_path_str, root)}",
-                    file=sys.stderr,
-                )
-            else:
-                remaining.append(issue)
-        issues = remaining
 
     # Wiki validation — auto-activated when wiki/SCHEMA.md is present
     wiki_schema = root / "wiki" / "SCHEMA.md"

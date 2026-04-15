@@ -65,9 +65,8 @@ VALID_LAYOUTS = frozenset({"separated", "co-located", "flat", "none"})
 def discover_areas(root: Path) -> List[Dict[str, str]]:
     """Discover areas by scanning for directories with managed documents.
 
-    Walks the project tree using the discovery module, finds all
-    directories containing managed documents, and returns them as
-    navigable areas with ``_index.md`` preambles as descriptions.
+    Walks the project tree and finds all directories containing non-index
+    .md files. Returns them as navigable areas.
 
     Args:
         root: Project root directory.
@@ -75,24 +74,27 @@ def discover_areas(root: Path) -> List[Dict[str, str]]:
     Returns:
         Sorted list of dicts with 'name' and 'path' keys.
     """
-    from wos.discovery import discover_document_dirs
-    from wos.index import extract_preamble
+    import os
 
-    doc_dirs = discover_document_dirs(root)
-    if not doc_dirs:
-        return []
-
-    areas: List[Dict[str, str]] = []
-    for directory in doc_dirs:
-        index_path = directory / "_index.md"
-        preamble = extract_preamble(index_path)
-        name = preamble if preamble else directory.name
-        try:
-            rel_path = str(directory.relative_to(root))
-        except ValueError:
-            rel_path = str(directory)
-        areas.append({"name": name, "path": rel_path})
-
+    _SKIP = frozenset({
+        "node_modules", "__pycache__", "venv", ".venv",
+        "dist", "build", ".tox", ".mypy_cache", ".pytest_cache",
+    })
+    areas = []
+    seen: set[str] = set()
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = sorted(
+            d for d in dirnames
+            if not d.startswith(".") and d not in _SKIP
+        )
+        if any(f.endswith(".md") and f != "_index.md" for f in filenames):
+            try:
+                rel = str(Path(dirpath).relative_to(root))
+            except ValueError:
+                rel = dirpath
+            if rel and rel not in seen:
+                seen.add(rel)
+                areas.append({"name": rel, "path": rel})
     return areas
 
 

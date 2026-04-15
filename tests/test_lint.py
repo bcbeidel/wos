@@ -149,59 +149,6 @@ class TestSingleFileMode:
         assert code == 0
 
 
-class TestFixOutput:
-    def test_fix_messages_use_relative_paths(self, tmp_path: Path) -> None:
-        root = tmp_path / "project"
-        idx_dir = root / "docs" / "plans"
-        idx_dir.mkdir(parents=True)
-        idx_file = idx_dir / "_index.md"
-        idx_file.write_text("")
-        issues = [
-            {
-                "file": str(idx_file),
-                "issue": "_index.md is out of sync with directory contents",
-                "severity": "fail",
-            },
-        ]
-        with patch("wos.project.validate_project", return_value=issues):
-            _, stderr, _ = _run_audit("--root", str(root), "--no-urls", "--fix")
-        assert str(root) not in stderr
-        assert "docs/plans/_index.md" in stderr
-
-    def test_fix_preserves_preamble(self, tmp_path: Path) -> None:
-        """--fix should preserve existing preambles in _index.md files."""
-        from wos.index import generate_index
-
-        root = tmp_path / "project"
-        idx_dir = root / "docs" / "context"
-        idx_dir.mkdir(parents=True)
-        # Create a doc file and generate index with preamble
-        (idx_dir / "auth.md").write_text(
-            "---\nname: Auth\ndescription: Authentication guide\n---\n# Auth\n"
-        )
-        idx_file = idx_dir / "_index.md"
-        preamble_text = "This area covers authentication and authorization."
-        initial = generate_index(idx_dir, preamble=preamble_text)
-        idx_file.write_text(initial)
-
-        # Add a new file so index is out of sync
-        (idx_dir / "tokens.md").write_text(
-            "---\nname: Tokens\ndescription: Token handling\n---\n# Tokens\n"
-        )
-
-        issues = [
-            {
-                "file": str(idx_file),
-                "issue": "_index.md is out of sync with directory contents",
-                "severity": "fail",
-            },
-        ]
-        with patch("wos.project.validate_project", return_value=issues):
-            _run_audit("--root", str(root), "--no-urls", "--fix")
-
-        result = idx_file.read_text(encoding="utf-8")
-        assert preamble_text in result
-        assert "tokens.md" in result
 
 
 # ── TestChainAutoDetection ────────────────────────────────────────────

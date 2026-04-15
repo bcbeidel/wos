@@ -302,7 +302,6 @@ class TestWikiDocumentFrontmatter:
 
 class TestValidateWikiClean:
     def test_clean_wiki_no_issues(self, tmp_path: Path) -> None:
-        from wos.index import generate_index
         from wos.wiki import validate_wiki
 
         # Write SCHEMA.md
@@ -319,9 +318,12 @@ class TestValidateWikiClean:
         )
         page_path.write_text(page_content, encoding="utf-8")
 
-        # Write a generated _index.md so check_index_sync passes
+        # Write a _index.md that lists the page
         index_path = tmp_path / "_index.md"
-        index_path.write_text(generate_index(tmp_path), encoding="utf-8")
+        index_path.write_text(
+            "| [my-concept.md](my-concept.md) | A concept page |\n",
+            encoding="utf-8",
+        )
 
         issues = validate_wiki(tmp_path, schema_path)
 

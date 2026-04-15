@@ -188,10 +188,6 @@ class PlanDocument(Document):
     def scan(cls, root: str, subdir: str = "") -> dict:
         """Find plans with status: executing in the project.
 
-        Uses the discovery module to find all type: plan documents with
-        status: executing. If subdir is provided, restricts to that
-        subdirectory.
-
         Args:
             root: Project root directory.
             subdir: Optional subdirectory to restrict scan (default: full tree).
@@ -200,21 +196,23 @@ class PlanDocument(Document):
             Dict with keys: directory, plans. Each plan has: file, name,
             status, total_tasks, completed_tasks, pending_tasks.
         """
-        from wos.discovery import filter_documents
-
-        label, plan_docs = filter_documents(
-            Path(root), "plan", subdir=subdir, status="executing"
-        )
+        resolved_root = str(Path(root).resolve())
+        plan_docs = super().scan(resolved_root, subdir=subdir, status="executing")
         plans = []
         for doc in plan_docs:
             tasks = doc.tasks if isinstance(doc, PlanDocument) else []
             completed = sum(1 for t in tasks if t["completed"])
             plans.append({
-                "file": os.path.join(root, doc.path),
+                "file": os.path.join(resolved_root, doc.path),
                 "name": doc.name,
                 "status": doc.status,
                 "total_tasks": len(tasks),
                 "completed_tasks": completed,
                 "pending_tasks": len(tasks) - completed,
             })
-        return {"directory": label, "plans": plans}
+        return {
+            "directory": (
+                os.path.join(resolved_root, subdir) if subdir else resolved_root
+            ),
+            "plans": plans,
+        }

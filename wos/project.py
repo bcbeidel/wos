@@ -1,17 +1,16 @@
 """Project aggregate — validates an entire project tree.
 
 Project is the aggregate root for project-level validation: it discovers
-documents, runs per-document checks, validates index sync, and checks
-project-level configuration files (AGENTS.md, CLAUDE.md).
+documents, runs per-document checks, and checks project-level configuration
+files (AGENTS.md, CLAUDE.md).
 """
 
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 from wos.document import parse_document
-from wos.index import check_index_sync, extract_preamble
 
 # ── Per-file helper ────────────────────────────────────────────────
 
@@ -65,45 +64,6 @@ def validate_file(
     )
 
 
-# ── Index checks (standalone, used by validators shim too) ────────
-
-
-def check_all_indexes(directory: Path) -> List[dict]:
-    """Recursively check all _index.md files under a directory.
-
-    Walks all subdirectories and runs check_index_sync() on each.
-    Also warns when an _index.md exists but has no preamble.
-
-    Args:
-        directory: Root directory to walk.
-
-    Returns:
-        List of issue dicts from all index checks.
-    """
-    issues: List[dict] = []
-    if not directory.is_dir():
-        return issues
-
-    # Check the directory itself
-    issues.extend(check_index_sync(directory))
-
-    # WARN: index exists but has no preamble (area description)
-    index_path = directory / "_index.md"
-    if index_path.is_file() and extract_preamble(index_path) is None:
-        issues.append({
-            "file": str(index_path),
-            "issue": "Index has no area description (preamble)",
-            "severity": "warn",
-        })
-
-    # Recurse into subdirectories
-    for entry in sorted(directory.iterdir()):
-        if entry.is_dir():
-            issues.extend(check_all_indexes(entry))
-
-    return issues
-
-
 # ── Project aggregate ──────────────────────────────────────────────
 
 
@@ -118,41 +78,33 @@ class Project:
         verify_urls: bool = True,
         context_max_words: int = 800,
         context_min_words: int = 100,
-        exclude_dirs: Optional[frozenset] = None,
     ) -> List[dict]:
         """Validate all managed documents and project configuration.
 
         Discovers documents by walking the project tree and checking for
-        valid frontmatter. Runs index sync checks on directories containing
-        managed documents. Also checks project-level files (AGENTS.md,
+        valid frontmatter. Also checks project-level files (AGENTS.md,
         CLAUDE.md).
 
         Args:
             verify_urls: If False, skip source URL reachability checks.
             context_max_words: Upper word count threshold for context files.
             context_min_words: Lower word count threshold for context files.
-            exclude_dirs: Top-level directory names to exclude from index
-                checks. Defaults to INDEX_EXCLUDED_DIRS. Pass frozenset()
-                to include all.
 
         Returns:
             List of all issue dicts found.
         """
-        from wos.discovery import discover_document_dirs, discover_documents
+        from wos.document import Document
 
         issues: List[dict] = []
         issues.extend(self.check_project_files())
 
-        for doc in discover_documents(self.root):
+        for doc in Document.scan(str(self.root)):
             issues.extend(doc.issues(
                 self.root,
                 verify_urls=verify_urls,
                 max_words=context_max_words,
                 min_words=context_min_words,
             ))
-
-        for directory in discover_document_dirs(self.root, exclude_dirs=exclude_dirs):
-            issues.extend(self.check_indexes(directory))
 
         return issues
 
@@ -217,20 +169,6 @@ class Project:
 
         return issues
 
-    def check_indexes(self, directory: Optional[Path] = None) -> List[dict]:
-        """Recursively check _index.md files under a directory.
-
-        Args:
-            directory: Directory to check. Defaults to self.root.
-
-        Returns:
-            List of issue dicts from all index checks.
-        """
-        if directory is None:
-            directory = self.root
-        return check_all_indexes(directory)
-
-
 # ── Module-level convenience functions ────────────────────────────
 
 
@@ -244,12 +182,10 @@ def validate_project(
     verify_urls: bool = True,
     context_max_words: int = 800,
     context_min_words: int = 100,
-    exclude_dirs: Optional[frozenset] = None,
 ) -> List[dict]:
     """Validate all managed documents in a project. See Project.validate."""
     return Project(root).validate(
         verify_urls=verify_urls,
         context_max_words=context_max_words,
         context_min_words=context_min_words,
-        exclude_dirs=exclude_dirs,
     )

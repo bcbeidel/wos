@@ -23,93 +23,6 @@ def _md(name: str = "Test", description: str = "A test doc", **extra_fm) -> str:
     return "\n".join(lines) + "\n"
 
 
-# ── check_all_indexes ──────────────────────────────────────────
-
-
-class TestCheckAllIndexes:
-    def test_synced_index_with_preamble(self, tmp_path: Path) -> None:
-        from wos.index import generate_index
-        from wos.project import check_all_indexes
-
-        # Create a directory with a file and a synced _index.md with preamble
-        area = tmp_path / "context" / "testing"
-        area.mkdir(parents=True)
-        topic = area / "unit-tests.md"
-        topic.write_text(
-            "---\nname: Unit Tests\n"
-            "description: Unit testing guide\n"
-            "---\n# Unit Tests\n"
-        )
-        index = area / "_index.md"
-        index.write_text(generate_index(area, preamble="Testing area."))
-        # Also create a synced index for the context root
-        context_dir = tmp_path / "context"
-        (context_dir / "_index.md").write_text(
-            generate_index(context_dir, preamble="All context.")
-        )
-
-        issues = check_all_indexes(context_dir)
-        assert issues == []
-
-    def test_missing_index(self, tmp_path: Path) -> None:
-        from wos.project import check_all_indexes
-
-        # Create a directory with a file but no _index.md
-        area = tmp_path / "context" / "testing"
-        area.mkdir(parents=True)
-        topic = area / "unit-tests.md"
-        topic.write_text(
-            "---\nname: Unit Tests\n"
-            "description: Unit testing guide\n"
-            "---\n# Unit Tests\n"
-        )
-
-        issues = check_all_indexes(tmp_path / "context")
-        assert len(issues) >= 1
-        assert any("missing" in i["issue"].lower() for i in issues)
-
-
-class TestCheckPreamble:
-    def test_index_with_preamble_no_warning(self, tmp_path: Path) -> None:
-        from wos.index import generate_index
-        from wos.project import check_all_indexes
-
-        area = tmp_path / "context" / "api"
-        area.mkdir(parents=True)
-        (area / "auth.md").write_text(
-            "---\nname: Auth\ndescription: Auth docs\n---\n"
-        )
-        index = generate_index(area, preamble="This area covers the API.")
-        (area / "_index.md").write_text(index)
-        (tmp_path / "context" / "_index.md").write_text(
-            generate_index(tmp_path / "context", preamble="All context.")
-        )
-
-        issues = check_all_indexes(tmp_path / "context")
-        warn_issues = [i for i in issues if i["severity"] == "warn"]
-        assert not any("preamble" in i["issue"].lower() for i in warn_issues)
-
-    def test_index_without_preamble_warns(self, tmp_path: Path) -> None:
-        from wos.index import generate_index
-        from wos.project import check_all_indexes
-
-        area = tmp_path / "context" / "api"
-        area.mkdir(parents=True)
-        (area / "auth.md").write_text(
-            "---\nname: Auth\ndescription: Auth docs\n---\n"
-        )
-        # No preamble
-        index = generate_index(area)
-        (area / "_index.md").write_text(index)
-        (tmp_path / "context" / "_index.md").write_text(
-            generate_index(tmp_path / "context")
-        )
-
-        issues = check_all_indexes(tmp_path / "context")
-        warn_issues = [i for i in issues if i["severity"] == "warn"]
-        assert any("area description" in i["issue"].lower() for i in warn_issues)
-
-
 # ── check_project_files ────────────────────────────────────────
 
 
@@ -198,7 +111,6 @@ class TestValidateFile:
 
 class TestValidateProject:
     def test_valid_project(self, tmp_path: Path) -> None:
-        from wos.index import generate_index
         from wos.project import validate_project
 
         # Set up a document under docs/
@@ -206,10 +118,6 @@ class TestValidateProject:
         area.mkdir(parents=True)
         topic = area / "unit-tests.md"
         topic.write_text(_md("Unit Tests", "Guide to unit tests"))
-        # Create synced index with preambles for the area
-        (area / "_index.md").write_text(
-            generate_index(area, preamble="Testing area.")
-        )
         # Create AGENTS.md with WOS markers and CLAUDE.md with @AGENTS.md
         (tmp_path / "AGENTS.md").write_text(
             "# Agents\n\n<!-- wos:begin -->\nWOS\n<!-- wos:end -->\n"
@@ -239,8 +147,7 @@ class TestValidateProject:
         (tmp_path / "CLAUDE.md").write_text("# Project\n\n@AGENTS.md\n")
 
         issues = validate_project(tmp_path, verify_urls=False)
-        # Should find the doc (no frontmatter errors) but may have
-        # index sync issues — that's expected
+        # Should find the doc with no frontmatter errors
         frontmatter_issues = [
             i for i in issues if "frontmatter" in i["issue"].lower()
         ]
@@ -324,7 +231,6 @@ class TestCompoundSuffixValidation:
         self, tmp_path: Path
     ) -> None:
         """validate_project discovers and validates compound suffix files."""
-        from wos.index import generate_index
         from wos.project import validate_project
 
         # Set up research area with a compound suffix file
@@ -335,9 +241,6 @@ class TestCompoundSuffixValidation:
             type="research",
             sources=["https://example.com/api"],
         ))
-        (research_dir / "_index.md").write_text(
-            generate_index(research_dir, preamble="Research area.")
-        )
         # Create AGENTS.md and CLAUDE.md
         (tmp_path / "AGENTS.md").write_text(
             "# Agents\n\n<!-- wos:begin -->\nWOS\n<!-- wos:end -->\n"
@@ -345,9 +248,7 @@ class TestCompoundSuffixValidation:
         (tmp_path / "CLAUDE.md").write_text("# Project\n\n@AGENTS.md\n")
 
         issues = validate_project(tmp_path, verify_urls=False)
-        # Filter out index issues — we only care about document validation
-        doc_issues = [i for i in issues if "index" not in i["issue"].lower()]
-        assert doc_issues == []
+        assert issues == []
 
     def test_context_type_no_related_warns(self, tmp_path: Path) -> None:
         """Context file without related fields warns via validate_file."""

@@ -179,9 +179,6 @@ class ResearchDocument(Document):
     def scan(cls, root: str, subdir: str = "") -> dict:
         """Scan for research documents and return summaries.
 
-        Uses the discovery module to find all type: research documents.
-        If subdir is provided, restricts to that subdirectory.
-
         Args:
             root: Project root directory.
             subdir: Optional subdirectory to restrict scan (default: full tree).
@@ -190,20 +187,23 @@ class ResearchDocument(Document):
             Dict with keys: directory, documents. Each document has:
             file, name, draft_marker_present, word_count, sources_count.
         """
-        from wos.discovery import filter_documents
-
-        label, research_docs = filter_documents(Path(root), "research", subdir=subdir)
-        documents = [
-            {
-                "file": os.path.join(root, doc.path),
-                "name": doc.name,
-                "draft_marker_present": "<!-- DRAFT -->" in doc.content,
-                "word_count": doc.word_count,
-                "sources_count": len(doc.sources),
-            }
-            for doc in research_docs
-        ]
-        return {"directory": label, "documents": documents}
+        resolved_root = str(Path(root).resolve())
+        docs = super().scan(resolved_root, subdir=subdir)
+        return {
+            "directory": (
+                os.path.join(resolved_root, subdir) if subdir else resolved_root
+            ),
+            "documents": [
+                {
+                    "file": os.path.join(resolved_root, doc.path),
+                    "name": doc.name,
+                    "draft_marker_present": "<!-- DRAFT -->" in doc.content,
+                    "word_count": doc.word_count,
+                    "sources_count": len(doc.sources),
+                }
+                for doc in docs
+            ],
+        }
 
     @classmethod
     def check_gates(cls, path: str) -> dict:
