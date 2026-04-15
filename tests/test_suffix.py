@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from wos.suffix import is_markdown, stem_name, type_from_path
+from wos.suffix import type_from_path
 
 
 class TestTypeFromPath:
@@ -37,39 +37,3 @@ class TestTypeFromPath:
 
     def test_index_file_returns_none(self):
         assert type_from_path(Path("_index.md")) is None
-
-
-class TestIsMarkdown:
-    """is_markdown recognizes both plain and compound suffixes."""
-
-    def test_plain_md(self):
-        assert is_markdown(Path("readme.md")) is True
-
-    def test_compound_md(self):
-        assert is_markdown(Path("api.research.md")) is True
-
-    def test_non_markdown(self):
-        assert is_markdown(Path("script.py")) is False
-
-    def test_index_file(self):
-        assert is_markdown(Path("_index.md")) is True
-
-
-class TestStemName:
-    """stem_name strips .md and .type.md suffixes."""
-
-    def test_plain_md(self):
-        assert stem_name(Path("plain-document.md")) == "plain-document"
-
-    def test_research_suffix(self):
-        assert stem_name(Path("api-latency.research.md")) == "api-latency"
-
-    def test_plan_suffix(self):
-        assert stem_name(Path("deploy.plan.md")) == "deploy"
-
-    def test_unknown_compound_keeps_middle(self):
-        assert stem_name(Path("data.csv.md")) == "data.csv"
-
-    def test_hyphenated_name(self):
-        path = Path("cross-platform.design.md")
-        assert stem_name(path) == "cross-platform"

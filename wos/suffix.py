@@ -1,8 +1,7 @@
 """Typed file suffix utilities.
 
 Extracts document type from compound markdown suffixes like
-``foo.research.md`` → ``"research"``, and provides helpers for
-markdown file discovery that recognize compound suffixes.
+``foo.research.md`` → ``"research"``.
 
 Known type suffixes: research, plan, design, context, prompt.
 Files without a type suffix (plain ``.md``) return None.
@@ -46,45 +45,3 @@ def type_from_path(path: Path) -> Optional[str]:
         if candidate in KNOWN_TYPE_SUFFIXES:
             return candidate
     return None
-
-
-def is_markdown(path: Path) -> bool:
-    """Check if a file is a markdown file (plain or compound suffix).
-
-    Recognizes both ``foo.md`` and ``foo.research.md``.
-
-    Args:
-        path: File path to check.
-
-    Returns:
-        True if the file ends with ``.md``.
-    """
-    return path.name.endswith(".md")
-
-
-def stem_name(path: Path) -> str:
-    """Get the base name without any .md or .type.md suffix.
-
-    Examples:
-        >>> stem_name(Path("api-latency.research.md"))
-        'api-latency'
-        >>> stem_name(Path("plain-document.md"))
-        'plain-document'
-        >>> stem_name(Path("2026-03-13-cross-platform.plan.md"))
-        '2026-03-13-cross-platform'
-
-    Args:
-        path: File path.
-
-    Returns:
-        The filename with all markdown-related suffixes removed.
-    """
-    name = path.name
-    if name.endswith(".md"):
-        name = name[:-3]  # strip .md
-    # Check if the remaining part ends with a known type suffix
-    for suffix in KNOWN_TYPE_SUFFIXES:
-        if name.endswith("." + suffix):
-            name = name[:-(len(suffix) + 1)]
-            break
-    return name
