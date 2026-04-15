@@ -128,7 +128,7 @@ does not call reindex.
   (distillation-guidelines.md + mapping-guide.md + _index.md).
   **Verify:** `ls skills/_shared/references/distill/ 2>&1` → "No such file or directory"
 
-- [ ] Task 3: Delete `skills/start-work/references/parallel-dispatch.md`.
+- [x] Task 3: Delete `skills/start-work/references/parallel-dispatch.md`. <!-- sha:67cf929 -->
   Delete `skills/start-work/references/research-distill-pipeline.md`.
   From `start-work/SKILL.md` frontmatter `references:` list, remove both
   `- references/parallel-dispatch.md` and

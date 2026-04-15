@@ -77,27 +77,10 @@ Before executing tasks, ensure work happens on a feature branch.
 
 ### 4. Choose Execution Mode
 
-**Sequential** (default) — execute tasks in order.
+Execute tasks sequentially in the order listed.
 
-**Parallel** (opt-in) — requires ALL of these conditions:
-- 3+ pending tasks
-- No file overlap (entry script's `overlapping_tasks` is empty)
-- User explicitly opts in when asked
-
-If the entry script reports `parallel_eligible: true`, present the option:
-
-> "This plan has [N] independent tasks with no file overlap.
-> Execute sequentially (default) or in parallel?"
-
-If not eligible, state why and proceed sequentially. Consult
-[parallel dispatch](references/parallel-dispatch.md) for the full protocol.
-
-If the plan contains research→distill workstreams, execute using this phased pattern:
-1. Invoke `/wiki:research` for each research task — the skill handles the full pipeline internally
-2. Validate outputs: `python <plugin-scripts-dir>/lint.py --root . --no-urls`
-3. Present research summaries to user and wait for approval
-4. Invoke `/wiki:distill` with the approved research documents
-5. Validate distill outputs and verify bidirectional links in `related:` frontmatter
+For research tasks, invoke `/wiki:research` per task; the skill manages
+its own pipeline and validation internally.
 
 ### 5. Execute Tasks
 
