@@ -1,17 +1,28 @@
 """Wiki-aware validators for SCHEMA.md-governed wiki directories.
 
-Provides four functions for validating wiki page structure and schema
-conformance, plus helpers used by validate_wiki() in validators.py.
+Provides four check functions for validating wiki page structure and schema
+conformance, plus validate_wiki() which orchestrates them.
 
 Each check returns a list of issue dicts with keys: file, issue, severity.
 """
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import List
 
-from wos.document import Document
+from wos.document import Document, parse_document
+
+
+@dataclass
+class WikiDocument(Document):
+    """A wiki page document with schema conformance validation.
+
+    Stub — full implementation (issues() override) added in the
+    document-inheritance refactor (Task 5).
+    """
+
 
 # ── Schema parsing ─────────────────────────────────────────────
 
@@ -101,7 +112,10 @@ def check_wiki_orphans(wiki_dir: Path) -> List[dict]:
         if md_file.name not in index_text:
             issues.append({
                 "file": str(md_file),
-                "issue": f"Wiki page not referenced in _index.md: {md_file.name}",
+                "issue": (
+                    f"Wiki page not in index. "
+                    f"Run /wos:ingest wiki/{md_file.name} to index it."
+                ),
                 "severity": "warn",
             })
 
@@ -174,5 +188,56 @@ def check_wiki_frontmatter(doc: Document) -> List[dict]:
                 "issue": f"Wiki page missing frontmatter field: '{field_name}'",
                 "severity": "warn",
             })
+
+    return issues
+
+
+# ── Orchestrator ───────────────────────────────────────────────
+
+
+def validate_wiki(wiki_dir: Path, schema_path: Path) -> List[dict]:
+    """Validate all documents in a wiki directory against its SCHEMA.md.
+
+    Runs schema violation and frontmatter checks per file, orphan check
+    across the directory, and index sync for wiki_dir. If SCHEMA.md is
+    missing or malformed, returns a single warn and exits early.
+
+    Args:
+        wiki_dir: Path to the wiki directory.
+        schema_path: Path to wiki/SCHEMA.md.
+
+    Returns:
+        List of issue dicts. Empty on a clean wiki.
+    """
+    issues: List[dict] = []
+
+    try:
+        schema = parse_schema(schema_path)
+    except ValueError as exc:
+        return [{
+            "file": str(schema_path),
+            "issue": f"Invalid SCHEMA.md: {exc}",
+            "severity": "warn",
+        }]
+
+    for md_file in sorted(wiki_dir.iterdir()):
+        if not md_file.is_file() or md_file.suffix != ".md":
+            continue
+        if md_file.name in ("_index.md", "SCHEMA.md"):
+            continue
+        try:
+            text = md_file.read_text(encoding="utf-8")
+            doc = parse_document(str(md_file), text)
+        except (OSError, ValueError) as exc:
+            issues.append({
+                "file": str(md_file),
+                "issue": f"Parse error: {exc}",
+                "severity": "fail",
+            })
+            continue
+        issues.extend(check_wiki_schema_violations(doc, schema))
+        issues.extend(check_wiki_frontmatter(doc))
+
+    issues.extend(check_wiki_orphans(wiki_dir))
 
     return issues

@@ -1,4 +1,4 @@
-"""Tests for wos/document.py — Document dataclass and parse_document()."""
+"""Tests for wos/document.py — Document base class, subclasses, and Document.parse()."""
 
 from __future__ import annotations
 
@@ -51,7 +51,7 @@ class TestDocument:
         assert "docs/context/api/authentication.md" in doc.related
 
 
-# ── parse_document ──────────────────────────────────────────────
+# ── Document.parse (factory) ────────────────────────────────────
 
 
 class TestParseDocument:
@@ -566,4 +566,189 @@ class TestDocumentIsValid:
 
         doc = Document(path="a.md", name="", description="D", content="")
         assert doc.is_valid(tmp_path) is False
+
+
+# ── Factory routing ──────────────────────────────────────────────
+
+
+class TestFactoryRouting:
+    def test_research_type_returns_research_document(self) -> None:
+        from wos.document import ResearchDocument, parse_document
+
+        text = (
+            "---\nname: T\ndescription: D\ntype: research\n"
+            "sources:\n- https://example.com\n---\nbody\n"
+        )
+        doc = parse_document("x.md", text)
+        assert isinstance(doc, ResearchDocument)
+
+    def test_plan_type_returns_plan_document(self) -> None:
+        from wos.document import PlanDocument, parse_document
+
+        text = (
+            "---\nname: T\ndescription: D\ntype: plan\nstatus: draft\n---\n"
+            "## Tasks\n\n- [ ] Task 1: Do thing\n"
+        )
+        doc = parse_document("x.md", text)
+        assert isinstance(doc, PlanDocument)
+
+    def test_unknown_type_returns_base_document(self) -> None:
+        from wos.document import Document, parse_document
+
+        text = "---\nname: T\ndescription: D\ntype: custom\n---\nbody\n"
+        doc = parse_document("x.md", text)
+        assert type(doc) is Document
+
+    def test_no_type_returns_base_document(self) -> None:
+        from wos.document import Document, parse_document
+
+        text = "---\nname: T\ndescription: D\n---\nbody\n"
+        doc = parse_document("x.md", text)
+        assert type(doc) is Document
+
+    def test_parse_classmethod_equivalent_to_alias(self) -> None:
+        from wos.document import Document, parse_document
+
+        text = "---\nname: T\ndescription: D\n---\nbody\n"
+        assert Document.parse("x.md", text) is not None
+        assert type(parse_document("x.md", text)) is type(Document.parse("x.md", text))
+
+    def test_research_suffix_returns_research_document(self) -> None:
+        from wos.document import ResearchDocument, parse_document
+
+        text = (
+            "---\nname: T\ndescription: D\n"
+            "sources:\n- https://example.com\n---\nbody\n"
+        )
+        doc = parse_document("x.research.md", text)
+        assert isinstance(doc, ResearchDocument)
+
+
+# ── ResearchDocument ─────────────────────────────────────────────
+
+
+class TestResearchDocumentIssues:
+    def test_no_sources_is_fail(self, tmp_path) -> None:
+        from wos.document import ResearchDocument
+
+        doc = ResearchDocument(
+            path="a.md", name="N", description="D",
+            content="body", type="research",
+        )
+        result = doc.issues(tmp_path, verify_urls=False)
+        assert any(i["severity"] == "fail" and "sources" in i["issue"] for i in result)
+
+    def test_draft_marker_is_warn(self, tmp_path) -> None:
+        from wos.document import ResearchDocument
+
+        doc = ResearchDocument(
+            path="a.md", name="N", description="D",
+            content="<!-- DRAFT -->\nbody", type="research",
+            sources=["https://example.com"],
+        )
+        result = doc.issues(tmp_path, verify_urls=False)
+        assert any(i["severity"] == "warn" and "DRAFT" in i["issue"] for i in result)
+
+    def test_dict_source_is_warn(self, tmp_path) -> None:
+        from wos.document import ResearchDocument
+
+        doc = ResearchDocument(
+            path="a.md", name="N", description="D",
+            content="body", type="research",
+            sources=[{"url": "https://example.com"}],
+        )
+        result = doc.issues(tmp_path, verify_urls=False)
+        assert any(i["severity"] == "warn" and "dict" in i["issue"] for i in result)
+
+    def test_valid_research_doc_no_issues(self, tmp_path) -> None:
+        from wos.document import ResearchDocument
+
+        doc = ResearchDocument(
+            path="a.md", name="N", description="D",
+            content="body", type="research",
+            sources=["https://example.com"],
+        )
+        result = doc.issues(tmp_path, verify_urls=False)
+        assert result == []
+
+    def test_inherits_base_related_path_check(self, tmp_path) -> None:
+        from wos.document import ResearchDocument
+
+        doc = ResearchDocument(
+            path="a.md", name="N", description="D",
+            content="body", type="research",
+            sources=["https://example.com"],
+            related=["missing/path.md"],
+        )
+        result = doc.issues(tmp_path, verify_urls=False)
+        assert any("missing/path.md" in i["issue"] for i in result)
+
+
+# ── PlanDocument ─────────────────────────────────────────────────
+
+
+class TestPlanDocument:
+    def test_tasks_parsed_from_content(self) -> None:
+        from wos.document import PlanDocument
+
+        content = (
+            "## Tasks\n\n"
+            "- [ ] Task 1: First thing\n"
+            "- [x] Task 2: Done thing\n"
+        )
+        doc = PlanDocument(
+            path="p.md", name="N", description="D",
+            content=content, type="plan", status="draft",
+        )
+        assert len(doc.tasks) == 2
+        assert doc.tasks[0]["completed"] is False
+        assert doc.tasks[1]["completed"] is True
+
+    def test_tasks_complete_all_done(self) -> None:
+        from wos.document import PlanDocument
+
+        content = "## Tasks\n\n- [x] Task 1: Done\n- [x] Task 2: Also done\n"
+        doc = PlanDocument(
+            path="p.md", name="N", description="D",
+            content=content, type="plan", status="draft",
+        )
+        assert doc.tasks_complete() is True
+
+    def test_tasks_complete_some_pending(self) -> None:
+        from wos.document import PlanDocument
+
+        content = "## Tasks\n\n- [ ] Task 1: Not done\n- [x] Task 2: Done\n"
+        doc = PlanDocument(
+            path="p.md", name="N", description="D",
+            content=content, type="plan", status="draft",
+        )
+        assert doc.tasks_complete() is False
+
+    def test_completion_stats(self) -> None:
+        from wos.document import PlanDocument
+
+        content = (
+            "## Tasks\n\n"
+            "- [x] Task 1: Done\n"
+            "- [ ] Task 2: Pending\n"
+            "- [ ] Task 3: Pending\n"
+        )
+        doc = PlanDocument(
+            path="p.md", name="N", description="D",
+            content=content, type="plan", status="draft",
+        )
+        stats = doc.completion_stats()
+        assert stats == {"total": 3, "done": 1, "remaining": 2}
+
+    def test_factory_returns_plan_document_with_tasks(self) -> None:
+        from wos.document import PlanDocument, parse_document
+
+        text = (
+            "---\nname: My Plan\ndescription: A plan\n"
+            "type: plan\nstatus: draft\n---\n"
+            "## Tasks\n\n- [ ] Task 1: Do it\n"
+        )
+        doc = parse_document("plan.md", text)
+        assert isinstance(doc, PlanDocument)
+        assert len(doc.tasks) == 1
 

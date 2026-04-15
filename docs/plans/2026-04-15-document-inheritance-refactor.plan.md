@@ -114,9 +114,10 @@ call `super().issues(root)` and extend with research-specific checks:
   403/429 → warn, others → fail). Add `verify_urls: bool = True` parameter to
   `issues()` to allow skipping in tests.
 
-Update `parse_document()` factory: when `doc_type == "research"`, return a
-`ResearchDocument` instance instead of `Document`. All constructor arguments are the
-same — no new fields.
+Convert `parse_document()` to a classmethod `Document.parse(path, text) -> Document`
+that contains all routing logic. Keep `parse_document = Document.parse` as a
+module-level alias so existing callers in validators.py, chain.py, wiki.py, etc.
+need no changes. The classmethod routes `type: research` → `ResearchDocument`.
 
 Add tests to `tests/test_document.py`: `ResearchDocument.issues()` returns fail for
 missing sources; returns warn for draft marker; `parse_document()` returns a
