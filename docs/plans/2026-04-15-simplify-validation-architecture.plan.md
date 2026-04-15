@@ -124,7 +124,7 @@ does not call reindex.
   **Verify:** `ls skills/distill/ 2>&1` → "No such file or directory";
   `grep -r "Chainable.*distill" skills/` → no output
 
-- [ ] Task 2: Delete the `skills/_shared/references/distill/` directory
+- [x] Task 2: Delete the `skills/_shared/references/distill/` directory <!-- sha:be39e21 -->
   (distillation-guidelines.md + mapping-guide.md + _index.md).
   **Verify:** `ls skills/_shared/references/distill/ 2>&1` → "No such file or directory"
 

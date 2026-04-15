@@ -2,18 +2,16 @@
 name: start-work
 description: >
   Use when you have an approved implementation plan to execute.
-  Handles sequential execution, parallel subagent dispatch, progress
-  tracking, and recovery. Enforces the approval gate. Use when the
+  Handles sequential execution, progress tracking, and recovery.
+  Enforces the approval gate. Use when the
   user wants to "execute the plan", "run the plan", "implement this
   plan", "start work", or "start building".
 argument-hint: "[plan file path]"
 user-invocable: true
 references:
   - references/execution-guide.md
-  - references/parallel-dispatch.md
   - references/recovery-patterns.md
   - references/multi-session-resumption.md
-  - references/research-distill-pipeline.md
 ---
 
 # Start Work
