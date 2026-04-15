@@ -34,9 +34,9 @@ If the directory does not exist or contains no `.md` files:
 
 Exit after reporting.
 
-### 2. Run Nine Checks
+### 2. Run Ten Checks
 
-For each definition file, run all nine checks in order.
+For each definition file, run all ten checks in order.
 
 #### Check 1 — Tool Over-Permissioning
 
@@ -108,6 +108,8 @@ body section with concrete examples including at least one negative case.
   or equivalent routing language (auto-delegation by description matching
   is unreliable; without explicit routing language, the agent will rarely
   be invoked automatically)
+- Exceeds 1,024 characters — descriptions over this limit are silently
+  truncated without warning
 
 **On the `## When to invoke` body section — flag when:**
 - The section is absent entirely — this section is required; it should
@@ -191,6 +193,18 @@ Flag when:
   `permissionMode` silently ignored; the field is a no-op and misleading.
 
 Severity: **warn** (bypassPermissions) / **warn** (plugin no-op)
+
+#### Check 10 — Parallel Write Conflict Risk
+
+Flag when:
+- `background: true` is set AND the effective tool set includes `Write`
+  or `Edit`, AND `isolation: worktree` is absent — background agents with
+  write access running concurrently will conflict on shared files. From the
+  official blog: "Two subagents editing the same file in parallel is a
+  recipe for conflict." `isolation: worktree` gives each subagent a clean
+  working copy.
+
+Severity: **warn**
 
 ### 3. Emit Findings
 

@@ -88,8 +88,9 @@ workflow signals it:
 changes:
 - `plan`: proposes changes for user approval before acting
 - `acceptEdits`: accepts file edits without prompting (fully automated writes)
-- Note: if the parent uses `bypassPermissions`, this field is overridden —
-  the subagent cannot restrict its own permissions below the parent's level.
+- Note: if the parent uses `bypassPermissions` or `auto` mode, this field is
+  overridden — the subagent cannot restrict its own permissions below the
+  parent's level.
 
 **`maxTurns`** — raise only if the workflow is multi-step or recursive:
 > "This workflow has several steps — add `maxTurns: N` as a safety net.
@@ -100,9 +101,11 @@ in Step 1:
 > "Since parallelism is the reason for this subagent, `background: true`
 > lets it run concurrently while the parent continues."
 
-**`isolation: worktree`** — raise only if the agent makes git changes:
-> "Since this agent modifies versioned files, `isolation: worktree` runs
-> it in a temporary branch for safety."
+**`isolation: worktree`** — raise when the agent writes or modifies files AND
+parallelism was cited in Step 1 (`background: true`), or when the agent
+makes changes to versioned files that require a clean working copy:
+> "Since this agent modifies files in parallel, `isolation: worktree` gives
+> it a clean working copy to prevent write conflicts."
 
 **`skills`** — raise only if the workflow implies needing project-specific
 context or WOS procedures:
@@ -184,7 +187,7 @@ Add fields only when they were raised and confirmed in Step 3:
 | `permissionMode` | agent makes broad or irreversible changes |
 | `maxTurns` | multi-step or recursive workflow |
 | `background` | parallelism was the Step 1 justification |
-| `isolation: worktree` | agent modifies versioned files |
+| `isolation: worktree` | agent writes files AND `background: true`, or modifies versioned files requiring a clean working copy |
 | `skills` | workflow needs project-specific procedures |
 
 Do not include fields that were not discussed. Do not include commented-out
@@ -199,7 +202,7 @@ the description covers:
 - What it returns (output format or location)
 - "use proactively" — include this phrase if the agent should be invoked automatically without being asked
 
-A one-liner with no exclusions and no output format is insufficient. A description that reads as a capability summary rather than a routing rule will produce unreliable auto-delegation.
+A one-liner with no exclusions and no output format is insufficient. A description that reads as a capability summary rather than a routing rule will produce unreliable auto-delegation. Keep the total description under 1,024 characters — descriptions exceeding this limit are silently truncated without warning.
 
 **Skills are not inherited.** The parent session's active skills do not carry over to subagents. If the workflow requires project-specific procedures, list them explicitly in the `skills` field. If omitted, the subagent starts with no skill context beyond its own system prompt.
 

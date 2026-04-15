@@ -14,11 +14,6 @@ references:
   - references/recovery-patterns.md
   - references/multi-session-resumption.md
   - references/research-distill-pipeline.md
-  - ../_shared/references/research/frame.md
-  - ../_shared/references/research/research-modes.md
-  - ../_shared/references/research/cli-commands.md
-  - ../_shared/references/distill/distillation-guidelines.md
-  - ../_shared/references/distill/mapping-guide.md
 ---
 
 # Start Work
@@ -99,9 +94,12 @@ If the entry script reports `parallel_eligible: true`, present the option:
 If not eligible, state why and proceed sequentially. Consult
 [parallel dispatch](references/parallel-dispatch.md) for the full protocol.
 
-If the plan contains research→distill workstreams, consult the
-[research-distill pipeline](references/research-distill-pipeline.md)
-for the phased orchestration pattern.
+If the plan contains research→distill workstreams, execute using this phased pattern:
+1. Invoke `/wiki:research` for each research task — the skill handles the full pipeline internally
+2. Validate outputs: `python <plugin-scripts-dir>/lint.py --root . --no-urls`
+3. Present research summaries to user and wait for approval
+4. Invoke `/wiki:distill` with the approved research documents
+5. Validate distill outputs and verify bidirectional links in `related:` frontmatter
 
 ### 5. Execute Tasks
 
