@@ -9,7 +9,6 @@ from __future__ import annotations
 import os
 
 import pytest
-
 from wiki.research import ResearchDocument
 
 FIXTURES_DIR = os.path.join(os.path.dirname(__file__), "fixtures", "research")

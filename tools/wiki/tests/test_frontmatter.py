@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-
 from wiki.document import parse_frontmatter
 
 

@@ -7,7 +7,8 @@
 
 Usage:
     python tools/work/skills/start/scripts/plan_assess.py --file PATH
-    python tools/work/skills/start/scripts/plan_assess.py --scan [--root DIR] [--subdir PATH]
+    python tools/work/skills/start/scripts/plan_assess.py \\
+        --scan [--root DIR] [--subdir PATH]
 """
 from __future__ import annotations
 

@@ -8,8 +8,10 @@
 Usage:
     python tools/wiki/skills/research/scripts/research_assess.py --file PATH
     python tools/wiki/skills/research/scripts/research_assess.py --file PATH --gate all
-    python tools/wiki/skills/research/scripts/research_assess.py --file PATH --gate evaluator_exit
-    python tools/wiki/skills/research/scripts/research_assess.py --scan [--root DIR] [--subdir PATH]
+    python tools/wiki/skills/research/scripts/research_assess.py \\
+        --file PATH --gate evaluator_exit
+    python tools/wiki/skills/research/scripts/research_assess.py \\
+        --scan [--root DIR] [--subdir PATH]
 """
 from __future__ import annotations
 
