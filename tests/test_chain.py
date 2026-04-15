@@ -1,4 +1,4 @@
-"""Tests for wos/chain.py — ChainDocument parsing and validation."""
+"""Tests for wos/chain.py — SkillChainDocument parsing and validation."""
 
 from __future__ import annotations
 
@@ -165,10 +165,10 @@ class TestParseChain:
             parse_chain(path)
 
 
-# ── TestChainDocumentIssues ───────────────────────────────────────────
+# ── TestSkillChainDocumentIssues ───────────────────────────────────────────
 
 
-class TestChainDocumentIssues:
+class TestSkillChainDocumentIssues:
     def _make_skills_dir(self, tmp_path: Path, skill_names: list[str]) -> Path:
         skills_dir = tmp_path / "skills"
         skills_dir.mkdir()

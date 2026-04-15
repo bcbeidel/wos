@@ -1,6 +1,6 @@
 """Chain manifest parsing and structural validation.
 
-Provides ChainDocument — a Document subclass for *.chain.md manifests —
+Provides SkillChainDocument — a Document subclass for *.chain.md manifests —
 and validate_chain() which parses and validates a manifest in one call.
 
 Each issue dict has keys: file, issue, severity.
@@ -106,12 +106,12 @@ def _parse_steps_table(body: str, manifest_path: Path) -> List[dict]:
     return steps
 
 
-# ── ChainDocument ──────────────────────────────────────────────────
+# ── SkillChainDocument ──────────────────────────────────────────────────
 
 
 @Document.register("chain")
 @dataclass
-class ChainDocument(Document):
+class SkillChainDocument(Document):
     """A chain manifest document with parsed step list and structural validation.
 
     Adds a ``steps`` field (parsed from the ## Steps table in content)
@@ -239,14 +239,14 @@ class ChainDocument(Document):
 # ── Convenience wrappers ───────────────────────────────────────────
 
 
-def parse_chain(manifest_path: Path) -> ChainDocument:
-    """Read and parse a *.chain.md manifest into a ChainDocument.
+def parse_chain(manifest_path: Path) -> SkillChainDocument:
+    """Read and parse a *.chain.md manifest into a SkillChainDocument.
 
     Args:
         manifest_path: Path to a *.chain.md file.
 
     Returns:
-        A ChainDocument with steps, goal, and negative_scope populated.
+        A SkillChainDocument with steps, goal, and negative_scope populated.
 
     Raises:
         ValueError: If the file cannot be read or frontmatter is missing.
@@ -257,7 +257,7 @@ def parse_chain(manifest_path: Path) -> ChainDocument:
         raise ValueError(f"Cannot read {manifest_path}: {exc}") from exc
 
     doc = parse_document(str(manifest_path), text)
-    if not isinstance(doc, ChainDocument):
+    if not isinstance(doc, SkillChainDocument):
         raise ValueError(
             f"{manifest_path}: expected type 'chain', got '{doc.type}'"
         )
@@ -271,7 +271,7 @@ def validate_chain(
 ) -> List[dict]:
     """Validate a chain manifest against all structural checks.
 
-    Parses the manifest and runs ChainDocument.issues(). If parsing
+    Parses the manifest and runs SkillChainDocument.issues(). If parsing
     fails, returns a single warn and exits early.
 
     Args:
@@ -296,7 +296,7 @@ def validate_chain(
             "severity": "warn",
         }]
 
-    if not isinstance(doc, ChainDocument):
+    if not isinstance(doc, SkillChainDocument):
         return [{
             "file": str(manifest_path),
             "issue": f"Not a chain document (type: {doc.type!r})",
