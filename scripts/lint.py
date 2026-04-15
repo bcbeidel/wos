@@ -96,7 +96,7 @@ def main() -> None:
         if not any(part.startswith(".") for part in p.parts)
     ]
     if chain_manifests:
-        from wos.chain import validate_chain
+        from wos.skill_chain import validate_chain
         chain_skills_dirs = [root / "skills"] if (root / "skills").is_dir() else []
         for manifest_path in sorted(chain_manifests):
             issues.extend(validate_chain(manifest_path, chain_skills_dirs))

@@ -72,7 +72,7 @@ def _chain_md(
 
 class TestParseChain:
     def test_returns_correct_frontmatter_fields(self, tmp_path: Path) -> None:
-        from wos.chain import parse_chain
+        from wos.skill_chain import parse_chain
 
         path = tmp_path / "my.chain.md"
         path.write_text(_chain_md(), encoding="utf-8")
@@ -86,7 +86,7 @@ class TestParseChain:
         assert doc.negative_scope == "Does not handle auth"
 
     def test_returns_steps_list_with_correct_keys(self, tmp_path: Path) -> None:
-        from wos.chain import parse_chain
+        from wos.skill_chain import parse_chain
 
         path = tmp_path / "my.chain.md"
         path.write_text(_chain_md(), encoding="utf-8")
@@ -103,7 +103,7 @@ class TestParseChain:
         assert step["output_contract"] == "research.md file"
 
     def test_missing_steps_section_records_error(self, tmp_path: Path) -> None:
-        from wos.chain import parse_chain
+        from wos.skill_chain import parse_chain
 
         content = (
             "---\n"
@@ -126,7 +126,7 @@ class TestParseChain:
         assert any("Steps" in i["issue"] for i in issues)
 
     def test_empty_goal_parsed_as_empty_string(self, tmp_path: Path) -> None:
-        from wos.chain import parse_chain
+        from wos.skill_chain import parse_chain
 
         content = (
             "---\n"
@@ -147,7 +147,7 @@ class TestParseChain:
         assert doc.goal == ""
 
     def test_wrong_type_raises_value_error(self, tmp_path: Path) -> None:
-        from wos.chain import parse_chain
+        from wos.skill_chain import parse_chain
 
         content = (
             "---\n"
@@ -179,7 +179,7 @@ class TestSkillChainDocumentIssues:
     # skill existence checks
 
     def test_declared_skill_found_no_skill_issues(self, tmp_path: Path) -> None:
-        from wos.chain import parse_chain
+        from wos.skill_chain import parse_chain
 
         skills_dir = self._make_skills_dir(tmp_path, ["research", "distill"])
         path = tmp_path / "my.chain.md"
@@ -192,7 +192,7 @@ class TestSkillChainDocumentIssues:
         assert skill_issues == []
 
     def test_declared_skill_absent_returns_one_fail(self, tmp_path: Path) -> None:
-        from wos.chain import parse_chain
+        from wos.skill_chain import parse_chain
 
         skills_dir = self._make_skills_dir(tmp_path, ["research"])
         path = tmp_path / "my.chain.md"
@@ -215,7 +215,7 @@ class TestSkillChainDocumentIssues:
         assert "ghost-skill" in skill_issues[0]["issue"]
 
     def test_multiple_missing_skills_multiple_fails(self, tmp_path: Path) -> None:
-        from wos.chain import parse_chain
+        from wos.skill_chain import parse_chain
 
         skills_dir = self._make_skills_dir(tmp_path, [])
         path = tmp_path / "my.chain.md"
@@ -241,7 +241,7 @@ class TestSkillChainDocumentIssues:
     # termination condition checks
 
     def test_empty_goal_returns_fail(self, tmp_path: Path) -> None:
-        from wos.chain import parse_chain
+        from wos.skill_chain import parse_chain
 
         path = tmp_path / "my.chain.md"
         path.write_text(
@@ -257,7 +257,7 @@ class TestSkillChainDocumentIssues:
         assert term_issues[0]["severity"] == "fail"
 
     def test_nonempty_goal_no_termination_issue(self, tmp_path: Path) -> None:
-        from wos.chain import parse_chain
+        from wos.skill_chain import parse_chain
 
         skills_dir = self._make_skills_dir(tmp_path, ["research", "distill"])
         path = tmp_path / "my.chain.md"
@@ -272,7 +272,7 @@ class TestSkillChainDocumentIssues:
     # cycle / step-order checks
 
     def test_step_numbers_out_of_order_returns_fail(self, tmp_path: Path) -> None:
-        from wos.chain import parse_chain
+        from wos.skill_chain import parse_chain
 
         path = tmp_path / "my.chain.md"
         path.write_text(
@@ -298,7 +298,7 @@ class TestSkillChainDocumentIssues:
         )
 
     def test_same_skill_consecutive_steps_returns_fail(self, tmp_path: Path) -> None:
-        from wos.chain import parse_chain
+        from wos.skill_chain import parse_chain
 
         path = tmp_path / "my.chain.md"
         path.write_text(
@@ -322,7 +322,7 @@ class TestSkillChainDocumentIssues:
         )
 
     def test_valid_step_sequence_no_cycle_issues(self, tmp_path: Path) -> None:
-        from wos.chain import parse_chain
+        from wos.skill_chain import parse_chain
 
         skills_dir = self._make_skills_dir(tmp_path, ["research", "distill", "ingest"])
         path = tmp_path / "my.chain.md"
@@ -357,7 +357,7 @@ class TestSkillChainDocumentIssues:
 
 class TestValidateChain:
     def test_clean_manifest_with_skills_no_failures(self, tmp_path: Path) -> None:
-        from wos.chain import validate_chain
+        from wos.skill_chain import validate_chain
 
         # Create skills directory with the two skills used
         skills_dir = tmp_path / "skills"
@@ -374,7 +374,7 @@ class TestValidateChain:
         assert failures == [], failures
 
     def test_manifest_missing_skills_surfaces_failures(self, tmp_path: Path) -> None:
-        from wos.chain import validate_chain
+        from wos.skill_chain import validate_chain
 
         # Empty skills directory — no skills defined
         skills_dir = tmp_path / "skills"
@@ -391,7 +391,7 @@ class TestValidateChain:
                    for i in failures)
 
     def test_malformed_manifest_returns_single_warn(self, tmp_path: Path) -> None:
-        from wos.chain import validate_chain
+        from wos.skill_chain import validate_chain
 
         # Missing frontmatter — will fail to parse
         manifest_path = tmp_path / "bad.chain.md"
