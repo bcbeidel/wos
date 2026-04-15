@@ -6,11 +6,12 @@
 """Assess research document state for skill resumption.
 
 Usage:
-    python tools/wiki/skills/research/scripts/research_assess.py --file PATH
-    python tools/wiki/skills/research/scripts/research_assess.py --file PATH --gate all
-    python tools/wiki/skills/research/scripts/research_assess.py \\
+    python plugins/wiki/skills/research/scripts/research_assess.py --file PATH
+    python plugins/wiki/skills/research/scripts/research_assess.py \\
+        --file PATH --gate all
+    python plugins/wiki/skills/research/scripts/research_assess.py \\
         --file PATH --gate evaluator_exit
-    python tools/wiki/skills/research/scripts/research_assess.py \\
+    python plugins/wiki/skills/research/scripts/research_assess.py \\
         --scan [--root DIR] [--subdir PATH]
 """
 from __future__ import annotations
@@ -25,7 +26,7 @@ from pathlib import Path
 # Prefer CLAUDE_PLUGIN_ROOT env var (set by Claude Code for hooks/MCP);
 # fall back to navigating from __file__ (required for skill-invoked scripts).
 _env_root = os.environ.get("CLAUDE_PLUGIN_ROOT", "")
-# tools/wiki/skills/research/scripts/ → research/ → skills/ → tools/wiki/ (plugin root)
+# plugins/wiki/skills/research/scripts/ → research/ → skills/ → plugins/wiki/
 _plugin_root = (
     Path(_env_root) if _env_root and os.path.isdir(_env_root)
     else Path(__file__).resolve().parent.parent.parent.parent

@@ -11,7 +11,7 @@ Reference for CLI commands used across multiple research stages — audit valida
 # Python Utilities Reference
 
 CLI commands for research sessions. `<plugin-scripts-dir>` refers to
-the `scripts/` directory at the root of the `wiki` plugin (`tools/wiki/scripts/`).
+the `scripts/` directory at the root of the `wiki` plugin (`plugins/wiki/scripts/`).
 
 ## Validate a Document
 

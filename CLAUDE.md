@@ -8,7 +8,7 @@ maintaining structured project context. You are helping build this tooling.
 ## What This Repo Is
 
 Toolkit is a plugin marketplace (not a project context itself). It provides 5
-self-contained, independently installable plugins under `tools/`. Each plugin
+self-contained, independently installable plugins under `plugins/`. Each plugin
 owns its Python code, scripts, skills, and tests. When working in this repo,
 you are building the tools, not using them.
 
@@ -17,17 +17,17 @@ you are building the tools, not using them.
 Install plugin packages and dev dependencies:
 
 ```bash
-pip install -e tools/wiki -e tools/check -e ".[dev]"
+pip install -e plugins/wiki -e plugins/check -e ".[dev]"
 ```
 
 Run tests:
 ```bash
-python -m pytest tools/wiki/tests/ tools/check/tests/ -v
+python -m pytest plugins/wiki/tests/ plugins/check/tests/ -v
 ```
 
 Lint:
 ```bash
-ruff check tools/
+ruff check plugins/
 ```
 
 No runtime dependencies (stdlib only). Dev dependencies in root `pyproject.toml`.
@@ -53,15 +53,15 @@ Full descriptions: [Design Principles](PRINCIPLES.md)
 
 ### Marketplace Structure
 
-Five plugins under `tools/`, each independently installable:
+Five plugins under `plugins/`, each independently installable:
 
 | Plugin | Path | Python package | Skills |
 |--------|------|----------------|--------|
-| `build` | `tools/build/` | none | `skill`, `rule`, `hook`, `subagent`, `refine-prompt` |
-| `check` | `tools/check/` | `check` | `skill`, `rule`, `hook`, `subagent`, `skill-chain` |
-| `wiki` | `tools/wiki/` | `wiki` | `setup`, `research`, `ingest`, `lint` |
-| `work` | `tools/work/` | none | `scope`, `plan`, `start`, `verify`, `finish`, `audit`, `retro` |
-| `consider` | `tools/consider/` | none | 16 mental models + meta |
+| `build` | `plugins/build/` | none | `build-skill`, `build-rule`, `build-hook`, `build-subagent`, `build-refine-prompt` |
+| `check` | `plugins/check/` | `check` | `check-skill`, `check-rule`, `check-hook`, `check-subagent`, `check-skill-chain` |
+| `wiki` | `plugins/wiki/` | `wiki` | `setup`, `research`, `ingest`, `lint` |
+| `work` | `plugins/work/` | none | `scope-work`, `plan-work`, `start-work`, `verify-work`, `finish-work` |
+| `consider` | `plugins/consider/` | none | 16 mental models + meta |
 
 Each plugin directory contains:
 - `.claude-plugin/plugin.json` — plugin manifest
@@ -73,7 +73,7 @@ Each plugin directory contains:
 
 ### Package Structure
 
-**`tools/wiki/wiki/`** — importable Python package:
+**`plugins/wiki/wiki/`** — importable Python package:
 - `frontmatter.py` — custom YAML subset parser (stdlib-only)
 - `document.py` — `Document` base class + subclasses + `parse_document()` factory
 - `discovery.py` — document discovery via project tree walking (.gitignore-aware)
@@ -89,12 +89,12 @@ Each plugin directory contains:
 - `plan.py` — `PlanDocument` subclass + task parsing + completion tracking
 - `project.py` — thin orchestration wrapper over validators
 
-**`tools/check/check/`** — importable Python package (standalone for build tooling):
+**`plugins/check/check/`** — importable Python package (standalone for build tooling):
 - `document.py` — duplicated from wiki (check must be standalone)
 - `url_checker.py` — duplicated from wiki
 - `skill.py` — `SkillDocument` + `check_skill_sizes()` + `check_skill_meta()`
 
-**`tools/wiki/scripts/`** — thin CLI entry points with PEP 723 inline metadata:
+**`plugins/wiki/scripts/`** — thin CLI entry points with PEP 723 inline metadata:
 - `lint.py` — run validation checks
 - `check_url.py` — URL reachability checking
 - `update_preferences.py` — write communication preferences to AGENTS.md
@@ -126,15 +126,15 @@ subclass — never on the base class.
 
 ### Skills
 
-Skill prefix follows plugin name (e.g., `/wiki:setup`, `/work:plan`, `/build:skill`).
-Skills live at `tools/<plugin>/skills/<name>/SKILL.md`.
+Skill prefix follows plugin name (e.g., `/wiki:setup`, `/work:plan-work`, `/build:build-skill`).
+Skills live at `plugins/<plugin>/skills/<name>/SKILL.md`.
 
 ### Key Entry Points
 
-- `tools/wiki/wiki/document.py` — Document dataclass and `parse_document()`
-- `tools/wiki/wiki/validators.py` — `validate_project()` runs all checks
-- `tools/check/check/skill.py` — `check_skill_sizes()` and `check_skill_meta()` for skill quality
-- `tools/wiki/scripts/lint.py` — CLI for validation
+- `plugins/wiki/wiki/document.py` — Document dataclass and `parse_document()`
+- `plugins/wiki/wiki/validators.py` — `validate_project()` runs all checks
+- `plugins/check/check/skill.py` — `check_skill_sizes()` and `check_skill_meta()` for skill quality
+- `plugins/wiki/scripts/lint.py` — CLI for validation
 
 ## Reference
 
@@ -153,14 +153,14 @@ Skills live at `tools/<plugin>/skills/<name>/SKILL.md`.
 - Python 3.9 — use `from __future__ import annotations` for type hints,
   `Optional[X]` for runtime expressions
 - **Script invocation: `python` is the universal pattern.** Scripts in
-  `tools/wiki/scripts/` have PEP 723 inline metadata and stdlib-only dependencies.
+  `plugins/wiki/scripts/` have PEP 723 inline metadata and stdlib-only dependencies.
   Skills invoke them via `python <plugin-scripts-dir>/script.py`. Dev
   dependencies (pytest, ruff) install via `pip install -e ".[dev]"`.
 - CLI scripts default to CWD as root; accept `--root` for override
 - **Script path convention:** Scripts use `Path(__file__).parent.parent` (2 levels)
   to find the plugin root. Per-skill scripts use the appropriate depth to reach
   their plugin root. Each `sys.path` insertion includes a comment with the full
-  path chain (e.g., `# tools/wiki/scripts/ → tools/wiki/ (plugin root)`).
+  path chain (e.g., `# plugins/wiki/scripts/ → plugins/wiki/ (plugin root)`).
   Do NOT use marker-based walk-up (`pyproject.toml` search) — it finds the
   user's project root instead of the plugin root.
 - **`work` and `build` scripts:** These plugins have no Python package. Their

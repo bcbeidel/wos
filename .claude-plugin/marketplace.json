@@ -6,27 +6,27 @@
   "plugins": [
     {
       "name": "build",
-      "source": "./tools/build",
+      "source": "./plugins/build",
       "description": "Skills for creating and refining Claude Code skills, rules, hooks, and subagents."
     },
     {
       "name": "check",
-      "source": "./tools/check",
+      "source": "./plugins/check",
       "description": "Skills for auditing Claude Code skills, rules, hooks, and subagents for quality issues."
     },
     {
       "name": "wiki",
-      "source": "./tools/wiki",
+      "source": "./plugins/wiki",
       "description": "Skills for building and maintaining structured project context — setup, research, ingest, and lint."
     },
     {
       "name": "work",
-      "source": "./tools/work",
-      "description": "Skills for the full work lifecycle — scope, plan, start, verify, finish, audit, and retro."
+      "source": "./plugins/work",
+      "description": "Skills for the full work lifecycle — scope, plan, start, verify, and finish."
     },
     {
       "name": "consider",
-      "source": "./tools/consider",
+      "source": "./plugins/consider",
       "description": "Structured mental models for decision-making — first principles, Occam's razor, inversion, and more."
     }
   ],

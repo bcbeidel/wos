@@ -14,9 +14,9 @@ Five self-contained plugins, each independently installable:
 | Plugin | Install | Skills |
 |--------|---------|--------|
 | `wiki` | `claude plugin install bcbeidel/toolkit --plugin wiki` | `setup`, `research`, `ingest`, `lint` |
-| `build` | `claude plugin install bcbeidel/toolkit --plugin build` | `skill`, `rule`, `hook`, `subagent`, `refine-prompt` |
-| `check` | `claude plugin install bcbeidel/toolkit --plugin check` | `skill`, `rule`, `hook`, `subagent`, `skill-chain` |
-| `work` | `claude plugin install bcbeidel/toolkit --plugin work` | `scope`, `plan`, `start`, `verify`, `finish`, `audit`, `retro` |
+| `build` | `claude plugin install bcbeidel/toolkit --plugin build` | `build-skill`, `build-rule`, `build-hook`, `build-subagent`, `build-refine-prompt` |
+| `check` | `claude plugin install bcbeidel/toolkit --plugin check` | `check-skill`, `check-rule`, `check-hook`, `check-subagent`, `check-skill-chain` |
+| `work` | `claude plugin install bcbeidel/toolkit --plugin work` | `scope-work`, `plan-work`, `start-work`, `verify-work`, `finish-work` |
 | `consider` | `claude plugin install bcbeidel/toolkit --plugin consider` | 16 mental models + meta |
 
 ## Recommended Groupings
@@ -45,19 +45,19 @@ claude plugin install bcbeidel/toolkit --plugin consider
 
 ```bash
 # Install Python packages and dev dependencies
-pip install -e tools/wiki -e tools/check -e ".[dev]"
+pip install -e plugins/wiki -e plugins/check -e ".[dev]"
 
 # Run tests
-python -m pytest tools/wiki/tests/ tools/check/tests/ -v
+python -m pytest plugins/wiki/tests/ plugins/check/tests/ -v
 
 # Lint
-ruff check tools/
+ruff check plugins/
 ```
 
 ## Project Structure
 
 ```
-tools/
+plugins/
   build/               # Plugin: create skills, rules, hooks, subagents
   check/               # Plugin: audit skills, rules, hooks, subagents
   wiki/                # Plugin: setup, research, ingest, lint
@@ -65,7 +65,7 @@ tools/
     scripts/           # Shared CLI scripts
     skills/            # Skill definitions
     tests/             # Tests
-  work/                # Plugin: scope, plan, start, verify, finish, audit, retro
+  work/                # Plugin: scope-work, plan-work, start-work, verify-work, finish-work
   consider/            # Plugin: structured mental models
 docs/                  # Documentation, plans, and research
   context/             # Topic areas
@@ -79,4 +79,4 @@ docs/                  # Documentation, plans, and research
 
 - Python 3.9+
 - No runtime Python dependencies (stdlib only)
-- `gh` CLI (for retrospective skill)
+- `gh` CLI (for `work:finish-work` skill)

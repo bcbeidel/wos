@@ -16,7 +16,7 @@ audit-based validation.
     type: plan
     status: draft
     related:
-      - tools/work/_shared/references/plan-format.md
+      - plugins/work/_shared/references/plan-format.md
     ---
 
     # Brainstorm Skill Implementation

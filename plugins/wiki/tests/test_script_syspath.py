@@ -4,9 +4,9 @@ Scripts must work when invoked from any working directory, not just the
 plugin root. This simulates the installed-plugin scenario where CWD is
 the user's project.
 
-New path convention: tools/wiki/scripts/ is 2 levels below the plugin root
-(tools/wiki/). _bootstrap.py uses Path(__file__).resolve().parent.parent
-to find tools/wiki/, which is where the wiki editable install lives.
+New path convention: plugins/wiki/scripts/ is 2 levels below the plugin root
+(plugins/wiki/). _bootstrap.py uses Path(__file__).resolve().parent.parent
+to find plugins/wiki/, which is where the wiki editable install lives.
 """
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-# tools/wiki/tests/ → tools/wiki/ → tools/wiki/scripts/
+# plugins/wiki/tests/ → plugins/wiki/ → plugins/wiki/scripts/
 SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "scripts"
 
 

@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 def _plugin_root() -> Path:
-    """Return the wiki plugin root (tools/wiki/)."""
+    """Return the wiki plugin root (plugins/wiki/)."""
     return Path(__file__).resolve().parent.parent
 
 

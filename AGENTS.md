@@ -16,15 +16,15 @@ Documents put key insights first and last; supplemental detail in the middle.
 
 | Plugin | Path | Skills |
 |--------|------|--------|
-| `build` | `tools/build/` | `skill`, `rule`, `hook`, `subagent`, `refine-prompt` |
-| `check` | `tools/check/` | `skill`, `rule`, `hook`, `subagent`, `skill-chain` |
-| `wiki` | `tools/wiki/` | `setup`, `research`, `ingest`, `lint` |
-| `work` | `tools/work/` | `scope`, `plan`, `start`, `verify`, `finish`, `audit`, `retro` |
-| `consider` | `tools/consider/` | 16 mental models + meta |
+| `build` | `plugins/build/` | `build-skill`, `build-rule`, `build-hook`, `build-subagent`, `build-refine-prompt` |
+| `check` | `plugins/check/` | `check-skill`, `check-rule`, `check-hook`, `check-subagent`, `check-skill-chain` |
+| `wiki` | `plugins/wiki/` | `setup`, `research`, `ingest`, `lint` |
+| `work` | `plugins/work/` | `scope-work`, `plan-work`, `start-work`, `verify-work`, `finish-work` |
+| `consider` | `plugins/consider/` | 16 mental models + meta |
 
-Each plugin's skills live at `tools/<plugin>/skills/<name>/SKILL.md`.
-Python packages: `tools/wiki/wiki/` and `tools/check/check/` (editable installs).
-Shared scripts: `tools/wiki/scripts/`.
+Each plugin's skills live at `plugins/<plugin>/skills/<name>/SKILL.md`.
+Python packages: `plugins/wiki/wiki/` and `plugins/check/check/` (editable installs).
+Shared scripts: `plugins/wiki/scripts/`.
 
 ### Areas
 | Area | Path |

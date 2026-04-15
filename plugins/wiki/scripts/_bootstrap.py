@@ -4,8 +4,8 @@ Import as a side effect before importing from wiki or check:
 
     import _bootstrap  # noqa: F401
 
-When run as ``python tools/wiki/scripts/<name>.py``, Python adds
-``tools/wiki/scripts/`` to sys.path[0], so ``import _bootstrap`` finds
+When run as ``python plugins/wiki/scripts/<name>.py``, Python adds
+``plugins/wiki/scripts/`` to sys.path[0], so ``import _bootstrap`` finds
 this file. It resolves the plugin root and inserts it so that editable
 installs of ``wiki`` and ``check`` are importable.
 
@@ -19,7 +19,7 @@ import sys
 from pathlib import Path
 
 _env_root = os.environ.get("CLAUDE_PLUGIN_ROOT", "")
-# tools/wiki/scripts/ → tools/wiki/ (plugin root)
+# plugins/wiki/scripts/ → plugins/wiki/ (plugin root)
 plugin_root: Path = (
     Path(_env_root) if _env_root and os.path.isdir(_env_root)
     else Path(__file__).resolve().parent.parent
