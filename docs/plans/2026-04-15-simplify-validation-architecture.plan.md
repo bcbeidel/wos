@@ -2,7 +2,7 @@
 name: Simplify Validation Architecture
 description: Replace grep-equivalent Python validation with self-contained shell scripts; strip parallel dispatch and table parsing from Python assessment modules; delete /distill and related artifacts; create a clean baseline for the toolkit restructure.
 type: plan
-status: executing
+status: completed
 branch: simplify/validation-architecture
 related:
   - docs/plans/2026-04-14-restructure-toolkit-marketplace.plan.md
@@ -255,7 +255,7 @@ does not call reindex.
   files after all deletions. Run the full test suite.
   **Verify:** `python -m pytest tests/ -v` → 0 failures
 
-- [x] Task 16: Run the full lint check to confirm zero structural regressions. <!-- sha:pending -->
+- [x] Task 16: Run the full lint check to confirm zero structural regressions. <!-- sha:7493488 -->
   **Verify:** `python scripts/lint.py --root . --no-urls` → 0 fail findings
 
 ## Validation
