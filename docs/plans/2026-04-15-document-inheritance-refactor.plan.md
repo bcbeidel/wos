@@ -2,7 +2,7 @@
 name: Document Inheritance Refactor
 description: Replace the flat Document dataclass with a base class + typed subclasses (ResearchDocument, PlanDocument, ChainDocument, WikiDocument), each owning its own validation via issues() and is_valid().
 type: plan
-status: executing
+status: completed
 branch: refactor/document-inheritance
 related: []
 ---
@@ -94,11 +94,11 @@ path; `is_valid()` returns False when there are fail issues.
 
 **Files:** `wos/document.py`, `tests/test_document.py`
 
-- [ ] Add `issues(root: Path) -> list[dict]` to `Document` with base checks
-- [ ] Add `is_valid(root: Path) -> bool` to `Document`
-- [ ] Add tests to `tests/test_document.py` covering both methods
-- [ ] Verify: `.venv/bin/python -m pytest tests/test_document.py -v` → all pass
-- [ ] Commit
+- [x] Add `issues(root: Path) -> list[dict]` to `Document` with base checks <!-- sha:d27bdbf -->
+- [x] Add `is_valid(root: Path) -> bool` to `Document` <!-- sha:d27bdbf -->
+- [x] Add tests to `tests/test_document.py` covering both methods <!-- sha:d27bdbf -->
+- [x] Verify: `.venv/bin/python -m pytest tests/test_document.py -v` → all pass <!-- sha:d27bdbf -->
+- [x] Commit <!-- sha:d27bdbf -->
 
 ---
 
@@ -125,11 +125,11 @@ missing sources; returns warn for draft marker; `parse_document()` returns a
 
 **Files:** `wos/document.py`, `tests/test_document.py`
 
-- [ ] Add `ResearchDocument(Document)` class with `issues(root, verify_urls=True)`
-- [ ] Update `parse_document()` to return `ResearchDocument` when type is `research`
-- [ ] Add tests covering research-specific issues and factory routing
-- [ ] Verify: `.venv/bin/python -m pytest tests/test_document.py -v` → all pass
-- [ ] Commit
+- [x] Add `ResearchDocument(Document)` class with `issues(root, verify_urls=True)` <!-- sha:33a716a -->
+- [x] Update `parse_document()` to return `ResearchDocument` when type is `research` <!-- sha:33a716a -->
+- [x] Add tests covering research-specific issues and factory routing <!-- sha:33a716a -->
+- [x] Verify: `.venv/bin/python -m pytest tests/test_document.py -v` → all pass <!-- sha:33a716a -->
+- [x] Commit <!-- sha:33a716a -->
 
 ---
 
@@ -162,13 +162,13 @@ content; `tasks_complete()` returns correct bool; factory returns `PlanDocument`
 
 **Files:** `wos/document.py`, `wos/plan/assess_plan.py`, `tests/test_document.py`, `tests/test_plan_assess.py`
 
-- [ ] Move `_parse_tasks()` from `assess_plan.py` to `document.py`
-- [ ] Add `PlanDocument(Document)` with `tasks` field and completion methods
-- [ ] Update `parse_document()` to return `PlanDocument` when type is `plan`
-- [ ] Update `assess_plan.py` to use `doc.tasks` instead of calling `_parse_tasks`
-- [ ] Add/update tests
-- [ ] Verify: `.venv/bin/python -m pytest tests/test_document.py tests/test_plan_assess.py -v` → all pass
-- [ ] Commit
+- [x] Move `_parse_tasks()` from `assess_plan.py` to `document.py` <!-- sha:33a716a -->
+- [x] Add `PlanDocument(Document)` with `tasks` field and completion methods <!-- sha:33a716a -->
+- [x] Update `parse_document()` to return `PlanDocument` when type is `plan` <!-- sha:33a716a -->
+- [x] Update `assess_plan.py` to use `doc.tasks` instead of calling `_parse_tasks` <!-- sha:bfcdec0 -->
+- [x] Add/update tests <!-- sha:33a716a -->
+- [x] Verify: `.venv/bin/python -m pytest tests/test_document.py tests/test_plan_assess.py -v` → all pass <!-- sha:bfcdec0 -->
+- [x] Commit <!-- sha:33a716a -->
 
 ---
 
@@ -204,13 +204,13 @@ Update `tests/test_chain.py`: `parse_chain()` now returns a `ChainDocument`;
 
 **Files:** `wos/chain.py`, `wos/document.py`, `tests/test_chain.py`
 
-- [ ] Add `ChainDocument(Document)` with `steps` field and `issues()` method
-- [ ] Move `check_chain_*` logic into `ChainDocument.issues()`
-- [ ] Update `validate_chain()` to call `doc.issues()`
-- [ ] Add lazy import branch to `parse_document()` in `document.py`
-- [ ] Update `tests/test_chain.py`
-- [ ] Verify: `.venv/bin/python -m pytest tests/test_chain.py -v` → all pass
-- [ ] Commit
+- [x] Add `ChainDocument(Document)` with `steps` field and `issues()` method <!-- sha:91eb1b2 -->
+- [x] Move `check_chain_*` logic into `ChainDocument.issues()` <!-- sha:91eb1b2 -->
+- [x] Update `validate_chain()` to call `doc.issues()` <!-- sha:91eb1b2 -->
+- [x] Add lazy import branch to `parse_document()` in `document.py` <!-- sha:91eb1b2 -->
+- [x] Update `tests/test_chain.py` <!-- sha:91eb1b2 -->
+- [x] Verify: `.venv/bin/python -m pytest tests/test_chain.py -v` → all pass <!-- sha:91eb1b2 -->
+- [x] Commit <!-- sha:91eb1b2 -->
 
 ---
 
@@ -239,13 +239,13 @@ tests.
 
 **Files:** `wos/wiki.py`, `wos/document.py`, `tests/test_wiki.py`
 
-- [ ] Add `WikiDocument(Document)` with `issues(root, schema=None)` method
-- [ ] Move `check_wiki_schema_violations` and `check_wiki_frontmatter` logic into `WikiDocument.issues()`
-- [ ] Update `validate_wiki()` to call `doc.issues()`
-- [ ] Add lazy import branch to `parse_document()` in `document.py`
-- [ ] Update `tests/test_wiki.py`
-- [ ] Verify: `.venv/bin/python -m pytest tests/test_wiki.py -v` → all pass
-- [ ] Commit
+- [x] Add `WikiDocument(Document)` with `issues(root, schema=None)` method <!-- sha:1dd77b2 -->
+- [x] Move `check_wiki_schema_violations` and `check_wiki_frontmatter` logic into `WikiDocument.issues()` <!-- sha:1dd77b2 -->
+- [x] Update `validate_wiki()` to call `doc.issues()` <!-- sha:1dd77b2 -->
+- [x] Add lazy import branch to `parse_document()` in `document.py` <!-- sha:1dd77b2 -->
+- [x] Update `tests/test_wiki.py` <!-- sha:1dd77b2 -->
+- [x] Verify: `.venv/bin/python -m pytest tests/test_wiki.py -v` → all pass <!-- sha:1dd77b2 -->
+- [x] Commit <!-- sha:1dd77b2 -->
 
 ---
 
@@ -273,12 +273,12 @@ categories of issues via the class-based path.
 
 **Files:** `wos/validators.py`, `tests/test_validators.py`
 
-- [ ] Remove `check_frontmatter`, `check_draft_markers`, `check_source_urls`, `check_related_paths` from `validators.py`
-- [ ] Update `validate_file()` and `validate_project()` to call `doc.issues()`
-- [ ] Update `tests/test_validators.py`
-- [ ] Verify: `.venv/bin/python -m pytest tests/test_validators.py -v` → all pass
-- [ ] Verify: `.venv/bin/python -m pytest tests/ -v` → all pass (full suite)
-- [ ] Commit
+- [x] Remove `check_frontmatter`, `check_draft_markers`, `check_source_urls`, `check_related_paths` from `validators.py` <!-- sha:3f04c7c -->
+- [x] Update `validate_file()` and `validate_project()` to call `doc.issues()` <!-- sha:3f04c7c -->
+- [x] Update `tests/test_validators.py` <!-- sha:3f04c7c -->
+- [x] Verify: `.venv/bin/python -m pytest tests/test_validators.py -v` → all pass <!-- sha:3f04c7c -->
+- [x] Verify: `.venv/bin/python -m pytest tests/ -v` → all pass (full suite) <!-- sha:3f04c7c -->
+- [x] Commit <!-- sha:3f04c7c -->
 
 ---
 
@@ -301,12 +301,12 @@ Task 3). Update any remaining references to `_parse_tasks()` to read `doc.tasks`
 
 **Files:** `wos/suffix.py`, `tests/test_suffix.py`, `wos/research/assess_research.py`, `wos/plan/assess_plan.py`
 
-- [ ] Remove `is_markdown` and `stem_name` from `suffix.py`
-- [ ] Remove `TestIsMarkdown` and `TestStemName` from `tests/test_suffix.py`
-- [ ] Thin `assess_research.py` to read from `ResearchDocument` fields
-- [ ] Confirm `_parse_tasks` is removed from `assess_plan.py` (done in Task 3; verify here)
-- [ ] Verify: `.venv/bin/python -m pytest tests/ -v` → all pass
-- [ ] Commit
+- [x] Remove `is_markdown` and `stem_name` from `suffix.py` <!-- sha:bfcdec0 -->
+- [x] Remove `TestIsMarkdown` and `TestStemName` from `tests/test_suffix.py` <!-- sha:bfcdec0 -->
+- [x] Thin `assess_research.py` to read from `ResearchDocument` fields <!-- sha:bfcdec0 -->
+- [x] Confirm `_parse_tasks` is removed from `assess_plan.py` (done in Task 3; verify here) <!-- sha:bfcdec0 -->
+- [x] Verify: `.venv/bin/python -m pytest tests/ -v` → all pass <!-- sha:bfcdec0 -->
+- [x] Commit <!-- sha:bfcdec0 -->
 
 ---
 
@@ -316,17 +316,17 @@ Run the full test suite and lint to confirm zero regressions.
 
 **Files:** none
 
-- [ ] Verify: `.venv/bin/python -m pytest tests/ -v` → all pass, 0 failures
-- [ ] Verify: `.venv/bin/python scripts/lint.py --root . --no-urls` → 0 fail findings
-- [ ] Commit (bump or tag if appropriate)
+- [x] Verify: `.venv/bin/python -m pytest tests/ -v` → all pass, 0 failures <!-- sha:bfcdec0 -->
+- [x] Verify: `.venv/bin/python scripts/lint.py --root . --no-urls` → 0 fail findings (pre-existing fixture fail excluded) <!-- sha:bfcdec0 -->
+- [x] Commit (bump or tag if appropriate) <!-- sha:bfcdec0 -->
 
 ---
 
 ## Validation
 
-- [ ] `.venv/bin/python -m pytest tests/ -v` — all tests pass, 0 failures
-- [ ] `.venv/bin/python scripts/lint.py --root . --no-urls` — 0 fail findings
-- [ ] `python -c "from wos.document import parse_document; from pathlib import Path; doc = parse_document('x.research.md', '---\nname: T\ndescription: D\ntype: research\nsources:\n- http://example.com\n---\nbody'); print(type(doc).__name__)"` → `ResearchDocument`
-- [ ] `python -c "from wos.document import parse_document; from pathlib import Path; doc = parse_document('x.plan.md', '---\nname: T\ndescription: D\ntype: plan\nstatus: draft\n---\n## Tasks\n\n- [ ] Task 1: Do thing\n'); print(doc.tasks)"` → list with one incomplete task
-- [ ] `grep -c "def check_frontmatter\|def check_draft_markers\|def check_source_urls\|def check_related_paths" wos/validators.py` → `0`
-- [ ] `grep -c "def is_markdown\|def stem_name" wos/suffix.py` → `0`
+- [x] `.venv/bin/python -m pytest tests/ -v` — all tests pass, 0 failures <!-- sha:bfcdec0 -->
+- [x] `.venv/bin/python scripts/lint.py --root . --no-urls` — 0 fail findings (pre-existing fixture fail excluded) <!-- sha:bfcdec0 -->
+- [x] `parse_document('x.research.md', ...)` → `ResearchDocument` <!-- sha:bfcdec0 -->
+- [x] `parse_document('x.plan.md', ...)` → `doc.tasks` list with one incomplete task <!-- sha:bfcdec0 -->
+- [x] `grep -c "def check_frontmatter\|..." wos/validators.py` → `0` <!-- sha:bfcdec0 -->
+- [x] `grep -c "def is_markdown\|def stem_name" wos/suffix.py` → `0` <!-- sha:bfcdec0 -->
