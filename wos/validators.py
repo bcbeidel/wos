@@ -1,124 +1,20 @@
 """Per-file and project-wide validation checks.
 
-Provides eight individual checks (frontmatter, timestamps, content length,
-draft markers, source URLs, related paths, index sync, project files) and two
+Provides content length check, index sync, project-file checks, and two
 composite functions (validate_file, validate_project) that orchestrate
-them.
+them. Document-level validation (frontmatter, sources, URLs, related
+paths) now lives on the document subclasses via doc.issues(root).
 
 Each check returns a list of issue dicts with keys: file, issue, severity.
 """
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
 from typing import List, Optional
 
-from wos.document import Document, parse_document
+from wos.document import Document, ResearchDocument, parse_document
 from wos.index import check_index_sync, extract_preamble
-from wos.url_checker import check_urls
-
-# ── Individual checks ──────────────────────────────────────────
-
-
-def check_frontmatter(doc: Document) -> List[dict]:
-    """Check frontmatter fields: required fields, research sources, type issues.
-
-    Args:
-        doc: A parsed Document instance.
-
-    Returns:
-        List of issue dicts with severity 'fail' or 'warn'.
-    """
-    issues: List[dict] = []
-
-    # FAIL: required fields
-    if not doc.name or not doc.name.strip():
-        issues.append({
-            "file": doc.path,
-            "issue": "Frontmatter 'name' is empty",
-            "severity": "fail",
-        })
-    if not doc.description or not doc.description.strip():
-        issues.append({
-            "file": doc.path,
-            "issue": "Frontmatter 'description' is empty",
-            "severity": "fail",
-        })
-
-    # FAIL: research documents must have sources
-    if doc.type == "research" and not doc.sources:
-        issues.append({
-            "file": doc.path,
-            "issue": "Research document has no sources",
-            "severity": "fail",
-        })
-
-    # WARN: source items should be strings, not dicts
-    for idx, source in enumerate(doc.sources):
-        if isinstance(source, dict):
-            issues.append({
-                "file": doc.path,
-                "issue": f"sources[{idx}] is a dict, expected a URL string",
-                "severity": "warn",
-            })
-
-    # WARN: context files should have related fields
-    if doc.type == "context" and not doc.related:
-        issues.append({
-            "file": doc.path,
-            "issue": "Context file has no related fields",
-            "severity": "warn",
-        })
-
-    return issues
-
-
-_ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-
-
-def check_timestamps(doc: Document) -> List[dict]:
-    """Warn when created_at or updated_at have invalid ISO 8601 date format.
-
-    Expected format: YYYY-MM-DD. Also warns if updated_at is earlier than
-    created_at.
-
-    Args:
-        doc: A parsed Document instance.
-
-    Returns:
-        List of issue dicts with severity 'warn'.
-    """
-    issues: List[dict] = []
-
-    for field_name in ("created_at", "updated_at"):
-        value = getattr(doc, field_name)
-        if value is None:
-            continue
-        if not _ISO_DATE_RE.match(value):
-            issues.append({
-                "file": doc.path,
-                "issue": (
-                    f"'{field_name}' is not a valid ISO 8601 date"
-                    f" (YYYY-MM-DD): {value}"
-                ),
-                "severity": "warn",
-            })
-
-    if doc.created_at and doc.updated_at:
-        if (_ISO_DATE_RE.match(doc.created_at)
-                and _ISO_DATE_RE.match(doc.updated_at)
-                and doc.updated_at < doc.created_at):
-            issues.append({
-                "file": doc.path,
-                "issue": (
-                    f"'updated_at' ({doc.updated_at}) is before"
-                    f" 'created_at' ({doc.created_at})"
-                ),
-                "severity": "warn",
-            })
-
-    return issues
 
 
 def check_content(
@@ -144,7 +40,7 @@ def check_content(
     if doc.path.endswith("_index.md"):
         return []
 
-    word_count = len(doc.content.split())
+    word_count = doc.word_count
     if word_count > max_words:
         return [{
             "file": doc.path,
@@ -158,105 +54,6 @@ def check_content(
             "severity": "warn",
         }]
     return []
-
-
-def check_source_urls(doc: Document) -> List[dict]:
-    """Check that all URLs in doc.sources are reachable.
-
-    Calls check_urls() from wos.url_checker. If the document has no
-    sources, the check is skipped entirely (check_urls is not called).
-
-    Args:
-        doc: A parsed Document instance.
-
-    Returns:
-        List of issue dicts. Empty if all sources are reachable.
-    """
-    if not doc.sources:
-        return []
-
-    # Normalize: sources may be plain URL strings or dicts with a "url" key.
-    urls = []
-    for s in doc.sources:
-        if isinstance(s, dict):
-            urls.append(s.get("url", s.get("href", "")))
-        else:
-            urls.append(str(s))
-
-    results = check_urls(urls)
-    issues: List[dict] = []
-    for result in results:
-        if not result.reachable:
-            if result.status in (403, 429):
-                msg = (
-                    f"URL returned {result.status}"
-                    f" (site may block automated checks):"
-                    f" {result.url}"
-                )
-                issues.append({
-                    "file": doc.path,
-                    "issue": msg,
-                    "severity": "warn",
-                })
-            else:
-                reason = f" ({result.reason})" if result.reason else ""
-                issues.append({
-                    "file": doc.path,
-                    "issue": f"Source URL unreachable: {result.url}{reason}",
-                    "severity": "fail",
-                })
-    return issues
-
-
-def check_draft_markers(doc: Document) -> List[dict]:
-    """Warn when research documents contain DRAFT markers.
-
-    Only applies to documents with type: research. A ``<!-- DRAFT -->``
-    marker indicates an incomplete workflow.
-
-    Args:
-        doc: A parsed Document instance.
-
-    Returns:
-        List of issue dicts. Empty if no marker found.
-    """
-    if doc.type != "research":
-        return []
-    if "<!-- DRAFT -->" in doc.content:
-        return [{
-            "file": doc.path,
-            "issue": "Research document contains <!-- DRAFT --> marker",
-            "severity": "warn",
-        }]
-    return []
-
-
-def check_related_paths(doc: Document, root: Path) -> List[dict]:
-    """Check that file paths in doc.related exist on disk.
-
-    URLs (http:// or https://) are skipped — only local file paths
-    are validated.
-
-    Args:
-        doc: A parsed Document instance.
-        root: Project root directory for resolving relative paths.
-
-    Returns:
-        List of issue dicts. Empty if all paths exist.
-    """
-    issues: List[dict] = []
-    for rel in doc.related:
-        # Skip URLs
-        if rel.startswith("http://") or rel.startswith("https://"):
-            continue
-        full_path = root / rel
-        if not full_path.exists():
-            issues.append({
-                "file": doc.path,
-                "issue": f"Related path does not exist: {rel}",
-                "severity": "fail",
-            })
-    return issues
 
 
 def check_all_indexes(directory: Path) -> List[dict]:
@@ -307,14 +104,16 @@ def validate_file(
 ) -> List[dict]:
     """Validate a single markdown file.
 
-    Reads the file, parses it with parse_document(), then runs
-    checks 1-4 (frontmatter, research sources, source URLs, related
-    paths). If parsing fails, returns a single parse-error issue.
+    Reads the file, parses it with parse_document(), then calls
+    doc.issues(root) (type-dispatched) plus content-length check.
+    If parsing fails, returns a single parse-error issue.
 
     Args:
         path: Path to the .md file.
         root: Project root directory.
         verify_urls: If False, skip source URL reachability check.
+        context_max_words: Upper word count threshold for context files.
+        context_min_words: Lower word count threshold for context files.
 
     Returns:
         List of issue dicts.
@@ -338,15 +137,23 @@ def validate_file(
         }]
 
     issues: List[dict] = []
-    issues.extend(check_frontmatter(doc))
-    issues.extend(check_timestamps(doc))
+
+    if isinstance(doc, ResearchDocument):
+        issues.extend(doc.issues(root, verify_urls=verify_urls))
+    else:
+        issues.extend(doc.issues(root))
+
+    # Context-file warning: no ContextDocument subclass, so inline here
+    if doc.type == "context" and not doc.related:
+        issues.append({
+            "file": doc.path,
+            "issue": "Context file has no related fields",
+            "severity": "warn",
+        })
+
     issues.extend(check_content(
         doc, max_words=context_max_words, min_words=context_min_words,
     ))
-    issues.extend(check_draft_markers(doc))
-    if verify_urls:
-        issues.extend(check_source_urls(doc))
-    issues.extend(check_related_paths(doc, root))
     return issues
 
 
@@ -445,119 +252,26 @@ def validate_project(
     # Discover and validate all managed documents
     documents = discover_documents(root)
     for doc in documents:
-        issues.extend(check_frontmatter(doc))
-        issues.extend(check_timestamps(doc))
+        if isinstance(doc, ResearchDocument):
+            issues.extend(doc.issues(root, verify_urls=verify_urls))
+        else:
+            issues.extend(doc.issues(root))
+
+        # Context-file warning: no ContextDocument subclass, so inline here
+        if doc.type == "context" and not doc.related:
+            issues.append({
+                "file": doc.path,
+                "issue": "Context file has no related fields",
+                "severity": "warn",
+            })
+
         issues.extend(check_content(
             doc, max_words=context_max_words, min_words=context_min_words,
         ))
-        issues.extend(check_draft_markers(doc))
-        if verify_urls:
-            issues.extend(check_source_urls(doc))
-        issues.extend(check_related_paths(doc, root))
 
     # Index sync checks on directories containing managed documents
     doc_dirs = discover_document_dirs(root, exclude_dirs=exclude_dirs)
     for directory in doc_dirs:
         issues.extend(check_all_indexes(directory))
-
-    return issues
-
-
-def validate_wiki(wiki_dir: Path, schema_path: Path) -> List[dict]:
-    """Validate all documents in a wiki directory against its SCHEMA.md.
-
-    Runs schema violation and frontmatter checks per file, orphan check
-    across the directory, and index sync for wiki_dir. If SCHEMA.md is
-    missing or malformed, returns a single warn and exits early.
-
-    Args:
-        wiki_dir: Path to the wiki directory.
-        schema_path: Path to wiki/SCHEMA.md.
-
-    Returns:
-        List of issue dicts. Empty on a clean wiki.
-    """
-    from wos.wiki import (
-        check_wiki_frontmatter,
-        check_wiki_orphans,
-        check_wiki_schema_violations,
-        parse_schema,
-    )
-
-    issues: List[dict] = []
-
-    # Parse schema — on failure, emit a single warn and abort
-    try:
-        schema = parse_schema(schema_path)
-    except ValueError as exc:
-        return [{
-            "file": str(schema_path),
-            "issue": f"Invalid SCHEMA.md: {exc}",
-            "severity": "warn",
-        }]
-
-    # Per-file checks
-    for md_file in sorted(wiki_dir.iterdir()):
-        if not md_file.is_file() or md_file.suffix != ".md":
-            continue
-        if md_file.name in ("_index.md", "SCHEMA.md"):
-            continue
-        try:
-            text = md_file.read_text(encoding="utf-8")
-            doc = parse_document(str(md_file), text)
-        except (OSError, ValueError) as exc:
-            issues.append({
-                "file": str(md_file),
-                "issue": f"Parse error: {exc}",
-                "severity": "fail",
-            })
-            continue
-        issues.extend(check_wiki_schema_violations(doc, schema))
-        issues.extend(check_wiki_frontmatter(doc))
-
-    # Directory-level checks
-    issues.extend(check_wiki_orphans(wiki_dir))
-    issues.extend(check_index_sync(wiki_dir))
-
-    return issues
-
-
-def validate_chain(manifest_path: Path, skills_dirs: List[Path]) -> List[dict]:
-    """Validate a chain manifest against all structural checks.
-
-    Parses the manifest and runs 5 structural checks. If parsing fails,
-    returns a single warn and exits early.
-
-    Args:
-        manifest_path: Path to a *.chain.md file.
-        skills_dirs: Directories to search for declared skills.
-
-    Returns:
-        List of issue dicts. Empty on a clean manifest.
-    """
-    from wos.chain import (
-        check_chain_cycles,
-        check_chain_gates,
-        check_chain_internal_consistency,
-        check_chain_skills_exist,
-        check_chain_termination,
-        parse_chain,
-    )
-
-    try:
-        manifest = parse_chain(manifest_path)
-    except ValueError as exc:
-        return [{
-            "file": str(manifest_path),
-            "issue": f"Invalid chain manifest: {exc}",
-            "severity": "warn",
-        }]
-
-    issues: List[dict] = []
-    issues.extend(check_chain_skills_exist(manifest, skills_dirs))
-    issues.extend(check_chain_internal_consistency(manifest))
-    issues.extend(check_chain_gates(manifest))
-    issues.extend(check_chain_termination(manifest))
-    issues.extend(check_chain_cycles(manifest))
 
     return issues

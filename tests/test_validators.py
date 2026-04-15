@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import patch
 
 from wos.document import Document
 
@@ -36,162 +35,6 @@ def _md(name: str = "Test", description: str = "A test doc", **extra_fm) -> str:
     lines.append(f"# {name}")
     lines.append("")
     return "\n".join(lines) + "\n"
-
-
-# ── check_frontmatter ──────────────────────────────────────────
-
-
-class TestCheckFrontmatter:
-    def test_valid_doc_no_issues(self) -> None:
-        from wos.validators import check_frontmatter
-
-        doc = _make_doc(
-            path="docs/research/topic.md",
-            name="Valid",
-            description="A valid document",
-        )
-        issues = check_frontmatter(doc)
-        assert issues == []
-
-    def test_empty_name(self) -> None:
-        from wos.validators import check_frontmatter
-
-        doc = _make_doc(path="docs/research/topic.md", name="")
-        issues = check_frontmatter(doc)
-        assert len(issues) == 1
-        assert issues[0]["severity"] == "fail"
-        assert "name" in issues[0]["issue"].lower()
-        assert issues[0]["file"] == doc.path
-
-    def test_empty_description(self) -> None:
-        from wos.validators import check_frontmatter
-
-        doc = _make_doc(path="docs/research/topic.md", description="")
-        issues = check_frontmatter(doc)
-        assert len(issues) == 1
-        assert issues[0]["severity"] == "fail"
-        assert "description" in issues[0]["issue"].lower()
-        assert issues[0]["file"] == doc.path
-
-    def test_research_without_sources_fail(self) -> None:
-        from wos.validators import check_frontmatter
-
-        doc = _make_doc(type="research", sources=[])
-        issues = check_frontmatter(doc)
-        assert any(
-            i["severity"] == "fail" and "sources" in i["issue"].lower()
-            for i in issues
-        )
-
-    def test_research_with_sources_no_source_issue(self) -> None:
-        from wos.validators import check_frontmatter
-
-        doc = _make_doc(
-            type="research",
-            sources=["https://example.com/source"],
-        )
-        issues = check_frontmatter(doc)
-        assert not any("sources" in i["issue"].lower() for i in issues)
-
-    def test_non_research_without_sources_ok(self) -> None:
-        from wos.validators import check_frontmatter
-
-        doc = _make_doc(type="topic", sources=[])
-        issues = check_frontmatter(doc)
-        assert not any("sources" in i["issue"].lower() for i in issues)
-
-    def test_dict_source_warns(self) -> None:
-        from wos.validators import check_frontmatter
-
-        doc = _make_doc(sources=[
-            {"url": "https://example.com", "title": "A"},
-        ])
-        issues = check_frontmatter(doc)
-        assert any(i["severity"] == "warn" for i in issues)
-        assert any("dict" in i["issue"].lower() for i in issues)
-
-    def test_context_file_without_related_warns(self) -> None:
-        from wos.validators import check_frontmatter
-
-        doc = _make_doc(
-            type="context",
-            related=[],
-        )
-        issues = check_frontmatter(doc)
-        assert any(
-            i["severity"] == "warn" and "related" in i["issue"].lower()
-            for i in issues
-        )
-
-    def test_artifact_file_without_related_no_warn(self) -> None:
-        from wos.validators import check_frontmatter
-
-        doc = _make_doc(
-            type="research",
-            sources=["https://example.com"],
-            related=[],
-        )
-        issues = check_frontmatter(doc)
-        assert not any("related" in i["issue"].lower() for i in issues)
-
-
-# ── check_timestamps ──────────────────────────────────────────
-
-
-class TestCheckTimestamps:
-    def test_valid_dates_no_issues(self) -> None:
-        from wos.validators import check_timestamps
-
-        doc = _make_doc(created_at="2026-03-13", updated_at="2026-03-14")
-        issues = check_timestamps(doc)
-        assert issues == []
-
-    def test_missing_dates_no_issues(self) -> None:
-        from wos.validators import check_timestamps
-
-        doc = _make_doc()
-        issues = check_timestamps(doc)
-        assert issues == []
-
-    def test_invalid_created_at_warns(self) -> None:
-        from wos.validators import check_timestamps
-
-        doc = _make_doc(created_at="March 13, 2026")
-        issues = check_timestamps(doc)
-        assert len(issues) == 1
-        assert issues[0]["severity"] == "warn"
-        assert "created_at" in issues[0]["issue"]
-
-    def test_invalid_updated_at_warns(self) -> None:
-        from wos.validators import check_timestamps
-
-        doc = _make_doc(updated_at="2026/03/14")
-        issues = check_timestamps(doc)
-        assert len(issues) == 1
-        assert issues[0]["severity"] == "warn"
-        assert "updated_at" in issues[0]["issue"]
-
-    def test_updated_before_created_warns(self) -> None:
-        from wos.validators import check_timestamps
-
-        doc = _make_doc(created_at="2026-03-14", updated_at="2026-03-13")
-        issues = check_timestamps(doc)
-        assert len(issues) == 1
-        assert "before" in issues[0]["issue"]
-
-    def test_same_dates_no_warning(self) -> None:
-        from wos.validators import check_timestamps
-
-        doc = _make_doc(created_at="2026-03-13", updated_at="2026-03-13")
-        issues = check_timestamps(doc)
-        assert issues == []
-
-    def test_created_at_only_valid(self) -> None:
-        from wos.validators import check_timestamps
-
-        doc = _make_doc(created_at="2026-01-15")
-        issues = check_timestamps(doc)
-        assert issues == []
 
 
 # ── check_content ─────────────────────────────────────────────
@@ -312,262 +155,6 @@ class TestCheckContent:
         )
         issues = check_content(doc)
         assert len(issues) == 1
-
-
-# ── check_draft_markers ────────────────────────────────────────
-
-
-class TestCheckDraftMarkers:
-    def test_research_with_draft_marker_warns(self) -> None:
-        from wos.validators import check_draft_markers
-
-        doc = _make_doc(
-            type="research",
-            content="# Topic\n\n<!-- DRAFT -->\n\nSome content.\n",
-        )
-        issues = check_draft_markers(doc)
-        assert len(issues) == 1
-        assert issues[0]["severity"] == "warn"
-        assert "DRAFT" in issues[0]["issue"]
-
-    def test_research_without_draft_marker_clean(self) -> None:
-        from wos.validators import check_draft_markers
-
-        doc = _make_doc(
-            type="research",
-            content="# Topic\n\nFinal content.\n",
-        )
-        issues = check_draft_markers(doc)
-        assert issues == []
-
-    def test_non_research_with_draft_marker_clean(self) -> None:
-        from wos.validators import check_draft_markers
-
-        doc = _make_doc(
-            type="reference",
-            content="# Topic\n\n<!-- DRAFT -->\n\nSome content.\n",
-        )
-        issues = check_draft_markers(doc)
-        assert issues == []
-
-
-# ── check_source_urls ──────────────────────────────────────────
-
-
-class TestCheckSourceUrls:
-    def test_all_reachable(self) -> None:
-        from wos.url_checker import UrlCheckResult
-        from wos.validators import check_source_urls
-
-        doc = _make_doc(sources=["https://example.com/a", "https://example.com/b"])
-
-        mock_results = [
-            UrlCheckResult(url="https://example.com/a", status=200, reachable=True),
-            UrlCheckResult(url="https://example.com/b", status=200, reachable=True),
-        ]
-        with patch("wos.validators.check_urls", return_value=mock_results):
-            issues = check_source_urls(doc)
-        assert issues == []
-
-    def test_unreachable_url(self) -> None:
-        from wos.url_checker import UrlCheckResult
-        from wos.validators import check_source_urls
-
-        doc = _make_doc(sources=["https://example.com/missing"])
-
-        mock_results = [
-            UrlCheckResult(
-                url="https://example.com/missing",
-                status=404,
-                reachable=False,
-                reason="HTTP 404",
-            ),
-        ]
-        with patch("wos.validators.check_urls", return_value=mock_results):
-            issues = check_source_urls(doc)
-        assert len(issues) == 1
-        assert issues[0]["severity"] == "fail"
-        assert "https://example.com/missing" in issues[0]["issue"]
-
-    def test_403_downgraded_to_warn(self) -> None:
-        from wos.url_checker import UrlCheckResult
-        from wos.validators import check_source_urls
-
-        doc = _make_doc(sources=["https://example.com/blocked"])
-
-        mock_results = [
-            UrlCheckResult(
-                url="https://example.com/blocked",
-                status=403,
-                reachable=False,
-                reason="HTTP 403",
-            ),
-        ]
-        with patch("wos.validators.check_urls", return_value=mock_results):
-            issues = check_source_urls(doc)
-        assert len(issues) == 1
-        assert issues[0]["severity"] == "warn"
-        assert "403" in issues[0]["issue"]
-
-    def test_429_downgraded_to_warn(self) -> None:
-        from wos.url_checker import UrlCheckResult
-        from wos.validators import check_source_urls
-
-        doc = _make_doc(sources=["https://example.com/ratelimited"])
-
-        mock_results = [
-            UrlCheckResult(
-                url="https://example.com/ratelimited",
-                status=429,
-                reachable=False,
-                reason="HTTP 429",
-            ),
-        ]
-        with patch("wos.validators.check_urls", return_value=mock_results):
-            issues = check_source_urls(doc)
-        assert len(issues) == 1
-        assert issues[0]["severity"] == "warn"
-        assert "429" in issues[0]["issue"]
-
-    def test_404_remains_fail(self) -> None:
-        from wos.url_checker import UrlCheckResult
-        from wos.validators import check_source_urls
-
-        doc = _make_doc(sources=["https://example.com/gone"])
-
-        mock_results = [
-            UrlCheckResult(
-                url="https://example.com/gone",
-                status=404,
-                reachable=False,
-                reason="HTTP 404",
-            ),
-        ]
-        with patch("wos.validators.check_urls", return_value=mock_results):
-            issues = check_source_urls(doc)
-        assert len(issues) == 1
-        assert issues[0]["severity"] == "fail"
-
-    def test_connection_error_remains_fail(self) -> None:
-        from wos.url_checker import UrlCheckResult
-        from wos.validators import check_source_urls
-
-        doc = _make_doc(sources=["https://example.com/error"])
-
-        mock_results = [
-            UrlCheckResult(
-                url="https://example.com/error",
-                status=0,
-                reachable=False,
-                reason="Connection refused",
-            ),
-        ]
-        with patch("wos.validators.check_urls", return_value=mock_results):
-            issues = check_source_urls(doc)
-        assert len(issues) == 1
-        assert issues[0]["severity"] == "fail"
-
-    def test_no_sources_no_check_called(self) -> None:
-        from wos.validators import check_source_urls
-
-        doc = _make_doc(sources=[])
-
-        with patch("wos.validators.check_urls") as mock_check:
-            issues = check_source_urls(doc)
-        mock_check.assert_not_called()
-        assert issues == []
-
-    def test_dict_format_sources(self) -> None:
-        """Dict-format sources should be normalized to URL strings (#61)."""
-        from wos.url_checker import UrlCheckResult
-        from wos.validators import check_source_urls
-
-        doc = _make_doc(sources=[
-            {"url": "https://example.com/a", "title": "Source A"},
-            {"url": "https://example.com/b", "title": "Source B"},
-        ])
-
-        mock_results = [
-            UrlCheckResult(url="https://example.com/a", status=200, reachable=True),
-            UrlCheckResult(url="https://example.com/b", status=200, reachable=True),
-        ]
-        with patch(
-            "wos.validators.check_urls", return_value=mock_results,
-        ) as mock_check:
-            issues = check_source_urls(doc)
-        # Should pass URL strings, not dicts
-        mock_check.assert_called_once_with(
-            ["https://example.com/a", "https://example.com/b"],
-        )
-        assert issues == []
-
-    def test_mixed_format_sources(self) -> None:
-        """Mix of plain URLs and dict-format sources should work (#61)."""
-        from wos.url_checker import UrlCheckResult
-        from wos.validators import check_source_urls
-
-        doc = _make_doc(sources=[
-            "https://example.com/plain",
-            {"url": "https://example.com/dict", "title": "Dict Source"},
-        ])
-
-        mock_results = [
-            UrlCheckResult(url="https://example.com/plain", status=200, reachable=True),
-            UrlCheckResult(url="https://example.com/dict", status=200, reachable=True),
-        ]
-        with patch(
-            "wos.validators.check_urls", return_value=mock_results,
-        ) as mock_check:
-            issues = check_source_urls(doc)
-        mock_check.assert_called_once_with(
-            ["https://example.com/plain", "https://example.com/dict"],
-        )
-        assert issues == []
-
-
-# ── check_related_paths ────────────────────────────────────────
-
-
-class TestCheckRelatedPaths:
-    def test_existing_paths_ok(self, tmp_path: Path) -> None:
-        from wos.validators import check_related_paths
-
-        # Create a file on disk
-        related_file = tmp_path / "docs" / "context" / "api" / "auth.md"
-        related_file.parent.mkdir(parents=True)
-        related_file.write_text("# Auth\n")
-
-        doc = _make_doc(related=["docs/context/api/auth.md"])
-        issues = check_related_paths(doc, tmp_path)
-        assert issues == []
-
-    def test_missing_path_fail(self, tmp_path: Path) -> None:
-        from wos.validators import check_related_paths
-
-        doc = _make_doc(related=["docs/context/api/nonexistent.md"])
-        issues = check_related_paths(doc, tmp_path)
-        assert len(issues) == 1
-        assert issues[0]["severity"] == "fail"
-        assert "nonexistent.md" in issues[0]["issue"]
-
-    def test_urls_skipped(self, tmp_path: Path) -> None:
-        from wos.validators import check_related_paths
-
-        doc = _make_doc(
-            related=[
-                "https://github.com/org/repo/issues/42",
-                "http://example.com/page",
-            ]
-        )
-        issues = check_related_paths(doc, tmp_path)
-        assert issues == []
-
-    def test_no_related_no_issues(self, tmp_path: Path) -> None:
-        from wos.validators import check_related_paths
-
-        doc = _make_doc(related=[])
-        issues = check_related_paths(doc, tmp_path)
-        assert issues == []
 
 
 # ── check_all_indexes ──────────────────────────────────────────
@@ -849,10 +436,9 @@ class TestCompoundSuffixValidation:
         issues = validate_file(md_file, tmp_path, verify_urls=False)
         assert not any("sources" in i["issue"].lower() for i in issues)
 
-    def test_compound_suffix_draft_marker_check(self) -> None:
-        """Draft marker check works with suffix-inferred research type."""
+    def test_compound_suffix_draft_marker_check(self, tmp_path: Path) -> None:
+        """Draft marker surfaced via doc.issues() on ResearchDocument."""
         from wos.document import parse_document
-        from wos.validators import check_draft_markers
 
         text = (
             "---\n"
@@ -865,9 +451,8 @@ class TestCompoundSuffixValidation:
         )
         doc = parse_document("docs/research/topic.research.md", text)
         assert doc.type == "research"
-        issues = check_draft_markers(doc)
-        assert len(issues) == 1
-        assert "DRAFT" in issues[0]["issue"]
+        issues = doc.issues(tmp_path, verify_urls=False)
+        assert any("DRAFT" in i["issue"] for i in issues)
 
     def test_validate_project_includes_compound_suffix_files(
         self, tmp_path: Path
@@ -898,15 +483,36 @@ class TestCompoundSuffixValidation:
         doc_issues = [i for i in issues if "index" not in i["issue"].lower()]
         assert doc_issues == []
 
-    def test_context_type_accepted_alongside_reference(self) -> None:
-        """type: context works for context files (new convention)."""
-        from wos.validators import check_frontmatter
+    def test_context_type_no_related_warns(self, tmp_path: Path) -> None:
+        """Context file without related fields warns via validate_file."""
+        from wos.validators import validate_file
 
-        doc = _make_doc(
-            path="docs/context/api/auth.context.md",
+        md_file = tmp_path / "auth.context.md"
+        md_file.write_text(_md(
+            "Auth Patterns",
+            "Auth implementation patterns",
             type="context",
-            related=["docs/research/api.research.md"],
+        ))
+
+        issues = validate_file(md_file, tmp_path, verify_urls=False)
+        assert any(
+            i["severity"] == "warn" and "related" in i["issue"].lower()
+            for i in issues
         )
-        issues = check_frontmatter(doc)
-        # Should not have any type-related failures
-        assert not any(i["severity"] == "fail" for i in issues)
+
+    def test_context_type_with_related_no_warn(self, tmp_path: Path) -> None:
+        """Context file with related field has no related-field warning."""
+        from wos.validators import validate_file
+
+        related_file = tmp_path / "ref.md"
+        related_file.write_text("---\nname: Ref\ndescription: Ref\n---\nbody\n")
+        md_file = tmp_path / "auth.context.md"
+        md_file.write_text(_md(
+            "Auth Patterns",
+            "Auth implementation patterns",
+            type="context",
+            related=["ref.md"],
+        ))
+
+        issues = validate_file(md_file, tmp_path, verify_urls=False)
+        assert not any("related" in i["issue"].lower() for i in issues)
