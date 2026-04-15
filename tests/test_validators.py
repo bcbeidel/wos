@@ -250,36 +250,3 @@ class TestCompoundSuffixValidation:
         issues = validate_project(tmp_path, verify_urls=False)
         assert issues == []
 
-    def test_context_type_no_related_warns(self, tmp_path: Path) -> None:
-        """Context file without related fields warns via validate_file."""
-        from wos.project import validate_file
-
-        md_file = tmp_path / "auth.context.md"
-        md_file.write_text(_md(
-            "Auth Patterns",
-            "Auth implementation patterns",
-            type="context",
-        ))
-
-        issues = validate_file(md_file, tmp_path, verify_urls=False)
-        assert any(
-            i["severity"] == "warn" and "related" in i["issue"].lower()
-            for i in issues
-        )
-
-    def test_context_type_with_related_no_warn(self, tmp_path: Path) -> None:
-        """Context file with related field has no related-field warning."""
-        from wos.project import validate_file
-
-        related_file = tmp_path / "ref.md"
-        related_file.write_text("---\nname: Ref\ndescription: Ref\n---\nbody\n")
-        md_file = tmp_path / "auth.context.md"
-        md_file.write_text(_md(
-            "Auth Patterns",
-            "Auth implementation patterns",
-            type="context",
-            related=["ref.md"],
-        ))
-
-        issues = validate_file(md_file, tmp_path, verify_urls=False)
-        assert not any("related" in i["issue"].lower() for i in issues)

@@ -19,21 +19,16 @@ def validate_file(
     path: Path,
     root: Path,
     verify_urls: bool = True,
-    context_max_words: int = 800,
-    context_min_words: int = 100,
 ) -> List[dict]:
     """Validate a single markdown file.
 
     Reads the file, parses it with parse_document(), then calls
-    doc.issues(root) with a uniform set of keyword arguments.
-    If parsing fails, returns a single parse-error issue.
+    doc.issues(root). If parsing fails, returns a single parse-error issue.
 
     Args:
         path: Path to the .md file.
         root: Project root directory.
         verify_urls: If False, skip source URL reachability check.
-        context_max_words: Upper word count threshold for context files.
-        context_min_words: Lower word count threshold for context files.
 
     Returns:
         List of issue dicts.
@@ -56,12 +51,7 @@ def validate_file(
             "severity": "fail",
         }]
 
-    return doc.issues(
-        root,
-        verify_urls=verify_urls,
-        max_words=context_max_words,
-        min_words=context_min_words,
-    )
+    return doc.issues(root, verify_urls=verify_urls)
 
 
 # ── Project aggregate ──────────────────────────────────────────────
@@ -76,8 +66,6 @@ class Project:
     def validate(
         self,
         verify_urls: bool = True,
-        context_max_words: int = 800,
-        context_min_words: int = 100,
     ) -> List[dict]:
         """Validate all managed documents and project configuration.
 
@@ -87,8 +75,6 @@ class Project:
 
         Args:
             verify_urls: If False, skip source URL reachability checks.
-            context_max_words: Upper word count threshold for context files.
-            context_min_words: Lower word count threshold for context files.
 
         Returns:
             List of all issue dicts found.
@@ -99,12 +85,7 @@ class Project:
         issues.extend(self.check_project_files())
 
         for doc in Document.scan(str(self.root)):
-            issues.extend(doc.issues(
-                self.root,
-                verify_urls=verify_urls,
-                max_words=context_max_words,
-                min_words=context_min_words,
-            ))
+            issues.extend(doc.issues(self.root, verify_urls=verify_urls))
 
         return issues
 
@@ -180,12 +161,6 @@ def check_project_files(root: Path) -> List[dict]:
 def validate_project(
     root: Path,
     verify_urls: bool = True,
-    context_max_words: int = 800,
-    context_min_words: int = 100,
 ) -> List[dict]:
     """Validate all managed documents in a project. See Project.validate."""
-    return Project(root).validate(
-        verify_urls=verify_urls,
-        context_max_words=context_max_words,
-        context_min_words=context_min_words,
-    )
+    return Project(root).validate(verify_urls=verify_urls)

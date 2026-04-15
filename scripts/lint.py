@@ -62,18 +62,6 @@ def main() -> None:
         help="Exit 1 on any issue (including warnings)",
     )
     parser.add_argument(
-        "--context-max-words",
-        type=int,
-        default=800,
-        help="Word count threshold for context file warnings (default: 800)",
-    )
-    parser.add_argument(
-        "--context-min-words",
-        type=int,
-        default=100,
-        help="Minimum word count for context file warnings (default: 100)",
-    )
-    parser.add_argument(
         "--skill-max-lines",
         type=int,
         default=500,
@@ -92,19 +80,9 @@ def main() -> None:
     # Single-file or project mode
     if args.file:
         file_path = Path(args.file).resolve()
-        issues = validate_file(
-            file_path, root,
-            verify_urls=not args.no_urls,
-            context_max_words=args.context_max_words,
-            context_min_words=args.context_min_words,
-        )
+        issues = validate_file(file_path, root, verify_urls=not args.no_urls)
     else:
-        issues = validate_project(
-            root,
-            verify_urls=not args.no_urls,
-            context_max_words=args.context_max_words,
-            context_min_words=args.context_min_words,
-        )
+        issues = validate_project(root, verify_urls=not args.no_urls)
 
     # Wiki validation — auto-activated when wiki/SCHEMA.md is present
     wiki_schema = root / "wiki" / "SCHEMA.md"

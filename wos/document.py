@@ -38,7 +38,7 @@ class Document:
     """
 
     TYPE_SUFFIXES: ClassVar[frozenset] = frozenset({
-        "research", "plan", "design", "context", "prompt",
+        "research", "plan", "design", "prompt",
     })
 
     path: str

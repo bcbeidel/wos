@@ -19,9 +19,6 @@ class TestTypeFromPath:
             Path("composable-pipeline.design.md")
         ) == "design"
 
-    def test_context_suffix(self):
-        assert Document.type_from_path(Path("architecture.context.md")) == "context"
-
     def test_prompt_suffix(self):
         assert Document.type_from_path(
             Path("refine-instructions.prompt.md")
