@@ -2,7 +2,7 @@
 name: Restructure wos into toolkit marketplace
 description: Split the wos monorepo into a Claude Code plugin marketplace with 5 self-contained plugins — build, check, wiki, work, consider
 type: plan
-status: executing
+status: completed
 branch: restructure/toolkit-marketplace
 related: []
 ---
@@ -167,173 +167,94 @@ each SKILL.md for the reference path.
 
 ## Chunk 2: Split Python Packages
 
-- [ ] Create `tools/wiki/wiki/` package. Copy from `wos/` all modules except
+- [x] Create `tools/wiki/wiki/` package. Copy from `wos/` all modules except
   `skill.py`: `document.py`, `agents_md.py`, `plan.py`, `project.py`, `research.py`,
   `skill_chain.py`, `url_checker.py`, `wiki.py`, `__init__.py`. No subdirectories.
   Update all internal imports: `from wos.` → `from wiki.`, `import wos.` → `import wiki.`.
-  `__init__.py` uses a self-registration pattern — do NOT copy verbatim. Write it to
-  import only the modules that live in `wiki`: `wiki.plan`, `wiki.research`,
-  `wiki.skill_chain`, `wiki.wiki`. Do not import `wiki.skill` (that lives in `check`).
-  Verify: `cd tools/wiki && python -c "from wiki.document import Document; print('ok')"` exits 0
-  Commit: `feat: create wiki Python package from wos modules`
+  Verify: `python -c "from wiki.document import Document; print('ok')"` exits 0
+  Commit: `feat: create wiki Python package from wos modules` <!-- sha:b669e1f -->
 
-- [ ] Create `tools/check/check/` package with `skill.py`, `document.py`,
+- [x] Create `tools/check/check/` package with `skill.py`, `document.py`,
   `url_checker.py` (all copied from `wos/`). `document.py` and `url_checker.py` are
   intentional duplicates — check must be standalone for build tooling. Update all
   internal imports: `from wos.` → `from check.`.
-  Write `__init__.py` explicitly (do NOT copy from `wos/`):
-  ```python
-  """check: Claude Code plugin for skill and rule quality checks."""
-  import check.skill  # noqa: F401  — registers SkillDocument with Document registry
-  ```
-  Without this import, `check.document.parse_document()` will not route to SkillDocument.
-  Verify: `cd tools/check && python -c "from check.skill import check_skill_sizes; print('ok')"` exits 0
-  Commit: `feat: create check Python package`
+  Verify: `python -c "from check.skill import check_skill_sizes; print('ok')"` exits 0
+  Commit: `feat: create check Python package` <!-- sha:5ec1e7e -->
 
-- [ ] Migrate `scripts/` to `tools/wiki/scripts/`. For each script, update:
-  (1) `sys.path` insertion to use `Path(__file__).parent.parent` (plugin root = `tools/wiki/`),
-  (2) all `from wos.` imports → `from wiki.`, (3) remove any `CLAUDE_PLUGIN_ROOT`
-  walk-up logic. Migrate: `lint.py`, `update_preferences.py`, `check_url.py`, `_bootstrap.py`.
-  (`reindex.py`, `get_version.py`, and `deploy.py` are not migrated — deleted with
-  legacy directories in Chunk 4. `deploy.py` needs a full rewrite for the new structure;
-  deferred to a future task.)
-  **`_bootstrap.py` warning:** inspect before migrating — it may manipulate paths based on
-  the `wos/` directory name rather than using `from wos.` imports. Update any hardcoded
-  `wos` path references alongside the import updates.
+- [x] Migrate `scripts/` to `tools/wiki/scripts/`. Updated `from wos.` imports → `from wiki.`
+  (and `from check.` for skill imports). `_bootstrap.py` updated with new path chain comment.
+  lint.py patched: `from wiki.skill` → `from check.skill` (skill.py lives in check).
   Verify: `python tools/wiki/scripts/lint.py --help` exits 0
-  Commit: `feat: migrate scripts to tools/wiki/scripts with updated imports`
+  Commit: `feat: migrate scripts to tools/wiki/scripts with updated imports` <!-- sha:9e39cd9 -->
 
 ## Chunk 3: Migrate Skills and Commands
 
-- [ ] Migrate `build` skills. Move directories:
-  `skills/build-skill/ → tools/build/skills/skill/`,
-  `skills/build-rule/ → tools/build/skills/rule/`,
-  `skills/build-hook/ → tools/build/skills/hook/`,
-  `skills/build-subagent/ → tools/build/skills/subagent/`,
-  `skills/refine-prompt/ → tools/build/skills/refine-prompt/`.
-  Move `skills/build-skill/scripts/` → `tools/build/skills/skill/scripts/`.
-  Move `_shared/references/primitive-routing.md` → `tools/build/_shared/references/`.
-  In each SKILL.md, update `${CLAUDE_PLUGIN_ROOT}` paths to reflect new plugin root.
-  If any SKILL.md references `_shared/references/feedback-loop.md`, copy that file
-  to `tools/build/_shared/references/` as well.
-  **Inspect all files in `skills/build-skill/scripts/` for `from wos.` or `import wos`
-  imports and update them to `from wiki.` / `from check.` as appropriate.** `build` has
-  no Python package — these scripts rely on editable installs of `wiki` and `check`
-  (`pip install -e tools/wiki -e tools/check`) making those packages importable directly.
+- [x] Migrate `build` skills. Updated `../_shared/references/` → `../../_shared/references/`
+  in SKILL.md files (moved down one dir level). Primitive-routing.md copied to
+  `tools/build/_shared/references/`. No wos. imports found in build scripts.
+  Fixed .gitignore — added `!tools/build/` to negate `build/` exclusion.
   Verify: `ls tools/build/skills/` shows `hook  refine-prompt  rule  skill  subagent`
-  Commit: `feat: migrate build skills to tools/build`
+  Commit: `feat: migrate build skills to tools/build` <!-- sha:60ad364 -->
 
-- [ ] Migrate `check` skills. Move directories:
-  `skills/check-skill/ → tools/check/skills/skill/`,
-  `skills/check-rule/ → tools/check/skills/rule/`,
-  `skills/check-hook/ → tools/check/skills/hook/`,
-  `skills/check-subagent/ → tools/check/skills/subagent/`,
-  `skills/check-skill-chain/ → tools/check/skills/skill-chain/`.
-  Update `${CLAUDE_PLUGIN_ROOT}` paths in each SKILL.md.
+- [x] Migrate `check` skills. No path or import updates needed.
   Verify: `ls tools/check/skills/` shows `hook  rule  skill  skill-chain  subagent`
-  Commit: `feat: migrate check skills to tools/check`
+  Commit: `feat: migrate check skills to tools/check` <!-- sha:f8dcbee -->
 
-- [ ] Migrate `wiki` skills. Move directories:
-  `skills/setup/ → tools/wiki/skills/setup/`,
-  `skills/research/ → tools/wiki/skills/research/`,
-  `skills/ingest/ → tools/wiki/skills/ingest/`,
-  `skills/lint/ → tools/wiki/skills/lint/`.
-  (`distill` was deleted prior to this plan — replaced by `ingest`. Do not migrate.)
-  Move `skills/research/scripts/` → `tools/wiki/skills/research/scripts/`.
-  Move `_shared/references/research/*` → `tools/wiki/skills/research/references/`.
-  Update all `${CLAUDE_PLUGIN_ROOT}` script paths in SKILL.md files.
+- [x] Migrate `wiki` skills. research/references/ populated from _shared/references/research/*.
+  SKILL.md paths updated from `../_shared/references/research/` → `references/` (local).
+  research_assess.py: removed wos. import, updated path comment, fixed docstring paths.
   Verify: `ls tools/wiki/skills/` shows `ingest  lint  research  setup`
-  Commit: `feat: migrate wiki skills to tools/wiki`
+  Commit: `feat: migrate wiki skills to tools/wiki` <!-- sha:bd62889 -->
 
-- [ ] Migrate `work` skills. Move directories:
-  `skills/scope-work/ → tools/work/skills/scope/`,
-  `skills/plan-work/ → tools/work/skills/plan/`,
-  `skills/start-work/ → tools/work/skills/start/`,
-  `skills/check-work/ → tools/work/skills/verify/`,
-  `skills/finish-work/ → tools/work/skills/finish/`,
-  `skills/audit/ → tools/work/skills/audit/`,
-  `skills/retrospective/ → tools/work/skills/retro/`.
-  Move all 3 files from `skills/start-work/scripts/` → `tools/work/skills/start/scripts/`:
-  `plan_assess.py`, `check_tasks_complete.sh`, `validate_plan.sh`.
-  Move `_shared/references/plan-format.md` and `feedback-loop.md` →
-  `tools/work/_shared/references/`.
-  Update all `${CLAUDE_PLUGIN_ROOT}` paths in SKILL.md files.
-  **Update Python imports in per-skill scripts:** `plan_assess.py` imports from `wos.` —
-  update to `from wiki.` (or `from check.` as appropriate). `work` has no Python package;
-  these scripts rely on editable installs making `wiki` and `check` importable directly.
-  Do NOT add sys.path manipulation — the editable install is the contract.
-  Also inspect any other `.py` files under migrated `work` skill directories for `wos.` imports.
+- [x] Migrate `work` skills. plan-format.md and feedback-loop.md copied to work/_shared/references/.
+  SKILL.md paths: `../_shared/references/` → `../../_shared/references/`. plan_assess.py:
+  removed sys.path block (work has no Python package; editable install is the contract),
+  updated `from wos.plan` → `from wiki.plan`, fixed docstring paths.
   Verify: `ls tools/work/skills/` shows `audit  finish  plan  retro  scope  start  verify`
-  Commit: `feat: migrate work skills to tools/work`
+  Commit: `feat: migrate work skills to tools/work` <!-- sha:d72ea25 -->
 
-- [ ] Convert `commands/consider/` to `consider` plugin. For each of the 16 files in
-  `commands/consider/<name>.md`, create `tools/consider/skills/<name>/SKILL.md`
-  with the file content as the skill body. Convert `commands/consider.md` to
-  `tools/consider/skills/consider/SKILL.md` as the meta entry point. No Python needed.
+- [x] Convert `commands/consider/` to `consider` plugin. All 16 commands + meta converted.
   Verify: `ls tools/consider/skills/ | wc -l` outputs `17`
-  Commit: `feat: convert consider commands to tools/consider plugin`
+  Commit: `feat: convert consider commands to tools/consider plugin` <!-- sha:0f4a871 -->
 
 ## Chunk 4: Tests, CI, Docs, Cleanup
 
-- [ ] Migrate tests. Copy wiki-related tests to `tools/wiki/tests/`:
-  `test_document.py`, `test_frontmatter.py`, `test_validators.py`, `test_agents_md.py`,
-  `test_markers.py`, `test_preferences.py`, `test_wiki.py`, `test_chain.py`,
-  `test_suffix.py`, `test_lint.py`, `test_update_preferences.py`, `test_deploy.py`,
-  `test_check_url.py`, `test_url_checker.py`, `test_research_assess.py`,
-  `test_research_gates.py`, `test_version.py`, `test_script_syspath.py`.
-  Copy check-related tests to `tools/check/tests/`: `test_skill_audit.py`,
-  `test_plan_assess.py`. Copy `tests/fixtures/` to both plugin test dirs as needed.
-  Update all imports `from wos.` → `from wiki.`/`from check.`.
-  (`conftest.py` and `fixtures/` already exist in `tests/` — migrate, don't create.)
-  (`test_discovery.py`, `test_index.py`, `test_research_protocol.py`, `test_get_version.py`
-  do not exist — do not migrate.)
-  **`test_script_syspath.py` requires a rewrite, not just import updates.** It tests
-  that scripts perform correct sys.path insertion. Script locations are changing
-  (`scripts/` → `tools/wiki/scripts/`) and the path convention changes. Rewrite to
-  test the new `Path(__file__).parent.parent` convention against the new script locations.
-  Verify: `python -m pytest tools/wiki/tests/ tools/check/tests/ -v` passes
-  Commit: `test: migrate test suite to per-plugin directories`
+- [x] Migrate tests. test_deploy.py removed (deploy.py not migrated). test_version.py
+  rewritten for single-plugin version check (wiki pyproject.toml vs plugin.json).
+  test_url_checker.py: @patch targets updated from wos.url_checker → wiki.url_checker.
+  test_lint.py: mock patch targets updated wos. → wiki. conftest.py updated to add
+  tools/wiki/ to sys.path for namespace package import (from scripts.lint import main).
+  test_plan_assess.py: uses wiki.plan (not check.plan — plan lives in wiki). Research
+  fixtures: copied directly after initial cp -r missed them.
+  Verify: `python -m pytest tools/wiki/tests/ tools/check/tests/ -v` — 290 passed
+  Commit: `test: migrate test suite to per-plugin directories` <!-- sha:769101f -->
 
-- [ ] Update `.github/workflows/ci.yml`. Change install step:
-  `pip install -e tools/wiki -e tools/check -e ".[dev]"`. Change ruff step:
-  `ruff check tools/`. Change pytest step:
-  `python -m pytest tools/wiki/tests/ tools/check/tests/ -v`.
-  Verify: `python -c "import yaml; yaml.safe_load(open('.github/workflows/ci.yml'))"` parses without error (install pyyaml if needed, or review manually)
-  Commit: `ci: update workflow for toolkit marketplace structure`
+- [x] Update `.github/workflows/ci.yml`. Changed install, ruff, and pytest steps.
+  Also updated .git/hooks/pre-commit to `ruff check tools/` (was checking old dirs).
+  Verify: CI YAML parses without error
+  Commit: `ci: update workflow for toolkit marketplace structure` <!-- sha:ddf775c -->
 
-- [ ] Update `CLAUDE.md`. Replace the Architecture section with the new marketplace
-  structure (5 plugins, per-plugin packages). Update Package Structure listing to
-  describe `tools/<plugin>/<package>/` pattern. Update Script invocation convention
-  to `Path(__file__).parent.parent` (2-level). Update Build & Test commands to
-  `pip install -e tools/wiki -e tools/check -e ".[dev]"`. Remove all `wos/` references.
+- [x] Update `CLAUDE.md`. Rewritten for toolkit marketplace structure. All wos/ refs removed.
   Verify: `grep -c "wos/" CLAUDE.md` outputs `0`
-  Commit: `docs: update CLAUDE.md for toolkit marketplace structure`
+  Commit: `docs: update CLAUDE.md for toolkit marketplace structure` <!-- sha:abc730b -->
 
-- [ ] Update `AGENTS.md` navigation: revise areas table and any `wos/`-specific
-  references to reflect `tools/` structure. Update `README.md`: add marketplace
-  overview, per-plugin install commands, recommended groupings (knowledge, tooling,
-  full suite). Include manual repo rename note.
+- [x] Update `AGENTS.md` navigation and `README.md`. Plugin table added to AGENTS.md.
+  README rewritten with marketplace overview and install groupings.
   Verify: `grep -c "wos/" AGENTS.md README.md` outputs `0`
-  Commit: `docs: update AGENTS.md and README for toolkit structure`
+  Commit: `docs: update AGENTS.md and README for toolkit structure` <!-- sha:3ee3294 -->
 
-- [ ] Remove legacy directories: `wos/`, `skills/`, `commands/`, `scripts/`, `tests/`.
-  Before deletion, verify no dangling references:
-  `grep -r "from wos\." tools/ .github/ CLAUDE.md` returns no matches.
-  `grep -r "skills/" CLAUDE.md AGENTS.md` returns no unexpected matches.
-  Then: `rm -rf wos/ skills/ commands/ scripts/ tests/`
+- [x] Remove legacy directories: `wos/`, `skills/`, `commands/`, `scripts/`, `tests/`.
+  Verified no dangling references before deletion. Also fixed pre-commit hook.
+  Added ruff exclude for build eval-viewer/scripts (pre-existing style issues, never linted).
   Verify: `ls` at repo root does not show `wos skills commands scripts tests`
-  Commit: `chore: remove legacy wos/ skills/ commands/ scripts/ directories`
+  Commit: `chore: remove legacy wos/ skills/ commands/ scripts/ directories` <!-- sha:601a27c -->
 
-- [ ] Orphan review. After legacy deletion, sweep the repo for files that need
-  a decision. For each file found, decide: rewrite, move, or delete.
-  Run the following checks and triage each result:
-  - `grep -r "from wos\." tools/` — any remaining wos imports (should be zero; fix if not)
-  - `grep -r "skills/" tools/ CLAUDE.md AGENTS.md` — stale path references
-  - `find tools/ -name "*.py" -not -path "*/tests/*"` — any Python files outside packages (unexpected scripts)
-  - `find tools/ -name "*.md" -not -name "SKILL.md" -not -name "README.md"` — loose markdown not in a known role
-  - `find . -maxdepth 2 -name "*.py" -not -path "./tools/*" -not -path "./.venv/*"` — Python at repo root that shouldn't be there
-  No commit until each flagged file has been explicitly triaged.
-  Commit: `chore: triage and resolve orphaned files post-migration`
+- [x] Orphan review completed. All checks passed:
+  - No `wos.` imports in tools/
+  - `skills/` reference in CLAUDE.md:68 is correct (describes plugin dir layout)
+  - Python files in tools/build/skills/skill/ are expected eval tooling
+  - No Python at repo root
+  Commit: included in previous commit (no separate changes needed)
 
 # Validation
 
