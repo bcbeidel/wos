@@ -12,9 +12,10 @@ agent's exit condition in the research pipeline.
 from __future__ import annotations
 
 import os
-from typing import Dict, List, Tuple
+from pathlib import Path
+from typing import Dict
 
-from wos.document import parse_document
+from wos.document import Document, parse_document
 
 
 def assess_file(path: str) -> dict:
@@ -36,12 +37,12 @@ def assess_file(path: str) -> dict:
             "sources": None,
         }
 
-    text = _read_file(path)
+    text = Path(path).read_text(encoding="utf-8")
     doc = parse_document(path, text)
 
-    urls, non_url_count = _classify_sources(doc.sources)
-    sections = _detect_sections(doc.content)
-    word_count = len(doc.content.split())
+    urls = [s for s in doc.sources if s.startswith(("http://", "https://"))]
+    non_url_count = len(doc.sources) - len(urls)
+    sections = {kw: doc.has_section(kw) for kw in _SECTION_KEYWORDS}
 
     return {
         "file": path,
@@ -54,7 +55,7 @@ def assess_file(path: str) -> dict:
             "related_count": len(doc.related),
         },
         "content": {
-            "word_count": word_count,
+            "word_count": doc.word_count,
             "draft_marker_present": "<!-- DRAFT -->" in doc.content,
             "has_sections": sections,
         },
@@ -80,80 +81,25 @@ def scan_directory(root: str, subdir: str = "") -> dict:
         Dict with keys: directory, documents. Each document has:
         file, name, draft_marker_present, word_count, sources_count.
     """
-    from pathlib import Path
+    from wos.discovery import filter_documents
 
-    from wos.discovery import discover_documents
-
-    root_path = Path(root)
-    docs = discover_documents(root_path)
-
-    # Filter to research type
-    research_docs = [d for d in docs if d.type == "research"]
-
-    # Optionally restrict to subdir
-    if subdir:
-        research_docs = [
-            d for d in research_docs
-            if d.path.startswith(subdir + "/") or d.path.startswith(subdir)
-        ]
-
-    scan_label = os.path.join(root, subdir) if subdir else root
-
-    documents: list = []
-    for doc in research_docs:
-        documents.append({
+    label, research_docs = filter_documents(Path(root), "research", subdir=subdir)
+    documents = [
+        {
             "file": os.path.join(root, doc.path),
             "name": doc.name,
             "draft_marker_present": "<!-- DRAFT -->" in doc.content,
-            "word_count": len(doc.content.split()),
+            "word_count": doc.word_count,
             "sources_count": len(doc.sources),
-        })
-
-    return {"directory": scan_label, "documents": documents}
-
-
-def _read_file(path: str) -> str:
-    """Read file content as UTF-8 text."""
-    with open(path, encoding="utf-8") as f:
-        return f.read()
-
-
-def _classify_sources(sources: List[str]) -> Tuple[List[str], int]:
-    """Split sources into URLs and non-URLs.
-
-    Returns:
-        Tuple of (url_list, non_url_count).
-    """
-    urls: List[str] = []
-    non_url_count = 0
-    for source in sources:
-        if source.startswith("http://") or source.startswith("https://"):
-            urls.append(source)
-        else:
-            non_url_count += 1
-    return urls, non_url_count
+        }
+        for doc in research_docs
+    ]
+    return {"directory": label, "documents": documents}
 
 
 _SECTION_KEYWORDS = frozenset({
     "claims", "synthesis", "sources", "findings", "challenge",
 })
-
-
-def _detect_sections(content: str) -> Dict[str, bool]:
-    """Detect presence of key sections by heading text.
-
-    Looks for markdown headings containing known keywords.
-    """
-    found = {kw: False for kw in _SECTION_KEYWORDS}
-    for line in content.split("\n"):
-        stripped = line.strip()
-        if not stripped.startswith("#"):
-            continue
-        heading_text = stripped.lstrip("#").strip().lower()
-        for kw in _SECTION_KEYWORDS:
-            if kw in heading_text:
-                found[kw] = True
-    return found
 
 
 # ---------------------------------------------------------------------------
@@ -189,27 +135,22 @@ def check_gates(path: str) -> dict:
     ``"gatherer"`` if none pass).
     """
     if not os.path.isfile(path):
-        empty_checks: Dict[str, dict] = {}
-        for gate in _GATE_ORDER:
-            empty_checks[gate] = {"pass": False, "checks": {}}
         return {
             "file": path,
-            "gates": empty_checks,
+            "gates": {gate: {"pass": False, "checks": {}} for gate in _GATE_ORDER},
             "current_phase": "gatherer",
         }
 
-    text = _read_file(path)
+    text = Path(path).read_text(encoding="utf-8")
     doc = parse_document(path, text)
-    content = doc.content
-    sections = _detect_sections(content)
 
     gates: Dict[str, dict] = {
-        "gatherer_exit": _check_gatherer_exit(content, doc, sections),
-        "evaluator_exit": _check_evaluator_exit(content),
-        "challenger_exit": _check_challenger_exit(sections),
-        "synthesizer_exit": _check_synthesizer_exit(sections),
-        "verifier_exit": _check_verifier_exit(content, sections),
-        "finalizer_exit": _check_finalizer_exit(content, doc),
+        "gatherer_exit": _check_gatherer_exit(doc),
+        "evaluator_exit": _check_evaluator_exit(doc),
+        "challenger_exit": _check_challenger_exit(doc),
+        "synthesizer_exit": _check_synthesizer_exit(doc),
+        "verifier_exit": _check_verifier_exit(doc),
+        "finalizer_exit": _check_finalizer_exit(doc),
     }
 
     # Derive current_phase: phase after highest passing gate.
@@ -245,52 +186,52 @@ def check_single_gate(path: str, gate_name: str) -> dict:
 
 # --- Individual gate checks -----------------------------------------------
 
-def _check_gatherer_exit(content: str, doc: object, sections: Dict[str, bool]) -> dict:
+def _check_gatherer_exit(doc: Document) -> dict:
     """Gatherer exit: Sources section exists, URLs in file, extracts present."""
     checks = {
-        "sources_section_present": sections.get("sources", False),
-        "sources_have_urls": "http" in content,
-        "extracts_present": _has_extracts(content),
+        "sources_section_present": doc.has_section("sources"),
+        "sources_have_urls": "http" in doc.content,
+        "extracts_present": _has_extracts(doc.content),
     }
     return {"pass": all(checks.values()), "checks": checks}
 
 
-def _check_evaluator_exit(content: str) -> dict:
+def _check_evaluator_exit(doc: Document) -> dict:
     """Evaluator exit: document contains 'Tier' and 'Status' text."""
     checks = {
-        "sources_have_tier": "Tier" in content,
-        "sources_have_status": "Status" in content,
+        "sources_have_tier": "Tier" in doc.content,
+        "sources_have_status": "Status" in doc.content,
     }
     return {"pass": all(checks.values()), "checks": checks}
 
 
-def _check_challenger_exit(sections: Dict[str, bool]) -> dict:
+def _check_challenger_exit(doc: Document) -> dict:
     """Challenger exit: ## Challenge section exists."""
-    checks = {"challenge_section_exists": sections.get("challenge", False)}
+    checks = {"challenge_section_exists": doc.has_section("challenge")}
     return {"pass": all(checks.values()), "checks": checks}
 
 
-def _check_synthesizer_exit(sections: Dict[str, bool]) -> dict:
+def _check_synthesizer_exit(doc: Document) -> dict:
     """Synthesizer exit: ## Findings section exists."""
-    checks = {"findings_section_exists": sections.get("findings", False)}
+    checks = {"findings_section_exists": doc.has_section("findings")}
     return {"pass": all(checks.values()), "checks": checks}
 
 
-def _check_verifier_exit(content: str, sections: Dict[str, bool]) -> dict:
+def _check_verifier_exit(doc: Document) -> dict:
     """Verifier exit: Claims section exists, no 'unverified' anywhere in document."""
     checks = {
-        "claims_section_exists": sections.get("claims", False),
-        "no_unverified_claims": "unverified" not in content.lower(),
+        "claims_section_exists": doc.has_section("claims"),
+        "no_unverified_claims": "unverified" not in doc.content.lower(),
     }
     return {"pass": all(checks.values()), "checks": checks}
 
 
-def _check_finalizer_exit(content: str, doc: object) -> dict:
+def _check_finalizer_exit(doc: Document) -> dict:
     """Finalizer exit: no DRAFT marker, type is research, sources non-empty."""
     checks = {
-        "draft_marker_absent": "<!-- DRAFT -->" not in content,
-        "type_is_research": getattr(doc, "type", None) == "research",
-        "sources_non_empty": len(getattr(doc, "sources", [])) > 0,
+        "draft_marker_absent": "<!-- DRAFT -->" not in doc.content,
+        "type_is_research": doc.type == "research",
+        "sources_non_empty": len(doc.sources) > 0,
     }
     return {"pass": all(checks.values()), "checks": checks}
 

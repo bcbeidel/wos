@@ -27,9 +27,71 @@ class Document:
     sources: List[str] = field(default_factory=list)
     related: List[str] = field(default_factory=list)
     status: Optional[str] = None
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
     meta: dict = field(default_factory=dict)
+
+    @property
+    def word_count(self) -> int:
+        """Number of words in body content."""
+        return len(self.content.split())
+
+    def has_section(self, keyword: str) -> bool:
+        """Return True if any heading line contains keyword (case-insensitive)."""
+        for line in self.content.splitlines():
+            stripped = line.strip()
+            heading_text = stripped.lstrip("#").strip().lower()
+            if stripped.startswith("#") and keyword in heading_text:
+                return True
+        return False
+
+    def issues(self, root: Path) -> List[dict]:
+        """Return validation issues common to all documents.
+
+        Checks that name and description are non-empty, and that all
+        local file paths in ``related`` exist on disk.
+
+        Args:
+            root: Project root directory for resolving relative paths.
+
+        Returns:
+            List of issue dicts with keys: file, issue, severity.
+        """
+        result: List[dict] = []
+
+        if not self.name or not self.name.strip():
+            result.append({
+                "file": self.path,
+                "issue": "Frontmatter 'name' is empty",
+                "severity": "fail",
+            })
+        if not self.description or not self.description.strip():
+            result.append({
+                "file": self.path,
+                "issue": "Frontmatter 'description' is empty",
+                "severity": "fail",
+            })
+
+        for rel in self.related:
+            if rel.startswith("http://") or rel.startswith("https://"):
+                continue
+            if not (root / rel).exists():
+                result.append({
+                    "file": self.path,
+                    "issue": f"Related path does not exist: {rel}",
+                    "severity": "fail",
+                })
+
+        return result
+
+    def is_valid(self, root: Path) -> bool:
+        """Return True if issues() contains no fail-severity entries.
+
+        Args:
+            root: Project root directory.
+
+        Returns:
+            True if the document has no fail-severity issues.
+        """
+        return not any(i["severity"] == "fail" for i in self.issues(root))
 
 
 def parse_document(path: str, text: str) -> Document:
@@ -84,15 +146,7 @@ def parse_document(path: str, text: str) -> Document:
             f"must be one of: {', '.join(sorted(_VALID_STATUSES))}"
         )
 
-    created_at: Optional[str] = fm.get("created_at")
-    if not isinstance(created_at, str) and created_at is not None:
-        created_at = str(created_at)
-    updated_at: Optional[str] = fm.get("updated_at")
-    if not isinstance(updated_at, str) and updated_at is not None:
-        updated_at = str(updated_at)
-
-    _KNOWN_KEYS = {"name", "description", "type", "sources", "related",
-                   "status", "created_at", "updated_at"}
+    _KNOWN_KEYS = {"name", "description", "type", "sources", "related", "status"}
     meta = {k: v for k, v in fm.items() if k not in _KNOWN_KEYS}
 
     return Document(
@@ -104,7 +158,5 @@ def parse_document(path: str, text: str) -> Document:
         sources=sources,
         related=related,
         status=status,
-        created_at=created_at,
-        updated_at=updated_at,
         meta=meta,
     )

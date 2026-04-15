@@ -25,8 +25,6 @@ class TestDocument:
         assert doc.sources == []
         assert doc.related == []
         assert doc.status is None
-        assert doc.created_at is None
-        assert doc.updated_at is None
 
     def test_all_fields(self) -> None:
         from wos.document import Document
@@ -424,50 +422,148 @@ class TestParseDocument:
         doc = parse_document("docs/prompts/code-review.prompt.md", text)
         assert doc.type == "prompt"
 
-    def test_timestamps_parsed(self) -> None:
-        """created_at and updated_at are extracted from frontmatter."""
-        from wos.document import parse_document
 
-        text = (
-            "---\n"
-            "name: Timestamped\n"
-            "description: Has timestamps\n"
-            "created_at: 2026-03-13\n"
-            "updated_at: 2026-03-14\n"
-            "---\n"
-            "# Content\n"
+# ── Document.word_count ──────────────────────────────────────────
+
+
+class TestWordCount:
+    def test_counts_words_in_content(self) -> None:
+        from wos.document import Document
+
+        doc = Document(path="a.md", name="A", description="D",
+                       content="one two three four five")
+        assert doc.word_count == 5
+
+    def test_empty_content_is_zero(self) -> None:
+        from wos.document import Document
+
+        doc = Document(path="a.md", name="A", description="D", content="")
+        assert doc.word_count == 0
+
+
+# ── Document.has_section ─────────────────────────────────────────
+
+
+class TestHasSection:
+    def test_finds_matching_heading(self) -> None:
+        from wos.document import Document
+
+        doc = Document(path="a.md", name="A", description="D",
+                       content="## Findings\n\nSome text.\n")
+        assert doc.has_section("findings") is True
+
+    def test_returns_false_when_absent(self) -> None:
+        from wos.document import Document
+
+        doc = Document(path="a.md", name="A", description="D",
+                       content="## Goals\n\nSome text.\n")
+        assert doc.has_section("findings") is False
+
+    def test_case_insensitive(self) -> None:
+        from wos.document import Document
+
+        doc = Document(path="a.md", name="A", description="D",
+                       content="## FINDINGS\n\nText.\n")
+        assert doc.has_section("findings") is True
+
+    def test_any_heading_level(self) -> None:
+        from wos.document import Document
+
+        doc = Document(path="a.md", name="A", description="D",
+                       content="#### File Changes\n\nText.\n")
+        assert doc.has_section("file changes") is True
+
+    def test_keyword_in_body_not_heading_is_false(self) -> None:
+        from wos.document import Document
+
+        doc = Document(path="a.md", name="A", description="D",
+                       content="Some findings in a paragraph.\n")
+        assert doc.has_section("findings") is False
+
+    def test_empty_content_is_false(self) -> None:
+        from wos.document import Document
+
+        doc = Document(path="a.md", name="A", description="D", content="")
+        assert doc.has_section("findings") is False
+
+
+# ── Document.issues + is_valid ───────────────────────────────────
+
+
+class TestDocumentIssues:
+    def test_valid_document_no_issues(self, tmp_path) -> None:
+        from wos.document import Document
+
+        doc = Document(path="a.md", name="Valid", description="Desc", content="")
+        assert doc.issues(tmp_path) == []
+
+    def test_empty_name_is_fail(self, tmp_path) -> None:
+        from wos.document import Document
+
+        doc = Document(path="a.md", name="", description="Desc", content="")
+        result = doc.issues(tmp_path)
+        assert any(i["severity"] == "fail" and "name" in i["issue"] for i in result)
+
+    def test_whitespace_name_is_fail(self, tmp_path) -> None:
+        from wos.document import Document
+
+        doc = Document(path="a.md", name="   ", description="Desc", content="")
+        result = doc.issues(tmp_path)
+        assert any(i["severity"] == "fail" and "name" in i["issue"] for i in result)
+
+    def test_empty_description_is_fail(self, tmp_path) -> None:
+        from wos.document import Document
+
+        doc = Document(path="a.md", name="Name", description="", content="")
+        result = doc.issues(tmp_path)
+        assert any(
+            i["severity"] == "fail" and "description" in i["issue"] for i in result
         )
-        doc = parse_document("test.md", text)
-        assert doc.created_at == "2026-03-13"
-        assert doc.updated_at == "2026-03-14"
 
-    def test_timestamps_optional(self) -> None:
-        """Documents without timestamps default to None."""
-        from wos.document import parse_document
+    def test_missing_related_path_is_fail(self, tmp_path) -> None:
+        from wos.document import Document
 
-        text = (
-            "---\n"
-            "name: No Timestamps\n"
-            "description: No timestamp fields\n"
-            "---\n"
-            "# Content\n"
+        doc = Document(
+            path="a.md", name="N", description="D", content="",
+            related=["docs/context/missing.md"],
         )
-        doc = parse_document("test.md", text)
-        assert doc.created_at is None
-        assert doc.updated_at is None
-
-    def test_created_at_only(self) -> None:
-        """Only created_at without updated_at works."""
-        from wos.document import parse_document
-
-        text = (
-            "---\n"
-            "name: Created Only\n"
-            "description: Has only created_at\n"
-            "created_at: 2026-01-15\n"
-            "---\n"
-            "# Content\n"
+        result = doc.issues(tmp_path)
+        assert any(
+            i["severity"] == "fail" and "missing.md" in i["issue"] for i in result
         )
-        doc = parse_document("test.md", text)
-        assert doc.created_at == "2026-01-15"
-        assert doc.updated_at is None
+
+    def test_existing_related_path_no_issue(self, tmp_path) -> None:
+        from wos.document import Document
+
+        target = tmp_path / "docs" / "context" / "present.md"
+        target.parent.mkdir(parents=True)
+        target.write_text("exists")
+        doc = Document(
+            path="a.md", name="N", description="D", content="",
+            related=["docs/context/present.md"],
+        )
+        assert doc.issues(tmp_path) == []
+
+    def test_url_in_related_skipped(self, tmp_path) -> None:
+        from wos.document import Document
+
+        doc = Document(
+            path="a.md", name="N", description="D", content="",
+            related=["https://example.com/ref"],
+        )
+        assert doc.issues(tmp_path) == []
+
+
+class TestDocumentIsValid:
+    def test_valid_doc_returns_true(self, tmp_path) -> None:
+        from wos.document import Document
+
+        doc = Document(path="a.md", name="N", description="D", content="")
+        assert doc.is_valid(tmp_path) is True
+
+    def test_fail_issue_returns_false(self, tmp_path) -> None:
+        from wos.document import Document
+
+        doc = Document(path="a.md", name="", description="D", content="")
+        assert doc.is_valid(tmp_path) is False
+
