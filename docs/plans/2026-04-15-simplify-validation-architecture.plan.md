@@ -255,7 +255,7 @@ does not call reindex.
   files after all deletions. Run the full test suite.
   **Verify:** `python -m pytest tests/ -v` → 0 failures
 
-- [ ] Task 16: Run the full lint check to confirm zero structural regressions.
+- [x] Task 16: Run the full lint check to confirm zero structural regressions. <!-- sha:pending -->
   **Verify:** `python scripts/lint.py --root . --no-urls` → 0 fail findings
 
 ## Validation
