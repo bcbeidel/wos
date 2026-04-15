@@ -198,7 +198,7 @@ does not call reindex.
   **Verify:** Run against a valid `.research.md` → exit 0;
   run against a file containing `<!-- DRAFT -->` → exit 1 with message
 
-- [x] Task 9: Update `skills/_shared/references/research/finalize.md` step 5. <!-- sha:pending -->
+- [x] Task 9: Update `skills/_shared/references/research/finalize.md` step 5. <!-- sha:15aeb13 -->
   Replace:
   ```bash
   python <plugin-scripts-dir>/reindex.py --root .
@@ -212,14 +212,14 @@ does not call reindex.
   research session to sync `_index.md` files."
   **Verify:** `grep -c "reindex\|lint\.py" skills/_shared/references/research/finalize.md` → 0
 
-- [x] Task 10: Update `skills/ingest/SKILL.md` Post-Ingest section. Fix: <!-- sha:pending -->
+- [x] Task 10: Update `skills/ingest/SKILL.md` Post-Ingest section. Fix: <!-- sha:15aeb13 -->
   - `python scripts/lint.py` → `python <plugin-scripts-dir>/lint.py`
   - `python scripts/reindex.py` → `python <plugin-scripts-dir>/reindex.py`
   **Verify:** `grep -c "python scripts/" skills/ingest/SKILL.md` → 0
 
 ### Chunk 4: Work chain shell validation
 
-- [ ] Task 11: Create `skills/start-work/scripts/validate_plan.sh`. Checks that
+- [x] Task 11: Create `skills/start-work/scripts/validate_plan.sh`. Checks that <!-- sha:pending -->
   all 6 required headings exist (Goal, Scope, Approach, File Changes, Tasks,
   Validation) and that a `status:` field is in the frontmatter. Prints each
   missing item with "MISSING:" prefix. Exit 1 if any fail; exit 0 with
@@ -227,7 +227,7 @@ does not call reindex.
   **Verify:** Run against this plan file → exit 0;
   run against a file missing `## Validation` → exit 1 with "MISSING: Validation"
 
-- [ ] Task 12: Create `skills/start-work/scripts/check_tasks_complete.sh`.
+- [x] Task 12: Create `skills/start-work/scripts/check_tasks_complete.sh`. <!-- sha:pending -->
   Counts `^- \[ \]` lines. Exit 0 with "OK: all tasks complete" if count is 0.
   Exit 1 with the count and each open task line if any remain. Make executable.
   **Verify:** Run against this plan file → exit 1 with open task list;
