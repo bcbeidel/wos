@@ -3,7 +3,7 @@
 # requires-python = ">=3.9"
 # dependencies = []
 # ///
-"""Create _index.md files for WOS-managed areas.
+"""Create _index.md files for WOS-managed areas and the wiki/ subtree.
 
 Reads directories from the AGENTS.md areas table and creates a
 <dir>/_index.md listing all managed documents with their descriptions.
@@ -11,6 +11,11 @@ Also refreshes the AGENTS.md areas table, preserving existing descriptions.
 
 First-run fallback: if AGENTS.md has no areas table, scans the docs/
 subtree to discover directories.
+
+Wiki mode (auto-activated when wiki/SCHEMA.md is present):
+Walks the wiki/ subtree recursively. For each subdirectory with .md files,
+writes a flat _index.md. Writes a tree-view root wiki/_index.md with a
+heading per subdirectory. Skips log.md, SCHEMA.md, and _index.md.
 
 Usage:
     python3 scripts/reindex.py --root .
@@ -28,6 +33,8 @@ _SKIP = frozenset({
     "node_modules", "__pycache__", "venv", ".venv",
     "dist", "build", ".tox", ".mypy_cache", ".pytest_cache",
 })
+
+_WIKI_SKIP = frozenset({"_index.md", "SCHEMA.md", "log.md"})
 
 
 def _read_frontmatter_field(path: Path, field: str) -> str:
@@ -94,6 +101,73 @@ def _scan_docs_subtree(root: Path) -> list[Path]:
     return dirs
 
 
+def _reindex_wiki(wiki_dir: Path, root: Path) -> None:
+    """Generate _index.md files for the wiki/ subtree.
+
+    For each subdirectory with .md files, writes a flat _index.md (via
+    _write_index). Writes a tree-view root wiki/_index.md with one
+    ``## dirname`` heading per subdirectory. Skips log.md, SCHEMA.md,
+    and _index.md throughout.
+    """
+    root_pages: list[Path] = []
+    subdir_entries: list[tuple[str, list[Path]]] = []
+    subdir_count = 0
+
+    for dirpath, dirnames, filenames in os.walk(wiki_dir):
+        dirnames[:] = sorted(d for d in dirnames if not d.startswith("."))
+        current = Path(dirpath)
+        md_files = sorted(
+            current / f for f in filenames
+            if f.endswith(".md") and f not in _WIKI_SKIP
+        )
+        if not md_files:
+            continue
+
+        if current == wiki_dir:
+            root_pages = md_files
+        else:
+            # Write per-subdirectory flat _index.md
+            _write_index(current, root)
+            rel_name = current.relative_to(wiki_dir).parts[0]
+            subdir_entries.append((rel_name, md_files))
+            subdir_count += 1
+
+    # Write root wiki/_index.md as a tree view
+    lines: list[str] = ["# wiki", ""]
+
+    for subdir_name, pages in sorted(subdir_entries):
+        lines.append(f"## {subdir_name}")
+        lines.append("")
+        lines.append("| File | Description |")
+        lines.append("|------|-------------|")
+        for p in sorted(pages):
+            desc = _read_frontmatter_field(p, "description") or ""
+            rel = p.relative_to(wiki_dir / subdir_name)
+            lines.append(f"| [{rel}]({subdir_name}/{rel}) | {desc} |")
+        lines.append("")
+
+    if root_pages:
+        if subdir_entries:
+            lines.append("## (root)")
+            lines.append("")
+        lines.append("| File | Description |")
+        lines.append("|------|-------------|")
+        for p in root_pages:
+            desc = _read_frontmatter_field(p, "description") or ""
+            lines.append(f"| [{p.name}]({p.name}) | {desc} |")
+        lines.append("")
+
+    if subdir_entries or root_pages:
+        (wiki_dir / "_index.md").write_text(
+            "\n".join(lines) + "\n", encoding="utf-8"
+        )
+
+    print(
+        f"Wiki: reindexed {subdir_count} "
+        f"subdirector{'y' if subdir_count == 1 else 'ies'}"
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
@@ -158,6 +232,11 @@ def main() -> None:
 
     n = len(dirs)
     print(f"Reindexed {n} director{'y' if n == 1 else 'ies'}")
+
+    # Wiki mode — auto-activated when wiki/SCHEMA.md is present
+    wiki_dir = root / "wiki"
+    if (wiki_dir / "SCHEMA.md").is_file():
+        _reindex_wiki(wiki_dir, root)
 
 
 if __name__ == "__main__":
