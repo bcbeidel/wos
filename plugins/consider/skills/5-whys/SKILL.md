@@ -1,6 +1,6 @@
 ---
 name: 5-whys
-description: Drill to root cause by asking why repeatedly until fundamentals emerge
+description: Drill to root cause by asking why repeatedly until fundamentals emerge — use when a problem recurs or the quick fix keeps failing to hold
 argument-hint: "[problem or symptom to trace to its root cause]"
 user-invocable: true
 ---
@@ -66,4 +66,22 @@ Giving each parallel suite its own database instance would eliminate the shared-
 ### Action
 Create per-suite database instances in CI using a template database that's cloned at suite start and destroyed at suite end.
 </example>
+
+## Key Instructions
+
+- If the chain reaches "human error" or "bad luck," keep going — those are symptoms, not root causes; ask why that error was possible.
+- Stop when fixing the identified root cause would demonstrably prevent the original symptom from recurring.
+- Does not prescribe solutions; produces diagnosis to inform action.
+- Does not apply to novel one-off incidents where recurrence is not the concern.
+
+## Anti-Pattern Guards
+
+1. **Stopping at symptoms** — "the developer made a mistake" is a symptom; keep asking why that mistake was possible.
+2. **Single-chain tunnel vision** — most real problems have multiple contributing causes; check for branching chains at each level (process step 6).
+
+## Handoff
+
+**Receives:** A problem statement or recurring symptom the user wants to trace to its root cause
+**Produces:** A why-chain trace leading to root cause(s), with verification and a specific action
+**Chainable to:** `consider` (to apply additional mental models), `inversion` (to verify by imagining how to reproduce the problem)
 
