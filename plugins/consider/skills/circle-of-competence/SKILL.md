@@ -1,6 +1,6 @@
 ---
 name: circle-of-competence
-description: Scope decisions by distinguishing what you know well from what you don't
+description: Scope decisions by distinguishing what you know well from what you don't — use when expertise boundaries are uncertain or a decision requires knowledge outside your direct experience
 argument-hint: "[domain or decision where expertise boundaries matter]"
 user-invocable: true
 ---
@@ -72,4 +72,21 @@ Building the mobile app requires deep knowledge in all three zones. API integrat
 ### Strategy
 Bring in outside expertise. Hire or contract a mobile developer for the app shell and platform integration. Our team owns the API layer and backend (inside our circle). The mobile specialist handles what we'd spend months learning poorly. Review architecture decisions together so knowledge transfers over time.
 </example>
+
+## Key Instructions
+
+- If the user has no relevant experience to assess, help them identify who does before mapping the circle.
+- Does not evaluate whether a decision is worth making; only maps competence boundaries relative to it.
+- Does not apply to pure preference questions where competence is irrelevant.
+
+## Anti-Pattern Guards
+
+1. **Confusing familiarity with competence** — reading about a topic places it on the edge, not inside the circle; direct practice is the threshold.
+2. **Using the model to justify avoidance** — the goal is calibrated scope, not permission to stay comfortable; sometimes the right answer is to expand the circle.
+
+## Handoff
+
+**Receives:** A domain or decision where expertise boundaries affect the outcome
+**Produces:** A three-zone competence map (inside / edge / outside) with a recommended strategy
+**Chainable to:** `consider` (to apply additional mental models), `opportunity-cost` (to evaluate the cost of staying in vs. expanding the circle)
 
