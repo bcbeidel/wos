@@ -47,8 +47,6 @@ Note: `ruff` may not be installed locally; CI runs it via GitHub Actions.
 9. **Separate reads from writes** — audit observes; fixes require explicit action
 10. **Bottom line up front** — key insights at top and bottom, detail in the middle
 
-Full descriptions: [Design Principles](PRINCIPLES.md)
-
 ## Architecture
 
 ### Marketplace Structure
@@ -77,15 +75,10 @@ Each plugin directory contains:
 ### Package Structure
 
 **`plugins/wiki/wiki/`** — importable Python package:
-- `frontmatter.py` — custom YAML subset parser (stdlib-only)
 - `document.py` — `Document` base class + subclasses + `parse_document()` factory
-- `discovery.py` — document discovery via project tree walking (.gitignore-aware)
-- `suffix.py` — compound suffix extraction (`type_from_path`)
-- `index.py` — `_index.md` generation + sync checking (preamble-preserving)
 - `validators.py` — project-wide orchestration (`validate_project()`); index and project-file checks
 - `url_checker.py` — HTTP HEAD/GET URL reachability (urllib)
 - `agents_md.py` — marker-based AGENTS.md section management + `replace_marker_section()`
-- `preferences.py` — communication preferences dimensions and rendering
 - `wiki.py` — `WikiDocument` subclass + schema parsing + directory-level orphan checks
 - `skill_chain.py` — `ChainDocument` subclass + step table parsing + structural validation
 - `research.py` — `ResearchDocument` subclass + source URL checks + gate checking
@@ -138,10 +131,6 @@ Skills live at `plugins/<plugin>/skills/<name>/SKILL.md`.
 - `plugins/wiki/wiki/validators.py` — `validate_project()` runs all checks
 - `plugins/check/check/skill.py` — `check_skill_sizes()` and `check_skill_meta()` for skill quality
 - `plugins/wiki/scripts/lint.py` — CLI for validation
-
-## Reference
-
-- Design principles: [Design Principles](PRINCIPLES.md)
 
 ## Plans
 
