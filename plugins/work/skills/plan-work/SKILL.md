@@ -76,7 +76,7 @@ full format, user options, and revision-vs-supersede decision tree.
 
 Present the user with three options:
 
-1. **Return to scope-work** — invoke `wos:scope-work` with this feedback
+1. **Return to scope-work** — invoke `/work:scope-work` with this feedback
    to revise the design. Follow the "supersede, don't edit" pattern.
 2. **Proceed with modified scope** — revise the plan in-place: update
    Must/Won't boundaries, adjust or remove affected tasks, and document
@@ -108,7 +108,7 @@ When the user approves, set `status: approved` in the plan's frontmatter.
 
 ### 7. Hand Off
 
-Present to user: "Plan approved. Ready to invoke `/wos:start-work` to
+Present to user: "Plan approved. Ready to invoke `/work:start-work` to
 begin implementation — proceed?"
 
 Wait for user confirmation before invoking the skill. The plan should be
