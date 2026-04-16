@@ -118,12 +118,12 @@ Format the output as:
 ### 4. Offer to Save
 
 After presenting the refined prompt, ask the user if they'd like to save it
-to a markdown file in `/docs/prompts/` for later reuse. If yes:
+to a markdown file in `.prompts/` for later reuse. If yes:
 
 1. Ask for a short filename (suggest one based on the prompt's topic)
 2. Write the file as `<name>.prompt.md` with frontmatter (`name`, `description`)
    and the refined prompt as the body
-3. Create the `/docs/prompts/` directory if it doesn't exist
+3. Create the `.prompts/` directory if it doesn't exist
 
 If the user declines, move on without saving.
 
@@ -158,5 +158,5 @@ If the user declines, move on without saving.
 ## Handoff
 
 **Receives:** Prompt text or file path to refine; optional target use-case context
-**Produces:** Refined prompt with assessment scores and improvement rationale; optionally saved to `docs/prompts/`
+**Produces:** Refined prompt with assessment scores and improvement rationale; optionally saved to `.prompts/`
 **Chainable to:** build-skill (when refining a SKILL.md instruction block), build-hook (when refining a hook enforcement goal), build-rule (when refining a rule's intent statement)
