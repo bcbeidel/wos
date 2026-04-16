@@ -3,11 +3,14 @@
 # requires-python = ">=3.9"
 # dependencies = []
 # ///
-"""Create _index.md files in directories containing managed documents.
+"""Create _index.md files for WOS-managed areas.
 
-For each directory that contains .md files (excluding _index.md itself),
-writes a <dir>/_index.md with a table of files and their descriptions.
-Also updates the AGENTS.md areas table, preserving existing descriptions.
+Reads directories from the AGENTS.md areas table and creates a
+<dir>/_index.md listing all managed documents with their descriptions.
+Also refreshes the AGENTS.md areas table, preserving existing descriptions.
+
+First-run fallback: if AGENTS.md has no areas table, scans the docs/
+subtree to discover directories.
 
 Usage:
     python3 scripts/reindex.py --root .
@@ -42,7 +45,6 @@ def _read_frontmatter_field(path: Path, field: str) -> str:
     for line in fm.splitlines():
         if line.startswith(f"{field}:"):
             value = line[len(field) + 1:].strip()
-            # Strip optional inline quotes
             if len(value) >= 2 and value[0] in ('"', "'") and value[-1] == value[0]:
                 value = value[1:-1]
             return value
@@ -73,14 +75,16 @@ def _write_index(directory: Path, root: Path) -> None:
         desc = _read_frontmatter_field(f, "description") or ""
         lines.append(f"| [{f.name}]({f.name}) | {desc} |")
 
-    index_path = directory / "_index.md"
-    index_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    (directory / "_index.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def discover_dirs(root: Path) -> list[Path]:
-    """Return directories under root that contain non-index .md files."""
+def _scan_docs_subtree(root: Path) -> list[Path]:
+    """Fallback: scan docs/ for directories that contain .md files."""
+    docs_root = root / "docs"
+    if not docs_root.is_dir():
+        return []
     dirs: list[Path] = []
-    for dirpath, dirnames, filenames in os.walk(root):
+    for dirpath, dirnames, filenames in os.walk(docs_root):
         dirnames[:] = sorted(
             d for d in dirnames
             if not d.startswith(".") and d not in _SKIP
@@ -92,7 +96,10 @@ def discover_dirs(root: Path) -> list[Path]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Create _index.md files and update AGENTS.md areas table.",
+        description=(
+            "Create _index.md files for WOS-managed areas and refresh "
+            "the AGENTS.md areas table."
+        ),
     )
     parser.add_argument(
         "--root",
@@ -101,32 +108,56 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    from wiki.agents_md import discover_areas, extract_areas, update_agents_md
+    from wiki.agents_md import extract_areas, update_agents_md
 
     root = Path(args.root).resolve()
+    agents_path = root / "AGENTS.md"
 
-    # Create _index.md files in every directory with managed docs
-    dirs = discover_dirs(root)
+    # Read existing areas (descriptions) from AGENTS.md
+    existing_desc: dict[str, str] = {}
+    agents_content: str = ""
+    if agents_path.is_file():
+        agents_content = agents_path.read_text(encoding="utf-8")
+        for area in extract_areas(agents_content):
+            existing_desc[area["path"]] = area["name"]
+
+    # Determine which directories to index
+    if existing_desc:
+        # Option B: only index directories already registered as WOS areas
+        dirs = [
+            root / rel for rel in existing_desc
+            if (root / rel).is_dir()
+        ]
+    else:
+        # First-run fallback: scan docs/ subtree
+        dirs = _scan_docs_subtree(root)
+        if not dirs:
+            print("No areas in AGENTS.md and no docs/ directory — nothing to reindex")
+            return
+
+    # Create _index.md for each area directory
     for d in dirs:
         _write_index(d, root)
 
-    # Update AGENTS.md areas table, preserving existing human descriptions
-    agents_path = root / "AGENTS.md"
+    # Refresh AGENTS.md areas table (preserving human descriptions)
     if agents_path.is_file():
-        content = agents_path.read_text(encoding="utf-8")
-        existing = {a["path"]: a["name"] for a in extract_areas(content)}
-        discovered = discover_areas(root)
-        # Prefer existing description; fall back to path for new areas
-        for area in discovered:
-            if area["path"] in existing:
-                area["name"] = existing[area["path"]]
-        updated = update_agents_md(content, areas=discovered)
+        refreshed: list[dict[str, str]] = []
+        for d in dirs:
+            try:
+                rel = str(d.relative_to(root))
+            except ValueError:
+                continue
+            name = existing_desc.get(rel, rel)
+            refreshed.append({"name": name, "path": rel})
+
+        updated = update_agents_md(agents_content, areas=refreshed)
         agents_path.write_text(updated, encoding="utf-8")
-        print(f"Updated {len(discovered)} area(s) in {agents_path}")
+        print(f"Updated {len(refreshed)} area(s) in {agents_path}")
     else:
         print(f"AGENTS.md not found at {agents_path} — skipping areas update")
 
-    print(f"Reindexed {len(dirs)} director{'y' if len(dirs) == 1 else 'ies'}")
+    n = len(dirs)
+    print(f"Reindexed {n} director{'y' if n == 1 else 'ies'}")
 
 
 if __name__ == "__main__":

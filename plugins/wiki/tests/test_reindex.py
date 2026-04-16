@@ -23,11 +23,33 @@ def _make_md(path: Path, name: str = "", description: str = "") -> None:
     path.write_text("\n".join(fm_lines) + "\n", encoding="utf-8")
 
 
-class TestReindexCreatesIndexFiles:
-    def test_creates_index_for_directory_with_md_files(self, tmp_path: Path) -> None:
+def _agents_with_areas(
+    tmp_path: Path, areas: list[tuple[str, str]]
+) -> Path:
+    """Write AGENTS.md with a WOS section listing the given (desc, path) areas."""
+    rows = "\n".join(f"| {desc} | {path} |" for desc, path in areas)
+    content = (
+        f"# AGENTS.md\n\n"
+        f"{BEGIN_MARKER}\n"
+        f"### Areas\n"
+        f"| Area | Path |\n"
+        f"|------|------|\n"
+        f"{rows}\n"
+        f"{END_MARKER}\n"
+    )
+    p = tmp_path / "AGENTS.md"
+    p.write_text(content, encoding="utf-8")
+    return p
+
+
+class TestReindexFromAreasTable:
+    """When AGENTS.md has an areas table, only those dirs are indexed."""
+
+    def test_creates_index_for_registered_area(self, tmp_path: Path) -> None:
         docs = tmp_path / "docs" / "context"
         docs.mkdir(parents=True)
         _make_md(docs / "planning.md", name="Planning", description="How we plan")
+        _agents_with_areas(tmp_path, [("How we plan context", "docs/context")])
 
         result = _run(tmp_path)
         assert result.returncode == 0
@@ -37,15 +59,33 @@ class TestReindexCreatesIndexFiles:
         content = index.read_text()
         assert "| [planning.md](planning.md) | How we plan |" in content
 
+    def test_does_not_index_dirs_outside_areas_table(self, tmp_path: Path) -> None:
+        registered = tmp_path / "docs" / "context"
+        registered.mkdir(parents=True)
+        _make_md(registered / "doc.md", name="Doc", description="A doc")
+
+        unregistered = tmp_path / "plugins" / "src"
+        unregistered.mkdir(parents=True)
+        _make_md(unregistered / "skill.md", name="Skill", description="A skill")
+
+        _agents_with_areas(tmp_path, [("Context", "docs/context")])
+
+        _run(tmp_path)
+
+        # Registered area gets an index
+        assert (registered / "_index.md").exists()
+        # Unregistered directory does NOT get an index
+        assert not (unregistered / "_index.md").exists()
+
     def test_index_header_uses_relative_path(self, tmp_path: Path) -> None:
         docs = tmp_path / "docs" / "context"
         docs.mkdir(parents=True)
         _make_md(docs / "topic.md", name="Topic", description="A topic")
+        _agents_with_areas(tmp_path, [("Context", "docs/context")])
 
         _run(tmp_path)
 
-        index = docs / "_index.md"
-        content = index.read_text()
+        content = (docs / "_index.md").read_text()
         assert "# docs/context" in content
 
     def test_index_files_sorted_alphabetically(self, tmp_path: Path) -> None:
@@ -54,6 +94,7 @@ class TestReindexCreatesIndexFiles:
         _make_md(docs / "zebra.md", name="Zebra", description="Last")
         _make_md(docs / "alpha.md", name="Alpha", description="First")
         _make_md(docs / "middle.md", name="Middle", description="Middle")
+        _agents_with_areas(tmp_path, [("Docs", "docs")])
 
         _run(tmp_path)
 
@@ -63,101 +104,88 @@ class TestReindexCreatesIndexFiles:
         m_pos = content.index("middle.md")
         assert a_pos < m_pos < z_pos
 
-    def test_no_index_for_directory_without_md_files(self, tmp_path: Path) -> None:
-        empty = tmp_path / "empty_dir"
-        empty.mkdir()
-        (empty / "notes.txt").write_text("not a markdown file")
-
-        _run(tmp_path)
-
-        assert not (empty / "_index.md").exists()
-
-    def test_existing_index_not_counted_as_managed_doc(self, tmp_path: Path) -> None:
-        """A directory with only _index.md should not get a new _index.md."""
-        docs = tmp_path / "docs"
-        docs.mkdir(parents=True)
-        (docs / "_index.md").write_text("# existing index\n")
-        # No other .md files
-
-        _run(tmp_path)
-
-        # _index.md should not have been replaced with a table
-        content = (docs / "_index.md").read_text()
-        assert "# existing index" in content
-        assert "| File | Description |" not in content
-
-
-class TestReindexDoesNotTouchWikiIndex:
-    def test_wiki_index_untouched_when_wiki_has_only_index(
+    def test_no_index_for_area_dir_with_only_index_file(
         self, tmp_path: Path
     ) -> None:
-        """wiki/_index.md is the page inventory; reindex must not overwrite it."""
-        wiki = tmp_path / "wiki"
-        wiki.mkdir()
-        wiki_index = wiki / "_index.md"
-        wiki_index.write_text("# Wiki Index\n\n| Page | Description | File |\n")
+        """A registered area dir that has only _index.md should not be overwritten."""
+        docs = tmp_path / "docs"
+        docs.mkdir(parents=True)
+        existing = docs / "_index.md"
+        existing.write_text("# hand-written\n")
+        _agents_with_areas(tmp_path, [("Docs", "docs")])
 
         _run(tmp_path)
 
-        # wiki/_index.md should be unchanged (no other .md in wiki/)
-        expected = "# Wiki Index\n\n| Page | Description | File |\n"
-        assert wiki_index.read_text() == expected
+        # No other .md files → _write_index does nothing → hand-written is preserved
+        assert existing.read_text() == "# hand-written\n"
 
 
-class TestReindexUpdatesAgentsMd:
-    def test_updates_areas_table_with_discovered_dirs(self, tmp_path: Path) -> None:
+class TestReindexFirstRunFallback:
+    """When AGENTS.md has no areas, fall back to scanning docs/."""
+
+    def test_scans_docs_subtree_when_no_areas(self, tmp_path: Path) -> None:
         docs = tmp_path / "docs" / "context"
         docs.mkdir(parents=True)
         _make_md(docs / "topic.md", name="Topic", description="A topic")
 
-        agents = tmp_path / "AGENTS.md"
-        agents.write_text(f"# AGENTS.md\n\n{BEGIN_MARKER}\nold\n{END_MARKER}\n")
+        # AGENTS.md exists but has no areas table
+        (tmp_path / "AGENTS.md").write_text(
+            f"# AGENTS.md\n\n{BEGIN_MARKER}\nno areas here\n{END_MARKER}\n"
+        )
 
         result = _run(tmp_path)
         assert result.returncode == 0
+        assert (docs / "_index.md").exists()
 
-        content = agents.read_text()
-        assert "docs/context" in content
+    def test_reports_nothing_when_no_areas_and_no_docs(
+        self, tmp_path: Path
+    ) -> None:
+        (tmp_path / "AGENTS.md").write_text(
+            f"# AGENTS.md\n\n{BEGIN_MARKER}\nno areas\n{END_MARKER}\n"
+        )
+        result = _run(tmp_path)
+        assert result.returncode == 0
+        assert "nothing to reindex" in result.stdout
 
+
+class TestReindexDoesNotTouchWikiInventory:
+    def test_wiki_index_untouched_when_wiki_is_not_a_registered_area(
+        self, tmp_path: Path
+    ) -> None:
+        """wiki/_index.md (page inventory) must not be overwritten by reindex."""
+        wiki = tmp_path / "wiki"
+        wiki.mkdir()
+        wiki_index = wiki / "_index.md"
+        expected = "# Wiki Index\n\n| Page | Description | File |\n"
+        wiki_index.write_text(expected)
+
+        # wiki/ is not in the areas table
+        docs = tmp_path / "docs"
+        docs.mkdir()
+        _make_md(docs / "topic.md", name="Topic", description="A topic")
+        _agents_with_areas(tmp_path, [("Docs", "docs")])
+
+        _run(tmp_path)
+
+        assert wiki_index.read_text() == expected
+
+
+class TestReindexUpdatesAgentsMd:
     def test_preserves_existing_human_descriptions(self, tmp_path: Path) -> None:
         docs = tmp_path / "docs" / "context"
         docs.mkdir(parents=True)
         _make_md(docs / "topic.md", name="Topic", description="A topic")
 
         human_desc = "How LLM agents plan and execute tasks"
-        agents = tmp_path / "AGENTS.md"
-        agents.write_text(
-            f"# AGENTS.md\n\n"
-            f"{BEGIN_MARKER}\n"
-            f"### Areas\n"
-            f"| Area | Path |\n"
-            f"|------|------|\n"
-            f"| {human_desc} | docs/context |\n"
-            f"{END_MARKER}\n"
-        )
+        agents = _agents_with_areas(tmp_path, [(human_desc, "docs/context")])
 
         _run(tmp_path)
 
-        content = agents.read_text()
-        assert human_desc in content
+        assert human_desc in agents.read_text()
 
-    def test_new_areas_get_path_as_fallback_description(self, tmp_path: Path) -> None:
-        docs = tmp_path / "docs" / "new-area"
-        docs.mkdir(parents=True)
-        _make_md(docs / "topic.md", name="Topic", description="A topic")
-
-        agents = tmp_path / "AGENTS.md"
-        agents.write_text(f"# AGENTS.md\n\n{BEGIN_MARKER}\nold\n{END_MARKER}\n")
-
-        _run(tmp_path)
-
-        content = agents.read_text()
-        # New area falls back to path as description
-        assert "docs/new-area" in content
-
-    def test_skips_agents_update_when_no_agents_md(self, tmp_path: Path) -> None:
+    def test_skips_areas_update_when_no_agents_md(self, tmp_path: Path) -> None:
         docs = tmp_path / "docs"
-        docs.mkdir(parents=True)
+        docs.mkdir()
         _make_md(docs / "topic.md", name="Topic", description="A topic")
 
         result = _run(tmp_path)
@@ -172,6 +200,10 @@ class TestReindexOutput:
             d = tmp_path / "docs" / name
             d.mkdir(parents=True)
             _make_md(d / "doc.md", name="Doc", description="A doc")
+        _agents_with_areas(
+            tmp_path,
+            [("Alpha", "docs/alpha"), ("Beta", "docs/beta")],
+        )
 
         result = _run(tmp_path)
         assert result.returncode == 0
