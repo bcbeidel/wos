@@ -379,12 +379,57 @@ def extract_preferences(content: str) -> List[str]:
     return prefs
 
 
+# ── Extract areas ────────────────────────────────────────────────
+
+
+def extract_areas(content: str) -> List[Dict[str, str]]:
+    """Extract area entries from an AGENTS.md WOS section.
+
+    Parses the ``### Areas`` table between WOS markers and returns the
+    list of area dicts with 'name' and 'path' keys.  Used to preserve
+    human-written area descriptions when rewriting the WOS section.
+
+    Args:
+        content: Full AGENTS.md file content.
+
+    Returns:
+        List of ``{"name": ..., "path": ...}`` dicts, or empty list if
+        no markers or no Areas table is found.
+    """
+    begin_idx = content.find(BEGIN_MARKER)
+    end_idx = content.find(END_MARKER)
+    if begin_idx == -1 or end_idx == -1:
+        return []
+
+    wos_section = content[begin_idx:end_idx]
+    lines = wos_section.split("\n")
+
+    in_areas = False
+    areas: List[Dict[str, str]] = []
+    for line in lines:
+        if line.strip() == "### Areas":
+            in_areas = True
+            continue
+        if in_areas:
+            if line.startswith("### ") or line.startswith("<!--"):
+                break
+            # Skip header and separator rows
+            if line.startswith("| Area") or line.startswith("|---"):
+                continue
+            if line.startswith("| "):
+                parts = [p.strip() for p in line.strip("|").split("|")]
+                if len(parts) >= 2:
+                    areas.append({"name": parts[0], "path": parts[1]})
+
+    return areas
+
+
 # ── Update ───────────────────────────────────────────────────────
 
 
 def update_agents_md(
     content: str,
-    areas: List[Dict[str, str]],
+    areas: Optional[List[Dict[str, str]]] = None,
     preferences: Optional[List[str]] = None,
     layout: Optional[str] = None,
 ) -> str:
@@ -395,16 +440,23 @@ def update_agents_md(
     Content outside markers is never touched.
 
     Preserves existing layout hint if no new layout is specified.
+    When ``areas`` is None, extracts existing areas from the current
+    content so human-written descriptions are not lost.
 
     Args:
         content: The existing AGENTS.md content.
-        areas: List of dicts with 'name' and 'path' keys.
+        areas: List of dicts with 'name' and 'path' keys.  If None,
+            the existing areas table is preserved via ``extract_areas``.
         preferences: Optional list of preference strings.
         layout: Optional layout pattern. If None, preserves existing.
 
     Returns:
         Updated AGENTS.md content with the new WOS section.
     """
+    # Preserve existing areas if not explicitly provided
+    if areas is None:
+        areas = extract_areas(content)
+
     # Preserve existing layout if not explicitly provided
     if layout is None:
         layout = read_layout_hint(content)
