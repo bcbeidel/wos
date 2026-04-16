@@ -56,8 +56,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--subdir",
-        default="docs/research",
-        help="Subdirectory to scan (default: docs/research)",
+        default=".research",
+        help="Subdirectory to scan (default: .research)",
     )
     parser.add_argument(
         "--gate",

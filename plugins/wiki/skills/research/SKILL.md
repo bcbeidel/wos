@@ -273,7 +273,7 @@ STOP at each gate. If the condition is not met, complete it before proceeding.
 The final research document is saved with a `{date}-{slug}.research.md`
 filename. Save location depends on the project's layout hint (read from
 AGENTS.md `<!-- wos:layout: ... -->` comment):
-- **separated**: `docs/research/`
+- **separated**: `.research/`
 - **co-located**: same directory as related documents
 - **flat**: `docs/`
 - **none** or missing: ask the user where to save
@@ -289,7 +289,7 @@ type: research
 sources:
   - https://example.com/primary-source
 related:
-  - docs/research/2026-01-15-related-topic.research.md
+  - .research/2026-01-15-related-topic.research.md
 ---
 ```
 
@@ -353,5 +353,5 @@ loop itself remains single-threaded (HIGH).
 ## Handoff
 
 **Receives:** Topic or question to investigate; optional scope constraints or prior context files
-**Produces:** Verified research document saved to `docs/research/` with sources, findings, and confidence ratings
+**Produces:** Verified research document saved to `.research/` with sources, findings, and confidence ratings
 **Chainable to:** ingest, plan-work
