@@ -211,11 +211,13 @@ __marimo__/
 .worktrees/
 
 # Working artifact directories (ephemeral by default — commit selectively)
-.plans/
-.designs/
-.research/
-.context/
-.prompts/
+# Use /* instead of / so the directory itself stays tracked via .gitkeep
+.plans/*
+.designs/*
+.research/*
+.context/*
+.prompts/*
+!**/.gitkeep
 
 # macOS
 .DS_Store
