@@ -2,7 +2,7 @@
 name: Metadata Correctness and Lint Accuracy Batch Fix
 description: Fix five open bugs causing skill enumeration failures, false-positive lint results, a broken skill chain reference, and unusable static-check tooling.
 type: plan
-status: executing
+status: completed
 branch: fix/metadata-correctness-lint-accuracy
 related:
   - docs/designs/2026-04-16-metadata-correctness-lint-accuracy.design.md
