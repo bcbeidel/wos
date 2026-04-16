@@ -26,9 +26,9 @@ Determine whether a hook is the right primitive before asking hook-specific ques
 - **Goal is an unconditional permanent block** (never allow tool X, no conditions, ever) →
   suggest `settings.json` `permissions.deny` instead. No logic, no script, cannot be bypassed by exit codes.
 - **Goal is advisory guidance or procedural instruction** (prefer X, follow this convention) →
-  suggest CLAUDE.md or `/wos:build-skill` instead. Hooks enforce mandatory behavior regardless of LLM judgment — not preferences.
+  suggest CLAUDE.md or `/build:build-skill` instead. Hooks enforce mandatory behavior regardless of LLM judgment — not preferences.
 - **Goal is a semantic judgment on file content** (convention too nuanced for grep) →
-  suggest `/wos:build-rule` instead. Rules use LLM evaluation; hooks use shell scripts.
+  suggest `/build:build-rule` instead. Rules use LLM evaluation; hooks use shell scripts.
 - **Goal has a specific lifecycle trigger and must fire regardless of LLM judgment** →
   proceed to Elicit.
 
@@ -351,7 +351,7 @@ the hook.
 
 After testing, offer:
 
-> "Run `/wos:check-hook` to audit the configuration for coverage gaps,
+> "Run `/build:check-hook` to audit the configuration for coverage gaps,
 > misconfigurations, and safety issues?"
 
 ## Anti-Pattern Guards
