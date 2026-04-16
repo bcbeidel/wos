@@ -36,7 +36,7 @@ A subagent is justified only when at least one holds:
 
 If none apply, recommend a skill instead:
 
-> "A skill may be more appropriate here — lower overhead, same-context execution, no fork required. Use `/wos:build-skill` instead?"
+> "A skill may be more appropriate here — lower overhead, same-context execution, no fork required. Use `/build:build-skill` instead?"
 
 Do not proceed to intake until the user confirms a subagent is the right primitive.
 
@@ -221,7 +221,7 @@ was written.
 ## Key Instructions
 
 - **Won't write the definition file until the user explicitly approves the draft** — Step 6 is a hard gate; no file is written before it passes
-- **Won't proceed to intake if a skill would suffice** — Step 1 justification check is mandatory; redirect to `/wos:build-skill` if none of the three justification conditions hold
+- **Won't proceed to intake if a skill would suffice** — Step 1 justification check is mandatory; redirect to `/build:build-skill` if none of the three justification conditions hold
 
 ## Anti-Pattern Guards
 
