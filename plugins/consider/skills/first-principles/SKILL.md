@@ -1,6 +1,6 @@
 ---
 name: first-principles
-description: Break down assumptions and rebuild reasoning from fundamental truths
+description: Break down assumptions and rebuild reasoning from fundamental truths — use when a standard approach feels wrong or produces diminishing returns but no one has questioned its underlying assumptions
 argument-hint: "[problem or system to deconstruct]"
 user-invocable: true
 ---
@@ -65,4 +65,20 @@ A modular monolith with clear internal boundaries gives us deploy isolation (via
 ### Key Insight
 The assumption "scaling = microservices" skipped the question "what are we actually scaling?" Our bottleneck is deploy speed, not request throughput — a problem microservices make worse, not better.
 </example>
+
+## Key Instructions
+
+- If all assumptions survive challenge, note that the conventional approach may already be optimal — first-principles doesn't always produce a novel solution.
+- Does not generate solutions from scratch; produces a framework for rebuilding reasoning once fundamentals are verified.
+
+## Anti-Pattern Guards
+
+1. **Rebuilding from convention** — stripping away a convention only to rebuild the same approach is the common failure; the rebuilt solution must trace to verified fundamentals, not intuition.
+2. **Mistaking "feels fundamental" for "is fundamental"** — a fundamental truth is verifiable, not just hard to argue with; apply the same skepticism to proposed fundamentals as to assumptions.
+
+## Handoff
+
+**Receives:** A problem or system the user wants to deconstruct and reason about from fundamentals
+**Produces:** An assumptions audit, verified fundamentals, and a rebuilt solution compared against the conventional approach
+**Chainable to:** `inversion` (to stress-test the rebuilt solution), `consider` (to apply additional mental models)
 
