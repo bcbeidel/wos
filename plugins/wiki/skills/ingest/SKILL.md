@@ -32,7 +32,7 @@ Before editing any files, read the project's wiki context:
 1. **Read `wiki/_index.md`** — understand the existing page inventory (titles, descriptions, file paths)
 2. **Read `wiki/SCHEMA.md`** — learn the valid `type` values, `confidence` tiers, and relationship types for this project
 
-If either file is missing, stop and report: "wiki/_index.md not found" or "wiki/SCHEMA.md not found. Run `/wos:setup` to initialize wiki infrastructure."
+If either file is missing, stop and report: "wiki/_index.md not found" or "wiki/SCHEMA.md not found. Run `/wiki:setup` to initialize wiki infrastructure."
 
 ## Ingest Protocol
 
@@ -102,13 +102,13 @@ Existing prose in wiki pages is never removed or overwritten. Every `git diff` a
 After all page updates and creations, run both commands unconditionally:
 
 ```bash
-python <plugin-scripts-dir>/lint.py --root <project-root> --no-urls
-python <plugin-scripts-dir>/reindex.py --root <project-root>
+python3 <plugin-scripts-dir>/lint.py --root <project-root> --no-urls
+python3 <plugin-scripts-dir>/reindex.py --root <project-root>
 ```
 
 Report results to the user:
 - If lint produces new issues, list them with severity
-- Confirm that `wiki/_index.md` was regenerated
+- Confirm that area `_index.md` files were refreshed
 
 Do not block on lint issues — report and continue.
 

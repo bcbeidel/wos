@@ -311,3 +311,91 @@ class TestUpdatePreferencesPreserved:
         assert "- Use examples" in result
 
 
+# ── extract_areas ───────────────────────────────────────────────
+
+
+class TestExtractAreas:
+    def test_round_trip(self) -> None:
+        """Areas rendered then extracted produce identical name/path values."""
+        from wiki.agents_md import extract_areas, render_wos_section
+
+        areas = [
+            {"name": "How agents plan tasks", "path": "docs/context/planning"},
+            {"name": "API reference", "path": "docs/context/api"},
+        ]
+        content = f"# AGENTS.md\n\n{render_wos_section(areas)}"
+        result = extract_areas(content)
+        assert result == areas
+
+    def test_preserves_human_descriptions(self) -> None:
+        """Human-written descriptions (col1 != col2) are preserved as-is."""
+        from wiki.agents_md import BEGIN_MARKER, END_MARKER, extract_areas
+
+        content = (
+            f"{BEGIN_MARKER}\n"
+            "### Areas\n"
+            "| Area | Path |\n"
+            "|------|------|\n"
+            "| How LLM agents decompose tasks into steps | docs/context/planning |\n"
+            "| API endpoint reference | docs/context/api |\n"
+            f"{END_MARKER}\n"
+        )
+        result = extract_areas(content)
+        assert result == [
+            {
+                "name": "How LLM agents decompose tasks into steps",
+                "path": "docs/context/planning",
+            },
+            {"name": "API endpoint reference", "path": "docs/context/api"},
+        ]
+
+    def test_returns_empty_when_no_markers(self) -> None:
+        from wiki.agents_md import extract_areas
+
+        result = extract_areas("# AGENTS.md\n\nNo WOS section here.\n")
+        assert result == []
+
+    def test_returns_empty_when_no_areas_table(self) -> None:
+        from wiki.agents_md import extract_areas, render_wos_section
+
+        content = render_wos_section(areas=[])
+        result = extract_areas(content)
+        assert result == []
+
+
+class TestUpdateAgentsMdAreasNone:
+    def test_preserves_existing_area_descriptions(self) -> None:
+        """When areas=None, existing human-written descriptions survive."""
+        from wiki.agents_md import BEGIN_MARKER, END_MARKER, update_agents_md
+
+        content = (
+            "# AGENTS.md\n\n"
+            f"{BEGIN_MARKER}\n"
+            "### Areas\n"
+            "| Area | Path |\n"
+            "|------|------|\n"
+            "| How LLM agents decompose tasks | docs/context/planning |\n"
+            f"{END_MARKER}\n"
+        )
+        result = update_agents_md(content)  # areas=None by default
+        assert "| How LLM agents decompose tasks | docs/context/planning |" in result
+
+    def test_produces_no_areas_section_when_none_exist(self) -> None:
+        """When areas=None and no Areas table present, output has no Areas table."""
+        from wiki.agents_md import extract_areas, render_wos_section, update_agents_md
+
+        base = render_wos_section(areas=[])
+        content = f"# AGENTS.md\n\n{base}"
+        assert extract_areas(content) == []
+        result = update_agents_md(content)
+        assert "### Areas" not in result
+
+    def test_existing_callers_with_explicit_areas_unaffected(self) -> None:
+        """Passing areas explicitly still works as before."""
+        from wiki.agents_md import update_agents_md
+
+        areas = [{"name": "Backend", "path": "docs/context/backend"}]
+        result = update_agents_md("# AGENTS.md\n", areas=areas)
+        assert "| Backend | docs/context/backend |" in result
+
+
