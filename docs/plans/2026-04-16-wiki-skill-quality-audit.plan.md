@@ -86,7 +86,7 @@ gh issue list --state open --search "research" --limit 5
 
 ### Task 4: Audit and fix `setup`
 
-- [ ] Run `/build:check-skill plugins/wiki/skills/setup/SKILL.md`, triage findings, fix clear-cut issues, file GitHub issues for judgment calls, commit
+- [x] Run `/build:check-skill plugins/wiki/skills/setup/SKILL.md`, triage findings, fix clear-cut issues, file GitHub issues for judgment calls, commit <!-- sha:62d4328 -->
 
 **Verify:**
 ```bash
