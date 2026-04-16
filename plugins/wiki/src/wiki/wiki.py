@@ -144,13 +144,16 @@ def parse_schema(schema_path: Path) -> dict:
 # ── Per-directory checks ───────────────────────────────────────
 
 
+_WIKI_SKIP_NAMES = frozenset({"_index.md", "SCHEMA.md", "log.md"})
+
+
 def check_wiki_orphans(wiki_dir: Path) -> List[dict]:
     """Warn for .md files in wiki_dir not referenced in wiki_dir/_index.md.
 
-    Skips ``_index.md`` and ``SCHEMA.md`` themselves.
+    Skips ``_index.md``, ``SCHEMA.md``, and ``log.md`` themselves.
 
     Args:
-        wiki_dir: Path to the wiki directory.
+        wiki_dir: Path to the wiki directory (root or any subdirectory).
 
     Returns:
         List of issue dicts with severity ``warn``.
@@ -169,15 +172,15 @@ def check_wiki_orphans(wiki_dir: Path) -> List[dict]:
     for md_file in sorted(wiki_dir.iterdir()):
         if not md_file.is_file() or md_file.suffix != ".md":
             continue
-        if md_file.name in ("_index.md", "SCHEMA.md"):
+        if md_file.name in _WIKI_SKIP_NAMES:
             continue
         if md_file.name not in index_text:
             issues.append({
                 "file": str(md_file),
                 "issue": (
                     "Wiki page not in index. "
-                    "Add an entry to wiki/_index.md or run /wiki:lint --fix "
-                    "to regenerate the index."
+                    f"Add an entry to {wiki_dir.name}/_index.md "
+                    "or run /wiki:lint --fix to regenerate the index."
                 ),
                 "severity": "warn",
             })
@@ -213,10 +216,8 @@ def validate_wiki(wiki_dir: Path, schema_path: Path) -> List[dict]:
             "severity": "warn",
         }]
 
-    for md_file in sorted(wiki_dir.iterdir()):
-        if not md_file.is_file() or md_file.suffix != ".md":
-            continue
-        if md_file.name in ("_index.md", "SCHEMA.md"):
+    for md_file in sorted(wiki_dir.rglob("*.md")):
+        if md_file.name in _WIKI_SKIP_NAMES:
             continue
         try:
             text = md_file.read_text(encoding="utf-8")
@@ -238,6 +239,10 @@ def validate_wiki(wiki_dir: Path, schema_path: Path) -> List[dict]:
             continue
         issues.extend(doc.issues(wiki_dir, schema=schema))
 
-    issues.extend(check_wiki_orphans(wiki_dir))
+    # Check orphans in the root and every subdirectory that has a _index.md
+    dirs_with_index: set[Path] = {wiki_dir}
+    dirs_with_index.update(p.parent for p in wiki_dir.rglob("_index.md"))
+    for directory in sorted(dirs_with_index):
+        issues.extend(check_wiki_orphans(directory))
 
     return issues
