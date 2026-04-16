@@ -36,7 +36,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    from wiki.agents_md import discover_areas, render_preferences, update_agents_md
+    from wiki.agents_md import render_preferences, update_agents_md
 
     root = Path(args.root).resolve()
 
@@ -48,7 +48,6 @@ def main() -> None:
         prefs[key] = value
 
     rendered = render_preferences(prefs)
-    areas = discover_areas(root)
 
     agents_path = root / "AGENTS.md"
     if agents_path.is_file():
@@ -56,7 +55,8 @@ def main() -> None:
     else:
         content = "# AGENTS.md\n"
 
-    updated = update_agents_md(content, areas, preferences=rendered)
+    # areas=None — preserve existing areas table instead of regenerating from disk
+    updated = update_agents_md(content, preferences=rendered)
     agents_path.write_text(updated, encoding="utf-8")
     print(f"Updated preferences in {agents_path}")
 

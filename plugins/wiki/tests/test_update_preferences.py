@@ -52,17 +52,25 @@ class TestUpdatePreferencesWritesAgentsMd:
         assert BEGIN_MARKER in content
         assert END_MARKER in content
 
-    def test_preserves_areas(self, tmp_path: Path) -> None:
-        # Set up project with an area containing a managed doc
-        area_dir = tmp_path / "docs" / "context" / "api"
-        area_dir.mkdir(parents=True)
-        (area_dir / "endpoints.md").write_text(
-            "---\nname: Endpoints\ndescription: API endpoints\n---\n"
-        )
-
+    def test_preserves_existing_area_descriptions(self, tmp_path: Path) -> None:
+        # AGENTS.md already has a human-written Areas table
+        existing_area_desc = "How agents plan tasks and decompose work"
         agents_path = tmp_path / "AGENTS.md"
         agents_path.write_text(
-            f"# AGENTS.md\n\n{BEGIN_MARKER}\nold\n{END_MARKER}\n"
+            f"# AGENTS.md\n\n"
+            f"{BEGIN_MARKER}\n"
+            f"### Areas\n"
+            f"| Area | Path |\n"
+            f"|------|------|\n"
+            f"| {existing_area_desc} | docs/context/planning |\n"
+            f"{END_MARKER}\n"
+        )
+
+        # A directory exists on disk that is NOT in the existing AGENTS.md
+        extra_dir = tmp_path / "docs" / "context" / "api"
+        extra_dir.mkdir(parents=True)
+        (extra_dir / "endpoints.md").write_text(
+            "---\nname: Endpoints\ndescription: API endpoints\n---\n"
         )
 
         result = subprocess.run(
@@ -77,8 +85,11 @@ class TestUpdatePreferencesWritesAgentsMd:
         assert result.returncode == 0
 
         content = agents_path.read_text()
-        assert "docs/context/api" in content
+        # Human-written description preserved
+        assert existing_area_desc in content
         assert "**Directness:**" in content
+        # Directory on disk that wasn't in AGENTS.md should NOT be added
+        assert "docs/context/api" not in content
 
     def test_creates_agents_md_if_missing(self, tmp_path: Path) -> None:
         docs_dir = tmp_path / "docs" / "context"
