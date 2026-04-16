@@ -1,8 +1,0 @@
-{
-  "name": "check",
-  "version": "0.1.0",
-  "description": "Skills for auditing Claude Code skills, rules, hooks, and subagents for quality issues.",
-  "author": {
-    "name": "Brandon Beidel"
-  }
-}

@@ -30,4 +30,4 @@ exclude = [
 select = ["E", "F", "I", "W"]
 
 [tool.pytest.ini_options]
-testpaths = ["plugins/wiki/tests", "plugins/check/tests"]
+testpaths = ["plugins/wiki/tests", "plugins/build/tests"]
