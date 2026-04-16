@@ -250,6 +250,12 @@ If any issues were found, add a one-sentence recommendation, e.g.:
   with no `skills` field is not automatically clean; if the description
   implies project context, the omission is a gap regardless of file length.
 
+## Key Instructions
+
+- Won't auto-fix findings — audit produces a report; fixes require explicit user action or invocation of `build-subagent`
+- Won't flag broad tool sets without anchoring the assessment to the agent's stated description — over-permissioning is relative to purpose, not an absolute count
+- Won't pass generic or placeholder handoff fields — `**Receives:** inputs` is a fail, not a pass
+
 ## Handoff
 
 **Receives:** Path to a specific agent definition, or defaults to scanning
