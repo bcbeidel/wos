@@ -68,7 +68,7 @@ gh issue list --state open --search "build-hook" --limit 5  # judgment-call issu
 
 ### Task 2: Audit and fix `build-rule`
 
-- [ ] Run `/build:check-skill plugins/build/skills/build-rule/SKILL.md`, triage findings, fix clear-cut issues, file GitHub issues for judgment calls, commit
+- [x] Run `/build:check-skill plugins/build/skills/build-rule/SKILL.md`, triage findings, fix clear-cut issues, file GitHub issues for judgment calls, commit <!-- sha:cae4912 -->
 
 **Verify:**
 ```bash
