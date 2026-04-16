@@ -1,6 +1,6 @@
 ---
 name: reversibility
-description: Assess decision risk by classifying as one-way or two-way door
+description: Assess decision risk by classifying as one-way or two-way door — use when calibrating how much analysis a decision deserves before committing
 argument-hint: "[decision to evaluate for reversibility]"
 user-invocable: true
 ---
@@ -65,4 +65,20 @@ Use PostgreSQL vs DynamoDB for a new event-sourcing service.
 - **Ways to reduce commitment:** Start with a repository abstraction layer so business logic doesn't call database APIs directly. Build for PostgreSQL first (team knows it), but keep the option to swap the storage backend if DynamoDB's scaling becomes necessary.
 - **Recommendation:** Analyze thoroughly. Default to PostgreSQL (known quantity, team expertise, adequate for projected scale). Revisit DynamoDB only if event volume exceeds 50K/sec — a threshold we're unlikely to hit in year one.
 </example>
+
+## Key Instructions
+
+- If a decision appears one-way but has a viable partial path (pilot, phased rollout, abstraction layer), always surface it — full irreversibility is rarer than it appears.
+- Does not recommend whether to proceed; calibrates the appropriate level of analysis and commitment.
+
+## Anti-Pattern Guards
+
+1. **Treating all one-way doors as equally risky** — blast radius matters; a one-way door affecting only you deserves less caution than one affecting the whole organization.
+2. **Using irreversibility as a reason to avoid deciding** — one-way doors still require decisions; the output is appropriate deliberation level, not paralysis.
+
+## Handoff
+
+**Receives:** A decision the user wants to evaluate for reversibility before committing
+**Produces:** A one-way/two-way classification with rollback path (if reversible) or blast radius and partial-reversibility options (if irreversible)
+**Chainable to:** `opportunity-cost` (to weigh the cost of commitment), `second-order` (to trace consequences of irreversible choices)
 

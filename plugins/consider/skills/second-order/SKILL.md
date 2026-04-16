@@ -1,6 +1,6 @@
 ---
 name: second-order
-description: Think through the consequences of consequences before acting
+description: Think through the consequences of consequences before acting — use when an action has obvious immediate effects but the downstream consequences haven't been traced
 argument-hint: "[decision or action to evaluate]"
 user-invocable: true
 ---
@@ -69,4 +69,21 @@ Require two approvals on every pull request before merge.
 ### Revised Assessment
 Keep mandatory review but with one approval, not two. Add a "trivial" label for changes under 20 lines that need only one reviewer. This preserves the learning and bug-catching benefits while avoiding the bottleneck spiral.
 </example>
+
+## Key Instructions
+
+- Stop at third-order effects for most decisions — deeper chains multiply uncertainty without adding insight.
+- If a feedback loop identified in step 5 is reinforcing (amplifying), treat it as high severity regardless of the original decision's apparent scale.
+- Does not recommend actions; produces a consequence map so the user can make an informed decision.
+
+## Anti-Pattern Guards
+
+1. **Stopping at first-order effects** — the model's value is specifically the second and third-order consequences; if the analysis doesn't go deeper than "this will happen," it hasn't been applied.
+2. **Over-extending the chain** — fourth-order and beyond typically degrade into noise; flag when the analysis stops at third order and why that's sufficient.
+
+## Handoff
+
+**Receives:** A proposed action or decision the user wants to evaluate for downstream consequences
+**Produces:** A consequence chain to third order with feedback loops and a revised assessment of whether to proceed
+**Chainable to:** `inversion` (to identify which second-order effects become failure modes), `reversibility` (to assess how locked in the decision becomes once second-order effects activate)
 

@@ -1,6 +1,6 @@
 ---
 name: opportunity-cost
-description: Evaluate what you give up by choosing one option over alternatives
+description: Evaluate what you give up by choosing one option over alternatives — use when a decision is being made without explicitly naming the best alternative foregone
 argument-hint: "[decision with multiple options to compare]"
 user-invocable: true
 ---
@@ -68,4 +68,20 @@ If we build custom, we forgo 3 engineer-months of product work. At our current p
 ### Verdict
 Auth0 justified. The opportunity cost of building (delayed notifications = revenue risk) exceeds Auth0's dollar cost by roughly 10x. Revisit only if we outgrow Auth0's pricing tier or need auth behavior they can't support.
 </example>
+
+## Key Instructions
+
+- Always include "do nothing" as an alternative — it is the most frequently overlooked option and often has the clearest opportunity cost.
+- Does not make the decision; produces a comparison that makes the tradeoff explicit so the user can decide.
+
+## Anti-Pattern Guards
+
+1. **Comparing against only weak alternatives** — opportunity cost is the value of the best alternative, not a convenient one; include the strongest realistic option.
+2. **Omitting hidden costs** — direct dollar or time comparisons miss ongoing costs (maintenance, lock-in, expertise loss); step 6 must be completed, not skipped.
+
+## Handoff
+
+**Receives:** A decision with a favored option and at least one realistic alternative
+**Produces:** An option comparison table with opportunity cost named explicitly and a verdict
+**Chainable to:** `reversibility` (to assess how locked in the favored choice is), `second-order` (to trace downstream effects of the foregone alternative)
 

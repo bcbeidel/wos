@@ -1,6 +1,6 @@
 ---
 name: 10-10-10
-description: Evaluate decisions by considering impact across three time horizons
+description: Evaluate decisions by considering impact across three time horizons — use when short-term emotions and long-term consequences may point in different directions
 argument-hint: "[decision you're weighing or struggling with]"
 user-invocable: true
 ---
@@ -65,4 +65,22 @@ Option B: Incrementally refactor the existing system module by module.
 ### Decision
 Incremental refactor (Option B). The 10-month horizon reveals that the rewrite's main appeal is emotional (fresh start) rather than practical. Refactoring delivers value continuously without betting on a single high-risk cutover.
 </example>
+
+## Key Instructions
+
+- If the user hasn't identified options yet, help them articulate 2–3 distinct choices before running the analysis.
+- If all three time horizons point to the same option, state that clearly — the model confirms rather than complicates the decision.
+- Does not make the decision for the user; produces structured analysis to inform the choice.
+- Does not apply to factual questions or already-made decisions being rationalized after the fact.
+
+## Anti-Pattern Guards
+
+1. **Applying the model to non-decisions** — 10-10-10 requires genuine options; applying it to informational questions or post-hoc rationalization produces noise, not insight.
+2. **Treating all three horizons equally** — the dominant time horizon varies by decision type; always identify which horizon carries the most weight for the specific context.
+
+## Handoff
+
+**Receives:** A decision the user is weighing, ideally with at least two options identified
+**Produces:** Structured time-horizon analysis table with divergence points and a recommendation
+**Chainable to:** `consider` (to apply additional mental models), `second-order` (for deeper consequence mapping on the chosen option)
 

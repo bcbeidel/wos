@@ -1,6 +1,6 @@
 ---
 name: swot
-description: Map strengths, weaknesses, opportunities, and threats systematically
+description: Map strengths, weaknesses, opportunities, and threats systematically — use when evaluating a strategic position or deciding how to proceed with both internal and external factors at play
 argument-hint: "[project, product, team, or strategy to evaluate]"
 user-invocable: true
 ---
@@ -71,4 +71,20 @@ defending weaknesses against threats.
 ### Priority Action
 Ship the IDE adapter integration — it leverages the core strength (simple CLI) to reach a new audience (IDE users) at exactly the moment visibility is growing (conference).
 </example>
+
+## Key Instructions
+
+- The value is the cross-reference step (steps 6–7), not the lists; a SWOT that produces only four quadrant lists without strategic options hasn't been completed.
+- Does not make strategic decisions; produces a structured inventory and options the user evaluates.
+
+## Anti-Pattern Guards
+
+1. **Over-populating all four quadrants** — length is noise; aim for 3–5 well-chosen items per quadrant over exhaustive lists that dilute the signal.
+2. **Skipping the cross-reference** — the strategic options (S+O, W+T, W+O) are where SWOT becomes actionable; listing quadrants without cross-referencing them is only half the analysis.
+
+## Handoff
+
+**Receives:** A project, product, team, or strategy to evaluate
+**Produces:** A four-quadrant inventory with cross-referenced strategic options and a priority action
+**Chainable to:** `opportunity-cost` (to evaluate tradeoffs between strategic options), `eisenhower-matrix` (to prioritize the resulting strategic actions)
 

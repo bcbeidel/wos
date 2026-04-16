@@ -1,6 +1,6 @@
 ---
 name: via-negativa
-description: Improve by removing problems rather than adding solutions
+description: Improve by removing problems rather than adding solutions — use when a system or process has accumulated complexity and improvement by addition has hit diminishing returns
 argument-hint: "[system, process, or situation to improve]"
 user-invocable: true
 ---
@@ -69,4 +69,20 @@ Deployment pipeline has 12 steps: lint, unit test, integration test, build Docke
 ### What NOT to Remove
 The 30-minute canary monitor looks like wasted time but caught a memory leak last month that smoke tests missed. It's load-bearing.
 </example>
+
+## Key Instructions
+
+- Always assess whether a removal candidate is load-bearing before proposing it; the "What NOT to Remove" section must be completed, not skipped.
+- Does not implement removals; produces a removal plan the user executes.
+
+## Anti-Pattern Guards
+
+1. **Removing without checking dependencies** — an element may look unused but be load-bearing for edge cases; step 5 must assess what breaks, not just what improves.
+2. **Using via negativa to justify rewrites** — subtraction should be incremental; removing everything at once and rebuilding is not via negativa, it's a rewrite.
+
+## Handoff
+
+**Receives:** A system, process, or situation where something currently present may be causing friction or unnecessary complexity
+**Produces:** A ranked removal candidate analysis with a simplified version and explicit load-bearing elements to preserve
+**Chainable to:** `occams-razor` (to confirm the simplified version is the most parsimonious one that still works), `first-principles` (to verify the core purpose before deciding what's essential)
 
