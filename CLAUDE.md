@@ -2,15 +2,8 @@
 
 # CLAUDE.md
 
-This repo is **toolkit** — a Claude Code plugin marketplace for building and
-maintaining structured project context. You are helping build this tooling.
-
-## What This Repo Is
-
-Toolkit is a plugin marketplace (not a project context itself). It provides 5
-self-contained, independently installable plugins under `plugins/`. Each plugin
-owns its Python code, scripts, skills, and tests. When working in this repo,
-you are building the tools, not using them.
+This repo is **toolkit** — a Claude Code plugin marketplace. You are building
+the tools, not using them.
 
 ## Build & Test
 
@@ -64,14 +57,6 @@ Five plugins under `plugins/`, each independently installable:
 Each plugin versions independently from `0.1.0`. A version bump requires updating
 the plugin's `pyproject.toml` and `.claude-plugin/plugin.json`. See CONTRIBUTING.md.
 
-Each plugin directory contains:
-- `.claude-plugin/plugin.json` — plugin manifest
-- `skills/` — skill definitions (SKILL.md + references/)
-- `<package>/` — Python package (wiki and check only)
-- `scripts/` — shared CLI entry points (wiki only)
-- `tests/` — pytest tests (wiki and check only)
-- `_shared/references/` — references shared across skills in the same plugin
-
 ### Package Structure
 
 **`plugins/wiki/wiki/`** — importable Python package:
@@ -92,9 +77,7 @@ Each plugin directory contains:
 
 **`plugins/wiki/scripts/`** — thin CLI entry points with PEP 723 inline metadata:
 - `lint.py` — run validation checks
-- `check_url.py` — URL reachability checking
 - `update_preferences.py` — write communication preferences to AGENTS.md
-- `_bootstrap.py` — sys.path insertion helper (imported as side effect)
 
 ### Document Model
 
@@ -145,11 +128,6 @@ Skills live at `plugins/<plugin>/skills/<name>/SKILL.md`.
 
 - Python 3.9 — use `from __future__ import annotations` for type hints,
   `Optional[X]` for runtime expressions
-- **Script invocation: `python` is the universal pattern.** Scripts in
-  `plugins/wiki/scripts/` have PEP 723 inline metadata and stdlib-only dependencies.
-  Skills invoke them via `python <plugin-scripts-dir>/script.py`. Dev
-  dependencies (pytest, ruff) install via `pip install -e ".[dev]"`.
-- CLI scripts default to CWD as root; accept `--root` for override
 - **Script path convention:** Scripts use `Path(__file__).parent.parent` (2 levels)
   to find the plugin root. Per-skill scripts use the appropriate depth to reach
   their plugin root. Each `sys.path` insertion includes a comment with the full
@@ -160,6 +138,5 @@ Skills live at `plugins/<plugin>/skills/<name>/SKILL.md`.
   per-skill scripts rely on editable installs of `wiki` and `check`. Do not add
   sys.path manipulation to `work`/`build` scripts — the editable install is the contract.
 - `doc.issues(root)` returns `list[dict]` with keys: `file`, `issue`, `severity`; `doc.is_valid(root)` returns `bool`
-- Skills use free-text intake — users describe intent, Claude routes
 - `ValueError` + stdlib exceptions only (no custom exception hierarchy)
 - Tests use inline markdown strings and `tmp_path` fixtures
