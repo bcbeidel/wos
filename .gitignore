@@ -210,5 +210,11 @@ __marimo__/
 # Git worktrees
 .worktrees/
 
+# Working artifact directories (ephemeral by default — commit selectively)
+.plans/
+.research/
+.context/
+.prompts/
+
 # macOS
 .DS_Store
