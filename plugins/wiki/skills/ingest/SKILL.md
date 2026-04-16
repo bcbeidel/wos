@@ -197,7 +197,7 @@ When the source is a research document (`.research.md` file), offer the user an 
 > "This source is a research document. Would you like to run SIFT verification before ingesting? (default: skip)"
 
 - **Skip (default):** Proceed directly to the Ingest Protocol
-- **Verify:** Invoke `/wos:research` with the document to validate sources, then ingest the verified findings
+- **Verify:** Invoke `/wiki:research` with the document to validate sources, then ingest the verified findings
 
 The high-rigor path is never required. It is appropriate when the user wants to confirm source credibility before committing findings to the wiki.
 

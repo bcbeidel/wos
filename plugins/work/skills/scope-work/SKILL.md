@@ -87,7 +87,7 @@ conventions and examples.
 
 ### 6. Hand Off
 
-- Present to user: "Design approved. Ready to invoke `/wos:plan-work`
+- Present to user: "Design approved. Ready to invoke `/work:plan-work`
   to turn this into an implementation plan — proceed?"
 - Wait for user confirmation before invoking the skill.
 - The plan should reference this design doc via its `related` field,
