@@ -30,9 +30,10 @@ If no source is provided, ask: "What source should I ingest? (URL, file path, or
 Before editing any files, read the project's wiki context:
 
 1. **Read `wiki/_index.md`** — understand the existing page inventory (titles, descriptions, file paths)
-2. **Read `wiki/SCHEMA.md`** — learn the valid `type` values, `confidence` tiers, and relationship types for this project
+2. **List the `wiki/` directory tree** — run `ls -R wiki/` or equivalent to see existing subdirectories and their contents. This informs where new pages should be placed to fit contextually alongside related existing content.
+3. **Read `wiki/SCHEMA.md`** — learn the valid `type` values, `confidence` tiers, and relationship types for this project
 
-If either file is missing, stop and report: "wiki/_index.md not found" or "wiki/SCHEMA.md not found. Run `/wiki:setup` to initialize wiki infrastructure."
+If `wiki/_index.md` or `wiki/SCHEMA.md` is missing, stop and report the missing file. Suggest running `/wiki:setup` to initialize wiki infrastructure.
 
 ## Ingest Protocol
 
@@ -46,6 +47,8 @@ Identify **5–15 wiki pages** that this source meaningfully informs — both:
 
 If the source is narrow and fewer than 5 pages genuinely apply, proceed with what applies. Do not pad.
 
+**Emergent path selection for new pages:** Based on the existing `wiki/` directory structure read in Pre-Ingest, propose a subdirectory path that fits contextually — place the new page alongside existing pages on related topics. Example: if `wiki/llm-patterns/` already exists with caching pages, a new page on cache invalidation belongs at `wiki/llm-patterns/cache-invalidation.md`, not `wiki/cache-invalidation.md`. If no relevant subdirectory exists, propose a new one whose name reflects the topic cluster. The user can override any proposed path at Step 1b.
+
 ### Step 1b: Confirm Before Writing
 
 Present the proposed changes to the user before modifying any file:
@@ -53,11 +56,13 @@ Present the proposed changes to the user before modifying any file:
 ```
 Ready to ingest into N pages:
 - UPDATE wiki/existing-page.md — adding [summary of additions]
-- CREATE wiki/new-topic.md — [description of new page]
+- CREATE wiki/llm-patterns/new-topic.md — [description of new page]
 ...
 
 Proceed? (yes / edit list / cancel)
 ```
+
+Paths for new pages include the proposed subdirectory. The user can edit any path before confirming.
 
 Wait for explicit confirmation. If the user edits the list, revise accordingly. Do not modify any wiki files until confirmed.
 
