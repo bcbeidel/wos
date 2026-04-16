@@ -9,7 +9,7 @@ references:
   - ../../_shared/references/primitive-routing.md
 ---
 
-# /wos:build-rule
+# /build:build-rule
 
 Create semantic enforcement rules that Claude evaluates for compliance.
 Rules capture conventions too nuanced for traditional linters — architectural
@@ -26,8 +26,8 @@ Before proceeding, confirm a rule is the right mechanism. Full decision matrix: 
 
 **Not right — redirect instead:**
 - Check is shell-expressible (grep, file existence, regex) → recommend a hook or linter
-- Enforcement must fire at a lifecycle event (pre-commit, pre-tool-use) → redirect to `/wos:build-hook`
-- Convention is procedural (multi-step workflow Claude should follow) → redirect to CLAUDE.md or `/wos:build-skill`
+- Enforcement must fire at a lifecycle event (pre-commit, pre-tool-use) → redirect to `/build:build-hook`
+- Convention is procedural (multi-step workflow Claude should follow) → redirect to CLAUDE.md or `/build:build-skill`
 
 **A rule is right when:** enforcement requires LLM judgment on static file content and the convention is too nuanced for grep or an AST linter. Proceed only when this holds.
 
