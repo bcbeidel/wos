@@ -6,7 +6,7 @@ description: >
   "check lint", "check health", "validate documents", "run validation",
   "audit content quality", "review documents", "check coverage",
   "check freshness", "run health check", or "what needs attention".
-argument-hint: "[lint|check|review|coverage|freshness]"
+argument-hint: "[path/to/file.md]"
 user-invocable: true
 references: []
 ---
@@ -15,6 +15,16 @@ references: []
 
 Observe and report on project content quality. Read-only -- reports but
 does not modify any files (unless `--fix` is used for index regeneration).
+
+## Workflow
+
+1. **Run** `lint.py` against the project root (see [How to Run](#how-to-run))
+2. **Checks** — the script applies five check categories; results are collected (see [The Checks](#the-checks))
+3. **Interpret** — present the findings table to the user (see [Interpreting Results](#interpreting-results))
+4. **Cleanup** — for actionable findings (missing setup, blocked URLs), offer guided resolution (see [Cleanup Actions](#cleanup-actions))
+5. **Post-Lint** — append a summary entry to `wiki/log.md` (see [Post-Lint](#post-lint))
+
+Each phase depends on the previous. Do not offer cleanup actions before presenting results; do not append the log entry before cleanup is complete.
 
 ## How to Run
 
@@ -153,8 +163,8 @@ Append-only — never modify existing entries.
 
 ## Skill Evaluation
 
-Skill quality evaluation is handled entirely by `/wiki:check-skill` — lint does
-not run automated Python-level skill checks. Invoke `/wiki:check-skill` on each
+Skill quality evaluation is handled entirely by `/build:check-skill` — lint does
+not run automated Python-level skill checks. Invoke `/build:check-skill` on each
 skill directory found and incorporate its findings into the report. Do not perform
 independent skill quality judgment here — `check-skill` is the single source of
 truth for what good looks like. Delegating keeps criteria consistent and prevents
@@ -162,7 +172,7 @@ drift between the two skills.
 
 If the user ran lint on a specific skill path, pass that path to `check-skill`.
 If lint ran across the full project, offer: "Found N skill(s) — run
-`/wos:check-skill` to evaluate quality?"
+`/build:check-skill` to evaluate quality?"
 
 ## Anti-Pattern Guards
 
