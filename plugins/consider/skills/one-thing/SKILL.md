@@ -1,6 +1,6 @@
 ---
 name: one-thing
-description: Identify the single highest-leverage action that makes everything else easier
+description: Identify the single highest-leverage action that makes everything else easier — use when there are too many competing priorities and focus needs to be established before work begins
 argument-hint: "[goal or area where focus is needed]"
 user-invocable: true
 ---
@@ -68,4 +68,21 @@ A new hire can run `make setup` on a fresh laptop and have all services running 
 ### Say No To
 Pause the architecture video project and the onboarding doc rewrite until setup works. Both are wasted effort if people can't run the code.
 </example>
+
+## Key Instructions
+
+- If no candidate action dominates on domino effect, help the user identify the constraint blocking progress before forcing a single choice.
+- The one thing must be within the user's control — not "hope the market changes" or "wait for someone else to decide."
+- Does not make the decision; produces a leverage analysis so the user can commit to one focus.
+
+## Anti-Pattern Guards
+
+1. **Choosing the easiest action, not the highest-leverage one** — quick wins often aren't domino actions; test each candidate against step 3 explicitly before selecting.
+2. **Anchoring too early** — list all candidate actions before evaluating leverage; premature commitment skips higher-domino options.
+
+## Handoff
+
+**Receives:** A goal or area where the user needs to establish focus amid competing priorities
+**Produces:** A candidate action leverage analysis identifying the single highest-leverage action, its definition of done, and what to deprioritize
+**Chainable to:** `eisenhower-matrix` (to slot the one thing alongside other demands), `pareto` (to validate the 80/20 leverage claim)
 
