@@ -2,7 +2,7 @@
 name: Wiki Plugin Skill Quality Audit
 description: Audit all 4 skills in plugins/wiki with check-skill, fix clear-cut issues, file GitHub issues for judgment calls.
 type: plan
-status: executing
+status: completed
 branch: chore/wiki-skill-quality-audit
 related:
   - docs/designs/2026-04-16-build-skill-quality-audit.design.md
