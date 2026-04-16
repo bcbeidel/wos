@@ -1,5 +1,16 @@
 # Contributing to toolkit
 
+## Development Setup
+
+```bash
+pip install -e plugins/wiki -e plugins/check -e ".[dev]"
+python -m pytest plugins/wiki/tests/ plugins/check/tests/ -v
+ruff check plugins/
+```
+
+A pre-commit hook runs `ruff check plugins/` on staged Python files.
+Requires ruff to be installed (`pip install ruff` or via `.[dev]`).
+
 ## Versioning (SemVer)
 
 Pre-1.0 — the public API is not yet stable.
