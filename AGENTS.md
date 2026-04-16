@@ -16,7 +16,7 @@ Documents put key insights first and last; supplemental detail in the middle.
 
 | Plugin | Path | Skills |
 |--------|------|--------|
-| `build` | `plugins/build/` | `build-skill`, `build-rule`, `build-hook`, `build-subagent`, `build-refine-prompt` |
+| `build` | `plugins/build/` | `build-skill`, `build-rule`, `build-hook`, `build-subagent`, `refine-prompt` |
 | `check` | `plugins/check/` | `check-skill`, `check-rule`, `check-hook`, `check-subagent`, `check-skill-chain` |
 | `wiki` | `plugins/wiki/` | `setup`, `research`, `ingest`, `lint` |
 | `work` | `plugins/work/` | `scope-work`, `plan-work`, `start-work`, `verify-work`, `finish-work` |
