@@ -104,7 +104,7 @@ gh issue list --state open --search "build-subagent" --limit 5
 
 ### Task 5: Audit and fix `check-hook`
 
-- [ ] Run `/build:check-skill plugins/build/skills/check-hook/SKILL.md`, triage findings, fix clear-cut issues, file GitHub issues for judgment calls, commit
+- [x] Run `/build:check-skill plugins/build/skills/check-hook/SKILL.md`, triage findings, fix clear-cut issues, file GitHub issues for judgment calls, commit <!-- sha:ecda4c8 -->
 
 **Verify:**
 ```bash
@@ -116,7 +116,7 @@ gh issue list --state open --search "check-hook" --limit 5
 
 ### Task 6: Audit and fix `check-rule`
 
-- [ ] Run `/build:check-skill plugins/build/skills/check-rule/SKILL.md`, triage findings, fix clear-cut issues, file GitHub issues for judgment calls, commit
+- [x] Run `/build:check-skill plugins/build/skills/check-rule/SKILL.md`, triage findings, fix clear-cut issues, file GitHub issues for judgment calls, commit <!-- sha:ecda4c8 -->
 
 **Verify:**
 ```bash
@@ -128,7 +128,7 @@ gh issue list --state open --search "check-rule" --limit 5
 
 ### Task 7: Audit and fix `check-skill`
 
-- [ ] Run `/build:check-skill plugins/build/skills/check-skill/SKILL.md`, triage findings, fix clear-cut issues, file GitHub issues for judgment calls, commit
+- [x] Run `/build:check-skill plugins/build/skills/check-skill/SKILL.md`, triage findings, fix clear-cut issues, file GitHub issues for judgment calls, commit <!-- sha:ecda4c8 -->
 
 **Verify:**
 ```bash
@@ -140,7 +140,7 @@ gh issue list --state open --search "check-skill" --limit 5
 
 ### Task 8: Audit and fix `check-skill-chain`
 
-- [ ] Run `/build:check-skill plugins/build/skills/check-skill-chain/SKILL.md`, triage findings, fix clear-cut issues, file GitHub issues for judgment calls, commit
+- [x] Run `/build:check-skill plugins/build/skills/check-skill-chain/SKILL.md`, triage findings, fix clear-cut issues, file GitHub issues for judgment calls, commit <!-- sha:ecda4c8 -->
 
 **Verify:**
 ```bash
@@ -152,7 +152,7 @@ gh issue list --state open --search "check-skill-chain" --limit 5
 
 ### Task 9: Audit and fix `check-subagent`
 
-- [ ] Run `/build:check-skill plugins/build/skills/check-subagent/SKILL.md`, triage findings, fix clear-cut issues, file GitHub issues for judgment calls, commit
+- [x] Run `/build:check-skill plugins/build/skills/check-subagent/SKILL.md`, triage findings, fix clear-cut issues, file GitHub issues for judgment calls, commit <!-- sha:49cba7d -->
 
 **Verify:**
 ```bash
@@ -164,7 +164,7 @@ gh issue list --state open --search "check-subagent" --limit 5
 
 ### Task 10: Audit and fix `refine-prompt`
 
-- [ ] Run `/build:check-skill plugins/build/skills/refine-prompt/SKILL.md`, triage findings, fix clear-cut issues, file GitHub issues for judgment calls, commit
+- [x] Run `/build:check-skill plugins/build/skills/refine-prompt/SKILL.md`, triage findings, fix clear-cut issues, file GitHub issues for judgment calls, commit <!-- sha:313b19b -->
 
 **Verify:**
 ```bash
