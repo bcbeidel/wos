@@ -40,3 +40,19 @@ help the user choose by presenting the options below.
 
 If no model is specified, ask the user what they want to think through, then
 suggest 2-3 models that would be most relevant to their problem.
+
+## Key Instructions
+
+- When no model is specified and the user's problem is unclear, ask one clarifying question before suggesting models.
+- Does not execute implementations or take action; produces framework analysis only.
+
+## Anti-Pattern Guards
+
+1. **Suggesting too many models** — presenting more than 2–3 options when no model is specified overwhelms rather than guides; curate to the best fit.
+2. **Routing non-analytical tasks here** — this skill applies mental models, not implementation, debugging, or research; route those elsewhere.
+
+## Handoff
+
+**Receives:** A problem, decision, or question the user wants to analyze; optionally, a specific model name
+**Produces:** A structured mental model analysis using the requested or recommended model
+**Chainable to:** Any `/consider:{model-name}` sub-skill
