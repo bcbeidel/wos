@@ -182,6 +182,14 @@ Report results to the user:
 
 Do not block on lint issues — report and continue.
 
+**Operation log:** Append an entry to `wiki/log.md` (create the file if it does
+not exist). Append-only — never modify existing entries.
+
+```
+## [YYYY-MM-DD] ingest | <Source Title>
+<N> pages updated, <M> created. Pages: wiki/path/a.md, wiki/path/b.md.
+```
+
 ## High-Rigor Path
 
 When the source is a research document (`.research.md` file), offer the user an opt-in SIFT verification step before ingest:
