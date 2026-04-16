@@ -63,7 +63,7 @@ gh issue list --state open --search "finish-work" --limit 5  # judgment-call iss
 
 ### Task 2: Audit and fix `plan-work`
 
-- [ ] Run `/build:check-skill plugins/work/skills/plan-work/SKILL.md`, triage findings, fix clear-cut issues, file GitHub issues for judgment calls, commit
+- [x] Run `/build:check-skill plugins/work/skills/plan-work/SKILL.md`, triage findings, fix clear-cut issues, file GitHub issues for judgment calls, commit <!-- sha:8ddb84c -->
 
 **Verify:**
 ```bash
@@ -75,7 +75,7 @@ gh issue list --state open --search "plan-work" --limit 5
 
 ### Task 3: Audit and fix `scope-work`
 
-- [ ] Run `/build:check-skill plugins/work/skills/scope-work/SKILL.md`, triage findings, fix clear-cut issues, file GitHub issues for judgment calls, commit
+- [x] Run `/build:check-skill plugins/work/skills/scope-work/SKILL.md`, triage findings, fix clear-cut issues, file GitHub issues for judgment calls, commit <!-- sha:pending -->
 
 **Verify:**
 ```bash
