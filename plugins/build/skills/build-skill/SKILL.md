@@ -91,6 +91,7 @@ Also probe for structural decisions that shape how the skill is built — derive
 - **User-facing command or agent background knowledge?** If the user wants this as domain context injected into an agent rather than a callable command, `user-invocable: false` is the right pattern.
 - **Needs persistent configuration?** API keys, project IDs, user preferences that vary per-person. If yes, plan for the `config.json` setup pattern.
 - **Depends on other skills?** If the skill calls out to another skill by name, it needs a won't-work-without dependency note in Key Instructions.
+- **Single file or multiple files?** If the body will exceed ~400 lines, or the domain has heterogeneous sub-topics (e.g. AWS / GCP / Azure, or one pattern per language), plan for reference files under `references/`. Reference files keep the main SKILL.md lean and load on demand. See `references/skill-writing-guide.md` → Progressive Disclosure. *(check-skill: reference-depth, reference-TOC WARNs)*
 - **Risk and freedom level?** Classify the workflow and pick a matching instruction style (see `references/skill-writing-guide.md` → Degrees of Freedom):
   - **Reversible, low-stakes** (file transforms, doc generation, reads) → **high-freedom prose** — describe the intent; let Claude pick tools and order.
   - **External effects or specific tool order matters** → **medium-freedom** — parameterized steps with specific tool calls.
