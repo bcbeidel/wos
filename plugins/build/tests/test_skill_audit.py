@@ -298,7 +298,7 @@ class TestCheckSkillMeta:
         issues = check_skill_meta(tmp_path / "claude-helper")
         assert any("reserved" in i["issue"] for i in issues)
 
-    def test_description_too_long_warns(self, tmp_path: Path) -> None:
+    def test_description_too_long_fails(self, tmp_path: Path) -> None:
         from check.skill import check_skill_meta
         long_desc = "x " * 600
         _create_skill(
@@ -306,8 +306,9 @@ class TestCheckSkillMeta:
             f"---\nname: verbose\ndescription: {long_desc}\n---\n# X\n",
         )
         issues = check_skill_meta(tmp_path / "verbose")
-        assert any("1024" in i["issue"] for i in issues)
-        assert any(i["severity"] == "warn" for i in issues)
+        cap_issues = [i for i in issues if "1024" in i["issue"]]
+        assert len(cap_issues) == 1
+        assert cap_issues[0]["severity"] == "fail"
 
     def test_description_xml_tags_warns(self, tmp_path: Path) -> None:
         from check.skill import check_skill_meta
@@ -377,6 +378,38 @@ class TestCheckSkillMeta:
         (tmp_path / "empty-dir").mkdir()
         issues = check_skill_meta(tmp_path / "empty-dir")
         assert issues == []
+
+
+class TestDescriptionCap:
+    def test_description_combined_under_cap_no_fail(self) -> None:
+        from check.skill import _check_description
+        desc = "x" * 1100
+        when = "y" * 300  # combined 1400, under 1536
+        issues = _check_description(desc, "f", when_to_use=when)
+        assert not any(i["severity"] == "fail" for i in issues)
+
+    def test_description_combined_over_cap_fails(self) -> None:
+        from check.skill import _check_description
+        desc = "x" * 1200
+        when = "y" * 400  # combined 1600
+        issues = _check_description(desc, "f", when_to_use=when)
+        cap_issues = [i for i in issues if "1536" in i["issue"]]
+        assert len(cap_issues) == 1
+        assert cap_issues[0]["severity"] == "fail"
+
+    def test_vague_phrasing_warns(self) -> None:
+        from check.skill import _check_description
+        issues = _check_description("Helps with documents.", "f")
+        vague = [i for i in issues if "vague" in i["issue"]]
+        assert len(vague) == 1
+        assert vague[0]["severity"] == "warn"
+
+    def test_specific_description_no_vague_warn(self) -> None:
+        from check.skill import _check_description
+        issues = _check_description(
+            "Generates dbt models from a contract spec.", "f",
+        )
+        assert not any("vague" in i["issue"] for i in issues)
 
 
 class TestCheckAllowedTools:

@@ -112,20 +112,46 @@ def _check_name(name: str, file_str: str) -> List[dict]:
     return issues
 
 
-def _check_description(desc: str, file_str: str) -> List[dict]:
+def _check_description(
+    desc: str,
+    file_str: str,
+    when_to_use: Optional[str] = None,
+) -> List[dict]:
     issues: List[dict] = []
-    if len(desc) > 1024:
-        issues.append({
-            "file": file_str,
-            "issue": f"skill description exceeds 1024 characters ({len(desc)})",
-            "severity": "warn",
-        })
+
+    # Cap enforcement — FAIL.
+    # Platform cap: description ≤ 1024 chars.
+    # Claude Code: description + when_to_use combined ≤ 1536 chars.
+    if when_to_use:
+        combined = len(desc) + len(when_to_use)
+        if combined > _DESCRIPTION_COMBINED_CAP:
+            issues.append({
+                "file": file_str,
+                "issue": (
+                    f"description + when_to_use combined exceeds "
+                    f"{_DESCRIPTION_COMBINED_CAP} characters ({combined})"
+                ),
+                "severity": "fail",
+            })
+    else:
+        if len(desc) > _DESCRIPTION_CAP:
+            issues.append({
+                "file": file_str,
+                "issue": (
+                    f"skill description exceeds {_DESCRIPTION_CAP} "
+                    f"characters ({len(desc)}); split into when_to_use "
+                    f"to use the combined {_DESCRIPTION_COMBINED_CAP} cap"
+                ),
+                "severity": "fail",
+            })
+
     if _XML_TAG_RE.search(desc):
         issues.append({
             "file": file_str,
             "issue": "skill description contains XML tags",
             "severity": "warn",
         })
+
     desc_lower = desc.lower()
     for pattern in _SECOND_PERSON_PATTERNS:
         if pattern in desc_lower:
@@ -138,6 +164,19 @@ def _check_description(desc: str, file_str: str) -> List[dict]:
                 "severity": "warn",
             })
             break
+
+    for phrase in _VAGUE_PHRASES:
+        if phrase in desc_lower:
+            issues.append({
+                "file": file_str,
+                "issue": (
+                    f"skill description uses vague phrasing "
+                    f"('{phrase}'); name a specific capability"
+                ),
+                "severity": "warn",
+            })
+            break
+
     return issues
 
 
