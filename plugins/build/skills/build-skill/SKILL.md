@@ -110,6 +110,8 @@ Check available MCPs - if useful for research (searching docs, finding similar s
 
 ### Write the SKILL.md
 
+Before drafting the body, read `references/skill-writing-guide.md` → **Lifecycle & Compaction**. Skills are standing instructions that persist throughout a conversation, not one-time steps. First 5K tokens are the only part guaranteed to survive compaction, so lead with load-bearing content.
+
 Based on the user interview, fill in these components. Most skills need only `name` + `description` — reach for the others when the use case calls for it:
 
 - **name**: Skill identifier (lowercase, hyphens, ≤64 chars). Reserved words (`anthropic`, `claude`) are rejected — they collide with platform-owned namespaces. Prefer **gerund form** (`processing-pdfs`, `analyzing-spreadsheets`) or **agent-noun form** (`checker`, `parser`) — these read as actions and improve trigger matching. Reject vague tokens (`helper`, `utils`, `tools`, `thing`, `stuff`) — they provide no triggering signal. *(check-skill: gerund-naming WARN)*
