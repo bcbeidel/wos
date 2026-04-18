@@ -606,6 +606,110 @@ class TestCheckGerundNaming:
         assert _check_gerund_naming("analyze-spreadsheets-merging", "f") == []
 
 
+class TestCheckMcpReferences:
+    def test_no_mcp_no_issues(self) -> None:
+        from check.skill import _check_mcp_references
+        assert _check_mcp_references("Normal prose about things.", "f") == []
+
+    def test_raw_mcp_in_prose_warns(self) -> None:
+        from check.skill import _check_mcp_references
+        body = "Use mcp__claude_ai_Slack__send_message to post.\n"
+        issues = _check_mcp_references(body, "f")
+        assert len(issues) == 1
+        assert issues[0]["severity"] == "warn"
+        assert "mcp__claude_ai_Slack__send_message" in issues[0]["issue"]
+
+    def test_raw_mcp_in_fenced_code_no_issues(self) -> None:
+        from check.skill import _check_mcp_references
+        body = "```\nmcp__claude_ai_Slack__send_message\n```\n"
+        assert _check_mcp_references(body, "f") == []
+
+    def test_raw_mcp_in_inline_code_no_issues(self) -> None:
+        from check.skill import _check_mcp_references
+        body = "Call `mcp__claude_ai_Slack__send_message` directly.\n"
+        assert _check_mcp_references(body, "f") == []
+
+    def test_duplicate_reference_deduplicated(self) -> None:
+        from check.skill import _check_mcp_references
+        body = (
+            "Use mcp__foo__bar here. Then use mcp__foo__bar again.\n"
+        )
+        issues = _check_mcp_references(body, "f")
+        assert len(issues) == 1
+
+
+class TestCheckTimeSensitive:
+    def test_evergreen_prose_no_issues(self) -> None:
+        from check.skill import _check_time_sensitive
+        assert _check_time_sensitive("Processes files consistently.", "f") == []
+
+    def test_year_reference_warns(self) -> None:
+        from check.skill import _check_time_sensitive
+        issues = _check_time_sensitive("In 2025 we updated the flow.", "f")
+        assert len(issues) == 1
+        assert issues[0]["severity"] == "warn"
+
+    def test_version_reference_warns(self) -> None:
+        from check.skill import _check_time_sensitive
+        issues = _check_time_sensitive("Requires v3.2 of the library.", "f")
+        assert len(issues) == 1
+        assert "v3.2" in issues[0]["issue"]
+
+    def test_year_inside_details_block_no_issues(self) -> None:
+        from check.skill import _check_time_sensitive
+        body = "<details>\nIn 2024 we did X.\n</details>\n"
+        assert _check_time_sensitive(body, "f") == []
+
+    def test_year_in_code_no_issues(self) -> None:
+        from check.skill import _check_time_sensitive
+        body = "```\ndate = 'In 2025'\n```\n"
+        assert _check_time_sensitive(body, "f") == []
+
+
+class TestCheckEmbeddedScripts:
+    def test_no_scripts_no_issues(self) -> None:
+        from check.skill import _check_embedded_scripts
+        assert _check_embedded_scripts("Just prose.\n", "f") == []
+
+    def test_bare_sys_exit_warns(self) -> None:
+        from check.skill import _check_embedded_scripts
+        body = "```python\nsys.exit(1)\n```\n"
+        issues = _check_embedded_scripts(body, "f")
+        assert len(issues) == 1
+        assert issues[0]["severity"] == "warn"
+
+    def test_bare_shell_exit_warns(self) -> None:
+        from check.skill import _check_embedded_scripts
+        body = "```bash\nexit 1\n```\n"
+        issues = _check_embedded_scripts(body, "f")
+        assert len(issues) == 1
+
+    def test_exit_with_same_line_comment_no_issues(self) -> None:
+        from check.skill import _check_embedded_scripts
+        body = "```python\nsys.exit(1)  # license invalid\n```\n"
+        assert _check_embedded_scripts(body, "f") == []
+
+    def test_exit_with_prior_comment_no_issues(self) -> None:
+        from check.skill import _check_embedded_scripts
+        body = (
+            "```python\n"
+            "# license invalid, cannot proceed\n"
+            "sys.exit(1)\n"
+            "```\n"
+        )
+        assert _check_embedded_scripts(body, "f") == []
+
+    def test_exit_zero_no_issues(self) -> None:
+        from check.skill import _check_embedded_scripts
+        body = "```bash\nexit 0\n```\n"
+        assert _check_embedded_scripts(body, "f") == []
+
+    def test_non_script_fence_ignored(self) -> None:
+        from check.skill import _check_embedded_scripts
+        body = "```json\nsys.exit(1)\n```\n"
+        assert _check_embedded_scripts(body, "f") == []
+
+
 class TestCheckReferenceDepth:
     def test_no_references_dir_no_issues(self, tmp_path: Path) -> None:
         from check.skill import _check_reference_depth
