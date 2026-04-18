@@ -27,9 +27,16 @@ then offer an opt-in repair loop.
 python3 <plugin-scripts-dir>/../../src/check/lint.py --root <project-root> --no-urls
 ```
 
-Extract findings for the target skill(s). Static checks cover two of the
-twenty-two criteria (body length, ALL-CAPS density) and run deterministically —
-always run these before LLM checks.
+Extract findings for the target skill(s). Static checks run deterministically
+and always precede LLM checks. They cover:
+
+- **Body length** — warn at >500 non-blank lines (criterion #1)
+- **ALL-CAPS directive density** — warn at ≥3 MUST/NEVER/ALWAYS/REQUIRED/FORBIDDEN (criterion #2)
+- **`allowed-tools` shape** — fail on comma-separated-as-string (canonical: space-separated or YAML list)
+- **Description cap** — fail at >1024 chars; when `when_to_use` is present, fail at >1536 combined
+- **Description quality** — warn on second-person ("you can", "I will"), vague phrasings ("helps with", "processes data"), or XML tags
+- **Reserved words in name** — fail on `anthropic` or `claude` (platform-owned namespaces)
+- **Windows-style paths** — fail on backslash path separators in fenced blocks or inline code (drive-letter prefixes, relative `.\` / `..\` prefixes, or multi-component paths with file extensions)
 
 ### 3. Run LLM Checks
 
