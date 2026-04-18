@@ -379,6 +379,26 @@ class TestCheckSkillMeta:
         issues = check_skill_meta(tmp_path / "empty-dir")
         assert issues == []
 
+    def test_allowed_tools_comma_string_fails(self, tmp_path: Path) -> None:
+        from check.skill import check_skill_meta
+        _create_skill(
+            tmp_path, "broken-tools",
+            "---\nname: broken-tools\ndescription: Valid skill.\n"
+            "allowed-tools: Grep, Read\n---\n# X\n",
+        )
+        issues = check_skill_meta(tmp_path / "broken-tools")
+        assert any("comma-separated" in i["issue"] for i in issues)
+
+    def test_windows_path_in_body_fails(self, tmp_path: Path) -> None:
+        from check.skill import check_skill_meta
+        _create_skill(
+            tmp_path, "win-paths",
+            "---\nname: win-paths\ndescription: Valid skill.\n---\n"
+            "# X\n\n```\nopen src\\check\\skill.py\n```\n",
+        )
+        issues = check_skill_meta(tmp_path / "win-paths")
+        assert any("Windows-style" in i["issue"] for i in issues)
+
 
 class TestCheckBodyPaths:
     def test_drive_letter_in_fence_fails(self) -> None:

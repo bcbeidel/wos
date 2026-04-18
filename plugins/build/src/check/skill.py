@@ -411,8 +411,9 @@ class SkillDocument(Document):
         """Return base issues plus skill-specific checks.
 
         Base checks: name and description non-empty.
-        Skill checks: name format, description quality, ALL-CAPS directive
-        density, and raw body line count.
+        Skill checks: name format, description quality (cap, third person,
+        vague phrasing), allowed-tools shape, Windows-style paths in code
+        segments, ALL-CAPS directive density, raw body line count.
 
         Args:
             root: Project root directory (passed to base issues()).
@@ -424,7 +425,13 @@ class SkillDocument(Document):
         if self.name:
             result.extend(_check_name(self.name, self.path))
         if self.description:
-            result.extend(_check_description(self.description, self.path))
+            when_to_use = self.meta.get("when_to_use") or self.meta.get("when-to-use")
+            when_to_use_str = when_to_use if isinstance(when_to_use, str) else None
+            result.extend(_check_description(
+                self.description, self.path, when_to_use=when_to_use_str,
+            ))
+        result.extend(_check_allowed_tools(self.allowed_tools, self.path))
+        result.extend(_check_body_paths(self.content, self.path))
         result.extend(_check_directives(self.content, self.path))
         result.extend(_check_body_lines(self.content, self.path))
         return result
