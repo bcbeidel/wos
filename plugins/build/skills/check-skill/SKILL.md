@@ -41,6 +41,9 @@ and always precede LLM checks. They cover:
 - **Gerund/vague naming** — warn on vague tokens (`helper`, `utils`, `tools`, `thing`, etc.) anywhere in the name; warn on names that aren't in gerund (`-ing`) or agent-noun (`-er`) form (style suggestion only)
 - **Reference depth** — warn on files nested more than one level under `references/`; flat structure keeps on-demand loading predictable
 - **Reference TOC** — warn on reference files over 100 non-blank lines without a `## Table of Contents`, `## Contents`, or `## TOC` heading in the first 20 lines
+- **MCP reference format** — warn on raw `mcp__<server>__<tool>` names in prose; prefer the shorter `Server:tool_name` form per Anthropic best-practices (raw form in code is fine — it's the actual invocation string)
+- **Time-sensitive content** — warn on year references (`in 2025`, `as of 2024`) and version references (`v3.2`) outside `<details>` blocks; evergreen bodies should wrap historical content in `<details>` "old patterns" blocks
+- **Embedded-script exits** — warn on bare `sys.exit(N)` or `exit N` in `python` / `bash` / `sh` / `zsh` fenced blocks without an explanatory comment on the same or immediately prior line ("solve don't punt")
 
 ### 3. Run LLM Checks
 

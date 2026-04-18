@@ -79,6 +79,7 @@ Start by understanding the user's intent. If `$ARGUMENTS` is non-empty, use it a
 2. When should this skill trigger? (what user phrases/contexts)
 3. What's the expected output format?
 4. Should we set up test cases to verify the skill works? Skills with objectively verifiable outputs (file transforms, data extraction, code generation, fixed workflow steps) benefit from test cases. Skills with subjective outputs (writing style, art) often don't need them. Suggest the appropriate default based on the skill type, but let the user decide.
+5. When should we scaffold evals — before or after the body? Anthropic's best-practices recommend **evaluation-driven development**: write ≥3 eval scenarios first, then let them shape the body. That catches vague instructions and missing edge cases early. Writing the body first is also valid if the skill's output is hard to describe without a draft. Either is fine; the point is the explicit timing choice, not the default.
 
 ### Interview and Research
 
@@ -109,6 +110,8 @@ Also probe for structural decisions that shape how the skill is built — derive
 Check available MCPs - if useful for research (searching docs, finding similar skills, looking up best practices), research in parallel via subagents if available, otherwise inline. Come prepared with context to reduce burden on the user.
 
 ### Write the SKILL.md
+
+Before drafting the body, read `references/skill-writing-guide.md` → **Lifecycle & Compaction**. Skills are standing instructions that persist throughout a conversation, not one-time steps. First 5K tokens are the only part guaranteed to survive compaction, so lead with load-bearing content.
 
 Based on the user interview, fill in these components. Most skills need only `name` + `description` — reach for the others when the use case calls for it:
 
@@ -176,7 +179,7 @@ Write to the full path determined by the scope decision in the Interview step (e
 
 ### Test Cases
 
-After writing the skill draft, come up with 2-3 realistic test prompts — the kind of thing a real user would actually say. Share them with the user: [you don't have to use this exact language] "Here are a few test cases I'd like to try. Do these look right, or do you want to add more?" Then run them.
+If the user chose upfront eval scaffolding in the Interview (question 5), write ≥3 eval scenarios now — **before** drafting the body. Otherwise, come up with 2-3 realistic test prompts after writing the skill draft. Either way, these are the kind of thing a real user would actually say. Share them with the user: [you don't have to use this exact language] "Here are a few test cases I'd like to try. Do these look right, or do you want to add more?" Then run them.
 
 Save test cases to `evals/evals.json`. Don't write assertions yet — just the prompts. You'll draft assertions in the next step while the runs are in progress.
 

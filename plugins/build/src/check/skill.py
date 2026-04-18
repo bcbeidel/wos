@@ -389,6 +389,159 @@ def _check_body_lines(body: str, file_str: str) -> List[dict]:
     return []
 
 
+_MCP_RAW_RE = re.compile(r"mcp__\w+__\w+")
+_YEAR_REF_RE = re.compile(
+    r"\b(?:in|as of|since|until|by)\s+20\d{2}\b",
+    re.IGNORECASE,
+)
+_VERSION_REF_RE = re.compile(r"\bv\d+\.\d+(?:\.\d+)?\b")
+_BARE_EXIT_RE = re.compile(
+    r"^\s*(?:sys\.exit\(|exit\s+[1-9])",
+)
+_SCRIPT_FENCE_LANGS = frozenset({"python", "bash", "sh", "zsh"})
+
+
+def _strip_code_segments(body: str) -> str:
+    """Return body with fenced code blocks and inline code spans removed.
+
+    Used by checks that should only match prose — e.g., MCP references
+    and time-sensitive phrases. Inside code, the raw form is legitimate
+    (actual tool names, literal commands).
+    """
+    lines = body.splitlines()
+    out: List[str] = []
+    in_fence = False
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            in_fence = not in_fence
+            out.append("")
+            continue
+        if in_fence:
+            out.append("")
+            continue
+        # Remove inline code spans.
+        out.append(re.sub(r"`[^`]*`", "", line))
+    return "\n".join(out)
+
+
+def _check_mcp_references(body: str, file_str: str) -> List[dict]:
+    """Warn on raw ``mcp__<server>__<tool>`` tool names in prose.
+
+    Anthropic best-practices recommend referring to MCP tools as
+    ``Server:tool_name`` when mentioning them in documentation. The
+    raw ``mcp__`` form is legitimate inside code (actual invocation
+    string) but noisy in prose.
+    """
+    issues: List[dict] = []
+    prose = _strip_code_segments(body)
+    seen: set[str] = set()
+    for match in _MCP_RAW_RE.finditer(prose):
+        name = match.group(0)
+        if name in seen:
+            continue
+        seen.add(name)
+        issues.append({
+            "file": file_str,
+            "issue": (
+                f"raw MCP tool name '{name}' in prose; prefer "
+                f"'Server:tool_name' form for readability"
+            ),
+            "severity": "warn",
+        })
+    return issues
+
+
+def _check_time_sensitive(body: str, file_str: str) -> List[dict]:
+    """Warn on year/version references outside ``<details>`` blocks.
+
+    Best-practices: avoid time-sensitive content in skill bodies except
+    in ``<details>`` "old patterns" sections that signal the content
+    is archival, not evergreen.
+    """
+    issues: List[dict] = []
+    prose = _strip_code_segments(body)
+    # Remove content inside <details>...</details> blocks.
+    prose_stripped = re.sub(
+        r"<details>.*?</details>", "", prose, flags=re.DOTALL | re.IGNORECASE,
+    )
+    seen: set[str] = set()
+    for match in _YEAR_REF_RE.finditer(prose_stripped):
+        phrase = match.group(0)
+        if phrase.lower() in seen:
+            continue
+        seen.add(phrase.lower())
+        issues.append({
+            "file": file_str,
+            "issue": (
+                f"time-sensitive phrase '{phrase}' in skill body; "
+                f"move to <details> 'old patterns' block or rephrase "
+                f"to stay evergreen"
+            ),
+            "severity": "warn",
+        })
+    for match in _VERSION_REF_RE.finditer(prose_stripped):
+        version = match.group(0)
+        if version in seen:
+            continue
+        seen.add(version)
+        issues.append({
+            "file": file_str,
+            "issue": (
+                f"version reference '{version}' in skill body; wrap "
+                f"in <details> if historical, otherwise drop"
+            ),
+            "severity": "warn",
+        })
+    return issues
+
+
+def _check_embedded_scripts(body: str, file_str: str) -> List[dict]:
+    """Warn on bare exits in embedded scripts without explanatory comment.
+
+    Best-practices "solve don't punt": a script that dies with
+    ``sys.exit(1)`` or ``exit 1`` and no context leaves the caller
+    guessing. Require a comment on the same line or the immediately
+    preceding line that names the reason.
+    """
+    issues: List[dict] = []
+    lines = body.splitlines()
+    in_fence = False
+    lang = ""
+    for idx, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            if in_fence:
+                in_fence = False
+                lang = ""
+            else:
+                in_fence = True
+                lang = stripped[3:].strip().lower()
+            continue
+        if not in_fence:
+            continue
+        if lang and lang not in _SCRIPT_FENCE_LANGS:
+            continue
+        if not _BARE_EXIT_RE.match(line):
+            continue
+        # Check for comment on same line or immediately prior line.
+        if "#" in line:
+            continue
+        prior = lines[idx - 1].strip() if idx > 0 else ""
+        if prior.startswith("#"):
+            continue
+        issues.append({
+            "file": file_str,
+            "issue": (
+                f"line {idx + 1}: bare exit in {lang or 'script'} fence "
+                f"without explanatory comment; print the reason before "
+                f"exiting so callers have context"
+            ),
+            "severity": "warn",
+        })
+    return issues
+
+
 _TOC_HEADING_RE = re.compile(
     r"^\s*##+\s*(table of contents|contents|toc)\b",
     re.IGNORECASE | re.MULTILINE,
@@ -572,6 +725,9 @@ class SkillDocument(Document):
             self.meta.get("argument-hint"), self.content, self.path,
         ))
         result.extend(_check_body_paths(self.content, self.path))
+        result.extend(_check_mcp_references(self.content, self.path))
+        result.extend(_check_time_sensitive(self.content, self.path))
+        result.extend(_check_embedded_scripts(self.content, self.path))
         result.extend(_check_directives(self.content, self.path))
         result.extend(_check_body_lines(self.content, self.path))
         return result
