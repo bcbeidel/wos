@@ -98,17 +98,18 @@ Check available MCPs - if useful for research (searching docs, finding similar s
 
 Based on the user interview, fill in these components. Most skills need only `name` + `description` — reach for the others when the use case calls for it:
 
-- **name**: Skill identifier (lowercase, hyphens, ≤64 chars)
-- **description**: When to trigger, what it does. This is the primary triggering mechanism — include both what the skill does AND specific contexts for when to use it. All "when to use" info goes here, not in the body. Note: Claude has a tendency to undertrigger skills. Make descriptions a little "pushy" — cover adjacent phrasings and contexts even when the user doesn't name the skill explicitly. *(check-skill #7, #13)*
+- **name**: Skill identifier (lowercase, hyphens, ≤64 chars). Reserved words (`anthropic`, `claude`) are rejected — they collide with platform-owned namespaces.
+- **description**: When to trigger, what it does. Primary triggering mechanism — write it in **third person** ("Processes X", not "You can use this to…") and front-load the trigger phrase. Cap is **1024 characters**; for longer guidance, split trigger phrases into optional `when_to_use` (combined cap 1536). Avoid vague phrasings ("helps with", "processes data") — name a specific capability. Claude undertriggers, so cover adjacent phrasings and contexts even when the user doesn't name the skill explicitly. *(check-skill #7, #13)*
+- **when_to_use** _(Claude Code only)_: Optional split for trigger phrases when the `description` alone would exceed 1024 chars. The two fields are concatenated at routing time under a combined 1536-char cap.
 - **argument-hint**: One-line hint shown in the CLI (e.g., `"[skill name and description]"`) *(check-skill #20)*
-- **user-invocable**: `true` so users can invoke with `/skill-name`. Set to `false` for background knowledge skills — hides from the `/` menu, designed to be preloaded into an agent rather than called directly. *(check-skill #17)*
+- **user-invocable**: Default `true` — **omit** unless you need `false` (reduces frontmatter noise and the post-compaction token budget). Set `false` for background-knowledge skills that should be preloaded into an agent rather than called directly; this also hides them from the `/` menu. *(check-skill #17)*
 - **disable-model-invocation** _(optional)_: Set `true` for dangerous or consequential skills (deploy, destructive ops) that should only fire on explicit user invocation — never auto-triggered. *(check-skill #23)*
 - **model** _(optional)_: Override the session model for this skill. Use `haiku` for fast lookups, `opus` for complex multi-step work.
 - **effort** _(optional)_: Override reasoning depth (`low`/`medium`/`high`/`max`). Use `low` for templating, `high` for code review or analysis.
 - **context: fork** _(optional)_: Run the skill in an isolated subagent — the parent context only sees the final result, not intermediate tool calls. Pair with `agent:` to set the subagent type. When using `context: fork`, declare the subagent's operational scope in `## Key Instructions` (read-only, write-gated, requires approval, etc.). *(check-skill #18)*
 - **hooks** _(optional)_: Lifecycle hooks scoped to this skill's session. Use for on-demand safety guardrails — see On-Demand Hooks below.
 - **paths** _(optional)_: Glob patterns that limit when the skill auto-activates. Useful in monorepos to prevent a backend skill firing in frontend code: `paths: "packages/backend/**"`. *(check-skill #17)*
-- **allowed-tools** _(optional)_: Tools that run without per-use confirmation when this skill is active.
+- **allowed-tools** _(optional)_: Tools that run without per-use confirmation when this skill is active. Canonical forms: **space-separated string** (`Grep Read`) or **YAML list** (`[Grep, Read]` or block form). **Never comma-separated as a string** (`Grep, Read`) — YAML parses it as one literal value and the field silently does nothing.
 - **tested_with** _(optional)_: Model tiers verified against (e.g., `[sonnet, haiku]`); omit if untested. *(check-skill #2)*
 - **references** _(optional)_: Reference files or assets in the skill directory for progressive disclosure.
 
@@ -120,6 +121,10 @@ Read `references/skill-writing-guide.md` before drafting. It covers anatomy,
 progressive disclosure patterns, on-demand hooks, config.json setup, skill
 composition, persistent state, writing style, writing patterns, and the full
 quality requirements checklist.
+
+**Canonical correctness.** In code blocks and inline code, use forward slashes
+(`path/to/file`) — Windows-style backslashes (`path\to\file`) are rejected by
+`check-skill` as they don't round-trip across platforms.
 
 ### Narrate the Draft
 

@@ -30,6 +30,16 @@ _SECOND_PERSON_PATTERNS = (
 )
 _RIGID_DIRECTIVE_RE = re.compile(r"\b(?:MUST|NEVER|ALWAYS|REQUIRED|FORBIDDEN)\b")
 _RIGID_DIRECTIVE_THRESHOLD = 3
+_VAGUE_PHRASES = (
+    "helps with",
+    "processes data",
+    "handles stuff",
+    "deals with",
+    "manages things",
+    "works with stuff",
+)
+_DESCRIPTION_CAP = 1024
+_DESCRIPTION_COMBINED_CAP = 1536
 
 
 def strip_frontmatter(text: str) -> str:
@@ -102,20 +112,46 @@ def _check_name(name: str, file_str: str) -> List[dict]:
     return issues
 
 
-def _check_description(desc: str, file_str: str) -> List[dict]:
+def _check_description(
+    desc: str,
+    file_str: str,
+    when_to_use: Optional[str] = None,
+) -> List[dict]:
     issues: List[dict] = []
-    if len(desc) > 1024:
-        issues.append({
-            "file": file_str,
-            "issue": f"skill description exceeds 1024 characters ({len(desc)})",
-            "severity": "warn",
-        })
+
+    # Cap enforcement — FAIL.
+    # Platform cap: description ≤ 1024 chars.
+    # Claude Code: description + when_to_use combined ≤ 1536 chars.
+    if when_to_use:
+        combined = len(desc) + len(when_to_use)
+        if combined > _DESCRIPTION_COMBINED_CAP:
+            issues.append({
+                "file": file_str,
+                "issue": (
+                    f"description + when_to_use combined exceeds "
+                    f"{_DESCRIPTION_COMBINED_CAP} characters ({combined})"
+                ),
+                "severity": "fail",
+            })
+    else:
+        if len(desc) > _DESCRIPTION_CAP:
+            issues.append({
+                "file": file_str,
+                "issue": (
+                    f"skill description exceeds {_DESCRIPTION_CAP} "
+                    f"characters ({len(desc)}); split into when_to_use "
+                    f"to use the combined {_DESCRIPTION_COMBINED_CAP} cap"
+                ),
+                "severity": "fail",
+            })
+
     if _XML_TAG_RE.search(desc):
         issues.append({
             "file": file_str,
             "issue": "skill description contains XML tags",
             "severity": "warn",
         })
+
     desc_lower = desc.lower()
     for pattern in _SECOND_PERSON_PATTERNS:
         if pattern in desc_lower:
@@ -128,7 +164,57 @@ def _check_description(desc: str, file_str: str) -> List[dict]:
                 "severity": "warn",
             })
             break
+
+    for phrase in _VAGUE_PHRASES:
+        if phrase in desc_lower:
+            issues.append({
+                "file": file_str,
+                "issue": (
+                    f"skill description uses vague phrasing "
+                    f"('{phrase}'); name a specific capability"
+                ),
+                "severity": "warn",
+            })
+            break
+
     return issues
+
+
+def _check_allowed_tools(value: object, file_str: str) -> List[dict]:
+    """Validate the shape of the ``allowed-tools`` frontmatter field.
+
+    Canonical forms (per Claude Code spec):
+
+    - YAML block list (parsed as a Python list)
+    - Space-separated string (``"Grep Read"``)
+    - Inline YAML list (``"[Grep, Read]"`` — stored as a string by the
+      stdlib parser, but real YAML parses it as a list)
+
+    The silent-breakage case is a comma-separated string like ``"Grep, Read"``
+    which YAML parses as one literal value, so the field does nothing.
+    """
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return []
+    if not isinstance(value, str):
+        return []
+
+    stripped = value.strip()
+    if stripped.startswith("[") and stripped.endswith("]"):
+        return []
+    if "," in stripped:
+        return [{
+            "file": file_str,
+            "issue": (
+                "allowed-tools is comma-separated as a string "
+                f"({value!r}); YAML parses this as one literal value. "
+                "Use space-separated (Grep Read) or YAML list "
+                "([Grep, Read] / block list)."
+            ),
+            "severity": "fail",
+        }]
+    return []
 
 
 def _check_directives(body: str, file_str: str) -> List[dict]:
@@ -144,6 +230,84 @@ def _check_directives(body: str, file_str: str) -> List[dict]:
             "severity": "warn",
         }]
     return []
+
+
+# Match real Windows paths, not escape sequences inside string literals.
+# Requires one of: drive letter prefix, ./ or ../ prefix, or a backslash
+# immediately followed by a name with a recognizable file extension.
+_WINDOWS_PATH_RE = re.compile(
+    r"(?:[A-Za-z]:\\\S+"
+    r"|\.{1,2}\\[A-Za-z0-9_./-]+"
+    r"|[A-Za-z0-9_-]+(?:\\[A-Za-z0-9_-]+)*\\[A-Za-z0-9_-]+\.[A-Za-z]{1,5}\b)"
+)
+
+
+def _iter_code_segments(body: str):
+    """Yield (segment_text, line_no) for fenced blocks and inline code spans.
+
+    Fenced blocks: between ``` markers (``` may include a language hint).
+    Inline code: text between single backticks on a line.
+    """
+    in_fence = False
+    fence_buf: List[str] = []
+    fence_start_line = 0
+
+    for line_no, line in enumerate(body.splitlines(), start=1):
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            if in_fence:
+                yield ("\n".join(fence_buf), fence_start_line)
+                fence_buf = []
+                in_fence = False
+            else:
+                in_fence = True
+                fence_start_line = line_no
+            continue
+        if in_fence:
+            fence_buf.append(line)
+            continue
+
+        # Inline code spans on prose lines.
+        idx = 0
+        while True:
+            tick = line.find("`", idx)
+            if tick == -1:
+                break
+            end = line.find("`", tick + 1)
+            if end == -1:
+                break
+            yield (line[tick + 1:end], line_no)
+            idx = end + 1
+
+
+def _check_body_paths(body: str, file_str: str) -> List[dict]:
+    """Flag Windows-style backslash path separators in code segments.
+
+    Skips escape sequences that show up in regex / format strings
+    (``\\n``, ``\\t``, ``\\\\``) by requiring the backslash to be preceded
+    by an identifier character or a drive letter / dot pattern that matches
+    a real filesystem path.
+    """
+    issues: List[dict] = []
+    seen_lines: set[int] = set()
+
+    for segment, line_no in _iter_code_segments(body):
+        if line_no in seen_lines:
+            continue
+        for match in _WINDOWS_PATH_RE.finditer(segment):
+            issues.append({
+                "file": file_str,
+                "issue": (
+                    f"line {line_no}: Windows-style path separator in "
+                    f"code segment ('{match.group(0)}'); use forward "
+                    f"slashes for portability"
+                ),
+                "severity": "fail",
+            })
+            seen_lines.add(line_no)
+            break
+
+    return issues
 
 
 def _check_body_lines(body: str, file_str: str) -> List[dict]:
@@ -247,8 +411,9 @@ class SkillDocument(Document):
         """Return base issues plus skill-specific checks.
 
         Base checks: name and description non-empty.
-        Skill checks: name format, description quality, ALL-CAPS directive
-        density, and raw body line count.
+        Skill checks: name format, description quality (cap, third person,
+        vague phrasing), allowed-tools shape, Windows-style paths in code
+        segments, ALL-CAPS directive density, raw body line count.
 
         Args:
             root: Project root directory (passed to base issues()).
@@ -260,7 +425,13 @@ class SkillDocument(Document):
         if self.name:
             result.extend(_check_name(self.name, self.path))
         if self.description:
-            result.extend(_check_description(self.description, self.path))
+            when_to_use = self.meta.get("when_to_use") or self.meta.get("when-to-use")
+            when_to_use_str = when_to_use if isinstance(when_to_use, str) else None
+            result.extend(_check_description(
+                self.description, self.path, when_to_use=when_to_use_str,
+            ))
+        result.extend(_check_allowed_tools(self.allowed_tools, self.path))
+        result.extend(_check_body_paths(self.content, self.path))
         result.extend(_check_directives(self.content, self.path))
         result.extend(_check_body_lines(self.content, self.path))
         return result
