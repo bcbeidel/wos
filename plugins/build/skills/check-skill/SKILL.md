@@ -39,6 +39,8 @@ and always precede LLM checks. They cover:
 - **Windows-style paths** — fail on backslash path separators in fenced blocks or inline code (drive-letter prefixes, relative `.\` / `..\` prefixes, or multi-component paths with file extensions)
 - **Substitution usage** — warn when `argument-hint` is set but the body has no `$ARGUMENTS`, `$ARGUMENTS[N]`, or `$N` substitution; without one, the user-supplied argument lands at the end as `ARGUMENTS: <value>`
 - **Gerund/vague naming** — warn on vague tokens (`helper`, `utils`, `tools`, `thing`, etc.) anywhere in the name; warn on names that aren't in gerund (`-ing`) or agent-noun (`-er`) form (style suggestion only)
+- **Reference depth** — warn on files nested more than one level under `references/`; flat structure keeps on-demand loading predictable
+- **Reference TOC** — warn on reference files over 100 non-blank lines without a `## Table of Contents`, `## Contents`, or `## TOC` heading in the first 20 lines
 
 ### 3. Run LLM Checks
 
