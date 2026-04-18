@@ -120,7 +120,13 @@ Based on the user interview, fill in these components. Most skills need only `na
 - **tested_with** _(optional)_: Model tiers verified against (e.g., `[sonnet, haiku]`); omit if untested. *(check-skill #2)*
 - **references** _(optional)_: Reference files or assets in the skill directory for progressive disclosure.
 
-After drafting, also include in `## Key Instructions` at least one explicit won't-have — a negative scope boundary ("Won't…", "Does not…", "Excluded:"). Missing negative rules leave scope undefined. *(check-skill #11)*
+**Optional toolkit sections.** Add these when trigger conditions apply — they're house-style scaffolding, not canonical requirements. See [check-skill criteria](../../check-skill/SKILL.md) for the exact triggers.
+
+- `## Handoff` (Receives / Produces / Chainable-to) — include when this skill chains to another skill, writes files, or runs under `context: fork`. *(check-skill #3)*
+- `## Anti-Pattern Guards` — include when the Workflow performs destructive, irreversible, or external-effect operations. *(check-skill #4)*
+- `## Key Instructions` with an explicit won't-have — include when the skill performs destructive ops or overlaps with other skills in the same plugin. *(check-skill #11)*
+
+Read-only single-step skills generally don't need any of these sections. Don't add them as boilerplate.
 
 ### Skill Writing Guide
 
