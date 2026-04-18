@@ -418,6 +418,18 @@ class TestCheckSkillMeta:
         issues = check_skill_meta(tmp_path / "helper")
         assert any("vague token" in i["issue"] for i in issues)
 
+    def test_nested_reference_warns(self, tmp_path: Path) -> None:
+        from check.skill import check_skill_meta
+        _create_skill(
+            tmp_path, "ref-checker",
+            "---\nname: ref-checker\ndescription: Valid skill.\n---\n# X\n",
+        )
+        nested = tmp_path / "ref-checker" / "references" / "aws"
+        nested.mkdir(parents=True)
+        (nested / "iam.md").write_text("# IAM\n")
+        issues = check_skill_meta(tmp_path / "ref-checker")
+        assert any("nested more than 1 level" in i["issue"] for i in issues)
+
 
 class TestCheckBodyPaths:
     def test_drive_letter_in_fence_fails(self) -> None:

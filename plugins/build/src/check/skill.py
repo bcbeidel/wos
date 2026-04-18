@@ -631,9 +631,14 @@ def check_skill_sizes(
 def check_skill_meta(skill_dir: Path) -> List[dict]:
     """Validate SKILL.md frontmatter and structure conventions.
 
-    Returns a list of issues in standard validator format.
+    Returns a list of issues in standard validator format. Combines
+    ``SkillDocument.issues()`` (checks the parsed document) with
+    directory-walking checks for reference files (depth, TOC).
     """
     skill = SkillDocument.parse(skill_dir)
     if skill is None:
         return []
-    return skill.issues(skill_dir)
+    result = skill.issues(skill_dir)
+    result.extend(_check_reference_depth(skill_dir, skill.path))
+    result.extend(_check_reference_toc(skill_dir, skill.path))
+    return result
