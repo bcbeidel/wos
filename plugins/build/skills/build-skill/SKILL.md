@@ -91,6 +91,13 @@ Also probe for structural decisions that shape how the skill is built — derive
 - **User-facing command or agent background knowledge?** If the user wants this as domain context injected into an agent rather than a callable command, `user-invocable: false` is the right pattern.
 - **Needs persistent configuration?** API keys, project IDs, user preferences that vary per-person. If yes, plan for the `config.json` setup pattern.
 - **Depends on other skills?** If the skill calls out to another skill by name, it needs a won't-work-without dependency note in Key Instructions.
+- **Single file or multiple files?** If the body will exceed ~400 lines, or the domain has heterogeneous sub-topics (e.g. AWS / GCP / Azure, or one pattern per language), plan for reference files under `references/`. Reference files keep the main SKILL.md lean and load on demand. See `references/skill-writing-guide.md` → Progressive Disclosure. *(check-skill: reference-depth, reference-TOC WARNs)*
+- **Risk and freedom level?** Classify the workflow and pick a matching instruction style (see `references/skill-writing-guide.md` → Degrees of Freedom):
+  - **Reversible, low-stakes** (file transforms, doc generation, reads) → **high-freedom prose** — describe the intent; let Claude pick tools and order.
+  - **External effects or specific tool order matters** → **medium-freedom** — parameterized steps with specific tool calls.
+  - **Destructive or irreversible** (deploy, rm -rf, DROP TABLE, force-push) → **low-freedom** — scripts, explicit gates, no variation.
+
+  Calibrate specificity to task fragility. Fragile tasks get low-freedom; routine tasks get high-freedom. Over-specifying a routine task produces brittle skills that break on edge cases Claude could have handled.
 - **Where should this skill live?** Pick a scope before drafting:
   - **project** — `.claude/skills/<name>/SKILL.md` (default when working in a repo with a `.claude/` directory; ships with the codebase)
   - **personal** — `~/.claude/skills/<name>/SKILL.md` (single-user, all projects)
@@ -120,7 +127,13 @@ Based on the user interview, fill in these components. Most skills need only `na
 - **tested_with** _(optional)_: Model tiers verified against (e.g., `[sonnet, haiku]`); omit if untested. *(check-skill #2)*
 - **references** _(optional)_: Reference files or assets in the skill directory for progressive disclosure.
 
-After drafting, also include in `## Key Instructions` at least one explicit won't-have — a negative scope boundary ("Won't…", "Does not…", "Excluded:"). Missing negative rules leave scope undefined. *(check-skill #11)*
+**Optional toolkit sections.** Add these when trigger conditions apply — they're house-style scaffolding, not canonical requirements. See [check-skill criteria](../../check-skill/SKILL.md) for the exact triggers.
+
+- `## Handoff` (Receives / Produces / Chainable-to) — include when this skill chains to another skill, writes files, or runs under `context: fork`. *(check-skill #3)*
+- `## Anti-Pattern Guards` — include when the Workflow performs destructive, irreversible, or external-effect operations. *(check-skill #4)*
+- `## Key Instructions` with an explicit won't-have — include when the skill performs destructive ops or overlaps with other skills in the same plugin. *(check-skill #11)*
+
+Read-only single-step skills generally don't need any of these sections. Don't add them as boilerplate.
 
 ### Skill Writing Guide
 
