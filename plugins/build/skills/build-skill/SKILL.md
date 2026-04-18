@@ -91,6 +91,12 @@ Also probe for structural decisions that shape how the skill is built — derive
 - **User-facing command or agent background knowledge?** If the user wants this as domain context injected into an agent rather than a callable command, `user-invocable: false` is the right pattern.
 - **Needs persistent configuration?** API keys, project IDs, user preferences that vary per-person. If yes, plan for the `config.json` setup pattern.
 - **Depends on other skills?** If the skill calls out to another skill by name, it needs a won't-work-without dependency note in Key Instructions.
+- **Risk and freedom level?** Classify the workflow and pick a matching instruction style (see `references/skill-writing-guide.md` → Degrees of Freedom):
+  - **Reversible, low-stakes** (file transforms, doc generation, reads) → **high-freedom prose** — describe the intent; let Claude pick tools and order.
+  - **External effects or specific tool order matters** → **medium-freedom** — parameterized steps with specific tool calls.
+  - **Destructive or irreversible** (deploy, rm -rf, DROP TABLE, force-push) → **low-freedom** — scripts, explicit gates, no variation.
+
+  Calibrate specificity to task fragility. Fragile tasks get low-freedom; routine tasks get high-freedom. Over-specifying a routine task produces brittle skills that break on edge cases Claude could have handled.
 - **Where should this skill live?** Pick a scope before drafting:
   - **project** — `.claude/skills/<name>/SKILL.md` (default when working in a repo with a `.claude/` directory; ships with the codebase)
   - **personal** — `~/.claude/skills/<name>/SKILL.md` (single-user, all projects)
