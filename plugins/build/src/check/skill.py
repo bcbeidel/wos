@@ -232,6 +232,84 @@ def _check_directives(body: str, file_str: str) -> List[dict]:
     return []
 
 
+# Match real Windows paths, not escape sequences inside string literals.
+# Requires one of: drive letter prefix, ./ or ../ prefix, or a backslash
+# immediately followed by a name with a recognizable file extension.
+_WINDOWS_PATH_RE = re.compile(
+    r"(?:[A-Za-z]:\\\S+"
+    r"|\.{1,2}\\[A-Za-z0-9_./-]+"
+    r"|[A-Za-z0-9_-]+(?:\\[A-Za-z0-9_-]+)*\\[A-Za-z0-9_-]+\.[A-Za-z]{1,5}\b)"
+)
+
+
+def _iter_code_segments(body: str):
+    """Yield (segment_text, line_no) for fenced blocks and inline code spans.
+
+    Fenced blocks: between ``` markers (``` may include a language hint).
+    Inline code: text between single backticks on a line.
+    """
+    in_fence = False
+    fence_buf: List[str] = []
+    fence_start_line = 0
+
+    for line_no, line in enumerate(body.splitlines(), start=1):
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            if in_fence:
+                yield ("\n".join(fence_buf), fence_start_line)
+                fence_buf = []
+                in_fence = False
+            else:
+                in_fence = True
+                fence_start_line = line_no
+            continue
+        if in_fence:
+            fence_buf.append(line)
+            continue
+
+        # Inline code spans on prose lines.
+        idx = 0
+        while True:
+            tick = line.find("`", idx)
+            if tick == -1:
+                break
+            end = line.find("`", tick + 1)
+            if end == -1:
+                break
+            yield (line[tick + 1:end], line_no)
+            idx = end + 1
+
+
+def _check_body_paths(body: str, file_str: str) -> List[dict]:
+    """Flag Windows-style backslash path separators in code segments.
+
+    Skips escape sequences that show up in regex / format strings
+    (``\\n``, ``\\t``, ``\\\\``) by requiring the backslash to be preceded
+    by an identifier character or a drive letter / dot pattern that matches
+    a real filesystem path.
+    """
+    issues: List[dict] = []
+    seen_lines: set[int] = set()
+
+    for segment, line_no in _iter_code_segments(body):
+        if line_no in seen_lines:
+            continue
+        for match in _WINDOWS_PATH_RE.finditer(segment):
+            issues.append({
+                "file": file_str,
+                "issue": (
+                    f"line {line_no}: Windows-style path separator in "
+                    f"code segment ('{match.group(0)}'); use forward "
+                    f"slashes for portability"
+                ),
+                "severity": "fail",
+            })
+            seen_lines.add(line_no)
+            break
+
+    return issues
+
+
 def _check_body_lines(body: str, file_str: str) -> List[dict]:
     raw_lines = sum(1 for line in body.splitlines() if line.strip())
     if raw_lines > 500:

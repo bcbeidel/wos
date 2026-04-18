@@ -380,6 +380,47 @@ class TestCheckSkillMeta:
         assert issues == []
 
 
+class TestCheckBodyPaths:
+    def test_drive_letter_in_fence_fails(self) -> None:
+        from check.skill import _check_body_paths
+        body = "```\ncd C:\\Users\\bob\n```\n"
+        issues = _check_body_paths(body, "f")
+        assert len(issues) == 1
+        assert issues[0]["severity"] == "fail"
+
+    def test_relative_path_in_fence_fails(self) -> None:
+        from check.skill import _check_body_paths
+        body = "```\nopen src\\check\\skill.py\n```\n"
+        issues = _check_body_paths(body, "f")
+        assert len(issues) == 1
+        assert issues[0]["severity"] == "fail"
+
+    def test_inline_code_path_fails(self) -> None:
+        from check.skill import _check_body_paths
+        body = "Run the `src\\foo.py` script.\n"
+        issues = _check_body_paths(body, "f")
+        assert len(issues) == 1
+        assert issues[0]["severity"] == "fail"
+
+    def test_escape_sequence_no_fail(self) -> None:
+        from check.skill import _check_body_paths
+        body = "```python\nprint('hello\\nworld')\n```\n"
+        issues = _check_body_paths(body, "f")
+        assert issues == []
+
+    def test_forward_slash_no_fail(self) -> None:
+        from check.skill import _check_body_paths
+        body = "```\ncd plugins/build/src\n```\n"
+        issues = _check_body_paths(body, "f")
+        assert issues == []
+
+    def test_prose_backslash_ignored(self) -> None:
+        from check.skill import _check_body_paths
+        body = "Use the C:\\foo path on Windows.\n"
+        issues = _check_body_paths(body, "f")
+        assert issues == []
+
+
 class TestDescriptionCap:
     def test_description_combined_under_cap_no_fail(self) -> None:
         from check.skill import _check_description
