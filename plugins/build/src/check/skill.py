@@ -30,6 +30,16 @@ _SECOND_PERSON_PATTERNS = (
 )
 _RIGID_DIRECTIVE_RE = re.compile(r"\b(?:MUST|NEVER|ALWAYS|REQUIRED|FORBIDDEN)\b")
 _RIGID_DIRECTIVE_THRESHOLD = 3
+_VAGUE_PHRASES = (
+    "helps with",
+    "processes data",
+    "handles stuff",
+    "deals with",
+    "manages things",
+    "works with stuff",
+)
+_DESCRIPTION_CAP = 1024
+_DESCRIPTION_COMBINED_CAP = 1536
 
 
 def strip_frontmatter(text: str) -> str:
@@ -129,6 +139,43 @@ def _check_description(desc: str, file_str: str) -> List[dict]:
             })
             break
     return issues
+
+
+def _check_allowed_tools(value: object, file_str: str) -> List[dict]:
+    """Validate the shape of the ``allowed-tools`` frontmatter field.
+
+    Canonical forms (per Claude Code spec):
+
+    - YAML block list (parsed as a Python list)
+    - Space-separated string (``"Grep Read"``)
+    - Inline YAML list (``"[Grep, Read]"`` — stored as a string by the
+      stdlib parser, but real YAML parses it as a list)
+
+    The silent-breakage case is a comma-separated string like ``"Grep, Read"``
+    which YAML parses as one literal value, so the field does nothing.
+    """
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return []
+    if not isinstance(value, str):
+        return []
+
+    stripped = value.strip()
+    if stripped.startswith("[") and stripped.endswith("]"):
+        return []
+    if "," in stripped:
+        return [{
+            "file": file_str,
+            "issue": (
+                "allowed-tools is comma-separated as a string "
+                f"({value!r}); YAML parses this as one literal value. "
+                "Use space-separated (Grep Read) or YAML list "
+                "([Grep, Read] / block list)."
+            ),
+            "severity": "fail",
+        }]
+    return []
 
 
 def _check_directives(body: str, file_str: str) -> List[dict]:

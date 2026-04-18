@@ -377,3 +377,32 @@ class TestCheckSkillMeta:
         (tmp_path / "empty-dir").mkdir()
         issues = check_skill_meta(tmp_path / "empty-dir")
         assert issues == []
+
+
+class TestCheckAllowedTools:
+    def test_none_no_issues(self) -> None:
+        from check.skill import _check_allowed_tools
+        assert _check_allowed_tools(None, "f") == []
+
+    def test_list_no_issues(self) -> None:
+        from check.skill import _check_allowed_tools
+        assert _check_allowed_tools(["Grep", "Read"], "f") == []
+
+    def test_space_separated_string_no_issues(self) -> None:
+        from check.skill import _check_allowed_tools
+        assert _check_allowed_tools("Grep Read", "f") == []
+
+    def test_inline_list_string_no_issues(self) -> None:
+        from check.skill import _check_allowed_tools
+        assert _check_allowed_tools("[Grep, Read]", "f") == []
+
+    def test_comma_string_fails(self) -> None:
+        from check.skill import _check_allowed_tools
+        issues = _check_allowed_tools("Grep, Read", "f")
+        assert len(issues) == 1
+        assert issues[0]["severity"] == "fail"
+        assert "comma-separated" in issues[0]["issue"]
+
+    def test_single_tool_no_issues(self) -> None:
+        from check.skill import _check_allowed_tools
+        assert _check_allowed_tools("Grep", "f") == []
