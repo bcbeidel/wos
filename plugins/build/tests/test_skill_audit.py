@@ -535,3 +535,43 @@ class TestCheckSubstitutionUsage:
         assert _check_substitution_usage("", "# Body\n", "f") == []
 
 
+class TestCheckGerundNaming:
+    def test_gerund_name_no_issues(self) -> None:
+        from check.skill import _check_gerund_naming
+        assert _check_gerund_naming("processing-pdfs", "f") == []
+
+    def test_agent_noun_name_no_issues(self) -> None:
+        from check.skill import _check_gerund_naming
+        assert _check_gerund_naming("checker", "f") == []
+
+    def test_vague_helper_warns(self) -> None:
+        from check.skill import _check_gerund_naming
+        issues = _check_gerund_naming("helper", "f")
+        assert len(issues) == 1
+        assert issues[0]["severity"] == "warn"
+        assert "vague token" in issues[0]["issue"]
+
+    def test_vague_compound_warns(self) -> None:
+        from check.skill import _check_gerund_naming
+        issues = _check_gerund_naming("data-utils", "f")
+        assert len(issues) == 1
+        assert "vague token" in issues[0]["issue"]
+
+    def test_vague_first_segment_warns(self) -> None:
+        from check.skill import _check_gerund_naming
+        issues = _check_gerund_naming("helper-runner", "f")
+        assert len(issues) == 1
+        assert "vague token" in issues[0]["issue"]
+
+    def test_non_gerund_warns_style(self) -> None:
+        from check.skill import _check_gerund_naming
+        issues = _check_gerund_naming("frobulate", "f")
+        assert len(issues) == 1
+        assert issues[0]["severity"] == "warn"
+        assert "style suggestion" in issues[0]["issue"]
+
+    def test_multi_segment_gerund_no_issues(self) -> None:
+        from check.skill import _check_gerund_naming
+        assert _check_gerund_naming("analyze-spreadsheets-merging", "f") == []
+
+

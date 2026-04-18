@@ -41,6 +41,10 @@ _VAGUE_PHRASES = (
 _DESCRIPTION_CAP = 1024
 _DESCRIPTION_COMBINED_CAP = 1536
 _SUBSTITUTION_RE = re.compile(r"\$ARGUMENTS(?:\[\d+\])?|\$[0-9]\b")
+_VAGUE_NAME_TOKENS = frozenset({
+    "helper", "utils", "util", "tools", "tool",
+    "thing", "things", "stuff", "common", "misc",
+})
 
 
 def strip_frontmatter(text: str) -> str:
@@ -208,6 +212,40 @@ def _check_substitution_usage(
         ),
         "severity": "warn",
     }]
+
+
+def _check_gerund_naming(name: str, file_str: str) -> List[dict]:
+    """Warn on vague names and recommend gerund/agent-suffix naming.
+
+    Vague names (``helper``, ``utils``, ``tools``, ``thing``, etc.) provide
+    no triggering signal. Names that don't end in ``-ing`` or ``-er``
+    miss the platform-recommended gerund or agent-noun pattern
+    (``processing-pdfs``, ``analyzing-spreadsheets``, ``checker``).
+    """
+    issues: List[dict] = []
+    segments = name.split("-")
+    for seg in segments:
+        if seg in _VAGUE_NAME_TOKENS:
+            issues.append({
+                "file": file_str,
+                "issue": (
+                    f"skill name contains vague token '{seg}'; "
+                    f"name a specific capability "
+                    f"(e.g. 'processing-pdfs', 'analyzing-spreadsheets')"
+                ),
+                "severity": "warn",
+            })
+            return issues
+    if not any(seg.endswith("ing") or seg.endswith("er") for seg in segments):
+        issues.append({
+            "file": file_str,
+            "issue": (
+                f"skill name '{name}' is not in gerund or agent-noun form "
+                f"(e.g. 'processing-pdfs', 'checker'); style suggestion only"
+            ),
+            "severity": "warn",
+        })
+    return issues
 
 
 def _check_allowed_tools(value: object, file_str: str) -> List[dict]:
