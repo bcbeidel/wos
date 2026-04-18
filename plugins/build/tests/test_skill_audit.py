@@ -261,12 +261,12 @@ class TestCheckSkillMeta:
     def test_valid_skill_no_issues(self, tmp_path: Path) -> None:
         from check.skill import check_skill_meta
         _create_skill(
-            tmp_path, "good-skill",
-            "---\nname: good-skill\n"
+            tmp_path, "processing-records",
+            "---\nname: processing-records\n"
             "description: Performs good actions. Use when asked.\n"
             "---\n# Good Skill\n\n- Do good\n",
         )
-        issues = check_skill_meta(tmp_path / "good-skill")
+        issues = check_skill_meta(tmp_path / "processing-records")
         assert len(issues) == 0
 
     def test_name_uppercase_fails(self, tmp_path: Path) -> None:
@@ -392,12 +392,31 @@ class TestCheckSkillMeta:
     def test_windows_path_in_body_fails(self, tmp_path: Path) -> None:
         from check.skill import check_skill_meta
         _create_skill(
-            tmp_path, "win-paths",
-            "---\nname: win-paths\ndescription: Valid skill.\n---\n"
+            tmp_path, "windows-checker",
+            "---\nname: windows-checker\ndescription: Valid skill.\n---\n"
             "# X\n\n```\nopen src\\check\\skill.py\n```\n",
         )
-        issues = check_skill_meta(tmp_path / "win-paths")
+        issues = check_skill_meta(tmp_path / "windows-checker")
         assert any("Windows-style" in i["issue"] for i in issues)
+
+    def test_argument_hint_without_substitution_warns(self, tmp_path: Path) -> None:
+        from check.skill import check_skill_meta
+        _create_skill(
+            tmp_path, "missing-substitution",
+            "---\nname: missing-substitution\ndescription: Valid skill.\n"
+            "argument-hint: \"[file]\"\n---\n# X\n\nProcess the file argument.\n",
+        )
+        issues = check_skill_meta(tmp_path / "missing-substitution")
+        assert any("argument-hint is set" in i["issue"] for i in issues)
+
+    def test_vague_name_warns(self, tmp_path: Path) -> None:
+        from check.skill import check_skill_meta
+        _create_skill(
+            tmp_path, "helper",
+            "---\nname: helper\ndescription: Valid skill.\n---\n# X\n",
+        )
+        issues = check_skill_meta(tmp_path / "helper")
+        assert any("vague token" in i["issue"] for i in issues)
 
 
 class TestCheckBodyPaths:

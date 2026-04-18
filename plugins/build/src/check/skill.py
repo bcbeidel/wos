@@ -479,8 +479,9 @@ class SkillDocument(Document):
         """Return base issues plus skill-specific checks.
 
         Base checks: name and description non-empty.
-        Skill checks: name format, description quality (cap, third person,
-        vague phrasing), allowed-tools shape, Windows-style paths in code
+        Skill checks: name format, gerund/vague-name style, description
+        quality (cap, third person, vague phrasing), allowed-tools shape,
+        argument-hint substitution usage, Windows-style paths in code
         segments, ALL-CAPS directive density, raw body line count.
 
         Args:
@@ -492,6 +493,7 @@ class SkillDocument(Document):
         result = super().issues(root)
         if self.name:
             result.extend(_check_name(self.name, self.path))
+            result.extend(_check_gerund_naming(self.name, self.path))
         if self.description:
             when_to_use = self.meta.get("when_to_use") or self.meta.get("when-to-use")
             when_to_use_str = when_to_use if isinstance(when_to_use, str) else None
@@ -499,6 +501,9 @@ class SkillDocument(Document):
                 self.description, self.path, when_to_use=when_to_use_str,
             ))
         result.extend(_check_allowed_tools(self.allowed_tools, self.path))
+        result.extend(_check_substitution_usage(
+            self.meta.get("argument-hint"), self.content, self.path,
+        ))
         result.extend(_check_body_paths(self.content, self.path))
         result.extend(_check_directives(self.content, self.path))
         result.extend(_check_body_lines(self.content, self.path))
