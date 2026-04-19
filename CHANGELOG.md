@@ -8,6 +8,89 @@ Pre-restructure releases used a single version. Post-restructure, each plugin
 
 ## [Unreleased]
 
+## [build-0.3.0, wiki-0.2.0, work-0.2.0] - 2026-04-19
+
+### Changed
+
+- **Retire `wos` naming across the toolkit (#323).** Replaces residual
+  `wos` references with scope-appropriate names — marketplace (`toolkit`),
+  wiki plugin (`wiki`), or plugin-scoped slash commands (`/wiki:`,
+  `/build:`, `/work:`). Historical CHANGELOG entries and `.designs/`,
+  `.context/`, `.research/`, `.prompts/` documents are preserved verbatim.
+  - **wiki:** AGENTS.md managed-section markers move from `<!-- wos:begin -->`
+    / `<!-- wos:end -->` / `<!-- wos:layout: ... -->` to the `wiki:*` form.
+    `update_agents_md()` gains a `_migrate_legacy_markers()` helper that
+    rewrites legacy markers in place — existing installs heal on the next
+    `/wiki:setup` invocation without any user action. `check_project_files()`
+    accepts both marker forms during the grace period.
+  - **wiki:** Python symbol `render_wos_section` → `render_wiki_section`
+    (plus local `wos_section` → `section`).
+  - **wiki:** Stale `wos.url_checker` module reference in `scripts/check_url.py`
+    corrected to `wiki.url_checker`.
+  - **build + wiki:** URL checker `User-Agent` changes from `wos-url-checker/1.0`
+    to `toolkit-url-checker/1.0` — the marketplace identity external servers
+    see.
+  - **build + wiki:** Dropped the "WOS" qualifier from module docstrings,
+    class docstrings, and test-file headers across
+    `plugins/wiki/src/wiki/`, `plugins/build/src/check/`,
+    `plugins/wiki/scripts/`, and both test suites. Package paths already
+    supply scope.
+  - **build:** Rule-format label "WOS" renamed to "Toolkit" in `build-rule`,
+    `check-rule`, and their references (superseded later by #320's
+    single-format rewrite). `build-skill`'s `### 7. WOS Quality Check`
+    heading renamed to `### 7. Toolkit Quality Check`. `build-subagent` /
+    `check-subagent` phrasing ("WOS procedures", "existing WOS skill")
+    updated to "toolkit procedures" / "existing toolkit skill".
+  - **work:** Rewired stale `/wos:<skill>` slash commands in SKILL.md
+    and reference docs to their current plugin prefix — `/wos:lint` →
+    `/wiki:lint`, `/wos:check-skill` → `/build:check-skill`,
+    `wos:brainstorm` → `work:scope-work`, `wos:scope-work` →
+    `/work:scope-work`. Replaced `wos/<file>.py` example paths in plan-work
+    and scope-work references with `plugins/wiki/src/wiki/<file>.py`.
+    Dropped "WOS frontmatter" qualifier from plan-format, spec-format,
+    plan-work, and scope-work docs.
+  - **marketplace:** Deleted the orphaned root `.claude-plugin/plugin.json`
+    (stale single-plugin manifest naming the project `wos`).
+    `.claude-plugin/marketplace.json` and each sub-plugin's manifest remain
+    the source of truth.
+  - **this repo:** Migrated `AGENTS.md` to `wiki:` markers.
+
+- **build:build-rule / build:check-rule collapse to the canonical
+  `.rule.md` format (#320).** Drops the prior multi-format routing
+  (WOS / Cursor / Claude Code) in favor of a single format stored at
+  `.claude/rules/<slug>.rule.md`. Eliminates detection tables, per-format
+  frontmatter templates, and the `rule-testing-guide.md` reference.
+  Rewrites `build-rule/SKILL.md`, `check-rule/SKILL.md`, and both
+  supporting references (`rule-format-guide.md`, `audit-dimensions.md`,
+  `repair-playbook.md`) against the canonical format. Layers
+  toolkit-opinion structure (fix-safety defaults, Intent component
+  requirements, category-driven severity defaults) on the simplified
+  foundation.
+
+- **build:build-subagent / build:check-subagent aligned with
+  build-skill/check-skill updates (#318).** Brings the subagent pair
+  into structural conformance with the latest build-skill / check-skill
+  baseline — including canonical section ordering, explicit handoff
+  contracts, and completeness requirements for `## When to invoke`
+  positive and negative examples. Mirrors the criteria that
+  `check-subagent` enforces for its own SKILL.md.
+
+- **build:build-hook / build:check-hook aligned with
+  build-skill/check-skill updates (#319).** Brings the hook pair into
+  structural conformance with the baseline — canonical workflow,
+  tightened fragility-matching guidance, and completeness requirements
+  for block/exit-code semantics. `check-hook` receives minor audit-rule
+  refinements.
+
+### Removed
+
+- **`plugins/build/skills/build-rule/references/rule-testing-guide.md`**
+  — removed as part of #320's single-format rewrite. Test-case authoring
+  guidance is now folded into `rule-format-guide.md` and the Intent-section
+  template.
+- **Root `.claude-plugin/plugin.json`** — removed as part of #323. The
+  marketplace manifest and per-plugin manifests supersede it.
+
 ## [build-0.2.0] - 2026-04-18
 
 ### Changed
