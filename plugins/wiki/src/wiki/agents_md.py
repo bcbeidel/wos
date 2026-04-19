@@ -160,12 +160,37 @@ def replace_marker_section(
     return content.rstrip("\n") + "\n\n" + section
 
 
-BEGIN_MARKER = "<!-- wos:begin -->"
-END_MARKER = "<!-- wos:end -->"
+BEGIN_MARKER = "<!-- wiki:begin -->"
+END_MARKER = "<!-- wiki:end -->"
 
-_LAYOUT_RE = re.compile(r"<!--\s*wos:layout:\s*(\S+)\s*-->")
+_LAYOUT_RE = re.compile(r"<!--\s*wiki:layout:\s*(\S+)\s*-->")
 
 VALID_LAYOUTS = frozenset({"separated", "co-located", "flat", "none"})
+
+# Legacy markers from the `wos:` naming era. ``update_agents_md`` rewrites
+# any occurrence in place so repeat runs of /wiki:setup heal old installs.
+_LEGACY_BEGIN_MARKER = "<!-- wos:begin -->"
+_LEGACY_END_MARKER = "<!-- wos:end -->"
+_LEGACY_LAYOUT_RE = re.compile(r"<!--\s*wos:layout:\s*(\S+)\s*-->")
+
+
+def _migrate_legacy_markers(content: str) -> str:
+    """Rewrite pre-rename ``wos:`` markers to their ``wiki:`` equivalents.
+
+    Idempotent — returns content unchanged when no legacy markers are present.
+    """
+    if (
+        _LEGACY_BEGIN_MARKER not in content
+        and _LEGACY_END_MARKER not in content
+        and not _LEGACY_LAYOUT_RE.search(content)
+    ):
+        return content
+    content = content.replace(_LEGACY_BEGIN_MARKER, BEGIN_MARKER)
+    content = content.replace(_LEGACY_END_MARKER, END_MARKER)
+    content = _LEGACY_LAYOUT_RE.sub(
+        lambda m: f"<!-- wiki:layout: {m.group(1)} -->", content
+    )
+    return content
 
 
 # ── Discovery ────────────────────────────────────────────────────
@@ -213,7 +238,7 @@ def discover_areas(root: Path) -> List[Dict[str, str]]:
 def read_layout_hint(content: str) -> Optional[str]:
     """Extract layout pattern from AGENTS.md managed section.
 
-    Looks for ``<!-- wos:layout: <pattern> -->`` within the managed
+    Looks for ``<!-- wiki:layout: <pattern> -->`` within the managed
     section.
 
     Args:
@@ -259,7 +284,7 @@ def render_wiki_section(
 
     # ── Layout hint (if set) ──────────────────────────────────────
     if layout and layout in VALID_LAYOUTS:
-        lines.append(f"<!-- wos:layout: {layout} -->")
+        lines.append(f"<!-- wiki:layout: {layout} -->")
 
     # ── Context Navigation header ────────────────────────────────
     lines.append("## Context Navigation")
@@ -453,6 +478,10 @@ def update_agents_md(
     Returns:
         Updated AGENTS.md content with the new managed section.
     """
+    # Migrate legacy wos: markers before anything else so downstream
+    # extraction and replacement see the canonical wiki: form.
+    content = _migrate_legacy_markers(content)
+
     # Preserve existing areas if not explicitly provided
     if areas is None:
         areas = extract_areas(content)

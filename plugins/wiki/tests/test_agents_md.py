@@ -235,6 +235,47 @@ class TestRenderMarkers:
         assert result.rstrip().endswith(END_MARKER)
 
 
+# ── legacy-marker migration ────────────────────────────────────
+
+
+class TestMigrateLegacyMarkers:
+    def test_migrates_legacy_wos_markers(self) -> None:
+        from wiki.agents_md import update_agents_md
+
+        legacy = (
+            "# AGENTS.md\n"
+            "preamble\n"
+            "<!-- wos:begin -->\n"
+            "<!-- wos:layout: flat -->\n"
+            "## Context Navigation\n"
+            "old body\n"
+            "<!-- wos:end -->\n"
+            "epilogue\n"
+        )
+        result = update_agents_md(legacy, areas=[])
+        assert "<!-- wos:begin -->" not in result
+        assert "<!-- wos:end -->" not in result
+        assert "<!-- wos:layout:" not in result
+        assert "<!-- wiki:begin -->" in result
+        assert "<!-- wiki:end -->" in result
+        assert "<!-- wiki:layout: flat -->" in result
+        # Content outside markers preserved
+        assert "preamble" in result
+        assert "epilogue" in result
+
+    def test_idempotent_on_current_markers(self) -> None:
+        from wiki.agents_md import _migrate_legacy_markers
+
+        content = (
+            "# AGENTS.md\n"
+            "<!-- wiki:begin -->\n"
+            "<!-- wiki:layout: separated -->\n"
+            "body\n"
+            "<!-- wiki:end -->\n"
+        )
+        assert _migrate_legacy_markers(content) == content
+
+
 # ── update_agents_md ────────────────────────────────────────────
 
 

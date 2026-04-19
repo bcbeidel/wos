@@ -1,6 +1,6 @@
 # AGENTS.md
 
-<!-- wos:begin -->
+<!-- wiki:begin -->
 ## Context Navigation
 
 - `.context/` -- Project context documents covering domain knowledge, patterns, and conventions.
@@ -58,7 +58,7 @@ LLMs lose attention mid-document — first and last sections are what agents ret
 - **Directness:** Be direct. State problems and disagreements plainly without hedging or softening.
 - **Verbosity:** Keep responses concise. Skip preamble and unnecessary elaboration.
 - **Depth:** Explain the reasoning and principles behind recommendations. Help me learn, not just execute.
-<!-- wos:end -->
+<!-- wiki:end -->
 
 ## Working Agreements
 
