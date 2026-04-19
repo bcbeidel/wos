@@ -16,9 +16,8 @@ flag it as requiring human review before applying.
 - [Dimension 1: Specificity](#dimension-1-specificity)
 - [Dimension 2: Research Grounding](#dimension-2-research-grounding)
 - [Dimension 3: Staleness](#dimension-3-staleness)
-- [Dimension 4: Fix-Safety Classification](#dimension-4-fix-safety-classification)
-- [Dimension 5: Rubric Instability](#dimension-5-rubric-instability)
-- [Dimension 6: Intent Completeness](#dimension-6-intent-completeness)
+- [Dimension 4: Rubric Instability](#dimension-4-rubric-instability)
+- [Dimension 5: Intent Completeness](#dimension-5-intent-completeness)
 - [Conflicts](#conflicts)
 
 ---
@@ -108,28 +107,7 @@ Staleness requires a triage decision before repair. Apply the decision tree in p
 
 ---
 
-## Dimension 4: Fix-Safety Classification
-
-**Signal:** Missing `fix-safety` field; value not `auto-remediable` or `requires-review`
-
-This is a mechanical repair with no intent-preservation risk.
-
-**CHANGE:** Add or correct `fix-safety` field
-**FROM:** frontmatter with no `fix-safety` field
-**TO:** `fix-safety: requires-review`
-**REASON:** Default to `requires-review` when uncertain. Most rule violations involve architectural or design decisions that require human judgment.
-
-**Downgrade to `auto-remediable` only when:**
-- The fix preserves all observable behavior
-- Examples: formatting rules, import ordering, pure renames with no semantic change
-- Do not use `auto-remediable` for correctness violations, security issues, or architectural boundary crossings
-
-For Cursor `.mdc` files (no frontmatter field): add `**Fix-safety:** requires-review` under the Intent heading.
-For CLAUDE.md sections: add `**Fix-safety:** requires-review` as a line under the Severity line.
-
----
-
-## Dimension 5: Rubric Instability
+## Dimension 4: Rubric Instability
 
 ### Synthetic Examples
 
@@ -163,16 +141,16 @@ If no real violating code exists yet, craft a realistic example using actual fil
 
 **Signal:** Multiple code snippets in a single Non-Compliant or Compliant example section
 
-**CHANGE:** Reduce to one canonical example per section; relocate extras to test file
+**CHANGE:** Reduce to one canonical example per section
 **FROM:** Non-Compliant Example section with three different code snippets showing different violation patterns
-**TO:** Keep the single most clear-cut instance. Add the remaining snippets as FAIL cases in `<slug>.tests.md`.
+**TO:** Keep the single most clear-cut instance and remove the extras.
 **REASON:** Multiple examples risk encoding subtly different behavioral patterns. A single canonical example produces a stronger, less ambiguous anchor.
 
 ---
 
-## Dimension 6: Intent Completeness
+## Dimension 5: Intent Completeness
 
-**Signal:** Intent section is missing one or more of the five required components
+**Signal:** Intent section is missing one or more of the four required components
 
 ### Missing Failure Cost (Component 2 — load-bearing)
 
@@ -188,13 +166,6 @@ If no real violating code exists yet, craft a realistic example using actual fil
 **TO:** Append: "Exception: [name at least one legitimate case — e.g., 'Exception: test files', 'Exception: scripts in `tools/` that are never bundled for production']."
 **REASON:** A rule with no named exception appears to admit no flexibility, which causes developers to disable it entirely rather than follow it in the 95% case.
 
-### Missing Fix-Safety Explanation (Component 5)
-
-**CHANGE:** Add Fix-safety reasoning to Intent (not just the frontmatter field)
-**FROM:** Intent section with no fix-safety mention; only `fix-safety: requires-review` in frontmatter
-**TO:** Append to Intent: "Fix-safety: requires-review — violations involve architectural decisions that may change observable behavior."
-**REASON:** The frontmatter field is machine-readable; the Intent explanation is human-readable. Both serve different consumers.
-
 ### Missing Principle (Component 3)
 
 **CHANGE:** Add a sentence naming the underlying value being enforced
@@ -203,10 +174,10 @@ If no real violating code exists yet, craft a realistic example using actual fil
 
 ### Intent Too Short (All Components)
 
-**CHANGE:** Expand to cover all five components
+**CHANGE:** Expand to cover all four components
 **FROM:** Single-sentence Intent: "Avoid X."
-**TO:** 3–6 sentence Intent covering: violation → failure cost → principle → exception policy → fix-safety signal → default-closed stance
-**REASON:** A single sentence cannot carry all five required components. Check each component in order and add the missing ones.
+**TO:** 3–5 sentence Intent covering: violation → failure cost → principle → exception policy → default-closed stance
+**REASON:** A single sentence cannot carry all four required components. Check each component in order and add the missing ones.
 
 ---
 
@@ -218,7 +189,7 @@ Resolution strategies in preference order:
 
 1. **Narrow scope** — if one rule was over-broad, narrow its glob so the two rules no longer apply to the same files. Verify the narrowed scope still covers the known failure case.
 
-2. **Merge** — if two rules enforce complementary aspects of the same convention, merge into one rule with both criteria stated explicitly. Verify the merged rule passes the 12-criteria validation checklist.
+2. **Merge** — if two rules enforce complementary aspects of the same convention, merge into one rule with both criteria stated explicitly. Verify the merged rule passes the 10-criteria validation checklist.
 
 3. **Explicit exception** — add an exception policy to one rule acknowledging the other: "Exception: in files covered by [other-rule-name], [behavior] is acceptable." This preserves both rules without creating contradiction.
 

@@ -1,6 +1,6 @@
 ---
 name: check-rule
-description: Check a rule library for quality issues — conflicts, specificity, staleness, fix-safety, rubric instability, and Intent completeness. Use when the user wants to "audit rules", "check rule quality", "find conflicting rules", "review my rules", or "are my rules well-formed".
+description: Check a rule library for quality issues — conflicts, specificity, staleness, rubric instability, and Intent completeness. Use when the user wants to "audit rules", "check rule quality", "find conflicting rules", "review my rules", or "are my rules well-formed".
 argument-hint: "[path to rule file or directory — scans project if omitted]"
 user-invocable: true
 references:
@@ -11,7 +11,7 @@ references:
 # /build:check-rule
 
 Evaluate the quality of an existing rule library. Checks format validity
-deterministically, then evaluates six semantic quality dimensions per rule
+deterministically, then evaluates five semantic quality dimensions per rule
 using a locked rubric, then detects cross-rule conflicts.
 
 This skill evaluates the rules themselves — not files against rules.
@@ -20,19 +20,11 @@ This skill evaluates the rules themselves — not files against rules.
 
 ### 1. Discover Rules
 
-Find all rule files in scope:
+Rule files live at `docs/rules/*.rule.md`. When `$ARGUMENTS` resolves to a
+path, scope discovery to that file or directory. When `$ARGUMENTS` is empty,
+scan `docs/rules/`.
 
-| Format | Location |
-|--------|----------|
-| Toolkit | `docs/rules/*.rule.md` |
-| Cursor | `.cursor/rules/*.mdc` |
-| Claude Code | `## Rule:` sections in `CLAUDE.md` |
-
-When `$ARGUMENTS` resolves to a path, scope discovery to that file or
-directory. When `$ARGUMENTS` is empty, scan the project for all three
-formats.
-
-Report: "Found N rules across [formats]. Auditing..."
+Report: "Found N rules. Auditing..."
 
 ### 2. Deterministic Format Check
 
@@ -48,7 +40,7 @@ This step requires no LLM call. Use grep and read operations only.
 
 ### 3. Semantic Audit (One LLM Call per Rule)
 
-For each structurally valid rule, construct one LLM evaluation call with all six required elements (evaluating six semantic dimensions simultaneously):
+For each structurally valid rule, construct one LLM evaluation call with all five required elements (evaluating five semantic dimensions simultaneously):
 
 1. **Criterion statement** — for each dimension, a single precise behavioral definition of what is being evaluated (drawn from the locked rubric in [audit-dimensions.md](references/audit-dimensions.md), not generated per-audit)
 2. **PASS/FAIL scale declaration** — binary with behavioral definitions of what PASS and WARN mean in observable terms; no 1–5 or percentage scales
@@ -57,7 +49,7 @@ For each structurally valid rule, construct one LLM evaluation call with all six
 5. **Structured output format** — constrain output to: `Dimension | Evidence (quoted from rule) | Reasoning | Verdict (WARN or PASS) | Recommendation`; evidence must appear before verdict
 6. **Default-closed instruction** — "When evidence is borderline, surface as WARN, not PASS"
 
-Include the full rule file verbatim (never summarize). Present all six dimension rubrics simultaneously — never split into per-dimension calls. Per-criterion separate calls score 11.5 points lower on average.
+Include the full rule file verbatim (never summarize). Present all five dimension rubrics simultaneously — never split into per-dimension calls. Per-criterion separate calls score 11.5 points lower on average.
 
 The output format enforces evidence-before-verdict ordering: `evidence → reasoning → verdict → recommendation`. If the LLM emits a verdict in the first sentence, the prompt is not enforcing evidence-first ordering — revise the output schema.
 
@@ -79,7 +71,7 @@ cannot conflict. This reduces the number of comparisons for large libraries.
 
 Output all findings in `scripts/lint.py` format (file, issue, severity).
 Sort within each severity tier: Tier-1 deterministic findings first, then
-Tier-2 dimensions in numerical order (Dim 1 → Dim 6), then Tier-3
+Tier-2 dimensions in numerical order (Dim 1 → Dim 5), then Tier-3
 conflicts; ties break alphabetically by file path. FAIL findings precede
 WARN findings overall. This mirrors check-skill's structural-before-content
 ordering so the most actionable findings (frontmatter / sections) lead.
@@ -89,12 +81,12 @@ actionable repair drawn from [repair-playbook.md](references/repair-playbook.md)
 Generic suggestions ("fix this") are not acceptable — name the exact change.
 
 ```
-FAIL  docs/rules/staging-layer-purity.rule.md — Missing required field: severity
-  Recommendation: Add `severity: warn` to frontmatter (default for new rules)
+FAIL  docs/rules/staging-layer-purity.rule.md — Missing required field: scope
+  Recommendation: Add `scope:` line targeting the directory where the rule applies (e.g., `scope: "models/staging/**/*.sql"`)
 WARN  docs/rules/api-handler.rule.md — Specificity: scope "**/*.py" has no directory prefix
   Recommendation: Narrow scope to target architectural layer (e.g., `src/api/**/*.py`)
-WARN  docs/rules/naming.rule.md — Fix-safety classification missing
-  Recommendation: Add `fix-safety: requires-review` to frontmatter (default for convention rules)
+WARN  docs/rules/naming.rule.md — Intent completeness: missing failure cost
+  Recommendation: Add a sentence naming what specifically goes wrong when the pattern occurs and who bears the cost
 ```
 
 Close with a summary line:
@@ -127,7 +119,7 @@ playbook's intent-preservation gate.
 ## Key Instructions
 
 - Run Tier-1 deterministic checks first; gate LLM evaluation on structural validity so malformed rules surface as findings, not as expensive LLM calls
-- Present all six semantic dimensions as a locked rubric in a single call per rule — per-dimension calls degrade agreement by ~11.5 points (RULERS, Hong et al. 2026)
+- Present all five semantic dimensions as a locked rubric in a single call per rule — per-dimension calls degrade agreement by ~11.5 points (RULERS, Hong et al. 2026)
 - Include the full rule file verbatim in every LLM evaluation so the evaluator sees the same anchors a human reviewer would
 - Limit conflict comparison to rule pairs with overlapping `scope` globs — non-overlapping rules cannot contradict and the comparison is wasted budget
 - Surface borderline evidence as WARN (default-closed) so ambiguous cases enter the report rather than silently passing
@@ -151,21 +143,21 @@ Step 1 — Discovers 3 rules: staging-layer-purity.rule.md, api-input-validation
 
 Step 2 — Deterministic check:
 - staging-layer-purity.rule.md: all fields present, all sections present → passes to LLM
-- api-input-validation.rule.md: missing `fix-safety` field → WARN (proceeds to LLM anyway)
+- api-input-validation.rule.md: scope glob has no directory prefix → WARN (proceeds to LLM anyway)
 - naming-conventions.rule.md: missing `## Intent` → FAIL (excluded from LLM step)
 
 Step 3 — Semantic audit on 2 rules:
-- staging-layer-purity.rule.md: all 6 dimensions PASS
-- api-input-validation.rule.md: Dimension 4 WARN (fix-safety missing), Dimension 6 WARN (Intent lacks failure cost and exception policy)
+- staging-layer-purity.rule.md: all 5 dimensions PASS
+- api-input-validation.rule.md: Dimension 1 WARN (scope too broad), Dimension 5 WARN (Intent lacks failure cost and exception policy)
 
 Step 4 — Conflict detection: staging-layer-purity and api-input-validation have non-overlapping scopes → no comparison needed
 
 Output:
 ```
 FAIL  docs/rules/naming-conventions.rule.md — Missing required section: ## Intent
-  Recommendation: Add ## Intent section covering all five components: violation, failure cost, principle, exception policy, fix-safety signal
-WARN  docs/rules/api-input-validation.rule.md — Fix-safety classification missing
-  Recommendation: Add `fix-safety: requires-review` to frontmatter (default for security rules)
+  Recommendation: Add ## Intent section covering all four components: violation, failure cost, principle, exception policy
+WARN  docs/rules/api-input-validation.rule.md — Specificity: scope "**/*.py" has no directory prefix
+  Recommendation: Narrow scope to the architectural layer named in Intent (e.g., `src/api/**/*.py`)
 WARN  docs/rules/api-input-validation.rule.md — Intent completeness: missing failure cost and exception policy
   Recommendation: Add sentence naming what breaks and who bears the cost; add "Exception: [case]" line
 
@@ -175,6 +167,6 @@ WARN  docs/rules/api-input-validation.rule.md — Intent completeness: missing f
 
 ## Handoff
 
-**Receives:** Path to a rules file or directory, or no argument (scans project for all rule formats)
+**Receives:** Path to a `.rule.md` file or directory, or no argument (scans `docs/rules/`)
 **Produces:** Structured findings report in file/issue/severity format
 **Chainable to:** build-rule (to fix flagged issues and rebuild non-compliant rules)
