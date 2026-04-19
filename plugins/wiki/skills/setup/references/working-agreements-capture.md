@@ -15,15 +15,13 @@ not prompt, do not diff, do not overwrite. Move on.
 
    Present the default seed list verbatim:
 
-   ```markdown
-   ## Working Agreements
+    ## Working Agreements
 
-   - **Codify repetition.** If something will happen again, do it manually
-     once on 3–10 items and show the output. If I approve, codify into a
-     skill, hook, or cron. The test: if I have to ask twice, you failed.
-   - **Watch for patterns.** When you notice recurring work across
-     sessions, propose codifying it proactively — don't wait to be asked.
-   ```
+    - **Codify repetition.** If something will happen again, do it manually
+      once on 3–10 items and show the output. If I approve, codify into a
+      skill, hook, or cron. The test: if I have to ask twice, you failed.
+    - **Watch for patterns.** When you notice recurring work across
+      sessions, propose codifying it proactively — don't wait to be asked.
 
 2. **Three-way prompt**
 
