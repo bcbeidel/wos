@@ -136,7 +136,7 @@ Based on the user interview, fill in these components. Most skills need only `na
 - `## Anti-Pattern Guards` — include when the Workflow performs destructive, irreversible, or external-effect operations. *(check-skill #4)*
 - `## Key Instructions` with an explicit won't-have — include when the skill performs destructive ops or overlaps with other skills in the same plugin. *(check-skill #11)*
 
-Read-only single-step skills generally don't need any of these sections. Don't add them as boilerplate.
+Read-only single-step skills generally don't need any of these sections. Add them only when the trigger conditions apply.
 
 ### Skill Writing Guide
 
@@ -153,7 +153,7 @@ quality requirements checklist.
 
 Before running lint or asking for approval, walk the user through the key design choices in the draft. Keep it to 3–6 bullets. Cover:
 
-- **Frontmatter choices** — explain any non-default field settings and why. Don't just name the field; explain the reasoning: "I set `disable-model-invocation: true` because this deploys to production — it should never fire unless you explicitly invoke it."
+- **Frontmatter choices** — explain any non-default field settings and why. Name the field *and* explain the reasoning: "I set `disable-model-invocation: true` because this deploys to production — it should never fire unless you explicitly invoke it."
 - **Structure choices** — why the workflow is ordered the way it is, where gate checks are placed and what they guard, how prescriptive vs. flexible each section is and why.
 - **Patterns applied** — call out explicitly if you used progressive disclosure, on-demand hooks, agent skill pattern, config.json setup, or skill composition. New users won't recognize these patterns unless named.
 - **What you didn't use and why** — briefly note any patterns you considered but skipped. This is often more educational than listing what you did use: "I didn't add `context: fork` — you'll want to see the intermediate steps while we iterate; we can add it later if the skill gets noisy."
@@ -175,13 +175,13 @@ python scripts/lint.py --root <project-root> --no-urls   # fix any skill quality
 python scripts/reindex.py --root <project-root>           # update _index.md navigation
 ```
 
-Write to the full path determined by the scope decision in the Interview step (e.g. `.claude/skills/<name>/SKILL.md` for a project skill). Do not write until the user approves the draft. After writing, invoke `/check-skill` on the new skill — surface any findings and offer the repair loop before moving to test cases.
+Write to the full path determined by the scope decision in the Interview step (e.g. `.claude/skills/<name>/SKILL.md` for a project skill). Write only after the user approves the draft. After writing, invoke `/check-skill` on the new skill — surface any findings and offer the repair loop before moving to test cases.
 
 ### Test Cases
 
 If the user chose upfront eval scaffolding in the Interview (question 5), write ≥3 eval scenarios now — **before** drafting the body. Otherwise, come up with 2-3 realistic test prompts after writing the skill draft. Either way, these are the kind of thing a real user would actually say. Share them with the user: [you don't have to use this exact language] "Here are a few test cases I'd like to try. Do these look right, or do you want to add more?" Then run them.
 
-Save test cases to `evals/evals.json`. Don't write assertions yet — just the prompts. You'll draft assertions in the next step while the runs are in progress.
+Save test cases to `evals/evals.json`. Write just the prompts for now; you'll draft assertions in the next step while the runs are in progress.
 
 ```json
 {
@@ -291,7 +291,7 @@ The references/ directory has additional documentation:
 ## Anti-Pattern Guards
 
 1. **Writing to disk before user approval** — always show the draft first; the user must explicitly approve before SKILL.md is written
-2. **Overfitting to test cases** — narrow, example-specific rules make skills that fail outside the test set; generalize from feedback, don't patch individual failures
+2. **Overfitting to test cases** — narrow, example-specific rules make skills that fail outside the test set; generalize from feedback rather than patching individual failures
 3. **Skipping baselines** — without a baseline run, improvement is unmeasurable; always spawn with-skill and baseline runs in the same turn
 4. **Skipping the Confirm Primitive gate** — if artifact type is ambiguous, building a skill when a hook, script, or context doc would serve better wastes the user's time
 
@@ -323,5 +323,5 @@ Repeating one more time the core loop here for emphasis:
 - Repeat until you and the user are satisfied
 - Package the final skill and return it to the user.
 
-Please add steps to your TodoList, if you have such a thing, to make sure you don't forget. If you're in Cowork, please specifically put "Create evals JSON and run `eval-viewer/generate_review.py` so human can review test cases" in your TodoList to make sure it happens.
+Please add steps to your TodoList, if you have such a thing, to track progress on this loop. If you're in Cowork, please specifically put "Create evals JSON and run `eval-viewer/generate_review.py` so human can review test cases" in your TodoList to make sure it happens.
 
