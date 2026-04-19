@@ -9,6 +9,7 @@ argument-hint: "[project root — defaults to CWD]"
 user-invocable: true
 references:
   - references/capture-workflow.md
+  - references/working-agreements-capture.md
 ---
 
 # Wiki Setup
@@ -183,7 +184,40 @@ Show the current settings to the user. Ask: "Want to change any of these?"
 - If yes → re-run the capture workflow
 - If no → move on
 
-### 6. CLAUDE.md pointer
+### 6. Working Agreements
+
+Capture or review per-project Working Agreements. Call
+`has_working_agreements(content)` to pick the branch; both branches
+always show state to the user and end with a three-way prompt.
+
+**If `has_working_agreements(content)` returns `False`** (section
+absent):
+
+Run the **Absent branch** in `references/working-agreements-capture.md`:
+
+1. Show the seed list verbatim
+2. Ask: adopt / edit / skip
+3. On adopt or edit, append the section *after* the managed
+   `<!-- wiki:end -->` marker (or at end of file if no markers
+   present). Include a blank line before the heading.
+4. On skip, write nothing.
+
+**If `has_working_agreements(content)` returns `True`** (section
+already exists anywhere in AGENTS.md, inside or outside markers):
+
+Run the **Present branch** in `references/working-agreements-capture.md`:
+
+1. Show the current section text verbatim
+2. Ask: keep / edit / replace-with-seed
+3. On keep, write nothing. On edit or replace, rewrite the existing
+   section in place (same location, replacing the old content from
+   the `## Working Agreements` heading through the next `##` heading
+   or end of file).
+
+The section is user-owned. The skill only writes what the user
+approved in the current run.
+
+### 7. CLAUDE.md pointer
 
 If `CLAUDE.md` does not exist, create it with:
 
@@ -194,7 +228,7 @@ If `CLAUDE.md` does not exist, create it with:
 If `CLAUDE.md` exists but does not contain `@AGENTS.md`, add the reference
 at the top of the file.
 
-### 7. Report
+### 8. Report
 
 Report what was done:
 
@@ -203,6 +237,7 @@ Report what was done:
 - **Updated:** note if AGENTS.md managed section was refreshed (mention
   if legacy `wos:` markers were auto-migrated to `wiki:`)
 - **Preferences:** note if preferences were set or unchanged
+- **Working Agreements:** note the outcome — adopted, edited, skipped (absent branch); kept, edited, replaced (present branch)
 - **CLAUDE.md:** note if pointer was added or already present
 - **Onboarding:** note if `.gitignore`, `README.md` were created or skipped
 - **Next step:** note the suggested skill sequence, if any

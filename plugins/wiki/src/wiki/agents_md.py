@@ -449,6 +449,24 @@ def extract_areas(content: str) -> List[Dict[str, str]]:
     return areas
 
 
+# ── Working Agreements detection ─────────────────────────────────
+
+
+def has_working_agreements(content: str) -> bool:
+    """Return True if content contains a ``## Working Agreements`` heading.
+
+    Case-insensitive; trailing whitespace ignored. Does not match
+    substrings such as ``## My Working Agreements Notes``. Used by
+    ``/wiki:setup`` to keep the Working Agreements capture step
+    idempotent — re-running against a project that already has the
+    section must be a no-op.
+    """
+    for line in content.splitlines():
+        if line.rstrip().lower() == "## working agreements":
+            return True
+    return False
+
+
 # ── Update ───────────────────────────────────────────────────────
 
 

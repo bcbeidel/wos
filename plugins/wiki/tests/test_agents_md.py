@@ -440,3 +440,73 @@ class TestUpdateAgentsMdAreasNone:
         assert "| Backend | docs/context/backend |" in result
 
 
+# ── has_working_agreements ─────────────────────────────────────
+
+
+class TestHasWorkingAgreements:
+    def test_detects_heading(self) -> None:
+        from wiki.agents_md import has_working_agreements
+
+        content = "# AGENTS.md\n\n## Working Agreements\n\n- Codify repetition.\n"
+        assert has_working_agreements(content) is True
+
+    def test_detects_heading_with_trailing_whitespace(self) -> None:
+        from wiki.agents_md import has_working_agreements
+
+        content = "## Working Agreements   \n"
+        assert has_working_agreements(content) is True
+
+    def test_detects_heading_inside_managed_markers(self) -> None:
+        from wiki.agents_md import has_working_agreements
+
+        content = (
+            "# AGENTS.md\n"
+            "<!-- wiki:begin -->\n"
+            "## Working Agreements\n"
+            "- Codify repetition.\n"
+            "<!-- wiki:end -->\n"
+        )
+        assert has_working_agreements(content) is True
+
+    def test_detects_heading_outside_managed_markers(self) -> None:
+        from wiki.agents_md import has_working_agreements
+
+        content = (
+            "# AGENTS.md\n"
+            "<!-- wiki:begin -->\n"
+            "## Context Navigation\n"
+            "<!-- wiki:end -->\n"
+            "\n"
+            "## Working Agreements\n"
+            "- Codify repetition.\n"
+        )
+        assert has_working_agreements(content) is True
+
+    def test_case_insensitive(self) -> None:
+        from wiki.agents_md import has_working_agreements
+
+        assert has_working_agreements("## working agreements\n") is True
+        assert has_working_agreements("## WORKING AGREEMENTS\n") is True
+
+    def test_does_not_match_substring(self) -> None:
+        from wiki.agents_md import has_working_agreements
+
+        assert has_working_agreements("## My Working Agreements Notes\n") is False
+        assert has_working_agreements("### Working Agreements\n") is False
+
+    def test_empty_string(self) -> None:
+        from wiki.agents_md import has_working_agreements
+
+        assert has_working_agreements("") is False
+
+    def test_no_section(self) -> None:
+        from wiki.agents_md import has_working_agreements
+
+        content = (
+            "# AGENTS.md\n"
+            "<!-- wiki:begin -->\n"
+            "## Context Navigation\n"
+            "<!-- wiki:end -->\n"
+        )
+        assert has_working_agreements(content) is False
+
