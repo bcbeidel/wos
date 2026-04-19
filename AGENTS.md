@@ -67,3 +67,47 @@ LLMs lose attention mid-document — first and last sections are what agents ret
   skill, hook, or cron. The test: if I have to ask twice, you failed.
 - **Watch for patterns.** When you notice recurring work across
   sessions, propose codifying it proactively — don't wait to be asked.
+
+## Build & Test
+
+Install plugin packages and dev dependencies:
+
+```bash
+pip install -e plugins/wiki -e ".[dev]"
+```
+
+Run tests:
+```bash
+python -m pytest plugins/wiki/tests/ -v
+```
+
+Lint:
+```bash
+ruff check plugins/
+```
+
+No runtime dependencies (stdlib only). Dev dependencies in root `pyproject.toml`.
+
+Note: `ruff` may not be installed locally; CI runs it via GitHub Actions.
+
+## Design Principles
+
+- **Convention over configuration.** Document patterns, don't enforce them.
+- **Structure in code, quality in skills.** Deterministic checks in Python or shell scripts, judgment in LLMs.
+- **Single source of truth.** Navigation is derived from disk, never hand-curated.
+- **Keep it simple.** No frameworks, no unnecessary indirection. Inheritance is acceptable when a document type has distinct data or validation behavior that would otherwise scatter across unrelated modules.
+- **When in doubt, leave it out.** Every field, abstraction, and feature must justify itself.
+- **Omit needless words.** Agent-facing output earns every token.
+- **Depend on nothing.** Stdlib-only core; scripts isolate their own deps.
+- **One obvious way to run.** Every script, every skill, same entry point.
+- **Separate reads from writes.** Audit observes; fixes require explicit action.
+- **Bottom line up front.** Key insights at top and bottom, detail in the middle.
+
+## Conventions
+
+- **Script path convention.** Scripts use `Path(__file__).parent.parent` (2 levels) to reach plugin root. Per-skill scripts go deeper. No marker-based walk-up — it finds the user's project root, not the plugin root.
+- **`work`/`build` scripts.** No Python package — rely on editable install of `wiki`. Do not add sys.path manipulation to these scripts.
+- **Per-plugin versioning.** A version bump updates the plugin's `pyproject.toml` and `.claude-plugin/plugin.json`. See CONTRIBUTING.md.
+- **Python 3.9.** Use `from __future__ import annotations` for type hints.
+- **Stdlib exceptions only.** `ValueError` and similar; no custom hierarchy.
+- **Tests.** Use inline markdown strings and `tmp_path` fixtures.
