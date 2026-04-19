@@ -1,15 +1,20 @@
 # Working Agreements Capture
 
-Use this workflow to seed a project's `## Working Agreements` section
-during `/wiki:setup`.
+Use this workflow to seed or review a project's `## Working Agreements`
+section during `/wiki:setup`.
 
-## Idempotency rule
+## Branching rule
 
-Before doing anything, call `has_working_agreements(content)` on the
-current AGENTS.md. If it returns `True`, the step is a **no-op** — do
-not prompt, do not diff, do not overwrite. Move on.
+Call `has_working_agreements(content)` on the current AGENTS.md to pick
+the branch:
 
-## Steps (only when the section is absent)
+- **`False`** — section is absent → follow **Absent branch** below
+- **`True`** — section is present → follow **Present branch** below
+
+Either branch always ends with user confirmation. There is no silent
+skip — the user always sees the current or proposed state and chooses.
+
+## Absent branch (no section yet)
 
 1. **Show the seed**
 
@@ -25,8 +30,6 @@ not prompt, do not diff, do not overwrite. Move on.
 
 2. **Three-way prompt**
 
-   Ask the user:
-
    > "Working Agreements describe how we collaborate on the work itself
    > — what behaviors the agent should default to. Here is a seed you
    > can **adopt** as-is, **edit**, or **skip**. Which?"
@@ -40,20 +43,48 @@ not prompt, do not diff, do not overwrite. Move on.
      version in the same location.
    - **skip** — write nothing.
 
+## Present branch (section already exists)
+
+Three-way prompt: **keep / edit / replace**.
+
+1. **Show the current section**
+
+   Read and display the existing `## Working Agreements` section
+   verbatim so the user sees exactly what's there today.
+
+2. **Three-way prompt**
+
+   > "Working Agreements already exist in AGENTS.md. Do you want to
+   > **keep** them as-is, **edit** them, or **replace** them with the
+   > current seed?"
+
+3. **Write**
+
+   - **keep** — no write. Move on.
+   - **edit** — let the user modify the text, then write the edited
+     version *in the same location* (replace the existing section
+     in place; preserve surrounding content).
+   - **replace** — overwrite the existing section in place with the
+     current seed list verbatim.
+
+   In-place replacement means finding the existing `## Working
+   Agreements` heading and rewriting from there through the end of that
+   section (next `##` heading or end of file). Never move the section
+   to a new location.
+
 ## Shape
 
 Each bullet follows:
 
 > `- **Name.** One-line imperative. *(Optional)* one sentence of elaboration.`
 
-The list is user-owned after the first write. The skill never
-re-renders or rewrites it.
+The list is user-owned. The skill writes only what the user approved
+in the current run.
 
 ## Notes
 
 - Writes happen *outside* the managed markers, so `render_wiki_section`
   and `update_agents_md` are not used here. The skill writes the
   section directly to AGENTS.md.
-- Running setup on a project with Working Agreements already present
-  (from any prior run, any location in the file) skips this step
-  entirely — see the idempotency rule above.
+- The seed is the skill's current default; the user decides whether to
+  adopt, keep, edit, or replace based on what they see.

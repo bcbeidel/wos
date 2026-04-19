@@ -186,17 +186,14 @@ Show the current settings to the user. Ask: "Want to change any of these?"
 
 ### 6. Working Agreements
 
-Capture or skip per-project Working Agreements.
+Capture or review per-project Working Agreements. Call
+`has_working_agreements(content)` to pick the branch; both branches
+always show state to the user and end with a three-way prompt.
 
-**If `has_working_agreements(content)` returns `True`** (section already
-exists anywhere in AGENTS.md, inside or outside markers):
+**If `has_working_agreements(content)` returns `False`** (section
+absent):
 
-No-op. Skip this step entirely — do not prompt, do not diff, do not
-overwrite.
-
-**If no `## Working Agreements` section exists:**
-
-Run the capture workflow in `references/working-agreements-capture.md`:
+Run the **Absent branch** in `references/working-agreements-capture.md`:
 
 1. Show the seed list verbatim
 2. Ask: adopt / edit / skip
@@ -205,8 +202,20 @@ Run the capture workflow in `references/working-agreements-capture.md`:
    present). Include a blank line before the heading.
 4. On skip, write nothing.
 
-The section is user-owned after the first write. The skill never
-re-renders it.
+**If `has_working_agreements(content)` returns `True`** (section
+already exists anywhere in AGENTS.md, inside or outside markers):
+
+Run the **Present branch** in `references/working-agreements-capture.md`:
+
+1. Show the current section text verbatim
+2. Ask: keep / edit / replace-with-seed
+3. On keep, write nothing. On edit or replace, rewrite the existing
+   section in place (same location, replacing the old content from
+   the `## Working Agreements` heading through the next `##` heading
+   or end of file).
+
+The section is user-owned. The skill only writes what the user
+approved in the current run.
 
 ### 7. CLAUDE.md pointer
 
@@ -228,7 +237,7 @@ Report what was done:
 - **Updated:** note if AGENTS.md managed section was refreshed (mention
   if legacy `wos:` markers were auto-migrated to `wiki:`)
 - **Preferences:** note if preferences were set or unchanged
-- **Working Agreements:** note if seed was adopted, edited, skipped, or already present
+- **Working Agreements:** note the outcome — adopted, edited, skipped (absent branch); kept, edited, replaced (present branch)
 - **CLAUDE.md:** note if pointer was added or already present
 - **Onboarding:** note if `.gitignore`, `README.md` were created or skipped
 - **Next step:** note the suggested skill sequence, if any
