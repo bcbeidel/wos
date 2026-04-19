@@ -1,6 +1,6 @@
 ---
 name: Audit Rule Dimensions
-description: Evaluation criteria for auditing rule library quality — deterministic format checks and six semantic dimensions evaluated as a complete locked rubric
+description: Evaluation criteria for auditing rule library quality — deterministic format checks and five semantic dimensions evaluated as a complete locked rubric
 ---
 
 # Audit Rule Dimensions
@@ -21,9 +21,8 @@ LLM to parse them.
   - [Dimension 1: Specificity](#dimension-1-specificity)
   - [Dimension 2: Research Grounding](#dimension-2-research-grounding)
   - [Dimension 3: Staleness](#dimension-3-staleness)
-  - [Dimension 4: Fix-Safety Classification](#dimension-4-fix-safety-classification)
-  - [Dimension 5: Rubric Instability Risk](#dimension-5-rubric-instability-risk)
-  - [Dimension 6: Intent Completeness](#dimension-6-intent-completeness)
+  - [Dimension 4: Rubric Instability Risk](#dimension-4-rubric-instability-risk)
+  - [Dimension 5: Intent Completeness](#dimension-5-intent-completeness)
 - [Evaluation Prompt Template](#evaluation-prompt-template)
 - [Tier 3: Cross-Rule Conflict Detection (Separate LLM Pass)](#tier-3-cross-rule-conflict-detection-separate-llm-pass)
 - [Output Format](#output-format)
@@ -52,22 +51,21 @@ Do not pass structurally invalid rules to the LLM step.
 
 | Check | Condition | Severity |
 |-------|-----------|----------|
-| Required frontmatter fields | Missing any of: `name`, `description`, `type`, `scope`, `severity` | fail |
+| Required frontmatter fields | Missing any of: `name`, `description`, `scope` | fail |
 | `## Intent` section | Body does not contain `## Intent` heading | fail |
 | Non-compliant example | Body does not contain `## Non-Compliant Example` heading | warn |
 | Compliant example | Body does not contain `## Compliant Example` heading | warn |
-| Severity value | `severity` field is not `warn` or `fail` | fail |
-| Test file present | Co-located `<slug>.tests.md` does not exist alongside the rule file | warn |
 | Concern prefix | Rule `name` field has no domain prefix (e.g., `quality-`, `style-`, `security-`, `compliance-`) when the rule library contains >5 rules | warn |
-| Glob syntactic validity | `scope` (WOS / Claude Code) or `globs` (Cursor) has malformed glob syntax — unmatched brackets, invalid wildcards, empty pattern. Mirrors check-skill's `paths` validity check so rules and skills get the same hygiene. | fail |
+| Glob syntactic validity | `scope` has malformed glob syntax — unmatched brackets, invalid wildcards, empty pattern. Mirrors check-skill's `paths` validity check (`canonical-mirror`). | fail |
 
-For WOS `.rule.md` files: parse frontmatter between `---` delimiters and check body headings.
-For Cursor `.mdc` files: check `description`, `globs`, `alwaysApply` fields and body headings.
-For CLAUDE.md sections: check that each `## Rule: <name>` block contains Intent, Non-Compliant, and Compliant subsections.
+For `.rule.md` files: parse frontmatter between `---` delimiters and check
+body headings.
 
-**Test file check:** derive the slug from the rule filename (strip `.rule.md` suffix), then check for `<slug>.tests.md` in the same directory. Example: `docs/rules/staging-layer-purity.rule.md` → look for `docs/rules/staging-layer-purity.tests.md`.
-
-**Concern prefix check:** count all rule files in the library. Apply only when count >5. Domain prefixes are project-specific — accept any consistent prefix pattern; flag only if the `name` field contains no hyphen-delimited prefix at all (e.g., `name: staging layer purity` fails; `name: style-staging-layer-purity` passes).
+**Concern prefix check:** count all rule files in the library. Apply only
+when count >5. Domain prefixes are project-specific — accept any consistent
+prefix pattern; flag only if the `name` field contains no hyphen-delimited
+prefix at all (e.g., `name: staging layer purity` fails;
+`name: style-staging-layer-purity` passes).
 
 ---
 
@@ -104,7 +102,7 @@ produce consistent verdicts across evaluators.
 
 **Canonical Repair:**
 - *Broad scope:* Replace `**/*.ext` with `<directory>/**/*.ext` where `<directory>` is the specific architectural layer named in the Intent section. If uncertain, use the directory where the known failure occurred.
-- *Vague criterion:* Replace each anchor-free term with a behavioral definition. Example: instead of "well-structured Intent section" → "Intent section contains all five required components: violation, failure cost, principle, exception policy, fix-safety signal."
+- *Vague criterion:* Replace each anchor-free term with a behavioral definition. Example: instead of "well-structured Intent section" → "Intent section contains all four required components: violation, failure cost, principle, exception policy."
 
 ### Dimension 2: Research Grounding
 
@@ -114,9 +112,9 @@ produce consistent verdicts across evaluators.
 LLM evaluation rules.
 
 **Fail signals (→ WARN):**
-- Rule combines multiple evaluation dimensions in one criterion (scope isolation violation — `llm-rule-structural-characteristics.context.md`)
+- Rule combines multiple evaluation dimensions in one criterion (scope isolation violation)
 - Non-compliant example is absent or placed after the compliant example (listing exclusions first improves accuracy)
-- Rule has no declaration of how uncertain/borderline cases should resolve (missing default-closed stance — `linter-patterns-transferable-to-llm-rules.context.md`)
+- Rule has no declaration of how uncertain/borderline cases should resolve (missing default-closed stance)
 - Rubric contains hedging language ("might", "usually", "generally", "often") without clarifying when exceptions apply
 
 **Pass signals:**
@@ -159,27 +157,7 @@ do those paths exist? Do those tools appear in dependencies?
 
 Do not delete unless the convention is definitively retired — archive preserves the historical record.
 
-### Dimension 4: Fix-Safety Classification
-
-*(research-grounded — Ruff safe/unsafe-fix model; cross-ecosystem convention with Biome and Clippy per `.research/rule-best-practices.md`)*
-
-**What it checks:** Whether the rule declares whether its findings are
-auto-remediable or require human judgment.
-
-**Fail signals (→ WARN):**
-- WOS `.rule.md` frontmatter has no `fix-safety` field
-- Cursor `.mdc` body has no `**Fix-safety:**` line under Intent
-- CLAUDE.md section has no `**Fix-safety:**` line
-- `fix-safety` value is not `auto-remediable` or `requires-review`
-
-**Pass signals:**
-- `fix-safety` is declared as `auto-remediable` or `requires-review`
-
-**Canonical Repair:** Mechanical — no intent-preservation risk.
-- Add `fix-safety: requires-review` to frontmatter (default when uncertain).
-- Downgrade to `auto-remediable` only when the fix provably preserves all observable behavior (formatting, pure renames, import ordering).
-
-### Dimension 5: Rubric Instability Risk
+### Dimension 4: Rubric Instability Risk
 
 *(research-grounded — evidence-anchored rubrics deliver +0.17 QWK over inference-only; single canonical example per section reduces conflicting signals)*
 
@@ -201,25 +179,22 @@ to produce consistent evaluations over time.
 
 **Canonical Repair:**
 - *Synthetic examples:* Replace with real codebase code. Add file path comment (`// path/to/actual-file.ext`). Use domain-specific identifiers, not `foo`/`bar`.
-- *Multiple examples:* Choose the single most canonical instance. Move secondary examples to the co-located `.tests.md` as additional FAIL or PASS cases.
+- *Multiple examples:* Choose the single most canonical instance.
 - *Hedging language:* Replace "usually should" → "must"; "might cause" → "causes". If "usually" was intentional (acknowledging exceptions), move the exception to the Intent section's exception policy and use categorical language in the criterion.
 - *Missing borderline declaration:* Add to Intent section: "When evidence is borderline, prefer WARN over PASS."
 
----
+### Dimension 5: Intent Completeness
 
-### Dimension 6: Intent Completeness
+*(toolkit-opinion — four-component Intent prevents enforcement-without-education failure mode; direct disable-rate evidence is thin per `.research/rule-best-practices.md`)*
 
-*(toolkit-opinion — five-component Intent prevents enforcement-without-education failure mode; direct disable-rate evidence is thin per `.research/rule-best-practices.md`)*
-
-**What it checks:** Whether the Intent section contains all five required components
+**What it checks:** Whether the Intent section contains all four required components
 that prevent enforcement-without-education failure mode.
 
-**The five required components:**
+**The four required components:**
 1. **Violation** — what pattern does this rule catch?
 2. **Failure cost** — what specifically goes wrong when this pattern occurs, and who bears it? (load-bearing)
 3. **Principle** — what underlying value does this enforce (type safety, security, maintainability)?
 4. **Exception policy** — when is disabling this rule legitimate? Name at least one case. (load-bearing)
-5. **Fix-safety signal** — is the auto-fix always safe, or does it require human review?
 
 Components 2 (failure cost) and 4 (exception policy) are load-bearing: their absence produces enforcement-without-education behavior where developers disable rules rather than fix code.
 
@@ -227,20 +202,17 @@ Components 2 (failure cost) and 4 (exception policy) are load-bearing: their abs
 - Intent names the violation only ("Avoid using `console.log` in production") with no failure cost — what goes wrong? Who is affected?
 - Intent contains hedging language ("might", "could") where the failure cost should be stated categorically
 - No exception policy ("Exception: …") present — the rule appears to have no legitimate bypass
-- Fix-safety signal missing from Intent section (separate from Tier 1 frontmatter check — this checks whether Intent *explains* the fix-safety decision, not just that the field exists)
-- Intent section is fewer than 2 sentences — insufficient to contain all five components
+- Intent section is fewer than 2 sentences — insufficient to contain all four components
 
 **Pass signals:**
 - Intent explicitly states what goes wrong when the pattern occurs and who bears the cost
 - At least one named exception case ("Exception: …" or equivalent)
-- Fix-safety reasoning explained ("Fix-safety: requires-review — violations involve architectural decisions")
 - Default-closed stance declared ("When evidence is borderline, prefer WARN over PASS")
 
 **Canonical Repair:**
 - *Missing failure cost:* Add a sentence naming the specific consequence and who bears it. Example: instead of "Avoid X" → "X causes [specific failure] in [specific context], requiring [specific cost]."
 - *Missing exception policy:* Add "Exception: [name at least one case where disabling is legitimate]." Even a narrow exception (e.g., "Exception: test files") satisfies this requirement.
-- *Missing fix-safety explanation:* Add "Fix-safety: [auto-remediable | requires-review] — [brief reason]." to the Intent section.
-- *Intent too short:* Expand — a compliant Intent section typically runs 3–6 sentences covering all five components.
+- *Intent too short:* Expand — a compliant Intent section typically runs 3–5 sentences covering all four components.
 
 ---
 
@@ -249,7 +221,7 @@ Components 2 (failure cost) and 4 (exception policy) are load-bearing: their abs
 Use this skeleton for every Tier 2 LLM evaluation call. The criterion statement and anchor examples must come from the locked rubric above — do not generate them per-audit.
 
 ```
-You are auditing a rule file for quality. Evaluate all six dimensions below in a single response.
+You are auditing a rule file for quality. Evaluate all five dimensions below in a single response.
 
 For each dimension:
 1. Quote the specific text from the rule that is most relevant (evidence)
@@ -284,14 +256,7 @@ dependencies present in the project manifest?
 PASS anchor: scope path `src/api/` exists, examples use current framework imports
 FAIL anchor: scope references `app/legacy/` which does not exist; examples use deprecated import
 
-## Dimension 4: Fix-Safety Classification
-Criterion: Is `fix-safety` declared as `auto-remediable` or `requires-review`?
-For WOS: frontmatter field. For Cursor: `**Fix-safety:**` line in body. For CLAUDE.md: `**Fix-safety:**` line.
-
-PASS anchor: frontmatter contains `fix-safety: requires-review`
-FAIL anchor: no `fix-safety` field anywhere in the rule
-
-## Dimension 5: Rubric Instability Risk
+## Dimension 4: Rubric Instability Risk
 Criterion: Do examples have file path comments or domain-specific identifiers (not foo/bar)?
 Does each example section contain exactly one canonical example (not multiple)?
 Does Intent use categorical language? Is borderline case handling explicitly specified?
@@ -299,11 +264,11 @@ Does Intent use categorical language? Is borderline case handling explicitly spe
 PASS anchor: example has `// src/api/handlers/users.py`, uses `user_id`/`order_total`; one example per section; Intent says "When evidence is borderline, prefer WARN over PASS"
 FAIL anchor: examples use `foo`/`bar`, no file path comment; three non-compliant examples listed; Intent says "might cause issues"
 
-## Dimension 6: Intent Completeness
-Criterion: Does the Intent section contain all five required components: (1) violation — what pattern does the rule catch?; (2) failure cost — what specifically goes wrong and who bears it?; (3) principle — what underlying value does this enforce?; (4) exception policy — when is disabling legitimate?; (5) fix-safety signal — is the auto-fix always safe?
+## Dimension 5: Intent Completeness
+Criterion: Does the Intent section contain all four required components: (1) violation — what pattern does the rule catch?; (2) failure cost — what specifically goes wrong and who bears it?; (3) principle — what underlying value does this enforce?; (4) exception policy — when is disabling legitimate?
 
-PASS anchor: "X causes [specific failure] in [specific context] (failure cost). This enforces [principle]. Exception: [named case]. Fix-safety: requires-review — [reason]. When evidence is borderline, prefer WARN over PASS."
-FAIL anchor: "Avoid using console.log in production code. It creates noise." — names violation only; no failure cost, no principle, no exception policy, no fix-safety signal
+PASS anchor: "X causes [specific failure] in [specific context] (failure cost). This enforces [principle]. Exception: [named case]. When evidence is borderline, prefer WARN over PASS."
+FAIL anchor: "Avoid using console.log in production code. It creates noise." — names violation only; no failure cost, no principle, no exception policy
 
 ---
 
@@ -349,11 +314,11 @@ FAIL  docs/rules/rule-b.rule.md — Conflicts with rule-a.rule.md
 All findings use the `scripts/lint.py` format:
 
 ```
-FAIL  docs/rules/staging-layer-purity.rule.md — Missing required frontmatter field: severity
+FAIL  docs/rules/staging-layer-purity.rule.md — Missing required frontmatter field: scope
 WARN  docs/rules/api-input-validation.rule.md — Specificity: scope glob "**/*.py" has no directory prefix
-WARN  docs/rules/naming-conventions.rule.md — Fix-safety classification missing
+WARN  docs/rules/naming-conventions.rule.md — Intent completeness: missing failure cost
 ```
 
-Sort order: FAIL findings first, WARN findings second, within each severity sort alphabetically by file path.
+Sort order: FAIL findings first, WARN findings second; within each severity, Tier-1 deterministic findings first, then Tier-2 dimensions in numerical order (Dim 1 → Dim 5), then Tier-3 conflicts; ties break alphabetically by file path.
 
 Final summary line: `N rules audited, M findings (X fail, Y warn)` or `N rules audited — no findings`.
