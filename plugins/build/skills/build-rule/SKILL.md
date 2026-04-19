@@ -1,22 +1,19 @@
 ---
 name: build-rule
-description: Create a correctly-structured rule for LLM-based semantic enforcement. Use when the user wants to "create a rule", "build a rule", "add a rule", "capture this convention", or "enforce this pattern".
-argument-hint: A code pattern, behavior description, or existing rule draft to formalize
+description: Create a Claude Code rule under `.claude/rules/` — a markdown instruction file with optional `paths:` frontmatter for path-scoping. Use when the user wants to "create a rule", "build a rule", "add a rule", "capture this convention", or "enforce this pattern".
+argument-hint: A topic name or description of the convention to capture
 user-invocable: true
 references:
   - references/rule-format-guide.md
-  - references/rule-testing-guide.md
   - ../../_shared/references/primitive-routing.md
 ---
 
 # /build:build-rule
 
-Create semantic enforcement rules that Claude evaluates for compliance.
-Rules capture conventions too nuanced for traditional linters — architectural
-boundaries, naming intent, layer purity, documentation quality.
-
-Every rule requires both a non-compliant and compliant example from real code.
-Every rule requires a fix-safety declaration. Do not write a rule without these.
+Create a Claude Code rule. Rules are markdown files in `.claude/rules/`
+that Claude reads automatically — globally at session start (no frontmatter)
+or on demand when a matching file is opened (with `paths:` frontmatter).
+See [Anthropic's `.claude/rules/` reference](https://code.claude.com/docs/en/memory#organize-rules-with-claude/rules/).
 
 ## Workflow
 
@@ -24,240 +21,193 @@ Every rule requires a fix-safety declaration. Do not write a rule without these.
 
 Before proceeding, confirm a rule is the right mechanism. Full decision matrix: [primitive-routing.md](../../_shared/references/primitive-routing.md).
 
-**Not right — redirect instead:**
-- Check is shell-expressible (grep, file existence, regex) → recommend a hook or linter
-- Enforcement must fire at a lifecycle event (pre-commit, pre-tool-use) → redirect to `/build:build-hook`
-- Convention is procedural (multi-step workflow Claude should follow) → redirect to CLAUDE.md or `/build:build-skill`
+A rule is right when:
+- The instruction should always (or path-conditionally) shape Claude's
+  behavior in a project — not fire as a one-off workflow
+- It belongs in version control, shared with the team
+- It's small enough to live as one topic file (~under 200 lines)
 
-**A rule is right when:** enforcement requires LLM judgment on static file content and the convention is too nuanced for grep or an AST linter. Proceed only when this holds.
+Redirect when:
+- Procedural multi-step workflow Claude should execute on demand → `/build:build-skill`
+- Lifecycle-event enforcement (pre-commit, pre-tool-use) → `/build:build-hook`
+- A check is shell-expressible (grep, file existence, regex) → recommend a hook or linter
+- Always-loaded global standards → consider `.claude/CLAUDE.md` instead — rules
+  are right when the topic justifies its own file
 
-### 1. Detect Format
+### 1. Pick a Topic Name
 
-Check the project structure to determine rule format:
+Treat `$ARGUMENTS` as the user's topic. The filename becomes
+`<topic>.md` under `.claude/rules/`. Use a descriptive, single-word
+or hyphenated name like `testing.md`, `api-design.md`, `security.md`,
+`code-style.md`. Subdirectories are allowed (e.g.,
+`.claude/rules/frontend/components.md`).
 
-- `.cursor/` exists → **Cursor** (`.mdc` in `.cursor/rules/`)
-- `CLAUDE.md` exists and no `docs/rules/` → **Claude Code** (CLAUDE.md section)
-- Otherwise → **WOS** (`docs/rules/<slug>.rule.md`)
+If `$ARGUMENTS` is vague, propose 2–3 candidate filenames and let the
+user pick.
 
-Report the detected format: "Detected format: **[format]** — proceed with this
-or override?" Wait for confirmation before drafting.
+### 2. Decide Scope
 
-### 2. Classify Rule Type
+Two choices:
 
-Before eliciting the pattern, determine the rule category. Present the eight categories and ask which best describes the rule:
+| Scope | Frontmatter | When to use |
+|-------|-------------|-------------|
+| **Always-on** | none | Project-wide standards (e.g., naming conventions, commit message format) |
+| **Path-scoped** | `paths:` glob list | Rules that only apply when Claude works with specific files (e.g., backend rules in a monorepo) |
 
-| Category | What it enforces |
-|----------|-----------------|
-| **Correctness** | Code that will behave incorrectly or produce errors |
-| **Suspicious** | Code that is probably wrong but not guaranteed |
-| **Security** | Code that creates vulnerabilities or exposes sensitive data |
-| **Complexity** | Code that is too complex to maintain safely |
-| **Performance** | Code patterns with measurable performance cost |
-| **Convention/Style** | Project-specific naming, structure, or formatting conventions |
-| **Accessibility** | Code that creates accessibility barriers |
-| **LLM Directive** | AI response-generation behavior (not code correctness) |
+Anthropic's example for path-scoping:
+```yaml
+---
+paths:
+  - "src/api/**/*.ts"
+---
+```
 
-Use the category to set structural defaults before drafting:
-- **Fix-safety default:** `auto-remediable` for Correctness and Convention/Style only; `requires-review` for all others
-- **Framing:** binary PASS/FAIL for Correctness, Suspicious, Security, Accessibility, LLM Directive; warn-first (default severity `warn`) for Complexity, Performance, Convention/Style
-- **Severity default:** `fail` is appropriate only for Correctness and Security; use `warn` for all others unless the user explicitly requests fail
+Globs follow standard syntax. Brace expansion works:
+`"src/**/*.{ts,tsx}"`. Multiple patterns are listed under one `paths:`
+key.
 
-### 3. Elicit Pattern
+### 3. Check for Conflicts
 
-Determine the intake mode from the user's input:
+Read existing rules in `.claude/rules/` (and `~/.claude/rules/` if the
+user maintains personal rules). Anthropic warns explicitly:
 
-| Input | Mode |
-|-------|------|
-| User describes a convention | **conversation** |
-| User points to files or code | **from-code** |
-| User provides style guide or RFC | **from-source** |
+> "if two rules contradict each other, Claude may pick one arbitrarily"
 
-**Conversation mode:**
-- Ask clarifying questions one at a time, multiple-choice preferred
-- Establish: what the rule enforces, which files (scope), how strict (severity), and why (intent)
-- Default severity to `warn`
+Check for:
+- Rules with overlapping `paths:` globs (or both global) covering the
+  same convention
+- Instructions that pull in opposite directions for the same scenario
 
-**From-code mode:**
-- Read the exemplary files the user identified
-- Identify the shared pattern; propose with examples from actual code
-- Ask the user to confirm or refine
+If overlap found, ask: "This overlaps with `[existing rule]`. Merge,
+replace, or keep both with explicit boundaries?"
 
-**From-source mode:**
-- Read the provided document; identify enforceable statements
-- Present candidate rules as a numbered list; user selects
+### 4. Pick a Body Pattern
 
-If the user describes something a traditional linter handles (syntax, formatting,
-import ordering), recommend the appropriate linter tool instead.
+Decide which pattern fits the rule. Both are plain markdown — Anthropic
+doesn't prescribe body structure beyond "specific over vague" and "use
+markdown headers/bullets". The choice is toolkit-opinion guidance.
 
-### 4. Check for Conflicts
+| Pattern | Use when | Body shape |
+|---------|----------|------------|
+| **Directive** (Anthropic's example pattern) | Rule tells Claude what to do; no judgment needed | Headers + bullet list of verifiable directives |
+| **Enforcement** (toolkit-opinion structured shape) | Rule asks Claude to *judge* whether a file complies | `## Why` (failure cost + exception policy) → `## Compliant` example → `## Non-compliant` example |
 
-Before drafting, read existing rules in the project:
-- Check for rules with overlapping scope globs
-- Check for rules with similar names or descriptions
-- If overlap found: "This overlaps with [existing rule]. Merge, replace, or keep both?"
+Apply Anthropic's guidance to both:
+- **Specific over vague.** "Use 2-space indentation" beats "Format code
+  properly". Vague rules ("be clean", "be consistent") produce uneven
+  adherence.
+- **Markdown structure.** Headers and bullets group related instructions.
+- **Size.** Target under 200 lines per rule file.
+- **One topic per file.** A rule covering two unrelated conventions is
+  two rules — split them.
 
-Do not skip this step. Undetected conflicts create contradiction in the rule
-library and degrade enforcement reliability.
+For the **Enforcement pattern**, the structured `## Why` section
+benefits from four components — see [rule-format-guide.md](references/rule-format-guide.md) → *Toolkit Recommendation: Structured Intent for Enforcement Rules* for the template, real-code example guidance, and default-closed declaration. These are toolkit-opinion conventions; they layer on top of the canonical primitive without introducing new frontmatter or required headings at the Anthropic-spec level.
 
-### 5. Draft Rule
+### 5. Present for Approval
 
-Compose the rule following the [Rule Format Guide](references/rule-format-guide.md)
-for the detected format.
+Before writing, narrate the design choices in 2–4 bullets:
 
-Required in all formats:
-- **Intent** — WHY this rule exists; must contain all five components (see below)
-- **Non-compliant example** — shown FIRST; drawn from actual codebase code
-- **Compliant example** — what correct code looks like
-- **Fix-safety** — use the category default from Step 2
+- **Filename + location** — `.claude/rules/<name>.md` (or subdirectory
+  path if used)
+- **Scope** — always-on or path-scoped (and which globs)
+- **Length and structure** — bullet list, headed sections, or
+  example-driven; rough line count
+- **What was skipped and why** — patterns considered but rejected
 
-**Intent five-component requirement.** The Intent section must contain:
-1. **Violation** — what pattern does this rule catch?
-2. **Failure cost** — what specifically goes wrong, and who bears it? (load-bearing — do not omit)
-3. **Principle** — what underlying value does this enforce (type safety, security, maintainability)?
-4. **Exception policy** — when is disabling legitimate? Name at least one case. (load-bearing — do not omit)
-5. **Fix-safety signal** — is the auto-fix always safe, or does it require human review?
+Show the complete file. Iterate on feedback. Hold the write until the
+user approves.
 
-Non-compliant before compliant: listing exclusions first improves classification
-accuracy. Use actual code snippets with file path comments — synthetic examples
-with generic identifiers (foo, bar, myFunction) produce weaker anchors.
+### 6. Write the Rule
 
-Default severity: `warn`. Use `fail` only when the category is Correctness or Security,
-or the user explicitly requests it.
+- Create `.claude/rules/` (and any subdirectory) if it doesn't exist
+- Write the rule file at `.claude/rules/<name>.md`
+- Report the file path
 
-### 6. Validate Structure
-
-Before presenting, self-check against all twelve criteria. Fix any gap before presenting.
-
-**Four structural requirements** (`llm-rule-structural-characteristics.context.md`):
-1. **Specificity** — all key terms have explicit behavioral definitions; no vague words like "good", "clean", "clear", "appropriate"
-2. **Scale matching** — binary PASS/FAIL for this rule type (not 1-5 or percentage)
-3. **Scope isolation** — exactly one convention; no "and" in the description
-4. **Behavioral anchoring** — both examples demonstrate observable, citable behaviors
-
-**Five linter patterns** (`linter-patterns-transferable-to-llm-rules.context.md`):
-5. **Meta/create separation** — criterion defined separately from evaluation context (Intent section exists and explains the criterion, not the enforcement mechanism)
-6. **Start-narrow** — scope targets the specific file pattern where the known failure occurs; not `**/*` or `**/*.ext` without directory prefix
-7. **Default-closed** — rule declares how uncertain cases resolve (WARN, not PASS)
-8. **Fix-safety classification** — `fix-safety` field is set to `auto-remediable` or `requires-review`
-9. **Concern-prefix** (if library has >5 rules) — rule name prefixed by domain (e.g., `quality-`, `safety-`, `compliance-`, `style-`)
-
-**Three new quality checks** (from this session's research):
-10. **Intent completeness** — Intent section contains all five components: violation, failure cost, principle, exception policy, fix-safety signal; no weak signals present (hedging language, prohibition-without-consequence, no exception policy)
-11. **Single canonical example** — primary example is one canonical instance; flag if multiple examples risk introducing conflicting signals
-12. **Example realism** — examples have file path comments or domain-specific identifiers; flag if synthetic (generic `foo`/`bar` identifiers, no file path context)
-
-### 7. Present for Approval
-
-Show the complete rule file to the user. Iterate on feedback. Do not write until approved.
-
-### 8. Write the Rule
-
-- Create the parent directory if it doesn't exist
-- Write the rule file at the correct path for the detected format
-- Write the test file at the format-specific location:
-
-  | Format | Test file location |
-  |--------|--------------------|
-  | WOS | `docs/rules/<slug>.tests.md` |
-  | Cursor | `.cursor/rules/<slug>.tests.md` |
-  | Claude Code | `docs/rules/<slug>.tests.md` (create directory if needed) |
-
-  Include at minimum 3 PASS cases and 3 FAIL cases, each with a rationale note. Reference the [Rule Testing Guide](references/rule-testing-guide.md) for format. Test cases must use different code than the rule's own examples.
-- Report both file paths
+Claude Code picks up the new rule on the next session (always-on rules)
+or the next time it reads a file matching `paths:` (scoped rules).
 
 ## Example
 
 <example>
-User: "I want staging models to only do casts, renames, and deduplication"
+User: "I want a rule that staging dbt models only do casts, renames, and deduplication"
 
-Assistant detects WOS format (docs/rules/ exists). Classifies rule type: Convention/Style
-(enforcing architectural layer purity). Fix-safety default: requires-review. Framing: warn-first.
-Asks: "Which files should this apply to?"
-User: "models/staging/**/*.sql". Asks: "Should violations block (fail) or just warn?"
-User: "warn". Checks existing rules — no overlap found.
+Assistant detects this as a backend / data-layer rule that should fire only
+when Claude reads files in `models/staging/`. Picks filename
+`staging-model-purity.md`. Checks `.claude/rules/` — no overlap.
 
 Drafts:
 
-```yaml
----
-name: Staging layer purity
-description: Staging models must only cast, rename, and deduplicate — no business logic
-type: rule
-scope: "models/staging/**/*.sql"
-severity: warn
-fix-safety: requires-review
----
-```
-
 ```markdown
-## Intent
+---
+paths:
+  - "models/staging/**/*.sql"
+---
 
-Staging models that include business logic (revenue calculations, tier
-classifications) couple source schema changes to business definitions,
-requiring coordinated updates across both layers when either changes.
-This enforces the principle that staging models are a clean interface
-over raw sources — not a transformation layer. Exception: calculated
-fields that are pure data-type normalization (e.g., parsing a date
-string to a date type) are permitted. Fix-safety: requires-review —
-violations involve architectural decisions. When evidence is borderline,
-prefer WARN over PASS.
+# Staging Model Purity
 
-## Non-Compliant Example
+Staging models are a clean interface over raw sources. They must only:
+- Cast types (`cast(... as date)`, `cast(... as integer)`)
+- Rename columns (`select id as order_id, ...`)
+- Deduplicate (`qualify row_number() over (partition by ...) = 1`)
 
-```sql
--- models/staging/stg_orders.sql
-select id, quantity * unit_price as revenue,
-  case when lifetime_value > 1000 then 'high' else 'standard' end as tier
-from {{ source('raw', 'orders') }}
-```
+## Why
 
-Violations: revenue calculation and tier classification are business logic.
+Business logic in staging (revenue calculations, tier classifications)
+couples source schema changes to business definitions. When either
+changes, both layers need coordinated updates.
 
-## Compliant Example
+Exception: pure data-type normalization (e.g., parsing a date string
+to a date type) is permitted.
+
+## Compliant
 
 ```sql
 -- models/staging/stg_orders.sql
-select id as order_id, cast(order_date as date) as order_date,
+select
+  id as order_id,
+  cast(order_date as date) as order_date,
   cast(quantity as integer) as quantity
 from {{ source('raw', 'orders') }}
 qualify row_number() over (partition by id order by _loaded_at desc) = 1
 ```
 
-Only casts, renames, and deduplication.
+## Non-compliant
+
+```sql
+-- revenue calculation and tier classification are business logic
+select id, quantity * unit_price as revenue,
+  case when lifetime_value > 1000 then 'high' else 'standard' end as tier
+from {{ source('raw', 'orders') }}
+```
 ```
 
-Validates all 12 criteria — passes. Presents for approval. On approval, writes rule to
-`docs/rules/staging-layer-purity.rule.md` and test file to
-`docs/rules/staging-layer-purity.tests.md`.
+Narrates: filename `staging-model-purity.md`, path-scoped to
+`models/staging/**/*.sql`, ~25 lines, example-driven structure (rule needs
+LLM judgment so non-compliant/compliant pairs help). On approval, writes
+to `.claude/rules/staging-model-purity.md`.
 </example>
 
 ## Key Instructions
 
-- Every rule MUST have both a non-compliant and compliant example. Refuse to write without both.
-- Won't replace a traditional linter: if the user's request is syntax, formatting, import ordering, or naming case, recommend the appropriate linter tool instead and stop.
-- Intent must contain all five components. Missing failure cost (component 2) or exception policy (component 4) — stop and require them before drafting.
-- Default severity is `warn`. False positives from `fail` rules erode trust faster than missed violations from `warn` rules.
-- Start narrow: scope targets the specific known-failure pattern. Broaden only after validating negative examples.
-- Default-closed: every rule declares how uncertain cases resolve. Rules without this default to PASS, hiding violations.
-- Fix-safety is mandatory: always declare `auto-remediable` or `requires-review`.
-- Never skip the conflict check. Undetected contradictions degrade the entire rule library.
-- Do not write the file until the user approves the drafted rule.
-- Always write the co-located test file. A rule without test cases cannot be validated before deployment.
+- Won't write a rule outside `.claude/rules/` — files at other paths are not loaded by Claude Code as rules. *(scope boundary)*
+- Won't replace a traditional linter — if the request is syntax, formatting, import ordering, or naming case enforced by tooling, redirect to the appropriate linter and stop. *(scope boundary)*
+- Default to always-on (no `paths:`) only for project-wide standards; reach for `paths:` when the rule is scoped to a directory or file type — unscoped rules consume context every session.
+- Write specific, verifiable instructions ("Use 2-space indentation"), not vague ones ("format code properly") — vague rules produce uneven adherence.
+- Run the conflict check (Step 3) before drafting — Anthropic warns that contradicting rules cause Claude to pick one arbitrarily.
+- Hold the write until the user approves the drafted rule (Step 5 gate).
+- Keep rules under 200 lines — split or move to a skill if they grow beyond that.
 
 ## Anti-Pattern Guards
 
-1. **Rules without both examples** — refuse to write; examples improve enforcement reliability 4×
-2. **Overly broad scope** — `**/*` or `**/*.ext` without directory prefix fires on unrelated files; flag and require narrowing
-3. **Multiple conventions in one rule** — any "and" in the description is a split signal
-4. **Linter-appropriate checks** — syntax, formatting, import ordering belong in a linter, not here
-5. **Missing default-closed stance** — rules without uncertainty handling default to PASS; always require a declaration
-6. **Skipping conflict check** — contradictions in the rule library produce unpredictable enforcement
-7. **Missing fix-safety** — without this, automated tools cannot safely apply fixes
-8. **Incomplete Intent section** — an Intent that states only what the rule catches (not why it matters, not when to disable it) produces enforcement-without-education and workaround behavior
-9. **Missing test file** — a rule without a co-located `.tests.md` file cannot be validated before deployment; this is a delivery failure, not optional polish
+1. **Rule outside `.claude/rules/`** — Claude Code only auto-loads rules from `.claude/rules/` (and `~/.claude/rules/`); files elsewhere are inert. Refuse to write to `docs/rules/` or other invented paths.
+2. **Vague directive** ("be clean", "format properly") — restate in concrete, verifiable terms before accepting the rule.
+3. **Convention enforceable by a traditional linter** (syntax, formatting, import ordering) — redirect to the linter and stop.
+4. **Conflict check skipped** — run Step 3 before drafting; contradicting rules produce arbitrary behavior.
+5. **Always-on rule that should be path-scoped** — flag rules whose content names a specific directory or file type but that omit `paths:`; the unscoped rule consumes context every session for content that only applies sometimes.
 
 ## Handoff
 
-**Receives:** Code pattern, behavior description, or existing rule draft to formalize
-**Produces:** Rule file written to the correct location for the detected project format
+**Receives:** Topic name or description of the convention to capture (or no argument — assistant proposes a filename)
+**Produces:** Rule file written to `.claude/rules/<name>.md` (or subdirectory)
 **Chainable to:** check-rule (verify the new rule fits the existing library without conflicts)
