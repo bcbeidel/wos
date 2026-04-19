@@ -1,6 +1,6 @@
-"""AGENTS.md manager — marker-based WOS section rendering and updates.
+"""AGENTS.md manager — marker-based managed section rendering and updates.
 
-Renders the WOS-managed section for AGENTS.md (context navigation,
+Renders the managed section for AGENTS.md (context navigation,
 areas table, file metadata format, preferences) and updates the file
 content using marker-based replacement.
 
@@ -211,9 +211,9 @@ def discover_areas(root: Path) -> List[Dict[str, str]]:
 
 
 def read_layout_hint(content: str) -> Optional[str]:
-    """Extract layout pattern from AGENTS.md WOS section.
+    """Extract layout pattern from AGENTS.md managed section.
 
-    Looks for ``<!-- wos:layout: <pattern> -->`` within the WOS-managed
+    Looks for ``<!-- wos:layout: <pattern> -->`` within the managed
     section.
 
     Args:
@@ -245,7 +245,7 @@ def render_wiki_section(
     preferences: Optional[List[str]] = None,
     layout: Optional[str] = None,
 ) -> str:
-    """Render the WOS-managed section for AGENTS.md.
+    """Render the managed section for AGENTS.md.
 
     Args:
         areas: List of dicts with 'name' and 'path' keys.
@@ -344,9 +344,9 @@ def render_wiki_section(
 
 
 def extract_preferences(content: str) -> List[str]:
-    """Extract preference strings from an AGENTS.md WOS section.
+    """Extract preference strings from an AGENTS.md managed section.
 
-    Parses the ``### Preferences`` subsection between WOS markers and
+    Parses the ``### Preferences`` subsection between managed markers and
     returns the list of preference strings (without ``- `` bullet prefix).
     Used by reindex and update_preferences to preserve existing preferences.
 
@@ -383,11 +383,11 @@ def extract_preferences(content: str) -> List[str]:
 
 
 def extract_areas(content: str) -> List[Dict[str, str]]:
-    """Extract area entries from an AGENTS.md WOS section.
+    """Extract area entries from an AGENTS.md managed section.
 
-    Parses the ``### Areas`` table between WOS markers and returns the
+    Parses the ``### Areas`` table between managed markers and returns the
     list of area dicts with 'name' and 'path' keys.  Used to preserve
-    human-written area descriptions when rewriting the WOS section.
+    human-written area descriptions when rewriting the managed section.
 
     Args:
         content: Full AGENTS.md file content.
@@ -433,7 +433,7 @@ def update_agents_md(
     preferences: Optional[List[str]] = None,
     layout: Optional[str] = None,
 ) -> str:
-    """Replace or append the WOS section in AGENTS.md content.
+    """Replace or append the managed section in AGENTS.md content.
 
     If markers exist, replaces the content between them (inclusive).
     If markers don't exist, appends the section to the end.
@@ -451,7 +451,7 @@ def update_agents_md(
         layout: Optional layout pattern. If None, preserves existing.
 
     Returns:
-        Updated AGENTS.md content with the new WOS section.
+        Updated AGENTS.md content with the new managed section.
     """
     # Preserve existing areas if not explicitly provided
     if areas is None:

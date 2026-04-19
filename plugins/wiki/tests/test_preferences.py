@@ -1,4 +1,4 @@
-"""Tests for wos/preferences.py — communication preferences."""
+"""Tests for communication preferences (in agents_md.py)."""
 
 from __future__ import annotations
 

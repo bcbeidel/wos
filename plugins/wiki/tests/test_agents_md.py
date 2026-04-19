@@ -1,4 +1,4 @@
-"""Tests for wos/agents_md.py — AGENTS.md marker-based section manager."""
+"""Tests for agents_md.py — AGENTS.md marker-based section manager."""
 
 from __future__ import annotations
 
@@ -193,7 +193,7 @@ class TestRenderDocumentStandards:
 
 
 class TestExtractPreferences:
-    def test_extracts_preferences_from_wos_section(self) -> None:
+    def test_extracts_preferences_from_managed_section(self) -> None:
         from wiki.agents_md import extract_preferences, render_wiki_section
 
         prefs = ["**Directness:** Be direct.", "**Tone:** Keep it casual."]
@@ -204,7 +204,7 @@ class TestExtractPreferences:
     def test_returns_empty_when_no_markers(self) -> None:
         from wiki.agents_md import extract_preferences
 
-        result = extract_preferences("# AGENTS.md\n\nNo WOS section here.\n")
+        result = extract_preferences("# AGENTS.md\n\nNo managed section here.\n")
         assert result == []
 
     def test_returns_empty_when_no_preferences_section(self) -> None:
@@ -352,7 +352,7 @@ class TestExtractAreas:
     def test_returns_empty_when_no_markers(self) -> None:
         from wiki.agents_md import extract_areas
 
-        result = extract_areas("# AGENTS.md\n\nNo WOS section here.\n")
+        result = extract_areas("# AGENTS.md\n\nNo managed section here.\n")
         assert result == []
 
     def test_returns_empty_when_no_areas_table(self) -> None:

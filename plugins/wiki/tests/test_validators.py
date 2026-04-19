@@ -1,4 +1,4 @@
-"""Tests for wos/validators.py — per-file and project-wide validation checks."""
+"""Tests for validators.py — per-file and project-wide validation checks."""
 
 from __future__ import annotations
 
