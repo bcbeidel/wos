@@ -1,7 +1,7 @@
 ---
 name: check-rule
-description: Check a rule library for quality issues — conflicts, specificity, staleness, rubric instability, and Intent completeness. Use when the user wants to "audit rules", "check rule quality", "find conflicting rules", "review my rules", or "are my rules well-formed".
-argument-hint: "[path to rule file or directory — scans project if omitted]"
+description: Check a Claude Code rule library under `.claude/rules/` for path-glob validity, vague phrasing, contradictions, and oversize files. Use when the user wants to "audit rules", "check rule quality", "find conflicting rules", "review my rules", or "are my rules well-formed".
+argument-hint: "[path to rule file or directory — scans .claude/rules/ if omitted]"
 user-invocable: true
 references:
   - references/audit-dimensions.md
@@ -10,9 +10,9 @@ references:
 
 # /build:check-rule
 
-Evaluate the quality of an existing rule library. Checks format validity
-deterministically, then evaluates five semantic quality dimensions per rule
-using a locked rubric, then detects cross-rule conflicts.
+Evaluate the quality of an existing Claude Code rule library. Three tiers,
+in order: deterministic format checks (no LLM), per-rule semantic checks
+(specificity + vague phrasing), then cross-rule conflict detection.
 
 This skill evaluates the rules themselves — not files against rules.
 
@@ -20,73 +20,90 @@ This skill evaluates the rules themselves — not files against rules.
 
 ### 1. Discover Rules
 
-Rule files live at `docs/rules/*.rule.md`. When `$ARGUMENTS` resolves to a
-path, scope discovery to that file or directory. When `$ARGUMENTS` is empty,
-scan `docs/rules/`.
+Rule files live under `.claude/rules/**/*.md` (recursive). When `$ARGUMENTS`
+resolves to a path, scope discovery to that file or directory. When
+`$ARGUMENTS` is empty, scan `.claude/rules/` and (if the user maintains
+personal rules) `~/.claude/rules/`.
 
 Report: "Found N rules. Auditing..."
 
-### 2. Deterministic Format Check
+### 2. Tier 1 — Deterministic Format Checks
 
-For each rule, parse frontmatter and body sections without LLM involvement.
-Check against the **Tier 1: Deterministic Format Checks** table in
-[audit-dimensions.md](references/audit-dimensions.md).
+For each rule file, parse frontmatter and check structural facts. No
+LLM call. See [audit-dimensions.md](references/audit-dimensions.md) for
+the full table. The checks:
 
-Emit findings immediately. Rules with FAIL-severity format issues are reported
-and excluded from the LLM evaluation step — do not send malformed rules to the
-LLM. Rules with only WARN-severity format issues proceed to LLM evaluation.
+- **Location** — file is under `.claude/rules/` (or `~/.claude/rules/`); files
+  at other paths are not loaded by Claude Code as rules
+- **Extension** — file uses `.md` (not `.rule.md` or `.mdx`)
+- **`paths:` glob validity** — when `paths:` is present, every glob
+  parses (no unmatched brackets, valid wildcards, non-empty)
+- **File size** — warn at >200 non-blank lines; Anthropic's CLAUDE.md
+  guidance applies analogously (larger rules consume context and reduce
+  adherence)
+- **Frontmatter shape** — only `paths:` is documented by Anthropic;
+  flag unknown top-level keys as informational
 
-This step requires no LLM call. Use grep and read operations only.
+Emit findings immediately. Rules with FAIL-severity findings (location,
+extension, malformed `paths:`) are reported and excluded from Tier 2 —
+malformed rules don't reach the LLM step.
 
-### 3. Semantic Audit (One LLM Call per Rule)
+### 3. Tier 2 — Per-Rule Semantic Checks (One LLM Call per Rule)
 
-For each structurally valid rule, construct one LLM evaluation call with all five required elements (evaluating five semantic dimensions simultaneously):
+For each structurally valid rule, one locked-rubric LLM call assesses two
+dimensions simultaneously:
 
-1. **Criterion statement** — for each dimension, a single precise behavioral definition of what is being evaluated (drawn from the locked rubric in [audit-dimensions.md](references/audit-dimensions.md), not generated per-audit)
-2. **PASS/FAIL scale declaration** — binary with behavioral definitions of what PASS and WARN mean in observable terms; no 1–5 or percentage scales
-3. **Anchor examples** — one PASS anchor and one FAIL anchor per dimension demonstrating the criterion; without these the evaluator defaults to PASS on ambiguous cases
-4. **CoT requirement** — explicit instruction: "Explain your reasoning and cite the specific text from the rule before stating your verdict"
-5. **Structured output format** — constrain output to: `Dimension | Evidence (quoted from rule) | Reasoning | Verdict (WARN or PASS) | Recommendation`; evidence must appear before verdict
-6. **Default-closed instruction** — "When evidence is borderline, surface as WARN, not PASS"
+1. **Specificity** — directives are concrete and verifiable, not vague.
+   Anthropic's own example: "Use 2-space indentation" passes; "Format
+   code properly" fails.
+2. **Single concern** — rule covers one topic. Multiple unrelated
+   conventions in one file is a split signal.
 
-Include the full rule file verbatim (never summarize). Present all five dimension rubrics simultaneously — never split into per-dimension calls. Per-criterion separate calls score 11.5 points lower on average.
+Include the full rule file verbatim — never summarize. Present both
+dimensions in one call (per-dimension calls degrade agreement by ~11.5
+points per RULERS, Hong et al. 2026).
 
-The output format enforces evidence-before-verdict ordering: `evidence → reasoning → verdict → recommendation`. If the LLM emits a verdict in the first sentence, the prompt is not enforcing evidence-first ordering — revise the output schema.
+Output format per dimension: `evidence (quoted from rule) → reasoning →
+verdict (WARN or PASS) → recommendation`. Default-closed: borderline
+evidence surfaces as WARN, not PASS.
 
-Repair recommendations are a separate concern from evaluation. The evaluation call produces evidence and verdict per dimension. The `Recommendation:` field in Step 5 is populated from [repair-playbook.md](references/repair-playbook.md) based on the verdict — it is not generated within the evaluation reasoning itself.
+### 4. Tier 3 — Cross-Rule Conflict Detection
 
-### 4. Conflict Detection (Separate LLM Pass)
+After per-rule evaluation, compare rule pairs that could fire on the
+same file. Two rules can conflict when:
+- Both are always-on (no `paths:`), OR
+- Their `paths:` globs overlap
 
-After per-rule evaluation, compare rule pairs for contradictions. For each pair:
-
+For each candidate pair:
 1. Present both rule files verbatim
-2. Ask: "Would following Rule A's compliant example cause Rule B to FAIL?"
+2. Ask: "If a developer follows Rule A's guidance exactly, does Rule B
+   contradict?"
 3. Ask the reverse
-4. If either answer is yes → FAIL finding citing both rule names and the specific contradiction
+4. If either answer is yes → FAIL finding citing both rule names and the
+   specific contradiction
 
-Only compare rules whose scope globs overlap — rules with non-overlapping scopes
-cannot conflict. This reduces the number of comparisons for large libraries.
+Anthropic's warning is the basis: *"if two rules contradict each other,
+Claude may pick one arbitrarily."*
 
 ### 5. Report Findings
 
 Output all findings in `scripts/lint.py` format (file, issue, severity).
-Sort within each severity tier: Tier-1 deterministic findings first, then
-Tier-2 dimensions in numerical order (Dim 1 → Dim 5), then Tier-3
-conflicts; ties break alphabetically by file path. FAIL findings precede
-WARN findings overall. This mirrors check-skill's structural-before-content
-ordering so the most actionable findings (frontmatter / sections) lead.
+Sort within each severity tier: Tier-1 deterministic first, then Tier-2
+in dimension order (Specificity → Single concern), then Tier-3 conflicts;
+ties break alphabetically by file path. FAIL precedes WARN overall.
 
-Each FAIL or WARN finding must include a `Recommendation:` line with a specific,
-actionable repair drawn from [repair-playbook.md](references/repair-playbook.md).
-Generic suggestions ("fix this") are not acceptable — name the exact change.
+Each FAIL or WARN finding must include a `Recommendation:` line with a
+specific, actionable repair drawn from
+[repair-playbook.md](references/repair-playbook.md). Generic suggestions
+("fix this") are not acceptable — name the exact change.
 
 ```
-FAIL  docs/rules/staging-layer-purity.rule.md — Missing required field: scope
-  Recommendation: Add `scope:` line targeting the directory where the rule applies (e.g., `scope: "models/staging/**/*.sql"`)
-WARN  docs/rules/api-handler.rule.md — Specificity: scope "**/*.py" has no directory prefix
-  Recommendation: Narrow scope to target architectural layer (e.g., `src/api/**/*.py`)
-WARN  docs/rules/naming.rule.md — Intent completeness: missing failure cost
-  Recommendation: Add a sentence naming what specifically goes wrong when the pattern occurs and who bears the cost
+FAIL  .claude/rules/api-handlers.md — Malformed paths glob: "src/api/**/*.{ts" — unclosed brace
+  Recommendation: Close the brace: `"src/api/**/*.{ts,tsx}"`
+WARN  .claude/rules/code-style.md — Specificity: "format code properly" is anchor-free
+  Recommendation: Replace with a verifiable directive (e.g., "Use 2-space indentation; run prettier --check")
+WARN  .claude/rules/testing.md — File length 287 lines exceeds 200-line guidance
+  Recommendation: Split into topic files (e.g., testing-unit.md + testing-integration.md)
 ```
 
 Close with a summary line:
@@ -100,73 +117,72 @@ After presenting findings, ask:
 > "Apply fixes? Enter y (all), n (skip), or comma-separated numbers."
 
 For each selected finding, draw the canonical repair from
-[repair-playbook.md](references/repair-playbook.md) — the playbook is
-indexed by dimension and failure signal, so each finding maps to a
-specific repair recipe. Then:
+[repair-playbook.md](references/repair-playbook.md). Then:
 
 1. Read the relevant section of the rule file
-2. Apply the canonical repair from the playbook (if the finding has no
-   playbook entry, skip and flag for manual review — do not improvise)
+2. Apply the canonical repair (if no playbook entry exists, skip and
+   flag for manual review — do not improvise)
 3. Show the diff
 4. Write the change only on user confirmation
-5. Re-run Tier-1 deterministic checks after each applied fix to confirm
-   the repair didn't break a different check
+5. Re-run Tier-1 deterministic checks after each applied fix
 
 Per-change confirmation is required — bulk application removes the
-user's ability to review individual repairs and conflicts with the
-playbook's intent-preservation gate.
+user's ability to review individual repairs.
 
 ## Key Instructions
 
 - Run Tier-1 deterministic checks first; gate LLM evaluation on structural validity so malformed rules surface as findings, not as expensive LLM calls
-- Present all five semantic dimensions as a locked rubric in a single call per rule — per-dimension calls degrade agreement by ~11.5 points (RULERS, Hong et al. 2026)
+- Present both Tier-2 dimensions as a locked rubric in a single call per rule — per-dimension calls degrade agreement by ~11.5 points (RULERS, Hong et al. 2026)
 - Include the full rule file verbatim in every LLM evaluation so the evaluator sees the same anchors a human reviewer would
-- Limit conflict comparison to rule pairs with overlapping `scope` globs — non-overlapping rules cannot contradict and the comparison is wasted budget
+- Limit conflict comparison to rule pairs that could co-fire (both always-on, or overlapping `paths:` globs) — non-overlapping scoped rules cannot contradict and the comparison is wasted budget
 - Surface borderline evidence as WARN (default-closed) so ambiguous cases enter the report rather than silently passing
 
 ## Anti-Pattern Guards
 
 1. **Per-dimension LLM call** — collapse into one locked-rubric call per rule (per-dimension splits degrade agreement by 11.5 points, RULERS)
-2. **LLM-evaluating format compliance** — handle frontmatter / section presence with deterministic parse (Tier 1); send only structurally valid rules to the LLM
+2. **LLM-evaluating format compliance** — handle frontmatter / glob syntax with deterministic parse (Tier 1); send only structurally valid rules to the LLM
 3. **Ambiguous compliance reported as PASS** — surface as WARN (default-closed) so the user sees the borderline case
-4. **Vague finding text** — cite the specific rule file and the exact criterion that failed; every finding names a file path and a rubric line
-5. **Conflict-comparing non-overlapping rules** — gate Tier 3 on `scope`-glob overlap so the comparison budget goes to pairs that can actually contradict
-6. **Generic repair text** ("fix this", "improve specificity") — every Recommendation names the specific change (what to add, remove, or replace, and what with) drawn from `repair-playbook.md`
-7. **Evaluation prompt missing the criterion statement** — this is the highest-leverage element (its removal drops human-correlation from 0.666 → 0.487); include the behavioral definition from `audit-dimensions.md` verbatim in every Tier-2 call
+4. **Vague finding text** — cite the specific rule file and the exact phrasing or field that triggered the finding
+5. **Conflict-comparing non-overlapping rules** — gate Tier 3 on co-fire potential (always-on pair, or overlapping `paths:`)
+6. **Generic repair text** ("fix this", "improve specificity") — every Recommendation names the specific change, drawn from `repair-playbook.md`
 
 ## Example
 
 <example>
-User: `/build:check-rule docs/rules/`
+User: `/build:check-rule .claude/rules/`
 
-Step 1 — Discovers 3 rules: staging-layer-purity.rule.md, api-input-validation.rule.md, naming-conventions.rule.md
+Step 1 — Discovers 3 rules: code-style.md, api-design.md, testing.md
 
-Step 2 — Deterministic check:
-- staging-layer-purity.rule.md: all fields present, all sections present → passes to LLM
-- api-input-validation.rule.md: scope glob has no directory prefix → WARN (proceeds to LLM anyway)
-- naming-conventions.rule.md: missing `## Intent` → FAIL (excluded from LLM step)
+Step 2 — Tier 1 deterministic check:
+- code-style.md: 47 lines, no frontmatter (always-on) — passes to Tier 2
+- api-design.md: `paths: "src/api/**/*.{ts"` — unclosed brace → FAIL (excluded from Tier 2)
+- testing.md: 287 lines → WARN (proceeds to Tier 2 anyway)
 
-Step 3 — Semantic audit on 2 rules:
-- staging-layer-purity.rule.md: all 5 dimensions PASS
-- api-input-validation.rule.md: Dimension 1 WARN (scope too broad), Dimension 5 WARN (Intent lacks failure cost and exception policy)
+Step 3 — Tier 2 semantic on 2 rules:
+- code-style.md: contains "format code properly" → WARN (specificity)
+- testing.md: covers unit, integration, AND e2e — three distinct topics → WARN (single concern)
 
-Step 4 — Conflict detection: staging-layer-purity and api-input-validation have non-overlapping scopes → no comparison needed
+Step 4 — Tier 3 conflict detection: code-style.md (always-on) and
+testing.md (always-on) both fire on every session. No directive
+contradiction found.
 
 Output:
 ```
-FAIL  docs/rules/naming-conventions.rule.md — Missing required section: ## Intent
-  Recommendation: Add ## Intent section covering all four components: violation, failure cost, principle, exception policy
-WARN  docs/rules/api-input-validation.rule.md — Specificity: scope "**/*.py" has no directory prefix
-  Recommendation: Narrow scope to the architectural layer named in Intent (e.g., `src/api/**/*.py`)
-WARN  docs/rules/api-input-validation.rule.md — Intent completeness: missing failure cost and exception policy
-  Recommendation: Add sentence naming what breaks and who bears the cost; add "Exception: [case]" line
+FAIL  .claude/rules/api-design.md — Malformed paths glob: unclosed brace
+  Recommendation: Close the brace: `"src/api/**/*.{ts,tsx}"`
+WARN  .claude/rules/code-style.md — Specificity: "format code properly" is anchor-free
+  Recommendation: Replace with a verifiable directive (e.g., "Use 2-space indentation; run prettier --check")
+WARN  .claude/rules/testing.md — File length 287 lines exceeds 200-line guidance
+  Recommendation: Split into testing-unit.md + testing-integration.md + testing-e2e.md
+WARN  .claude/rules/testing.md — Single concern: covers three distinct topics (unit, integration, e2e)
+  Recommendation: Same split as above resolves both findings
 
-2 rules audited (1 excluded — structural failure), 3 findings (1 fail, 2 warn)
+3 rules audited, 4 findings (1 fail, 3 warn)
 ```
 </example>
 
 ## Handoff
 
-**Receives:** Path to a `.rule.md` file or directory, or no argument (scans `docs/rules/`)
+**Receives:** Path to a `.md` rule file or directory under `.claude/rules/`, or no argument (scans `.claude/rules/`)
 **Produces:** Structured findings report in file/issue/severity format
 **Chainable to:** build-rule (to fix flagged issues and rebuild non-compliant rules)
