@@ -230,10 +230,12 @@ No files created. No files deleted. No Python source changes.
 
 **Depends on:** Task 9
 
-- [ ] **Step 1:** Push branch `feat/327-hook-shell-as-tool-delegation` with `-u origin`.
-- [ ] **Step 2:** Open PR against `main`. Title: `feat(build): hook/shell --as-tool delegation (build-0.6.0)`. Body: Summary (4 skills opt in; hook pair delegates to shell pair; check-shell S11; no migration of other skills; version bump). Test plan bullets: Chunk 1 self-audits, Chunk 2/3 invocation smoke, regression check, human-mode regression spot-check. Link #327 (closes) and the design doc.
-- [ ] **Step 3:** Verify: `gh pr view` returns a PR URL; CI (ruff + pytest) green.
-- [ ] **Step 4:** No commit (PR creation is not a commit).
+- [x] Task 10 complete <!-- pr:#336 — CI green on 3.9 and 3.12 -->
+
+- [x] **Step 1:** Push branch `feat/327-hook-shell-as-tool-delegation` with `-u origin`.
+- [x] **Step 2:** Open PR against `main`. Title: `feat(build): hook/shell --as-tool delegation (build-0.6.0)`. Body: Summary (4 skills opt in; hook pair delegates to shell pair; check-shell S11; no migration of other skills; version bump). Test plan bullets: Chunk 1 self-audits, Chunk 2/3 invocation smoke, regression check, human-mode regression spot-check. Link #327 (closes) and the design doc.
+- [x] **Step 3:** Verify: `gh pr view` returns a PR URL; CI (ruff + pytest) green.
+- [x] **Step 4:** No commit (PR creation is not a commit).
 
 ## Validation
 
