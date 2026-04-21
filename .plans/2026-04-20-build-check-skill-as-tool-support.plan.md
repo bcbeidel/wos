@@ -86,7 +86,7 @@ No deletions. No new skills. No Python package-structure changes.
 
 #### Task 1: Create `as-tool-contract.md`
 
-- [ ] Task 1: Create `as-tool-contract.md`
+- [x] Task 1: Create `as-tool-contract.md` <!-- sha:7089c0e -->
 
 Create `plugins/build/_shared/references/as-tool-contract.md` per the design. Skill-agnostic. Required sections (as H2s, in this order):
 
