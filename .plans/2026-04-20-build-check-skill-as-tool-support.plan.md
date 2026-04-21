@@ -292,7 +292,7 @@ grep version plugins/build/pyproject.toml plugins/build/.claude-plugin/plugin.js
 
 #### Task 10: Open PR
 
-- [ ] Task 10: Open PR
+- [x] Task 10: Open PR <!-- pr:#335 --> (opened against main)
 
 Push branch `feat/build-skill-as-tool-support` and open PR against `main`:
 
