@@ -12,6 +12,7 @@ tested_with: [sonnet]
 references:
   - references/platform-notes.md
   - references/skill-writing-guide.md
+  - references/as-tool-scaffolding.md
   - ../../_shared/references/primitive-routing.md
   - ../../_shared/references/as-tool-contract.md
 ---
@@ -110,27 +111,7 @@ Based on the user interview, fill in these components. Most skills need only `na
 - **allowed-tools** _(optional)_: Tools that run without per-use confirmation when this skill is active. Canonical forms: **space-separated string** (`Grep Read`) or **YAML list** (`[Grep, Read]` or block form). **Never comma-separated as a string** (`Grep, Read`) — YAML parses it as one literal value and the field silently does nothing.
 - **tested_with** _(optional)_: Model tiers verified against (e.g., `[sonnet, haiku]`); omit if untested. *(check-skill #2)*
 - **references** _(optional)_: Reference files or assets in the skill directory for progressive disclosure.
-- **skill-invocable** _(optional; parallels `user-invocable`)_: Default `false` — **omit** unless you opted in to the `--as-tool` dual-invocation pattern during the interview. Set `true` when the skill should be callable by another skill (see below). Independent of `user-invocable` — a skill can be both, either, or neither. *(check-skill #23–31)*
-
-**If `skill-invocable: true` (opted in during Interview):** the scaffolded SKILL.md gets additional content. Generate all of the following:
-
-- **Frontmatter:** add `skill-invocable: true`; add `../../_shared/references/as-tool-contract.md` to `references:`. If DATA was chosen, no additional hints needed. If ARTIFACT was chosen, the follow-up intake captured the artifact-type list — use it in the contract section below.
-- **Skill intro:** add a "Two invocation modes" paragraph near the top: human mode (prompts, approval, save) vs. `--as-tool` mode (structured emission per the shared contract; no prompts, no approval).
-- **Workflow split:** the final user-facing step branches into `§Xa. Human mode` (present + approve + save) and `§Xb. --as-tool mode` (emit structured return). The `--as-tool mode` step documents the specific emission format:
-  - **DATA:** "Output **only** a JSON block — no prose, no preamble. One of three envelope shapes: `Success` with a `value` object, `NeedsMoreInfo` with `missing` + `hint`, or `Refusal` with `reason` + `category`."
-  - **ARTIFACT:** "Output a JSON envelope followed by one or more fenced code blocks. The envelope declares `artifact_types` in the order the fenced blocks appear. Language tag per MIME: `text/x-shellscript` → ` ```bash `, `application/json` → ` ```json `, `text/markdown` → ` ```markdown `, etc. `NeedsMoreInfo` and `Refusal` are JSON-only (no fenced blocks) regardless of shape."
-- **`## --as-tool contract` section** — mandatory under `skill-invocable: true`. Populate from the Interview answers. Subsections:
-  - `**Required fields:**` — the named fields a caller must pre-fill (e.g., `name`, `path`, `target-shell`). List each with a one-line description.
-  - `**Return shape:** DATA` _or_ `**Return shape:** ARTIFACT`. If ARTIFACT: add `**Artifact types:** <mime>, <mime>, ...` immediately after.
-  - For each of `Success`, `NeedsMoreInfo`, `Refusal`: describe the envelope for that case (schema of `value` for DATA; metadata + artifact-role for ARTIFACT; always JSON-only for the two failure cases).
-  - `**Side effects:**` — list or `none` (files the skill reads, commands it runs, other `--as-tool` skills it invokes).
-  - `**Parallel-safe:** yes` (default) or `no — <reason>` (e.g., acquires file lock on X).
-- **Key Instructions additions:** three entries enforcing mode-specific rules.
-  - "Under `--as-tool`: emit per the contract (DATA: JSON only; ARTIFACT: JSON envelope + fenced blocks in declared order). No prose, no `input()`, no approval."
-  - "Under `--as-tool`: hard-fail with `NeedsMoreInfo` when any required field is missing. Do not prompt — the caller will retry."
-  - "`NeedsMoreInfo` and `Refusal` emit JSON only, regardless of return shape. Fenced blocks are never emitted on failure paths."
-
-The canonical DATA example is `/dummy:greet` at `plugins/dummy/skills/greet/SKILL.md`. Read it when in doubt. A canonical ARTIFACT example lands with the `#327` hook/shell refactor — until then, refer authors to the shared contract's ARTIFACT section for emission shape.
+- **skill-invocable** _(optional; parallels `user-invocable`)_: Default `false` — **omit** unless the skill opted in to the `--as-tool` dual-invocation pattern during Interview. Set `true` when the skill should be callable by another skill. Independent of `user-invocable` — a skill can be both, either, or neither. **If set to `true`, apply the scaffolding recipe in [`references/as-tool-scaffolding.md`](references/as-tool-scaffolding.md)** (frontmatter additions, workflow split, mandatory `## --as-tool contract` section, Key Instructions entries). *(check-skill #23–31)*
 
 **Optional toolkit sections.** Add these when trigger conditions apply — they're house-style scaffolding, not canonical requirements. See [check-skill criteria](../../check-skill/SKILL.md) for the exact triggers.
 
