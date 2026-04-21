@@ -219,7 +219,7 @@ Present both artifacts to the user before any safety checks.
 
 ## 5. Safety Check
 
-Review the draft against the 14 lints `/build:check-shell` enforces,
+Review the draft against the 15 lints `/build:check-shell` enforces,
 grouped:
 
 **Portability.** Target-shell features match declaration. `mktemp`
@@ -301,7 +301,7 @@ unsatisfiable; JSON only, no fenced block):
 Offer the audit:
 
 > "Run `/build:check-shell <path>` to audit the scaffolded script
-> against the 14 lints plus `shellcheck` / `shfmt` (when installed)?"
+> against the 15 lints plus `shellcheck` / `shfmt` (when installed)?"
 
 ### 8b. `--as-tool` mode
 
@@ -398,4 +398,4 @@ invocation style, setuid intent, runtime dependencies, save path).
 **Produces:** an executable shell script at the user-supplied path
 plus a suggested invocation line.
 **Chainable to:** `/build:check-shell` (audit the scaffold against
-the 14 lints and available external tools).
+the 15 lints and available external tools).
