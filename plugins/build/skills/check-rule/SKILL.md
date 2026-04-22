@@ -36,51 +36,43 @@ Report: "Found N rules. Auditing..."
 
 ### 2. Tier 1 — Deterministic Format Checks
 
-For each rule file, parse frontmatter and check structural facts. No
-LLM call. See [audit-dimensions.md](references/audit-dimensions.md) for
-the full table. Each check has a corresponding script under `scripts/`
-that can be invoked standalone or orchestrated as a pipeline:
+Tier 1 is implemented as five shell scripts under `scripts/`. Each script
+is deterministic, POSIX-portable (bash 3.2+), and emits findings in the
+standard `FAIL|WARN|INFO|HINT  <path> — <check>: <detail>` format.
+See [audit-dimensions.md](references/audit-dimensions.md) for the full
+rubric behind each check.
 
-| Check | Script |
-|---|---|
-| Location, Extension, Frontmatter shape | `scripts/check_structure.sh` |
-| `paths:` glob validity | `scripts/check_paths_glob.sh` |
-| File size (200 warn / 500 fail) | `scripts/check_size.sh` |
-| Secrets Safety | `scripts/scan_secrets.sh` |
-| Shape hints (informational, feeds Tier-2) | `scripts/emit_shape_hints.sh` |
+Invoke all five scripts against the discovered rule set:
 
-Each script reads files or directories as positional args, emits
-findings in the standard `FAIL|WARN|INFO|HINT  <path> — <check>: <detail>`
-format to stdout, and exits non-zero on FAIL findings. Concatenating
-output from all five gives the full Tier-1 report.
+```bash
+SCRIPTS="$CLAUDE_PLUGIN_ROOT/skills/check-rule/scripts"
+TARGETS="$ARGUMENTS"  # path(s) from user; default .claude/rules/
 
-The checks:
+bash "$SCRIPTS/scan_secrets.sh"     $TARGETS     # FAIL on any committed-secret pattern
+bash "$SCRIPTS/check_structure.sh"  $TARGETS     # FAIL location/extension; INFO unknown keys
+bash "$SCRIPTS/check_paths_glob.sh" $TARGETS     # FAIL unbalanced braces/brackets, empty, cntrl
+bash "$SCRIPTS/check_size.sh"       $TARGETS     # WARN >200 lines, FAIL >500 lines
+bash "$SCRIPTS/emit_shape_hints.sh" $TARGETS     # HINT lines for Tier-2 prompt context
+```
 
-- **Location** — file is under `.claude/rules/` (or `~/.claude/rules/`); files
-  at other paths are not loaded by Claude Code as rules
-- **Extension** — file uses `.md` (not `.rule.md` or `.mdx`)
-- **`paths:` glob validity** — when `paths:` is present, every glob
-  parses (no unmatched brackets, valid wildcards, non-empty)
-- **File size** — WARN at >200 non-blank lines, FAIL at >500 non-blank lines
-- **Frontmatter shape** — only `paths:` is documented by Anthropic;
-  flag unknown top-level keys as informational
-- **Secrets Safety** — scan the rule body for committed-secret patterns
-  (AWS keys `AKIA[0-9A-Z]{16}`, GitHub tokens `ghp_[A-Za-z0-9]{36}` /
-  `github_pat_[A-Za-z0-9_]{82}`, OpenAI keys `sk-[A-Za-z0-9]{48}`,
-  Anthropic keys `sk-ant-[A-Za-z0-9]{80,}`, Stripe live keys
-  `sk_live_[A-Za-z0-9]{24}`, generic high-entropy strings assigned to
-  variables named `password`, `secret`, `token`, `api_key`, `access_key`,
-  `private_key` with non-empty string values). Any hit is **FAIL** — rule
-  files sit in git and inherit the same exposure as any committed config
-- **Shape hints** — scan for keywords that signal a judgment-based rule
-  (`compliant`, `non-compliant`, `violation`, `exception`, `failure`,
-  fenced code blocks). These do not produce findings; they inform the
-  Tier-2 prompt so the evaluator knows to weigh Why Adequacy and Example
-  Realism more closely
+**Script-to-check map:**
 
-Emit findings immediately. Rules with FAIL-severity findings (location,
-extension, malformed `paths:`, oversize) are reported and excluded from
-Tier 2 — malformed rules don't reach the LLM step.
+| Script | Checks | Severity levels |
+|---|---|---|
+| `scan_secrets.sh` | AWS / GitHub / OpenAI / Anthropic / Stripe key patterns + credential-shaped variable assignments | FAIL |
+| `check_structure.sh` | Location (under `.claude/rules/`), Extension (`.md`, no double-extension), Frontmatter shape (only `paths:` documented) | FAIL / FAIL / INFO |
+| `check_paths_glob.sh` | Balanced `{…}` and `[…]`, non-empty, no control chars | FAIL |
+| `check_size.sh` | Non-blank-line count against 200/500 thresholds | WARN / FAIL |
+| `emit_shape_hints.sh` | Keyword signals (`compliant`, `non-compliant`, `violation`, `exception`, `failure`, code blocks) | HINT (informational) |
+
+**Orchestration rules:**
+
+- Emit all Tier-1 output immediately, before any LLM work.
+- Rules with a FAIL finding from `scan_secrets.sh`, `check_structure.sh` (location/extension), or `check_paths_glob.sh` are **excluded from Tier 2** — malformed rules don't reach the LLM step.
+- `check_size.sh` FAIL (>500 lines) also excludes from Tier 2.
+- `check_size.sh` WARN and `check_structure.sh` INFO findings do **not** exclude — they accompany Tier-2 output.
+- `emit_shape_hints.sh` HINT lines are not findings; collect them per file and include in the Tier-2 prompt as context so the evaluator weighs Why Adequacy and Example Realism appropriately.
+- Exit code of each script is 0 on clean / WARN-only / HINT-only, 1 on FAIL. The orchestrator treats exit 1 as the "exclude from Tier 2" signal.
 
 ### 3. Tier 2 — Per-Rule Semantic Checks (One LLM Call per Rule)
 
