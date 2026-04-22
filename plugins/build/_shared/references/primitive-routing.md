@@ -1,6 +1,8 @@
 ---
 name: Primitive Routing Guide
 description: Decision framework for choosing the right Claude Code primitive — rules, skills, hooks, subagents, CLAUDE.md, or permissions.deny. Referenced by all build-* skills as a shared routing gate.
+topic: primitive-routing
+applies-to: [build-hook, build-skill, build-rule, build-subagent]
 ---
 
 # Primitive Routing Guide

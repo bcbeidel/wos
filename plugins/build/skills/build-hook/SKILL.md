@@ -8,8 +8,8 @@ description: >
   after tool use", or "block dangerous operations automatically".
 argument-hint: "[hook event] [enforcement goal]"
 user-invocable: true
-references:
-  - ../../_shared/references/primitive-routing.md
+needs:
+  - primitive-routing
 ---
 
 # Build Hook

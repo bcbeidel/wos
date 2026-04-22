@@ -9,8 +9,8 @@ description: >
   or "make a custom agent".
 argument-hint: "[subagent name or description]"
 user-invocable: true
-references:
-  - ../../_shared/references/primitive-routing.md
+needs:
+  - primitive-routing
 ---
 
 # Build Subagent

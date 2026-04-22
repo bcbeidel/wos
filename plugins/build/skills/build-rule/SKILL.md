@@ -5,7 +5,8 @@ argument-hint: A topic name or description of the convention to capture
 user-invocable: true
 references:
   - references/rule-format-guide.md
-  - ../../_shared/references/primitive-routing.md
+needs:
+  - primitive-routing
 ---
 
 # /build:build-rule

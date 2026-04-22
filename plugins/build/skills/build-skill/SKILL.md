@@ -12,7 +12,8 @@ tested_with: [sonnet]
 references:
   - references/platform-notes.md
   - references/skill-writing-guide.md
-  - ../../_shared/references/primitive-routing.md
+needs:
+  - primitive-routing
 ---
 
 # Skill Creator
