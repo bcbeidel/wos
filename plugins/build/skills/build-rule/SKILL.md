@@ -113,11 +113,15 @@ Check for:
 - Rules with overlapping `paths:` globs (or both global) covering the
   same convention
 - Instructions that pull in opposite directions for the same scenario
-- When drafting multiple sibling rules in one invocation, check the
-  siblings against each other too
 
 If overlap found, ask: "This overlaps with `[existing rule]`. Merge,
 replace, or keep both with explicit boundaries?"
+
+**Sibling-conflict check (multi-rule invocations):** when drafting
+multiple rules in one invocation, after each sibling is drafted at
+Step 5, compare the new draft against earlier siblings in the batch
+for the same kinds of overlap. Resolve inline before moving that
+draft into Step 6 approval.
 
 ### 5. Draft (per rule)
 
@@ -138,6 +142,12 @@ paths:
 <Optional: one concrete example. When the rule requires judgment and
 the boundary is non-obvious, show a contrasting non-compliant example.>
 ```
+
+For judgment-based rules, `**How to apply:**` can be replaced by
+contrasting example pairs — the examples themselves convey the
+when/where without a separate prose line. Simple directive rules
+("Use snake_case for table names") benefit from the inline
+`**How to apply:**`; judgment-heavy rules lean on the example pair.
 
 Apply the principles without restating them here — the rubric is the
 principles doc. Key things to get right:
@@ -233,6 +243,11 @@ Narrates design (path-scoped, ~30 lines, example pair because the
 boundary is subtle). On approval, writes to
 `.claude/rules/staging-model-purity.md`.
 </example>
+
+**On heading names:** the `## Compliant` / `## Non-compliant` headings
+in the example above are one convention. Any heading or code-block
+arrangement works — `check-rule` audits example content (real code
+vs. synthetic), not heading names.
 
 ## Key Instructions
 

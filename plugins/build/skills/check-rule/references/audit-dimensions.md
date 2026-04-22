@@ -130,7 +130,7 @@ also name a target; pure prohibitions leave the target implicit.
 
 ### Dimension 2: Specificity
 
-*(principle — [Specific enough to be falsifiable](../../../_shared/references/rules-best-practices.md); canonical — Anthropic's "Use 2-space indentation" vs. "Format code properly" example)*
+*(principle — [Specific enough to be falsifiable](../../../_shared/references/rules-best-practices.md) + [Direct, definite voice](../../../_shared/references/rules-best-practices.md); canonical — Anthropic's "Use 2-space indentation" vs. "Format code properly" example)*
 
 **What it checks:** Whether the rule's directives are concrete enough
 that a reviewer (or Claude) can verify compliance unambiguously.
