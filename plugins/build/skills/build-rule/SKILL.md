@@ -4,8 +4,9 @@ description: Create a Claude Code rule under `.claude/rules/` — a markdown ins
 argument-hint: A topic name or description of the convention to capture
 user-invocable: true
 references:
-  - references/rule-format-guide.md
   - ../../_shared/references/primitive-routing.md
+  - ../../_shared/references/rule-canonical-form.md
+  - ../../_shared/references/rule-structured-intent.md
 ---
 
 # /build:build-rule
@@ -54,17 +55,9 @@ Two choices:
 | **Always-on** | none | Project-wide standards (e.g., naming conventions, commit message format) |
 | **Path-scoped** | `paths:` glob list | Rules that only apply when Claude works with specific files (e.g., backend rules in a monorepo) |
 
-Anthropic's example for path-scoping:
-```yaml
----
-paths:
-  - "src/api/**/*.ts"
----
-```
-
-Globs follow standard syntax. Brace expansion works:
-`"src/**/*.{ts,tsx}"`. Multiple patterns are listed under one `paths:`
-key.
+Frontmatter shape, multi-pattern / brace-expansion syntax, and glob
+reference: see the `rule-canonical-form.md` reference listed in
+frontmatter.
 
 ### 3. Check for Conflicts
 
@@ -83,26 +76,13 @@ replace, or keep both with explicit boundaries?"
 
 ### 4. Pick a Body Pattern
 
-Decide which pattern fits the rule. Both are plain markdown — Anthropic
-doesn't prescribe body structure beyond "specific over vague" and "use
-markdown headers/bullets". The choice is toolkit-opinion guidance.
+Decide which pattern fits the rule — a toolkit-opinion choice layered
+on top of Anthropic's canonical spec:
 
-| Pattern | Use when | Body shape |
-|---------|----------|------------|
-| **Directive** (Anthropic's example pattern) | Rule tells Claude what to do; no judgment needed | Headers + bullet list of verifiable directives |
-| **Enforcement** (toolkit-opinion structured shape) | Rule asks Claude to *judge* whether a file complies | `## Why` (failure cost + exception policy) → `## Compliant` example → `## Non-compliant` example |
-
-Apply Anthropic's guidance to both:
-- **Specific over vague.** "Use 2-space indentation" beats "Format code
-  properly". Vague rules ("be clean", "be consistent") produce uneven
-  adherence.
-- **Markdown structure.** Headers and bullets group related instructions.
-- **Size.** Target under 200 lines per rule file.
-- **One topic per file.** A rule covering two unrelated conventions is
-  two rules — split them.
-
-For the **Enforcement pattern**, the structured `## Why` section
-benefits from four components — see [rule-format-guide.md](references/rule-format-guide.md) → *Toolkit Recommendation: Structured Intent for Enforcement Rules* for the template, real-code example guidance, and default-closed declaration. These are toolkit-opinion conventions; they layer on top of the canonical primitive without introducing new frontmatter or required headings at the Anthropic-spec level.
+| Pattern | Use when |
+|---------|----------|
+| **Directive** (Anthropic's example pattern) | Rule tells Claude what to do; no judgment needed. Body conventions: [rule-canonical-form.md → Body Conventions](../../_shared/references/rule-canonical-form.md#body-conventions). |
+| **Enforcement** (toolkit-opinion structured shape) | Rule asks Claude to *judge* whether a file complies. Template, four-component `## Why`, example-pair guidance, and default-closed declaration: [rule-structured-intent.md](../../_shared/references/rule-structured-intent.md). |
 
 ### 5. Present for Approval
 
@@ -130,81 +110,38 @@ or the next time it reads a file matching `paths:` (scoped rules).
 ## Example
 
 <example>
-User: "I want a rule that staging dbt models only do casts, renames, and deduplication"
+User: "I want a rule that staging dbt models only do casts, renames, and deduplication."
 
-Assistant detects this as a backend / data-layer rule that should fire only
-when Claude reads files in `models/staging/`. Picks filename
-`staging-model-purity.md`. Checks `.claude/rules/` — no overlap.
+Assistant recognizes the rule asks Claude to *judge* whether a staging
+model complies — an **enforcement-pattern** rule, path-scoped to
+`models/staging/**/*.sql`. Picks filename `staging-model-purity.md`;
+scans `.claude/rules/` for overlap (none). Narrates the design:
 
-Drafts:
+- Filename + location: `.claude/rules/staging-model-purity.md`
+- Scope: path-scoped, `models/staging/**/*.sql`
+- Structure: enforcement pattern — `## Why` (failure cost + exception),
+  `## Compliant` / `## Non-compliant` SQL pair drawn from real staging
+  models, plus the default-closed declaration
+- What was skipped: directive-only body — the rule needs LLM judgment
+  against real SQL, so the example pair carries its weight
 
-```markdown
----
-paths:
-  - "models/staging/**/*.sql"
----
-
-# Staging Model Purity
-
-Staging models are a clean interface over raw sources. They must only:
-- Cast types (`cast(... as date)`, `cast(... as integer)`)
-- Rename columns (`select id as order_id, ...`)
-- Deduplicate (`qualify row_number() over (partition by ...) = 1`)
-
-## Why
-
-Business logic in staging (revenue calculations, tier classifications)
-couples source schema changes to business definitions. When either
-changes, both layers need coordinated updates.
-
-Exception: pure data-type normalization (e.g., parsing a date string
-to a date type) is permitted.
-
-## Compliant
-
-```sql
--- models/staging/stg_orders.sql
-select
-  id as order_id,
-  cast(order_date as date) as order_date,
-  cast(quantity as integer) as quantity
-from {{ source('raw', 'orders') }}
-qualify row_number() over (partition by id order by _loaded_at desc) = 1
-```
-
-## Non-compliant
-
-```sql
--- revenue calculation and tier classification are business logic
-select id, quantity * unit_price as revenue,
-  case when lifetime_value > 1000 then 'high' else 'standard' end as tier
-from {{ source('raw', 'orders') }}
-```
-```
-
-Narrates: filename `staging-model-purity.md`, path-scoped to
-`models/staging/**/*.sql`, ~25 lines, example-driven structure (rule needs
-LLM judgment so non-compliant/compliant pairs help). On approval, writes
-to `.claude/rules/staging-model-purity.md`.
+Shows the complete draft (following the template in
+`rule-structured-intent.md`) and holds the write until the user approves.
 </example>
 
 ## Key Instructions
 
 - Won't write a rule outside `.claude/rules/` — files at other paths are not loaded by Claude Code as rules. *(scope boundary)*
 - Won't replace a traditional linter — if the request is syntax, formatting, import ordering, or naming case enforced by tooling, redirect to the appropriate linter and stop. *(scope boundary)*
-- Default to always-on (no `paths:`) only for project-wide standards; reach for `paths:` when the rule is scoped to a directory or file type — unscoped rules consume context every session.
-- Write specific, verifiable instructions ("Use 2-space indentation"), not vague ones ("format code properly") — vague rules produce uneven adherence.
 - Run the conflict check (Step 3) before drafting — Anthropic warns that contradicting rules cause Claude to pick one arbitrarily.
 - Hold the write until the user approves the drafted rule (Step 5 gate).
-- Keep rules under 200 lines — split or move to a skill if they grow beyond that.
 
 ## Anti-Pattern Guards
 
 1. **Rule outside `.claude/rules/`** — Claude Code only auto-loads rules from `.claude/rules/` (and `~/.claude/rules/`); files elsewhere are inert. Refuse to write to `docs/rules/` or other invented paths.
-2. **Vague directive** ("be clean", "format properly") — restate in concrete, verifiable terms before accepting the rule.
-3. **Convention enforceable by a traditional linter** (syntax, formatting, import ordering) — redirect to the linter and stop.
-4. **Conflict check skipped** — run Step 3 before drafting; contradicting rules produce arbitrary behavior.
-5. **Always-on rule that should be path-scoped** — flag rules whose content names a specific directory or file type but that omit `paths:`; the unscoped rule consumes context every session for content that only applies sometimes.
+2. **Convention enforceable by a traditional linter** (syntax, formatting, import ordering) — redirect to the linter and stop.
+3. **Conflict check skipped** — run Step 3 before drafting; contradicting rules produce arbitrary behavior.
+4. **Writing before approval** — hold the write until Step 5 approval; the review gate is where design errors surface.
 
 ## Handoff
 
