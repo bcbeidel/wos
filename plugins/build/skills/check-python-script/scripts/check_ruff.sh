@@ -6,7 +6,7 @@
 #
 # Ruff is optional — when absent, this script emits a single INFO line
 # naming the reduced coverage and exits 0, matching the peer
-# check-shell's Missing Tools preamble pattern. Other Tier-1 scripts
+# check-bash-script's Missing Tools preamble pattern. Other Tier-1 scripts
 # continue running.
 #
 # Covers:

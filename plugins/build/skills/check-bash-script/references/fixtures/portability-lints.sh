@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 #
-# Fixture: Portability lints for /build:check-shell.
+# Fixture: Portability lints for /build:check-bash-script.
 #
 # Target declaration: bash-3.2-portable (so bash-4+ features flag P1).
 # Each planted lint is preceded by a `# LINT:` comment naming the lint.
-# This fixture is not intended to run; it exists so check-shell can
+# This fixture is not intended to run; it exists so check-bash-script can
 # demonstrate detection of every Portability-group lint.
 
 set -Eeuo pipefail

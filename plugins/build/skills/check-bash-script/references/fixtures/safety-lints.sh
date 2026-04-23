@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 #
-# Fixture: Safety lints for /build:check-shell.
+# Fixture: Safety lints for /build:check-bash-script.
 #
 # Target declaration: bash-3.2-portable. Each planted lint is preceded
 # by a `# LINT:` comment naming the lint. This fixture is not intended
-# to run correctly; it exists so check-shell can demonstrate detection
+# to run correctly; it exists so check-bash-script can demonstrate detection
 # of every Safety-group lint.
 
 # (intentionally no `set -Eeuo pipefail` — so we can plant unsafe

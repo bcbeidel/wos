@@ -99,4 +99,4 @@ When the routing test lands on "a script" (glue code, a CLI tool, a hook body), 
 
 **Escalation — start as a script, graduate to a package.** Either language: when the script grows a second entry point, acquires shared state across invocations, runs as a long-lived service, or its test coverage exceeds its code, convert to a proper package. Both Scope Gates flag these signals explicitly.
 
-Route: `/build:build-shell` for shell; `/build:build-python-script` for Python.
+Route: `/build:build-bash-script` for Bash 4.0+; `/build:build-python-script` for Python. POSIX `sh` is out of scope for both — when genuine portability to `dash`/BusyBox/Alpine is required, choose a different language.
