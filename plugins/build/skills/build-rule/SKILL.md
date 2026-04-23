@@ -4,7 +4,7 @@ description: Create a Claude Code rule under `.claude/rules/` — a markdown ins
 argument-hint: A topic name or description of the convention to capture
 user-invocable: true
 references:
-  - ../../_shared/references/rules-best-practices.md
+  - ../../_shared/references/rule-best-practices.md
   - ../../_shared/references/primitive-routing.md
 ---
 
@@ -17,7 +17,7 @@ See [Anthropic's `.claude/rules/` reference](https://code.claude.com/docs/en/mem
 
 Authoring principles — what makes a rule load-bearing, the anatomy
 template, patterns that work — live in
-[rules-best-practices.md](../../_shared/references/rules-best-practices.md).
+[rule-best-practices.md](../../_shared/references/rule-best-practices.md).
 This skill is the workflow; the principles doc is the rubric.
 
 ## Workflow
@@ -66,7 +66,7 @@ Example fork:
 >
 > Accept, merge any, or re-split?"
 
-This enforces *one claim per file* (from rules-best-practices.md)
+This enforces *one claim per file* (from rule-best-practices.md)
 at intake rather than after drafting.
 
 ### 2. Pick a Topic Name (per rule)
@@ -126,7 +126,7 @@ draft into Step 6 approval.
 ### 5. Draft (per rule)
 
 Follow the anatomy template from
-[rules-best-practices.md](../../_shared/references/rules-best-practices.md):
+[rule-best-practices.md](../../_shared/references/rule-best-practices.md):
 
 ```markdown
 ---
@@ -254,7 +254,7 @@ vs. synthetic), not heading names.
 - Run the Step 0 primitive check before drafting — if the ask fits a hook or linter better, redirect and stop
 - At Step 1, detect multi-concern input and propose a split before any drafting — one claim per file is a principle; enforce it at intake
 - Run the Step 4 conflict check before drafting — Anthropic warns that contradicting rules cause Claude to pick one arbitrarily
-- Draft against the anatomy template and principles from [rules-best-practices.md](../../_shared/references/rules-best-practices.md); don't invent new frontmatter fields or required sections
+- Draft against the anatomy template and principles from [rule-best-practices.md](../../_shared/references/rule-best-practices.md); don't invent new frontmatter fields or required sections
 - Hold each write until the user approves that rule's draft (Step 6 gate) — gate per rule, not per batch
 - Keep rules short; split when they approach the audit's 200-line warn threshold (check-rule fails at 500)
 
@@ -272,4 +272,4 @@ vs. synthetic), not heading names.
 
 **Receives:** Topic name or description of one or more conventions to capture
 **Produces:** One or more rule files under `.claude/rules/` (or subdirectories)
-**Chainable to:** check-rule (verify new rules fit the existing library without conflicts)
+**Chainable to:** `/build:check-rule` (verify new rules fit the existing library without conflicts)
