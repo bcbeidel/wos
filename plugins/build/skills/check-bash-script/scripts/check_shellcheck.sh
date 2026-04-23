@@ -34,15 +34,17 @@ set -Eeuo pipefail
 IFS=$'\n\t'
 
 PROGNAME="$(basename "${0}")"
+readonly PROGNAME
 
-REQUIRED_CMDS=(awk find basename head)
+readonly REQUIRED_CMDS=(awk find basename head)
 
 # Rule codes that escalate to FAIL; everything else is WARN.
-FAIL_CODES="SC2086 SC2046 SC2068 SC2294 SC2010 SC2012 SC2045"
+readonly FAIL_CODES="SC2086 SC2046 SC2068 SC2294 SC2010 SC2012 SC2045"
 
 # The explicit selector set — kept in lockstep with the FAIL_CODES list
 # and the audit-dimensions.md severity column.
-SHELLCHECK_INCLUDE="SC2086,SC2046,SC2068,SC2154,SC2155,SC2006,SC2010,SC2012,SC2045,SC2013,SC2162,SC2038,SC2164,SC2002,SC2294"
+readonly SHELLCHECK_INCLUDE="SC2086,SC2046,SC2068,SC2154,SC2155,SC2006,SC2010,SC2012,SC2045,""\
+SC2013,SC2162,SC2038,SC2164,SC2002,SC2294"
 
 usage() {
   cat <<'EOF'
@@ -67,8 +69,8 @@ EOF
 
 install_hint() {
   case "${1}" in
-    awk|find|basename|head) printf 'should be preinstalled on any POSIX system' ;;
-    *)                      printf 'see your package manager' ;;
+    awk | find | basename | head) printf 'should be preinstalled on any POSIX system' ;;
+    *) printf 'see your package manager' ;;
   esac
 }
 
@@ -80,7 +82,7 @@ preflight() {
       missing+=("${cmd}")
     fi
   done
-  if [ "${#missing[@]}" -gt 0 ]; then
+  if [[ "${#missing[@]}" -gt 0 ]]; then
     for cmd in "${missing[@]}"; do
       printf '%s: missing required command %q. Install: %s\n' \
         "${PROGNAME}" "${cmd}" "$(install_hint "${cmd}")" >&2
@@ -93,36 +95,37 @@ severity_for() {
   local code="$1"
   case " ${FAIL_CODES} " in
     *" ${code} "*) printf 'FAIL' ;;
-    *)             printf 'WARN' ;;
+    *) printf 'WARN' ;;
   esac
 }
 
 recommend_for() {
   case "$1" in
-    SC2086|SC2046) printf 'Quote the expansion: "$var" or "$(cmd)".' ;;
-    SC2068)        printf 'Use "$@" to forward arguments — never unquoted $@.' ;;
-    SC2294)        printf 'Replace `eval "${arr[@]}"` with `"${arr[@]}"` — invoking the array directly.' ;;
-    SC2154)        printf 'Either assign the variable, add a default `${var:-x}`, or guard with `${var:?msg}`.' ;;
-    SC2155)        printf 'Split: `local x` then `x="$(cmd)"` to preserve the substitution exit status.' ;;
-    SC2006)        printf 'Replace backticks with $(...) — nestable and readable.' ;;
-    SC2010|SC2012|SC2045) printf 'Do not parse ls output — use globs or `find -print0 | xargs -0`.' ;;
-    SC2013|SC2162) printf 'Use `while IFS= read -r line; do ...; done < file` for line iteration.' ;;
-    SC2038)        printf 'Use `find ... -print0 | xargs -0 ...` (or `-exec ... {} +`) for filename safety.' ;;
-    SC2164)        printf 'Add `|| exit` after `cd`, or rely on `set -e` and document.' ;;
-    SC2002)        printf 'Pipe directly: `cmd file` instead of `cat file | cmd` (style; suppress with comment if intentional).' ;;
-    *)             printf 'See https://www.shellcheck.net/wiki/%s for details.' "$1" ;;
+    SC2086 | SC2046) printf 'Quote the expansion: "${var}" or "$(cmd)".' ;;
+    SC2068) printf 'Use "$@" to forward arguments — never unquoted $@.' ;;
+    # eval-justified: word appears in SC2294 recommendation text, not as an invocation
+    SC2294) printf 'Invoke the array directly: "${arr[@]}" — never eval it.' ;;
+    SC2154) printf 'Assign the variable, set a default ${var:-x}, or guard with ${var:?msg}.' ;;
+    SC2155) printf 'Split: `local x` then `x="$(cmd)"` to preserve the substitution exit status.' ;;
+    SC2006) printf 'Replace backticks with $(...) — nestable and readable.' ;;
+    SC2010 | SC2012 | SC2045) printf 'Do not parse ls — use globs or find -print0 | xargs -0.' ;;
+    SC2013 | SC2162) printf 'Use while IFS= read -r line; do ...; done < file for iteration.' ;;
+    SC2038) printf 'Use find -print0 | xargs -0 or -exec {} + for filename safety.' ;;
+    SC2164) printf 'Add `|| exit` after `cd`, or rely on `set -e` and document.' ;;
+    SC2002) printf 'Pipe directly: cmd file instead of cat file | cmd (style-only).' ;;
+    *) printf 'See https://www.shellcheck.net/wiki/%s for details.' "$1" ;;
   esac
 }
 
 is_bash_script() {
   local file="$1"
   case "${file}" in
-    *.sh|*.bash) return 0 ;;
+    *.sh | *.bash) return 0 ;;
   esac
   local first
   first="$(head -n 1 "${file}" 2>/dev/null || true)"
   case "${first}" in
-    "#!/usr/bin/env bash"|"#!/bin/bash"|"#!/usr/bin/env -S bash"*) return 0 ;;
+    "#!/usr/bin/env bash" | "#!/bin/bash" | "#!/usr/bin/env -S bash"*) return 0 ;;
   esac
   return 1
 }
@@ -142,20 +145,26 @@ check_one() {
     path="$(printf '%s' "${line}" | awk -F: '{print $1}')"
     lineno="$(printf '%s' "${line}" | awk -F: '{print $2}')"
     col="$(printf '%s' "${line}" | awk -F: '{print $3}')"
-    message="$(printf '%s' "${line}" | awk -F: '{for (i=5; i<=NF; i++) printf "%s%s", $i, (i==NF?"":":")}')"
+    message="$(
+      printf '%s' "${line}" \
+        | awk -F: '{for (i=5; i<=NF; i++) printf "%s%s", $i, (i==NF?"":":")}'
+    )"
     code="$(printf '%s' "${message}" | awk -F'[][]' '{print $(NF-1)}')"
     case "${code}" in
       SC*) ;;
-      *) continue ;;  # unrecognized line shape
+      *) continue ;; # unrecognized line shape
     esac
     severity="$(severity_for "${code}")"
     printf '%s  %s — %s: %s (line %s:%s)\n' \
       "${severity}" "${path}" "${code}" "${message# }" "${lineno}" "${col}"
     printf '  Recommendation: %s\n' "$(recommend_for "${code}")"
-    if [ "${severity}" = "FAIL" ]; then
+    if [[ "${severity}" = "FAIL" ]]; then
       any=1
     fi
-  done < <(shellcheck --include="${SHELLCHECK_INCLUDE}" --format=gcc "${target}" 2>/dev/null || true)
+  done < <(
+    shellcheck --include="${SHELLCHECK_INCLUDE}" --format=gcc "${target}" \
+      2>/dev/null || true
+  )
 
   return "${any}"
 }
@@ -165,16 +174,19 @@ check_path() {
   local any=0
   local file
 
-  if [ -f "${target}" ]; then
+  if [[ -f "${target}" ]]; then
     if is_bash_script "${target}"; then
       check_one "${target}" || any=1
     fi
-  elif [ -d "${target}" ]; then
+  elif [[ -d "${target}" ]]; then
     while IFS= read -r file; do
       if is_bash_script "${file}"; then
         check_one "${file}" || any=1
       fi
-    done < <(find "${target}" -maxdepth 1 -type f \( -name '*.sh' -o -name '*.bash' -o ! -name '*.*' \) 2>/dev/null)
+    done < <(
+      find "${target}" -maxdepth 1 -type f \
+        \( -name '*.sh' -o -name '*.bash' -o ! -name '*.*' \) 2>/dev/null
+    )
   else
     printf '%s: path not found: %s\n' "${PROGNAME}" "${target}" >&2
     return 64
@@ -183,13 +195,16 @@ check_path() {
 }
 
 main() {
-  if [ "$#" -eq 0 ]; then
+  if [[ "$#" -eq 0 ]]; then
     usage >&2
     exit 64
   fi
 
   case "${1:-}" in
-    -h|--help) usage; exit 0 ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
   esac
 
   preflight
@@ -210,6 +225,6 @@ main() {
   exit "${any}"
 }
 
-if [ "${0}" = "${BASH_SOURCE[0]:-$0}" ]; then
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   main "$@"
 fi
