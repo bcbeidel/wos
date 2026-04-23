@@ -38,16 +38,17 @@ set -Eeuo pipefail
 IFS=$'\n\t'
 
 PROGNAME="$(basename "${0}")"
+readonly PROGNAME
 
-REQUIRED_CMDS=(awk find basename)
+readonly REQUIRED_CMDS=(awk find basename)
 
 # Rule codes that escalate to FAIL; all other ruff findings are WARN.
 # S604 is included with S602 (subprocess shell=True variants).
-FAIL_CODES="E722 F403 S108 S307 S602 S604"
+readonly FAIL_CODES="E722 F403 S108 S307 S602 S604"
 
 # The explicit selector set we pass to ruff. Kept in lockstep with the
 # severity map in emit_finding() so drift is visible at review time.
-RUFF_SELECT="D100,E722,SIM115,PLW1514,PTH,S602,S604,S307,F401,ANN,F403,S108,UP031,UP032"
+readonly RUFF_SELECT="D100,E722,SIM115,PLW1514,PTH,S602,S604,S307,F401,ANN,F403,S108,UP031,UP032"
 
 usage() {
   cat <<'EOF'
@@ -72,9 +73,9 @@ EOF
 
 install_hint() {
   case "${1}" in
-    awk|find|basename) printf 'should be preinstalled on any POSIX system' ;;
-    python3)           printf 'brew install python  |  apt install python3  |  dnf install python3' ;;
-    *)                 printf 'see your package manager' ;;
+    awk | find | basename) printf 'should be preinstalled on any POSIX system' ;;
+    python3) printf 'brew install python  |  apt install python3  |  dnf install python3' ;;
+    *) printf 'see your package manager' ;;
   esac
 }
 
@@ -86,7 +87,7 @@ preflight() {
       missing+=("${cmd}")
     fi
   done
-  if [ "${#missing[@]}" -gt 0 ]; then
+  if [[ "${#missing[@]}" -gt 0 ]]; then
     for cmd in "${missing[@]}"; do
       printf '%s: missing required command %q. Install: %s\n' \
         "${PROGNAME}" "${cmd}" "$(install_hint "${cmd}")" >&2
@@ -100,26 +101,26 @@ severity_for() {
   local code="$1"
   case " ${FAIL_CODES} " in
     *" ${code} "*) printf 'FAIL' ;;
-    *)             printf 'WARN' ;;
+    *) printf 'WARN' ;;
   esac
 }
 
 # Given a ruff rule code, emit a one-line repair hint.
 recommend_for() {
   case "$1" in
-    D100)    printf 'Add a module docstring as the first statement, naming the purpose and one example invocation.' ;;
-    E722)    printf 'Catch a specific exception type (FileNotFoundError, ValueError, ...) or use except Exception as err in main().' ;;
-    SIM115)  printf "Wrap the open() in a with statement so cleanup runs on exceptions." ;;
+    D100) printf 'Add a module docstring naming the purpose and one example invocation.' ;;
+    E722) printf "Catch a specific exception or use 'except Exception as err' in main()." ;;
+    SIM115) printf "Wrap the open() in a with statement so cleanup runs on exceptions." ;;
     PLW1514) printf "Pass encoding='utf-8' to open() to avoid platform-dependent defaults." ;;
-    PTH*)    printf 'Use pathlib.Path instead of os.path string manipulation.' ;;
-    S602|S604) printf 'Pass subprocess args as a list; never shell=True with interpolated input.' ;;
-    S307)    printf 'Replace eval/exec with ast.literal_eval or an explicit dispatch table.' ;;
-    F401)    printf 'Remove the unused import.' ;;
-    ANN*)    printf 'Add type annotations to the function signature.' ;;
-    F403)    printf 'Replace wildcard import with explicit named imports.' ;;
-    S108)    printf 'Use tempfile.TemporaryDirectory()/NamedTemporaryFile() instead of hand-built /tmp paths.' ;;
-    UP031|UP032) printf 'Rewrite as an f-string.' ;;
-    *)       printf 'See the ruff docs for this rule.' ;;
+    PTH*) printf 'Use pathlib.Path instead of os.path string manipulation.' ;;
+    S602 | S604) printf 'Pass subprocess args as a list; never shell=True with input.' ;;
+    S307) printf 'Replace eval/exec with ast.literal_eval or an explicit dispatch table.' ;;
+    F401) printf 'Remove the unused import.' ;;
+    ANN*) printf 'Add type annotations to the function signature.' ;;
+    F403) printf 'Replace wildcard import with explicit named imports.' ;;
+    S108) printf 'Use tempfile.NamedTemporaryFile/TemporaryDirectory, not hand-built /tmp paths.' ;;
+    UP031 | UP032) printf 'Rewrite as an f-string.' ;;
+    *) printf 'See the ruff docs for this rule.' ;;
   esac
 }
 
@@ -147,7 +148,7 @@ emit_finding() {
     "${severity}" "${path}" "${code}" "${message}" "${lineno}" "${col}"
   printf '  Recommendation: %s\n' "$(recommend_for "${code}")"
 
-  if [ "${severity}" = "FAIL" ]; then
+  if [[ "${severity}" = "FAIL" ]]; then
     return 1
   fi
   return 0
@@ -163,10 +164,13 @@ check_one() {
   while IFS= read -r line; do
     # Skip ruff's trailing summary lines ("Found N errors.").
     case "${line}" in
-      ""|"Found "*|"All checks passed"*) continue ;;
+      "" | "Found "* | "All checks passed"*) continue ;;
     esac
     emit_finding "${line}" || any=1
-  done < <(ruff check --no-cache --output-format=concise --select="${RUFF_SELECT}" "${target}" 2>/dev/null || true)
+  done < <(
+    ruff check --no-cache --output-format=concise \
+      --select="${RUFF_SELECT}" "${target}" 2>/dev/null || true
+  )
 
   # Format drift — separate invocation.
   if ! ruff format --check --no-cache "${target}" >/dev/null 2>&1; then
@@ -182,11 +186,11 @@ check_path() {
   local any=0
   local file
 
-  if [ -f "${target}" ]; then
+  if [[ -f "${target}" ]]; then
     case "${target}" in
       *.py) check_one "${target}" || any=1 ;;
     esac
-  elif [ -d "${target}" ]; then
+  elif [[ -d "${target}" ]]; then
     while IFS= read -r file; do
       check_one "${file}" || any=1
     done < <(find "${target}" -maxdepth 1 -type f -name '*.py' 2>/dev/null)
@@ -198,13 +202,16 @@ check_path() {
 }
 
 main() {
-  if [ "$#" -eq 0 ]; then
+  if [[ "$#" -eq 0 ]]; then
     usage >&2
     exit 64
   fi
 
   case "${1:-}" in
-    -h|--help) usage; exit 0 ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
   esac
 
   preflight
@@ -227,6 +234,6 @@ main() {
   exit "${any}"
 }
 
-if [ "${0}" = "${BASH_SOURCE[0]:-$0}" ]; then
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   main "$@"
 fi
