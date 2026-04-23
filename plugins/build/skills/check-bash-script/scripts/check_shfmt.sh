@@ -23,10 +23,11 @@ set -Eeuo pipefail
 IFS=$'\n\t'
 
 PROGNAME="$(basename "${0}")"
+readonly PROGNAME
 
-REQUIRED_CMDS=(find basename head)
+readonly REQUIRED_CMDS=(find basename head)
 
-SHFMT_FLAGS=(-i 2 -ci -bn)
+readonly SHFMT_FLAGS=(-i 2 -ci -bn)
 
 usage() {
   cat <<'EOF'
@@ -51,8 +52,8 @@ EOF
 
 install_hint() {
   case "${1}" in
-    find|basename|head) printf 'should be preinstalled on any POSIX system' ;;
-    *)                  printf 'see your package manager' ;;
+    find | basename | head) printf 'should be preinstalled on any POSIX system' ;;
+    *) printf 'see your package manager' ;;
   esac
 }
 
@@ -64,7 +65,7 @@ preflight() {
       missing+=("${cmd}")
     fi
   done
-  if [ "${#missing[@]}" -gt 0 ]; then
+  if [[ "${#missing[@]}" -gt 0 ]]; then
     for cmd in "${missing[@]}"; do
       printf '%s: missing required command %q. Install: %s\n' \
         "${PROGNAME}" "${cmd}" "$(install_hint "${cmd}")" >&2
@@ -76,12 +77,12 @@ preflight() {
 is_bash_script() {
   local file="$1"
   case "${file}" in
-    *.sh|*.bash) return 0 ;;
+    *.sh | *.bash) return 0 ;;
   esac
   local first
   first="$(head -n 1 "${file}" 2>/dev/null || true)"
   case "${first}" in
-    "#!/usr/bin/env bash"|"#!/bin/bash"|"#!/usr/bin/env -S bash"*) return 0 ;;
+    "#!/usr/bin/env bash" | "#!/bin/bash" | "#!/usr/bin/env -S bash"*) return 0 ;;
   esac
   return 1
 }
@@ -100,16 +101,19 @@ check_path() {
   local target="$1"
   local file
 
-  if [ -f "${target}" ]; then
+  if [[ -f "${target}" ]]; then
     if is_bash_script "${target}"; then
       check_one "${target}"
     fi
-  elif [ -d "${target}" ]; then
+  elif [[ -d "${target}" ]]; then
     while IFS= read -r file; do
       if is_bash_script "${file}"; then
         check_one "${file}"
       fi
-    done < <(find "${target}" -maxdepth 1 -type f \( -name '*.sh' -o -name '*.bash' -o ! -name '*.*' \) 2>/dev/null)
+    done < <(
+      find "${target}" -maxdepth 1 -type f \
+        \( -name '*.sh' -o -name '*.bash' -o ! -name '*.*' \) 2>/dev/null
+    )
   else
     printf '%s: path not found: %s\n' "${PROGNAME}" "${target}" >&2
     return 64
@@ -117,13 +121,16 @@ check_path() {
 }
 
 main() {
-  if [ "$#" -eq 0 ]; then
+  if [[ "$#" -eq 0 ]]; then
     usage >&2
     exit 64
   fi
 
   case "${1:-}" in
-    -h|--help) usage; exit 0 ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
   esac
 
   preflight
@@ -143,6 +150,6 @@ main() {
   exit 0
 }
 
-if [ "${0}" = "${BASH_SOURCE[0]:-$0}" ]; then
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   main "$@"
 fi

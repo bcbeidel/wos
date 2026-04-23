@@ -19,8 +19,9 @@ set -Eeuo pipefail
 IFS=$'\n\t'
 
 PROGNAME="$(basename "${0}")"
+readonly PROGNAME
 
-REQUIRED_CMDS=(awk find basename head)
+readonly REQUIRED_CMDS=(awk find basename head)
 
 usage() {
   cat <<'EOF'
@@ -47,8 +48,8 @@ EOF
 
 install_hint() {
   case "${1}" in
-    awk|find|basename|head) printf 'should be preinstalled on any POSIX system' ;;
-    *)                      printf 'see your package manager' ;;
+    awk | find | basename | head) printf 'should be preinstalled on any POSIX system' ;;
+    *) printf 'see your package manager' ;;
   esac
 }
 
@@ -60,7 +61,7 @@ preflight() {
       missing+=("${cmd}")
     fi
   done
-  if [ "${#missing[@]}" -gt 0 ]; then
+  if [[ "${#missing[@]}" -gt 0 ]]; then
     for cmd in "${missing[@]}"; do
       printf '%s: missing required command %q. Install: %s\n' \
         "${PROGNAME}" "${cmd}" "$(install_hint "${cmd}")" >&2
@@ -72,12 +73,12 @@ preflight() {
 is_bash_script() {
   local file="$1"
   case "${file}" in
-    *.sh|*.bash) return 0 ;;
+    *.sh | *.bash) return 0 ;;
   esac
   local first
   first="$(head -n 1 "${file}" 2>/dev/null || true)"
   case "${first}" in
-    "#!/usr/bin/env bash"|"#!/bin/bash"|"#!/usr/bin/env -S bash"*) return 0 ;;
+    "#!/usr/bin/env bash" | "#!/bin/bash" | "#!/usr/bin/env -S bash"*) return 0 ;;
   esac
   return 1
 }
@@ -90,12 +91,12 @@ check_bracket_test() {
   # Heuristic: emit WARN per file, capped at 3.
   local emitted=0
   while IFS=: read -r lineno _; do
-    if [ "${emitted}" -ge 3 ]; then
+    if [[ "${emitted}" -ge 3 ]]; then
       break
     fi
     printf 'WARN  %s — bracket-test: line %s uses `[ ... ]`; prefer `[[ ... ]]` in bash\n' \
       "${file}" "${lineno}"
-    printf '  Recommendation: Replace `[ ... ]` with `[[ ... ]]` — no word-splitting, supports pattern matching.\n'
+    printf '  Recommendation: Use double-bracket tests (no word-splitting, pattern matching).\n'
     emitted=$((emitted + 1))
   done < <(awk '
     # Skip comments
@@ -116,12 +117,12 @@ check_printf_over_echo() {
   # are the cases printf handles more portably. Skip plain `echo "literal"`.
   local emitted=0
   while IFS=: read -r lineno _; do
-    if [ "${emitted}" -ge 3 ]; then
+    if [[ "${emitted}" -ge 3 ]]; then
       break
     fi
-    printf 'WARN  %s — printf-over-echo: line %s uses `echo` with flags or escapes; prefer `printf`\n' \
+    printf 'WARN  %s — printf-over-echo: line %s non-trivial output; prefer printf\n' \
       "${file}" "${lineno}"
-    printf '  Recommendation: Replace `echo -e/-n/escapes` with `printf` for portable output.\n'
+    printf '  Recommendation: Use printf for portable output with flags or escape sequences.\n'
     emitted=$((emitted + 1))
   done < <(awk '
     /^[[:space:]]*#/ { next }
@@ -139,12 +140,13 @@ check_var_braces() {
   # positives possible. Cap at 3 per file.
   local emitted=0
   while IFS=: read -r lineno _; do
-    if [ "${emitted}" -ge 3 ]; then
+    if [[ "${emitted}" -ge 3 ]]; then
       break
     fi
-    printf 'WARN  %s — var-braces: line %s has `$var` adjacent to identifier text; use `${var}` braces\n' \
+    # var-braces-justified: finding message literally shows the anti-pattern
+    printf 'WARN  %s — var-braces: line %s has bare-dollar expansion next to identifier chars\n' \
       "${file}" "${lineno}"
-    printf '  Recommendation: Use `${var}` when the expansion abuts characters that could be part of an identifier.\n'
+    printf '  Recommendation: Brace the expansion when it abuts identifier characters.\n'
     emitted=$((emitted + 1))
   done < <(awk '
     /^[[:space:]]*#/ { next }
@@ -177,16 +179,19 @@ check_path() {
   local target="$1"
   local file
 
-  if [ -f "${target}" ]; then
+  if [[ -f "${target}" ]]; then
     if is_bash_script "${target}"; then
       check_file "${target}"
     fi
-  elif [ -d "${target}" ]; then
+  elif [[ -d "${target}" ]]; then
     while IFS= read -r file; do
       if is_bash_script "${file}"; then
         check_file "${file}"
       fi
-    done < <(find "${target}" -maxdepth 1 -type f \( -name '*.sh' -o -name '*.bash' -o ! -name '*.*' \) 2>/dev/null)
+    done < <(
+      find "${target}" -maxdepth 1 -type f \
+        \( -name '*.sh' -o -name '*.bash' -o ! -name '*.*' \) 2>/dev/null
+    )
   else
     printf '%s: path not found: %s\n' "${PROGNAME}" "${target}" >&2
     return 64
@@ -194,13 +199,16 @@ check_path() {
 }
 
 main() {
-  if [ "$#" -eq 0 ]; then
+  if [[ "$#" -eq 0 ]]; then
     usage >&2
     exit 64
   fi
 
   case "${1:-}" in
-    -h|--help) usage; exit 0 ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
   esac
 
   preflight
@@ -213,6 +221,6 @@ main() {
   exit 0
 }
 
-if [ "${0}" = "${BASH_SOURCE[0]:-$0}" ]; then
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   main "$@"
 fi

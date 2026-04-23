@@ -29,12 +29,14 @@ set -Eeuo pipefail
 IFS=$'\n\t'
 
 PROGNAME="$(basename "${0}")"
+readonly PROGNAME
 
-REQUIRED_CMDS=(awk find basename head grep)
+readonly REQUIRED_CMDS=(awk find basename head grep)
 
 usage() {
+  # eval-justified: word appears in help text below, not as an invocation
   cat <<'EOF'
-check_safety.sh — Bash safety checks: eval / GNU flags / tmp literals.
+check_safety.sh — Bash safety checks: eval-use, GNU flags, tmp literals.
 
 Usage:
   check_safety.sh <path> [<path> ...]
@@ -52,8 +54,8 @@ EOF
 
 install_hint() {
   case "${1}" in
-    awk|find|basename|head|grep) printf 'should be preinstalled on any POSIX system' ;;
-    *)                           printf 'see your package manager' ;;
+    awk | find | basename | head | grep) printf 'should be preinstalled on any POSIX system' ;;
+    *) printf 'see your package manager' ;;
   esac
 }
 
@@ -65,7 +67,7 @@ preflight() {
       missing+=("${cmd}")
     fi
   done
-  if [ "${#missing[@]}" -gt 0 ]; then
+  if [[ "${#missing[@]}" -gt 0 ]]; then
     for cmd in "${missing[@]}"; do
       printf '%s: missing required command %q. Install: %s\n' \
         "${PROGNAME}" "${cmd}" "$(install_hint "${cmd}")" >&2
@@ -77,12 +79,12 @@ preflight() {
 is_bash_script() {
   local file="$1"
   case "${file}" in
-    *.sh|*.bash) return 0 ;;
+    *.sh | *.bash) return 0 ;;
   esac
   local first
   first="$(head -n 1 "${file}" 2>/dev/null || true)"
   case "${first}" in
-    "#!/usr/bin/env bash"|"#!/bin/bash"|"#!/usr/bin/env -S bash"*) return 0 ;;
+    "#!/usr/bin/env bash" | "#!/bin/bash" | "#!/usr/bin/env -S bash"*) return 0 ;;
   esac
   return 1
 }
@@ -103,10 +105,12 @@ check_eval() {
       || [[ "${prev_line}" == *"eval-justified:"* ]]; then
       continue
     fi
+    # eval-justified: following printf lines are user-facing finding/recommendation text
     printf 'FAIL  %s — eval: line %s uses `eval` without justification comment\n' \
       "${file}" "${lineno}"
-    printf '  Recommendation: Replace eval with case dispatch / parameter expansion / array invocation. '
-    printf 'If genuinely required, add `# shellcheck disable=SC2294 # <reason>` or `# eval-justified: <reason>`.\n'
+    # eval-justified: word appears in recommendation message, not as a bash invocation
+    printf '  Recommendation: Replace eval with case dispatch, parameter expansion, or array call. '
+    printf 'If required, add # shellcheck disable=SC2294 or # eval-justified comment.\n'
     fail=1
   done < <(awk '
     /^[[:space:]]*#/ { next }
@@ -123,7 +127,7 @@ check_gnu_flags() {
   fi
   local emitted=0
   while IFS=: read -r lineno match; do
-    if [ "${emitted}" -ge 3 ]; then
+    if [[ "${emitted}" -ge 3 ]]; then
       break
     fi
     printf 'WARN  %s — gnu-flags: line %s uses GNU-only flag (%s)\n' \
@@ -133,7 +137,9 @@ check_gnu_flags() {
     emitted=$((emitted + 1))
   done < <(awk '
     /^[[:space:]]*#/ { next }
-    /sed[[:space:]]+-i[[:space:]]/ && !/sed[[:space:]]+-i[[:space:]]+["'"'"']/ { printf "%d:sed -i (no backup arg, GNU-only)\n", NR; next }
+    /sed[[:space:]]+-i[[:space:]]/ && !/sed[[:space:]]+-i[[:space:]]+["'"'"']/ {
+      printf "%d:sed -i (no backup arg, GNU-only)\n", NR; next
+    }
     /grep[[:space:]]+(-[a-zA-Z]*)?P/ { printf "%d:grep -P\n", NR; next }
     /readlink[[:space:]]+-f/ { printf "%d:readlink -f\n", NR; next }
     /[^a-zA-Z]date[[:space:]]+-d[[:space:]]/ { printf "%d:date -d\n", NR; next }
@@ -146,7 +152,7 @@ check_tmp_literal() {
   local file="$1"
   local fail=0
   while IFS=: read -r lineno _; do
-    printf 'FAIL  %s — tmp-literal: line %s contains hardcoded /tmp/ or /var/tmp/ path literal\n' \
+    printf 'FAIL  %s — tmp-literal: line %s has hardcoded /tmp or /var/tmp literal\n' \
       "${file}" "${lineno}"
     printf '  Recommendation: Use `mktemp` (or `mktemp -d`) and pair with `trap` cleanup.\n'
     fail=1
@@ -171,16 +177,19 @@ check_path() {
   local any=0
   local file
 
-  if [ -f "${target}" ]; then
+  if [[ -f "${target}" ]]; then
     if is_bash_script "${target}"; then
       check_file "${target}" || any=1
     fi
-  elif [ -d "${target}" ]; then
+  elif [[ -d "${target}" ]]; then
     while IFS= read -r file; do
       if is_bash_script "${file}"; then
         check_file "${file}" || any=1
       fi
-    done < <(find "${target}" -maxdepth 1 -type f \( -name '*.sh' -o -name '*.bash' -o ! -name '*.*' \) 2>/dev/null)
+    done < <(
+      find "${target}" -maxdepth 1 -type f \
+        \( -name '*.sh' -o -name '*.bash' -o ! -name '*.*' \) 2>/dev/null
+    )
   else
     printf '%s: path not found: %s\n' "${PROGNAME}" "${target}" >&2
     return 64
@@ -189,13 +198,16 @@ check_path() {
 }
 
 main() {
-  if [ "$#" -eq 0 ]; then
+  if [[ "$#" -eq 0 ]]; then
     usage >&2
     exit 64
   fi
 
   case "${1:-}" in
-    -h|--help) usage; exit 0 ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
   esac
 
   preflight
@@ -209,6 +221,6 @@ main() {
   exit "${any}"
 }
 
-if [ "${0}" = "${BASH_SOURCE[0]:-$0}" ]; then
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   main "$@"
 fi

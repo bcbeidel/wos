@@ -27,11 +27,12 @@ set -Eeuo pipefail
 IFS=$'\n\t'
 
 PROGNAME="$(basename "${0}")"
+readonly PROGNAME
 
-MAX_NON_BLANK_LINES=300
-MAX_LINE_LENGTH=100
+readonly MAX_NON_BLANK_LINES=300
+readonly MAX_LINE_LENGTH=100
 
-REQUIRED_CMDS=(awk find basename head)
+readonly REQUIRED_CMDS=(awk find basename head)
 
 usage() {
   cat <<'EOF'
@@ -56,8 +57,8 @@ EOF
 
 install_hint() {
   case "${1}" in
-    awk|find|basename|head) printf 'should be preinstalled on any POSIX system' ;;
-    *)                      printf 'see your package manager' ;;
+    awk | find | basename | head) printf 'should be preinstalled on any POSIX system' ;;
+    *) printf 'see your package manager' ;;
   esac
 }
 
@@ -69,7 +70,7 @@ preflight() {
       missing+=("${cmd}")
     fi
   done
-  if [ "${#missing[@]}" -gt 0 ]; then
+  if [[ "${#missing[@]}" -gt 0 ]]; then
     for cmd in "${missing[@]}"; do
       printf '%s: missing required command %q. Install: %s\n' \
         "${PROGNAME}" "${cmd}" "$(install_hint "${cmd}")" >&2
@@ -81,12 +82,12 @@ preflight() {
 is_bash_script() {
   local file="$1"
   case "${file}" in
-    *.sh|*.bash) return 0 ;;
+    *.sh | *.bash) return 0 ;;
   esac
   local first
   first="$(head -n 1 "${file}" 2>/dev/null || true)"
   case "${first}" in
-    "#!/usr/bin/env bash"|"#!/bin/bash"|"#!/usr/bin/env -S bash"*) return 0 ;;
+    "#!/usr/bin/env bash" | "#!/bin/bash" | "#!/usr/bin/env -S bash"*) return 0 ;;
   esac
   return 1
 }
@@ -99,7 +100,7 @@ check_file() {
   local file="$1"
   local count
   count="$(non_blank_count "${file}")"
-  if [ "${count}" -gt "${MAX_NON_BLANK_LINES}" ]; then
+  if [[ "${count}" -gt "${MAX_NON_BLANK_LINES}" ]]; then
     printf 'WARN  %s — size: %s non-blank lines (threshold %s)\n' \
       "${file}" "${count}" "${MAX_NON_BLANK_LINES}"
     printf '  Recommendation: Extract sections into helper scripts '
@@ -110,7 +111,7 @@ check_file() {
   # Per-line length WARN — emit at most 3 per file to avoid noise.
   local emitted=0
   while IFS=: read -r lineno length; do
-    if [ "${emitted}" -ge 3 ]; then
+    if [[ "${emitted}" -ge 3 ]]; then
       break
     fi
     printf 'WARN  %s — line-length: line %s is %s chars (threshold %s)\n' \
@@ -126,16 +127,19 @@ check_path() {
   local target="$1"
   local file
 
-  if [ -f "${target}" ]; then
+  if [[ -f "${target}" ]]; then
     if is_bash_script "${target}"; then
       check_file "${target}"
     fi
-  elif [ -d "${target}" ]; then
+  elif [[ -d "${target}" ]]; then
     while IFS= read -r file; do
       if is_bash_script "${file}"; then
         check_file "${file}"
       fi
-    done < <(find "${target}" -maxdepth 1 -type f \( -name '*.sh' -o -name '*.bash' -o ! -name '*.*' \) 2>/dev/null)
+    done < <(
+      find "${target}" -maxdepth 1 -type f \
+        \( -name '*.sh' -o -name '*.bash' -o ! -name '*.*' \) 2>/dev/null
+    )
   else
     printf '%s: path not found: %s\n' "${PROGNAME}" "${target}" >&2
     return 64
@@ -143,13 +147,16 @@ check_path() {
 }
 
 main() {
-  if [ "$#" -eq 0 ]; then
+  if [[ "$#" -eq 0 ]]; then
     usage >&2
     exit 64
   fi
 
   case "${1:-}" in
-    -h|--help) usage; exit 0 ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
   esac
 
   preflight
@@ -162,6 +169,6 @@ main() {
   exit 0
 }
 
-if [ "${0}" = "${BASH_SOURCE[0]:-$0}" ]; then
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   main "$@"
 fi

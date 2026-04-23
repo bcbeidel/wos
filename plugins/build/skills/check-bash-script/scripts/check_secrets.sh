@@ -29,8 +29,9 @@ set -Eeuo pipefail
 IFS=$'\n\t'
 
 PROGNAME="$(basename "${0}")"
+readonly PROGNAME
 
-REQUIRED_CMDS=(grep find basename head)
+readonly REQUIRED_CMDS=(grep find basename head)
 
 usage() {
   cat <<'EOF'
@@ -55,8 +56,8 @@ EOF
 
 install_hint() {
   case "${1}" in
-    grep|find|basename|head) printf 'should be preinstalled on any POSIX system' ;;
-    *)                       printf 'see your package manager' ;;
+    grep | find | basename | head) printf 'should be preinstalled on any POSIX system' ;;
+    *) printf 'see your package manager' ;;
   esac
 }
 
@@ -68,7 +69,7 @@ preflight() {
       missing+=("${cmd}")
     fi
   done
-  if [ "${#missing[@]}" -gt 0 ]; then
+  if [[ "${#missing[@]}" -gt 0 ]]; then
     for cmd in "${missing[@]}"; do
       printf '%s: missing required command %q. Install: %s\n' \
         "${PROGNAME}" "${cmd}" "$(install_hint "${cmd}")" >&2
@@ -84,7 +85,7 @@ emit_finding() {
   printf 'and read it from "${VAR:?VAR required}" instead.\n'
 }
 
-PATTERN_NAMES=(
+readonly PATTERN_NAMES=(
   "AWS access key"
   "GitHub personal access token"
   "GitHub fine-grained PAT"
@@ -92,7 +93,7 @@ PATTERN_NAMES=(
   "Anthropic API key"
   "Stripe live key"
 )
-PATTERN_REGEXES=(
+readonly PATTERN_REGEXES=(
   'AKIA[0-9A-Z]{16}'
   'ghp_[A-Za-z0-9]{36}'
   'github_pat_[A-Za-z0-9_]{82}'
@@ -102,18 +103,19 @@ PATTERN_REGEXES=(
 )
 
 # Credential-shaped assignment: NAME="value" or NAME='value' at any indent.
-GENERIC_VAR_REGEX="(password|secret|token|api_key|access_key|private_key)[[:space:]]*=[[:space:]]*[\"'][^\"']+[\"']"
+readonly GENERIC_VAR_REGEX="(password|secret|token|api_key|access_key|private_key)""\
+[[:space:]]*=[[:space:]]*[\"'][^\"']+[\"']"
 
 is_bash_script() {
   local file="$1"
   case "${file}" in
-    *.sh|*.bash) return 0 ;;
+    *.sh | *.bash) return 0 ;;
   esac
   # Extensionless: check for bash shebang on first line.
   local first
   first="$(head -n 1 "${file}" 2>/dev/null || true)"
   case "${first}" in
-    "#!/usr/bin/env bash"|"#!/bin/bash"|"#!/usr/bin/env -S bash"*) return 0 ;;
+    "#!/usr/bin/env bash" | "#!/bin/bash" | "#!/usr/bin/env -S bash"*) return 0 ;;
   esac
   return 1
 }
@@ -124,7 +126,7 @@ scan_file() {
   local i name pattern hit line
 
   i=0
-  while [ "${i}" -lt "${#PATTERN_REGEXES[@]}" ]; do
+  while [[ "${i}" -lt "${#PATTERN_REGEXES[@]}" ]]; do
     name="${PATTERN_NAMES[${i}]}"
     pattern="${PATTERN_REGEXES[${i}]}"
     while IFS= read -r hit; do
@@ -144,7 +146,9 @@ scan_file() {
       | grep -Ev "=[[:space:]]*[\"']\\\$" \
       | grep -Ev "=[[:space:]]*[\"']\\{" \
       | grep -Ev "=[[:space:]]*[\"']<" \
-      | grep -iEv "=[[:space:]]*[\"'](your[-_]|example|redacted|null|none|undefined|placeholder|todo|fixme|xxx|changeme|change[-_]me|foo|bar|baz|abc|xyz)" \
+      | grep -iEv \
+        "=[[:space:]]*[\"'](your[-_]|example|redacted|null|none|undefined|placeholder|""\
+todo|fixme|xxx|changeme|change[-_]me|foo|bar|baz|abc|xyz)" \
       || true
   )
 
@@ -156,16 +160,19 @@ scan_path() {
   local any=0
   local file
 
-  if [ -f "${target}" ]; then
+  if [[ -f "${target}" ]]; then
     if is_bash_script "${target}"; then
       scan_file "${target}" || any=1
     fi
-  elif [ -d "${target}" ]; then
+  elif [[ -d "${target}" ]]; then
     while IFS= read -r file; do
       if is_bash_script "${file}"; then
         scan_file "${file}" || any=1
       fi
-    done < <(find "${target}" -maxdepth 1 -type f \( -name '*.sh' -o -name '*.bash' -o ! -name '*.*' \) 2>/dev/null)
+    done < <(
+      find "${target}" -maxdepth 1 -type f \
+        \( -name '*.sh' -o -name '*.bash' -o ! -name '*.*' \) 2>/dev/null
+    )
   else
     printf '%s: path not found: %s\n' "${PROGNAME}" "${target}" >&2
     return 64
@@ -174,13 +181,16 @@ scan_path() {
 }
 
 main() {
-  if [ "$#" -eq 0 ]; then
+  if [[ "$#" -eq 0 ]]; then
     usage >&2
     exit 64
   fi
 
   case "${1:-}" in
-    -h|--help) usage; exit 0 ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
   esac
 
   preflight
@@ -194,6 +204,6 @@ main() {
   exit "${any}"
 }
 
-if [ "${0}" = "${BASH_SOURCE[0]:-$0}" ]; then
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   main "$@"
 fi

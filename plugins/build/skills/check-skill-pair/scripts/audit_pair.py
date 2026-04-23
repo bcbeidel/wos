@@ -75,36 +75,87 @@ def normalize_dimension_id(raw: str) -> str:
 def extract_tier1_table_ids(text: str) -> list[str]:
     """Extract Check IDs from rows in the Tier-1 markdown table.
 
-    Pre-existing pairs document Tier-1 deterministic checks as a table under
-    `## Tier-1 — Deterministic Checks` (compact for ~26 mechanical signals)
-    rather than per-signal H3s. The table column shape is:
+    Pairs document Tier-1 deterministic checks as a table rather than per-
+    signal H3s. Two section-heading dialects exist in the wild:
 
-        | Script | Check ID | What | Severity | Source principle |
+        ## Tier-1 — Deterministic Checks     (bash-script, python-script)
+        ## Tier 1: Deterministic Format Checks   (rule)
 
-    We pull the second column from data rows. Skips header / separator /
-    rows with fewer than five pipe-delimited fields.
+    Two column shapes exist:
+
+        | Script | Check ID | What | Severity | Source principle |  (col 1)
+        | Check  | Category | Condition | Severity |                  (col 0)
+
+    We locate the first row starting with `|` as the header row, scan it
+    for a cell named `Check` or `Check ID`, and pull that column from each
+    data row until a new `## ` section begins.
     """
     out: list[str] = []
     in_section = False
+    check_col: int | None = None
     for line in text.splitlines():
-        if line.startswith("## Tier-1"):
+        if re.match(r"^##\s+Tier[-\s]*1\b", line):
             in_section = True
+            check_col = None
             continue
         if in_section and line.startswith("## "):
             break
         if not in_section or not line.startswith("|"):
             continue
         parts = [p.strip() for p in line.strip("|").split("|")]
-        if len(parts) < 5:
+        if check_col is None:
+            for i, cell in enumerate(parts):
+                if cell.lower() in ("check", "check id"):
+                    check_col = i
+                    break
             continue
-        first = parts[0]
-        if first in ("Script", "") or first.startswith("---"):
+        if all(set(p) <= set("- :") for p in parts):
             continue
-        if all(set(p) <= set("- ") for p in parts):
+        if check_col >= len(parts):
             continue
-        check_id = parts[1].strip("`").strip()
+        check_id = parts[check_col].strip("`").strip()
         if check_id:
             out.append(check_id)
+    return out
+
+
+NON_DIMENSION_H3_NAMES = frozenset(
+    name.lower()
+    for name in (
+        "Notes",
+        "Evaluation Prompt Template",
+        "Output Format",
+        "Format",
+        "Table of Contents",
+    )
+)
+
+
+def extract_audit_dimension_h3s(text: str) -> list[str]:
+    """Extract H3 headings inside any `## Tier-*` / `## Tier *` H2 section.
+
+    Some pairs document Tier-1 as H3s (skill-pair), others as a table
+    (bash-script, python-script, rule). Either way, H3s inside Tier sections
+    are dimensions. H3s inside non-Tier H2s (`## Cross-Dimension Notes`,
+    `## Output Format`) are excluded.
+
+    Known non-dimension H3 labels — `### Notes`-style prose subsections —
+    are filtered out by name so the rule pair's `### Notes` footnote under
+    `## Tier 1` is not counted as an orphan dimension.
+    """
+    out: list[str] = []
+    in_tier = False
+    for line in text.splitlines():
+        h2 = re.match(r"^##\s+(.+)$", line)
+        if h2:
+            in_tier = bool(re.match(r"^Tier[-\s]*\d+\b", h2.group(1).strip()))
+            continue
+        if in_tier:
+            h3 = re.match(r"^###\s+(.+)$", line)
+            if h3:
+                name = h3.group(1).strip()
+                if name.lower() not in NON_DIMENSION_H3_NAMES:
+                    out.append(name)
     return out
 
 
@@ -297,9 +348,12 @@ def tier2_content(paths: dict[str, Path], root: Path) -> list[Finding]:
     audit_text = read_text(paths["audit_dims"])
     playbook_text = read_text(paths["repair_playbook"])
     if audit_text and playbook_text:
-        # Audit dimensions = H3 headings + Tier-1 table-row IDs (pre-existing
-        # pairs document deterministic checks compactly as a table, not H3s).
-        audit_raw = extract_h3(audit_text) + extract_tier1_table_ids(audit_text)
+        # Audit dimensions = Tier-2/Tier-3 H3 headings + Tier-1 table-row IDs.
+        # Tier-1 is a table; prose H3s under Tier-1 (e.g., `### Notes`) and
+        # supplementary sections like `## Cross-Dimension Notes` are excluded.
+        audit_raw = extract_audit_dimension_h3s(audit_text) + extract_tier1_table_ids(
+            audit_text
+        )
         playbook_raw = extract_h3(playbook_text)
         audit_dims = {normalize_dimension_id(d) for d in audit_raw if d}
         playbook_dims = {normalize_dimension_id(d) for d in playbook_raw if d}
