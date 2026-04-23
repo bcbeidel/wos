@@ -25,11 +25,12 @@ set -Eeuo pipefail
 IFS=$'\n\t'
 
 PROGNAME="$(basename "${0}")"
+readonly PROGNAME
 
 # Threshold lives here so it is trivial to locate and adjust.
-MAX_NON_BLANK_LINES=500
+readonly MAX_NON_BLANK_LINES=500
 
-REQUIRED_CMDS=(awk find basename wc)
+readonly REQUIRED_CMDS=(awk find basename wc)
 
 usage() {
   cat <<'EOF'
@@ -54,8 +55,8 @@ EOF
 
 install_hint() {
   case "${1}" in
-    awk|find|basename|wc) printf 'should be preinstalled on any POSIX system' ;;
-    *)                    printf 'see your package manager' ;;
+    awk | find | basename | wc) printf 'should be preinstalled on any POSIX system' ;;
+    *) printf 'see your package manager' ;;
   esac
 }
 
@@ -67,7 +68,7 @@ preflight() {
       missing+=("${cmd}")
     fi
   done
-  if [ "${#missing[@]}" -gt 0 ]; then
+  if [[ "${#missing[@]}" -gt 0 ]]; then
     for cmd in "${missing[@]}"; do
       printf '%s: missing required command %q. Install: %s\n' \
         "${PROGNAME}" "${cmd}" "$(install_hint "${cmd}")" >&2
@@ -85,7 +86,7 @@ check_file() {
   local file="$1"
   local count
   count="$(non_blank_count "${file}")"
-  if [ "${count}" -gt "${MAX_NON_BLANK_LINES}" ]; then
+  if [[ "${count}" -gt "${MAX_NON_BLANK_LINES}" ]]; then
     printf 'WARN  %s — size: %s non-blank lines (threshold %s)\n' \
       "${file}" "${count}" "${MAX_NON_BLANK_LINES}"
     printf '  Recommendation: Extract cohesive sections into helper '
@@ -97,11 +98,11 @@ check_path() {
   local target="$1"
   local file
 
-  if [ -f "${target}" ]; then
+  if [[ -f "${target}" ]]; then
     case "${target}" in
       *.py) check_file "${target}" ;;
     esac
-  elif [ -d "${target}" ]; then
+  elif [[ -d "${target}" ]]; then
     while IFS= read -r file; do
       check_file "${file}"
     done < <(find "${target}" -maxdepth 1 -type f -name '*.py' 2>/dev/null)
@@ -112,13 +113,16 @@ check_path() {
 }
 
 main() {
-  if [ "$#" -eq 0 ]; then
+  if [[ "$#" -eq 0 ]]; then
     usage >&2
     exit 64
   fi
 
   case "${1:-}" in
-    -h|--help) usage; exit 0 ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
   esac
 
   preflight
@@ -131,6 +135,6 @@ main() {
   exit 0
 }
 
-if [ "${0}" = "${BASH_SOURCE[0]:-$0}" ]; then
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   main "$@"
 fi
