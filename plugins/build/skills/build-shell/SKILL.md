@@ -11,6 +11,7 @@ argument-hint: "[target-shell] [purpose]"
 user-invocable: true
 references:
   - references/scope-gate.md
+  - ../../_shared/references/primitive-routing.md
 ---
 
 # Build Shell
@@ -29,20 +30,40 @@ lifecycle. Route there when the script has an event trigger and
 
 ## 1. Route
 
-Determine whether a general-purpose shell script is the right primitive
-before asking scaffold-specific questions.
+Confirm a general-purpose shell script is the right primitive *and*
+that shell is the right language before asking scaffold-specific
+questions.
 
-- **Goal is event-triggered quality enforcement** (PreToolUse, SessionStart,
-  Stop, etc.) → suggest `/build:build-hook` instead. Hooks have a
-  `settings.json` registration, a `tool_input` payload contract, and
-  lifecycle semantics this skill does not handle.
-- **Goal is a Claude Code skill definition** (markdown with frontmatter,
-  invoked by slash command) → suggest `/build:build-skill` instead.
-- **Goal is a semantic judgment captured as an LLM-evaluated rule** →
-  suggest `/build:build-rule` instead.
-- **Goal is a general-purpose automation or CLI script** (glue, setup,
-  CI step, utility called by humans or Makefiles) → proceed to Scope
-  Gate.
+**Wrong primitive:**
+
+- **Event-triggered quality enforcement** (PreToolUse, SessionStart,
+  Stop, etc.) → `/build:build-hook`. Hooks have a `settings.json`
+  registration, a `tool_input` payload contract, and lifecycle
+  semantics a shell script doesn't express.
+- **A Claude Code skill definition** (markdown with frontmatter,
+  invoked by slash command) → `/build:build-skill`.
+- **A semantic judgment captured as an LLM-evaluated rule** →
+  `/build:build-rule`.
+
+**Wrong language — should be Python instead:**
+
+- Task manipulates structured data — arrays of typed records, nested
+  JSON, schema-validated payloads
+- Projected logic exceeds ~100 LOC of business code
+- Task needs testable seams (`pytest` against `main()`)
+- Task needs concurrency, HTTP with retry / JSON, or cross-platform
+  correctness (Windows)
+
+The full language-selection decision lives in the *Language Selection*
+section of
+[primitive-routing.md](../../_shared/references/primitive-routing.md) —
+consult it when the choice is not obvious. **Tiebreaker rule from that
+doc:** when the decision is genuinely balanced, Python wins on
+interpretability.
+
+**Right primitive and right language** (glue, setup, CI step, utility
+called by humans or Makefiles; POSIX-tool pipelines; one-shot
+automation) → proceed to Scope Gate.
 
 ## 2. FX.1 Scope Gate
 
