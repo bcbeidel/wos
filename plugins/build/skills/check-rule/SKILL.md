@@ -4,7 +4,7 @@ description: Check a Claude Code rule library under `.claude/rules/` for path-gl
 argument-hint: "[path to rule file or directory — scans .claude/rules/ if omitted]"
 user-invocable: true
 references:
-  - ../../_shared/references/rules-best-practices.md
+  - ../../_shared/references/rule-best-practices.md
   - references/audit-dimensions.md
   - references/repair-playbook.md
 ---
@@ -19,7 +19,7 @@ cross-rule conflict detection.
 This skill evaluates the rules themselves — not files against rules.
 
 The audit rubric mirrors the authoring principles in
-[rules-best-practices.md](../../_shared/references/rules-best-practices.md).
+[rule-best-practices.md](../../_shared/references/rule-best-practices.md).
 Each Tier-2 dimension cites its source principle. When the principles doc
 changes, the dimensions should follow.
 

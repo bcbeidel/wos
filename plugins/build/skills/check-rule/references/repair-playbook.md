@@ -20,7 +20,7 @@ for HINTs — they are informational only.
 ## Table of Contents
 
 - [Tier 1: Deterministic Format Repairs](#tier-1-deterministic-format-repairs)
-  - [Secret Detected in Rule Body](#secret-detected-in-rule-body)
+  - [Signal: `secret` — committed-secret pattern in rule body](#signal-secret--committed-secret-pattern-in-rule-body)
 - [Tier 2: Semantic Dimensions](#tier-2-semantic-dimensions)
   - [Dimension 1: Framing](#dimension-1-framing)
   - [Dimension 2: Specificity](#dimension-2-specificity)
@@ -36,7 +36,7 @@ for HINTs — they are informational only.
 
 ## Tier 1: Deterministic Format Repairs
 
-### Wrong Location
+### Signal: `location` — rule file outside `.claude/rules/`
 
 **Signal:** Rule file lives outside `.claude/rules/` (e.g., `docs/rules/`, project root, `rules/` without `.claude/` prefix)
 
@@ -45,7 +45,7 @@ for HINTs — they are informational only.
 **TO:** `.claude/rules/api-handlers.md`
 **REASON:** Claude Code only auto-loads rules from `.claude/rules/` (and `~/.claude/rules/` for user rules). Files at other paths are inert — Claude never reads them as rules.
 
-### Wrong Extension
+### Signal: `extension` — non-`.md` file extension
 
 **Signal:** Rule file uses `.rule.md`, `.mdx`, `.markdown`, or another non-`.md` extension
 
@@ -54,7 +54,7 @@ for HINTs — they are informational only.
 **TO:** `.claude/rules/api-handlers.md`
 **REASON:** Claude Code's rule discovery scans for `.md` files only. Other extensions are skipped.
 
-### Malformed `paths:` Glob
+### Signal: `paths-glob` — malformed `paths:` glob
 
 Covers the four subtypes emitted by `check_paths_glob.sh`. Any of them
 causes Claude Code to either skip loading the rule or load it for the
@@ -105,7 +105,7 @@ paths:
 **TO:** the same glob with the cntrl character deleted
 **REASON:** Control characters are never valid in file paths and cause silent matching failures. Likely indicates corrupted input; re-type the pattern cleanly.
 
-### File Too Large (WARN at 200)
+### Signal: `size-warn` — file exceeds 200 non-blank lines
 
 **Signal:** File exceeds 200 non-blank lines but is under 500
 
@@ -114,7 +114,7 @@ paths:
 **TO:** `.claude/rules/api-conventions.md` + `.claude/rules/test-conventions.md` + `.claude/rules/deploy-conventions.md`
 **REASON:** Larger rules consume context and reduce adherence. Splitting also improves the on-demand load path for path-scoped rules.
 
-### File Too Large (FAIL at 500)
+### Signal: `size-fail` — file exceeds 500 non-blank lines
 
 **Signal:** File exceeds 500 non-blank lines
 
@@ -123,7 +123,7 @@ paths:
 **TO:** `.claude/rules/architecture-layering.md` + `.claude/rules/service-boundaries.md` (rules); move the long-form rationale to `.context/architecture-rationale.md` or a CLAUDE.md section
 **REASON:** At 500+ lines the file is a document, not a rule. Rules should be scannable at the point of application; documents belong in `.context/` or CLAUDE.md where they carry different expectations.
 
-### Secret Detected in Rule Body
+### Signal: `secret` — committed-secret pattern in rule body
 
 **Signal:** Tier-1 secret-pattern scan matched a committed-secret shape (AWS key, GitHub token, API key, or a variable named `password`/`secret`/`token`/`api_key` with a non-empty quoted value)
 
@@ -138,7 +138,7 @@ Use the staging API key stored in `$ANTHROPIC_API_KEY_STAGING` (see `.env.stagin
 ```
 **REASON:** Rule files are committed to git and loaded automatically by Claude. A secret in a rule file has the same exposure as a secret in any committed config — and rotating is mandatory once the secret appears in git history. Reference the secret by env var name or vault path; never include the value.
 
-### Unknown Frontmatter Key
+### Signal: `frontmatter-shape` — unknown top-level frontmatter key
 
 **Signal:** Frontmatter contains top-level keys other than `paths:`
 
@@ -162,6 +162,27 @@ paths:
 # API Conventions
 ```
 **REASON:** Claude Code documents only `paths:` in rule frontmatter. Other keys (`severity:`, `description:`, `name:`, `type:`) are not consumed and add maintenance noise without behavioral effect.
+
+### Signal: `hedge` — hedging language in rule body
+
+**Signal:** Body (outside code blocks) contains hedging language: `prefer`, `generally`, `usually`, `consider`, `where appropriate`, `as appropriate`, `where it makes sense`
+
+**CHANGE:** Apply the Dimension 2 (Specificity) *Hedged Phrasing* repair — commit to the directive, move the hedge into a named exception if one exists.
+**REASON:** Prose pre-check; the full rewrite recipe lives under [Dimension 2: Specificity → Hedged Phrasing](#dimension-2-specificity). Tier-1 flags the token; Tier-2 prescribes the rewrite.
+
+### Signal: `prohibition-opener` — rule statement opens with `Don't`/`Never`/`Avoid`
+
+**Signal:** Rule statement begins with `Don't`, `Never`, or `Avoid` (heuristic — legitimate exceptions exist, e.g., "Never log PII")
+
+**CHANGE:** Apply the Dimension 1 (Framing) *Prohibition-Only Directive* repair — restate positively, or pair the prohibition with its positive alternative.
+**REASON:** Prose pre-check; the full rewrite recipe lives under [Dimension 1: Framing → Prohibition-Only Directive](#dimension-1-framing). If the negation is load-bearing (no clean positive counterpart), the WARN is a false positive and the rule can stay as-is.
+
+### Signal: `synthetic-placeholder` — example uses synthetic identifiers
+
+**Signal:** Code block contains `foo`+`bar` pair, `myFunction`/`myClass`/etc., `Widget`/`SomeClass`, `placeholder`, or `example_*` identifiers as primary names
+
+**CHANGE:** Apply the Dimension 8 (Example Realism) *Synthetic Examples* repair — replace placeholders with real identifiers from the codebase.
+**REASON:** Prose pre-check; the full rewrite recipe lives under [Dimension 8: Example Realism → Synthetic Examples](#dimension-8-example-realism). Tier-1 flags synthetic tokens; Tier-2 prescribes domain-sourced replacements.
 
 ---
 

@@ -32,7 +32,7 @@ These primitives benefit from judgment. Claude reads context, assesses relevance
 
 ## What Each Primitive Was Designed For
 
-**Rules** exist for conventions that are semantically nuanced — the kind where two files could look identical to grep but mean different things to a careful developer. The LLM judgment isn't a limitation; it's the point. Rules are the wrong choice when the check is mechanical (use a linter instead) or when it must fire unconditionally at a lifecycle event (use a hook instead).
+**Rules** exist for conventions that are semantically nuanced — the kind where two files could look identical to grep but mean different things to a careful developer. The LLM judgment isn't a limitation; it's the point. Rules are the wrong choice when the check is mechanical (use a linter instead) or when it must fire unconditionally at a lifecycle event (use a hook instead). Route: `/build:build-rule` to author a new rule; `/build:check-rule` to audit an existing rule library.
 
 **Hooks** exist for invariants. Things that must happen at a specific moment, without exception, regardless of what Claude thinks about the situation. A hook that enforces a preference instead of an invariant spends its authority on false positives — one bypass event normalizes the pattern, and once bypass is cultural, the hook provides no protection.
 
