@@ -11,7 +11,7 @@ description: >
   "review this script", "lint a python script", "is this script
   safe", "what's wrong with my script", or "why is my script
   failing". Not for general-purpose shell scripts — route to
-  `/build:check-shell`.
+  `/build:check-bash-script`.
 argument-hint: "[path]"
 user-invocable: true
 references:

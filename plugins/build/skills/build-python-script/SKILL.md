@@ -27,7 +27,7 @@ template, patterns that work — lives in
 This skill is the workflow; the principles doc is the rubric.
 
 This skill is not for Claude Code hooks (`/build:build-hook` owns that
-lifecycle), not for shell one-liners (`/build:build-shell`), and not for
+lifecycle), not for Bash scripts (`/build:build-bash-script`), and not for
 multi-module Python packages (scripting discipline breaks down past a
 threshold; start a proper package instead).
 
