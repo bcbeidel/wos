@@ -43,6 +43,7 @@ The synthesis' Section 5 (*Shared Deterministic Checks*) is the direct source fo
 - **Output lint format is fixed:** `SEVERITY  <path> — <check>: <detail>` on one line, followed by `  Recommendation: <specific change>` on the next. Severities: `FAIL`, `WARN`, `INFO`, `HINT`. Exit 0 on clean / WARN / INFO / HINT-only; exit 1 on FAIL; exit 64 on arg error; exit 69 on missing dependency.
 - **Commit in vertical slices, one PR.** Each phase below that produces artifacts lands as its own commit. Self-review then human review before merge.
 - **Skill-chain relationships are declared, not inferred.** Every `build-<X>` and `check-<X>` SKILL.md ends with a `## Handoff` section carrying `Receives:` / `Produces:` / `Chainable to:` fields. The default chain is bidirectional: `build-<X>` is chainable to `check-<X>` (audit the just-built artifact); `check-<X>` is chainable to `build-<X>` (rebuild after flagged repairs). Preserve any chain relationships the legacy skills declared — if the old `build-<X>` chained into another skill (e.g., `verify-work`, `finish-work`), that linkage carries over unless the ensemble or project docs explicitly deprecate it. Chain relationships are part of the project-fact content extracted in Phase 1.
+- **Skill-spec is the anchor.** All SKILL.md outputs must conform to the documented Claude Code skill specification plus this toolkit's layered conventions (`references:` array, `argument-hint`, `user-invocable`, `## Handoff`, etc.). When any field, section name, or behavior is uncertain: (1) look up the current Anthropic skill docs — the spec evolves, don't rely on training-time knowledge; (2) compare against an existing, recently-reviewed toolkit skill in the same plugin as a structural reference; (3) surface the uncertainty to the user before proceeding. Do not invent frontmatter keys or section names to fit a mental model of what "feels" right — `check-rule`'s Tier-1 "frontmatter shape" check flags unknown top-level keys precisely because the spec is narrow, and Claude Code silently ignores keys it doesn't recognize.
 
 ## What to produce (outputs)
 
@@ -175,6 +176,8 @@ Pre-filter scripts for Tier-2 dimensions (hedges / prohibitions / synthetic plac
 **Approval gate** — the breakdown is the design; scripts are mechanical after this. Do not write scripts without approval.
 
 ### Phase 4: Skill rescaffold (one commit)
+
+Before writing any SKILL.md, confirm frontmatter fields against the current Claude Code skill spec (look it up — do not rely on training-time knowledge) and cross-check shape against a peer toolkit skill in the same plugin. Unknown fields are refused, not invented. If you encounter a field the spec doesn't document, surface it to the user before including it.
 
 Write all four skill artifacts:
 
@@ -325,6 +328,7 @@ Self-review the entire PR commit-by-commit. Then hand off to a human reviewer.
 10. **Scripts that exit 1 on WARN.** Exit 0 on anything short of FAIL.
 11. **Skipping end-to-end validation.** First real invocation after merge is the worst place to find integration bugs.
 12. **Relying on `coverage.md` alone or `coverage-llm.md` alone.** LLM clustering catches semantic equivalence rapidfuzz misses; rapidfuzz is synthesizer-bias-free. Consume the LLM version as primary but cross-check at borderlines.
+13. **Inventing frontmatter fields or section names to fit a mental model of what "feels" right.** The Claude Code skill spec is narrower than common defaults — unknown top-level frontmatter keys are silently ignored by Claude Code and flagged by `check-rule`'s Tier-1. Look up the current spec; cross-check against a peer toolkit skill; ask the user if anything is ambiguous.
 
 ## Estimated effort
 
