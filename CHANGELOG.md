@@ -8,6 +8,130 @@ Pre-restructure releases used a single version. Post-restructure, each plugin
 
 ## [Unreleased]
 
+## [build-0.15.0] - 2026-04-23
+
+### Added
+
+- **`build:build-resolver` / `build:check-resolver` skill pair.** Two
+  new skills that scaffold and audit a root-level `RESOLVER.md` — a
+  dual routing table governing filing (where new content goes) and
+  context (which docs to load for recurring tasks) — plus a one-line
+  `AGENTS.md` pointer and a `.resolver/evals.yml` trigger-eval
+  sidecar. The machine-managed region inside `RESOLVER.md` regenerates
+  from disk conventions; evals prove the routing stayed consistent.
+  - **Position.** Not a skill-dispatch resolver (that's handled by
+    the `description` field on each SKILL.md), not a shared-reference
+    linter (that's authoring-time hygiene, separate concern). The
+    pair targets repos whose dynamic context has outgrown AGENTS.md
+    alone — filing + context discipline externalized as a single
+    artifact the model walks on demand rather than as prose in every
+    skill body.
+  - **Audit shape.** Three Tier-1 deterministic Python scripts
+    (`check_pointer.py`, `check_resolver.py`, `check_evals.py`)
+    cover pointer presence/resolution, managed-region marker
+    integrity, filing/context path resolution, row uniqueness, eval
+    schema validation, and mtime/eval-pass staleness. Three Tier-2
+    judgment dimensions (Filing Coverage, Context Actionability,
+    Eval Representativeness) layer on top via a single locked-rubric
+    LLM call. Tier-3 adds dark-capability scan (directories on disk
+    missing from the filing table) and regeneration-drift detection.
+  - **Registration.** New primitive class in `primitive-routing.md`;
+    the six pair artifacts pass `/build:check-skill-pair resolver`
+    with zero findings. Build plugin bumped to 0.15.0.
+
+## [build-0.14.0] - 2026-04-23
+
+### Added
+
+- **Four new primitive-pairs: github-workflow, makefile,
+  pre-commit-config, readme.** Each pair follows the skill-pair
+  convention introduced in build-0.9.0 — matched `build-<primitive>`
+  scaffolder and `check-<primitive>` auditor sharing a single
+  distilled principles doc under `_shared/references/`, plus
+  scoreable `audit-dimensions.md` and `repair-playbook.md`. Post-merge
+  commits add Tier-1 deterministic Python scripts for each of the
+  four new `check-*` skills.
+
+## [build-0.10.0] - 2026-04-23
+
+### Changed
+
+- **`build-subagent` / `check-subagent` rescaffolded to primitive-pair
+  format (#357).** Aligned the subagent pair with the skill-pair
+  convention — shared principles doc in `_shared/references/`,
+  matched audit-dimensions and repair-playbook, routing registration.
+- **`build-hook` / `check-hook` rebuilt to primitive-pair format
+  (#356).** Same realignment for the hook pair; no plugin version
+  bump but material structural change to how hooks are authored and
+  audited.
+
+## [build-0.9.0] - 2026-04-23
+
+### Added
+
+- **`build:build-skill-pair` / `build:check-skill-pair` meta-skills
+  (#350).** Meta-primitive that scaffolds matched build/check pairs
+  sharing a distilled principles doc, plus a pair-level integrity
+  auditor. This is the primitive-pair convention itself — every new
+  `build-*`/`check-*` pair that lands after build-0.9.0 uses it
+  (python-script, bash-script, subagent, hook, four primitive-pairs
+  in 0.14.0, resolver in 0.15.0).
+
+## [build-0.8.0] - 2026-04-23
+
+### Changed
+
+- **`build-shell` / `check-shell` superseded by `build-bash-script` /
+  `check-bash-script` (#349).** Renamed and narrowed: the bash-script
+  pair explicitly targets Bash 4.0+ (not POSIX `sh`), with a rubric
+  shaped by shellcheck / shfmt / checkbashisms tool ecosystems. POSIX
+  `sh` portability is out of scope for both halves; users needing
+  true portability are redirected to a different language. Shipped
+  alongside a bash-script-best-practices shared principles doc.
+
+## [build-0.7.0] - 2026-04-23
+
+### Added
+
+- **`build:build-python-script` / `build:check-python-script` skill
+  pair (#347).** Scaffolds and audits standalone Python 3 scripts —
+  single-file CLI tools, data-wrangling helpers, automation
+  utilities. Nine Tier-2 judgment dimensions (Output Discipline,
+  Input Validation, Dependency Posture, Performance Intent, Naming,
+  Function Design, Module-Scope Discipline, Literal Intent,
+  Commenting Intent) layer on top of Tier-1 deterministic checks
+  covering shebang, `__main__` guard shape, argparse hygiene,
+  dependency declaration, and ruff-backed AST lints.
+
+## [build-0.6.0] - 2026-04-22
+
+### Changed
+
+- **`build-skill` / `check-skill` rescaffolded around shared
+  principles (#345).** Extracted authoring-principle content from
+  both SKILL.md bodies into a single `skill-best-practices.md` under
+  `_shared/references/`. Both halves now reference the shared
+  principles doc; the skill bodies shrink to workflow-only concerns.
+  Establishes the principles-doc-first extraction pattern later
+  formalized in build-0.9.0.
+
+## [build-0.5.0] - 2026-04-22
+
+### Changed
+
+- **Rule guidance consolidated into shared principles (#343).**
+  Merged the canonical rule-authoring content from
+  `build-rule/references/rule-format-guide.md` and
+  `check-rule/references/audit-dimensions.md` into three shared files
+  under `_shared/references/` (`rule-canonical-form.md`,
+  `rule-structured-intent.md`, `rule-audit-rubric.md`). Both rule
+  skills wire via `references:` frontmatter; the passive
+  `_registry.md` catalog lists slug → consumers. First experiment in
+  the extract-shared-references pattern that motivated build-0.6.0's
+  broader rescaffold.
+
+## [revert: --as-tool] - 2026-04-21
+
 ### Removed
 
 - **`--as-tool` dual-invocation pattern reverted (#333, #334, #335, #336).**
