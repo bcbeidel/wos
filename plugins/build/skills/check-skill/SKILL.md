@@ -11,7 +11,7 @@ user-invocable: true
 version: 1.0.0
 owner: build-plugin
 references:
-  - ../../_shared/references/skills-best-practices.md
+  - ../../_shared/references/skill-best-practices.md
   - references/audit-dimensions.md
   - references/repair-playbook.md
 ---
@@ -26,7 +26,7 @@ then cross-skill description collision detection.
 This skill evaluates the skills themselves — not files against skills.
 
 The audit rubric mirrors the authoring principles in
-[skills-best-practices.md](../../_shared/references/skills-best-practices.md).
+[skill-best-practices.md](../../_shared/references/skill-best-practices.md).
 Each Tier-2 dimension cites its source principle. When the principles
 doc changes, the dimensions should follow.
 

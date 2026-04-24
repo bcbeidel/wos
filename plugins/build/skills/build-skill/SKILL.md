@@ -10,7 +10,7 @@ user-invocable: true
 version: 1.0.0
 owner: build-plugin
 references:
-  - ../../_shared/references/skills-best-practices.md
+  - ../../_shared/references/skill-best-practices.md
   - ../../_shared/references/primitive-routing.md
   - references/platform-notes.md
 ---
@@ -23,7 +23,7 @@ router reads the `description` and decides whether to invoke.
 
 Authoring principles — what makes a skill load-bearing, the anatomy
 template, patterns that work — live in
-[skills-best-practices.md](../../_shared/references/skills-best-practices.md).
+[skill-best-practices.md](../../_shared/references/skill-best-practices.md).
 This skill is the workflow; the principles doc is the rubric.
 
 ## When to use
@@ -84,7 +84,7 @@ This skill is the workflow; the principles doc is the rubric.
    ambiguity forces Claude to pick arbitrarily.
 
 5. **Draft the skill.** Follow the anatomy in
-   [skills-best-practices.md](../../_shared/references/skills-best-practices.md).
+   [skill-best-practices.md](../../_shared/references/skill-best-practices.md).
    Required frontmatter: `name`, `description`, `version`, `owner`.
    Required body sections: `## When to use`, `## Prerequisites`,
    `## Steps`, `## Failure modes`, `## Examples`. Optional frontmatter
@@ -193,7 +193,7 @@ Runs `/build:check-skill` — 0 findings. Reports the path.
   `/build:build-hook`, `/build:build-rule`, `/build:build-subagent`,
   or CLAUDE.md when the ask fits a different primitive
 - Draft against the anatomy and principles from
-  [skills-best-practices.md](../../_shared/references/skills-best-practices.md);
+  [skill-best-practices.md](../../_shared/references/skill-best-practices.md);
   don't invent frontmatter fields or required sections
   (`/build:check-skill`'s Tier-1 flags unknown structural shapes)
 - Lead with load-bearing content in the first ~5K tokens —

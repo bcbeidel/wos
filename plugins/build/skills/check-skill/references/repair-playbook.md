@@ -15,22 +15,22 @@ before applying.
 ## Table of Contents
 
 - [Tier 1: Deterministic Format Repairs](#tier-1-deterministic-format-repairs)
-  - [Wrong Filename](#wrong-filename)
-  - [Directory Basename Mismatch](#directory-basename-mismatch)
-  - [Name Slug Invalid](#name-slug-invalid)
-  - [Reserved Name Token](#reserved-name-token)
-  - [Missing Required Frontmatter Key](#missing-required-frontmatter-key)
-  - [Malformed Version](#malformed-version)
-  - [Description Cap Exceeded](#description-cap-exceeded)
-  - [Missing Required Section](#missing-required-section)
-  - [Steps Not an Ordered List](#steps-not-an-ordered-list)
-  - [Steps Numbering Non-Sequential](#steps-numbering-non-sequential)
-  - [Examples Lacks Fenced Block](#examples-lacks-fenced-block)
-  - [Body Length Over Threshold](#body-length-over-threshold)
-  - [Line Length Over 120](#line-length-over-120)
-  - [Secret Detected in Body](#secret-detected-in-body)
-  - [Remote-Exec or Destructive Command](#remote-exec-or-destructive-command)
-  - [Prose Hedges or Absolute Paths](#prose-hedges-or-absolute-paths)
+  - [Filename](#filename)
+  - [Directory basename](#directory-basename)
+  - [Name slug](#name-slug)
+  - [Reserved names](#reserved-names)
+  - [Required frontmatter](#required-frontmatter)
+  - [Version shape](#version-shape)
+  - [Description cap](#description-cap)
+  - [Required sections](#required-sections)
+  - [Steps shape](#steps-shape)
+  - [Examples content](#examples-content)
+  - [Body length (warn)](#body-length-warn)
+  - [Body length (fail)](#body-length-fail)
+  - [Line length](#line-length)
+  - [Secrets](#secrets)
+  - [Remote-exec / destructive cmd](#remote-exec--destructive-cmd)
+  - [Prose hedges](#prose-hedges)
 - [Tier 2: Semantic Dimensions](#tier-2-semantic-dimensions)
   - [Dimension 1: Description Retrieval Signal](#dimension-1-description-retrieval-signal)
   - [Dimension 2: Trigger Conditions](#dimension-2-trigger-conditions)
@@ -46,7 +46,7 @@ before applying.
 
 ## Tier 1: Deterministic Format Repairs
 
-### Wrong Filename
+### Filename
 
 **Signal:** File is not named `SKILL.md` (case-sensitive).
 
@@ -55,7 +55,7 @@ before applying.
 **TO:** `plugins/build/skills/foo/SKILL.md`
 **REASON:** Claude Code's skill loader matches on `SKILL.md` exactly. Lowercase or extension variants are invisible to the loader.
 
-### Directory Basename Mismatch
+### Directory basename
 
 **Signal:** Parent directory basename does not equal the frontmatter `name` field.
 
@@ -64,7 +64,7 @@ before applying.
 **TO:** `skills/csv-to-parquet/SKILL.md` with `name: csv-to-parquet`
 **REASON:** The skill collection keys on `name` for routing. Drift between directory and identifier breaks discovery and produces inconsistent citations.
 
-### Name Slug Invalid
+### Name slug
 
 Covers three subtypes:
 
@@ -95,7 +95,7 @@ Covers three subtypes:
 **TO:** `deploy-staging` and `deploy-production`, or merge the two workflows into one skill
 **REASON:** Name collisions force arbitrary selection. Routing becomes nondeterministic.
 
-### Reserved Name Token
+### Reserved names
 
 **Signal:** `name` contains `anthropic` or `claude`.
 
@@ -104,7 +104,7 @@ Covers three subtypes:
 **TO:** `name: workflow-helper`
 **REASON:** `anthropic` and `claude` collide with platform-owned namespaces and are rejected at skill-load time.
 
-### Missing Required Frontmatter Key
+### Required frontmatter
 
 **Signal:** One or more of `name` / `description` / `version` / `owner` is missing or empty.
 
@@ -113,7 +113,7 @@ Covers three subtypes:
 **TO:** `owner: data-platform` (or a resolvable person/team)
 **REASON:** These four fields anchor identity, routing, cache-busting, and ownership. Missing any of them degrades discoverability, release semantics, or maintenance — a skill with no owner rots unclaimed.
 
-### Malformed Version
+### Version shape
 
 **Signal:** `version` does not match `^\d+\.\d+\.\d+$`.
 
@@ -122,7 +122,7 @@ Covers three subtypes:
 **TO:** `version: 1.0.0`
 **REASON:** Semver is the cache-busting signal consumers rely on. Non-semver strings confuse release tooling and invalidate comparison semantics.
 
-### Description Cap Exceeded
+### Description cap
 
 **Signal:** `description` > 1024 chars, or `description` + `when_to_use` > 1536 chars combined.
 
@@ -131,7 +131,7 @@ Covers three subtypes:
 **TO:** description stays ≤1024 (the trigger opener and one-sentence purpose); trigger enumeration moves to `when_to_use`
 **REASON:** Description is the primary retrieval signal; compressing it erodes the routing surface. The `when_to_use` split preserves the full trigger set without truncating the routing-critical opener.
 
-### Missing Required Section
+### Required sections
 
 **Signal:** Body lacks one of `## When to use`, `## Prerequisites`, `## Steps`, `## Failure modes`, `## Examples`.
 
@@ -140,7 +140,11 @@ Covers three subtypes:
 **TO:** skill with a `## Failure modes` section naming at least three likely failures and their recovery actions
 **REASON:** Silence on any of the five canonical sections is the structural anti-pattern the principles doc targets. Agents invent behavior where the skill is silent.
 
-### Steps Not an Ordered List
+### Steps shape
+
+Covers two subtypes surfaced by the same audit dimension.
+
+#### Not an ordered list (fail)
 
 **Signal:** `## Steps` is prose, bullet list, or otherwise not a Markdown ordered list.
 
@@ -154,7 +158,7 @@ Covers three subtypes:
 ```
 **REASON:** Numbered ordered lists are followed more reliably than prose or bullets. The structure itself is instruction.
 
-### Steps Numbering Non-Sequential
+#### Non-sequential numbering (warn)
 
 **Signal:** Ordered list increments skip values or restart mid-sequence.
 
@@ -163,7 +167,7 @@ Covers three subtypes:
 **TO:** `1. … 2. … 3. … 4. …`
 **REASON:** Gaps in numbering break the sequence contract and confuse readers about whether a step was removed or missed.
 
-### Examples Lacks Fenced Block
+### Examples content
 
 **Signal:** `## Examples` section exists but contains no fenced code block.
 
@@ -172,23 +176,30 @@ Covers three subtypes:
 **TO:** fenced block with the exact invocation and its result
 **REASON:** Concrete examples anchor the model better than abstract rules. Models copy-paste better than they translate prose.
 
-### Body Length Over Threshold
+### Body length (warn)
 
-**Signal:** Non-blank line count exceeds 300 (WARN) or 400 (FAIL).
+**Signal:** Non-blank line count exceeds 300.
 
-**CHANGE:** Move reference material, long examples, or complex scripts into sibling files under `references/` and `scripts/`.
-**FROM:** 450-line SKILL.md that includes a 200-line embedded shell script
-**TO:** <400-line SKILL.md that references `./scripts/convert.sh`
+**CHANGE:** Move reference material, long examples, or complex scripts into sibling files under `references/` and `scripts/`. Treat 300 lines as the point to start trimming — not the hard limit.
 **REASON:** Every line is paid for in context tokens at invocation time. Long skills degrade both model focus and review quality.
 
-### Line Length Over 120
+### Body length (fail)
+
+**Signal:** Non-blank line count exceeds 400.
+
+**CHANGE:** Same as `Body length (warn)` — extract to `references/` and `scripts/` — but this is mandatory, not advisory.
+**FROM:** 450-line SKILL.md that includes a 200-line embedded shell script
+**TO:** <400-line SKILL.md that references `./scripts/convert.sh`
+**REASON:** Past 400 lines a skill stops being a skill and becomes a document; the agent reads less of it reliably on each invocation.
+
+### Line length
 
 **Signal:** Any line outside fenced blocks and URLs exceeds 120 chars.
 
 **CHANGE:** Wrap the line. In prose, break at a natural clause boundary.
 **REASON:** Improves diff readability and matches toolkit-wide conventions.
 
-### Secret Detected in Body
+### Secrets
 
 **Signal:** Body matches an AWS/GitHub/OpenAI/Anthropic/Stripe key pattern or a credential-shaped variable assignment.
 
@@ -197,7 +208,7 @@ Covers three subtypes:
 **TO:** `AWS_ACCESS_KEY=${AWS_ACCESS_KEY}`
 **REASON:** Skill files are committed config; a committed credential is a breach. Rotation is mandatory regardless of whether the finding surfaces here or later — history retains the exposed value.
 
-### Remote-Exec or Destructive Command
+### Remote-exec / destructive cmd
 
 **Signal:** Shell code blocks contain `curl | bash`, `eval $(curl …)`, `source <(curl …)`, or destructive commands (`rm -rf`, `dd if=`, `DROP TABLE`, `TRUNCATE`, force-push, `mv` without `-i`) without safety flags or a preceding approval gate.
 
@@ -214,7 +225,7 @@ Covers three subtypes:
 ```
 **REASON:** Remote-exec is a supply-chain vector; destructive commands are often legitimate when gated but dangerous when ungated. D7 Safety Gating judges whether the gate exists.
 
-### Prose Hedges or Absolute Paths
+### Prose hedges
 
 **Signal:** Body contains hedging words from the banned list, or absolute-path references that break portability.
 
@@ -380,8 +391,6 @@ bash
 ---
 
 ## Tier 3: Description Collisions
-
-### Overlapping Triggers
 
 **Signal:** Two skills' descriptions plausibly route the same request.
 
