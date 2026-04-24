@@ -14,7 +14,7 @@ description: >
   `/build:check-skill` on each half.
 argument-hint: "[primitive-name]"
 references:
-  - ../../_shared/references/skills-best-practices.md
+  - ../../_shared/references/skill-best-practices.md
   - ../../_shared/references/primitive-routing.md
   - ../../_shared/references/skill-pair-best-practices.md
 ---
