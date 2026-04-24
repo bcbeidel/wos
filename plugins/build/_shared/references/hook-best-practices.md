@@ -1,327 +1,72 @@
 ---
-name: Hook Best Practices
-description: Authoring guide for Claude Code hooks — event-driven handlers registered in settings.json that fire at lifecycle moments to enforce quality gates deterministically. Referenced by build-hook and check-hook.
+name: Hooks Best Practices
+description: Authoring guide for Claude Code hooks — what makes a hook load-bearing on the agent's critical path, how to shape registration and script together, the positive patterns that work, and the safety and maintenance posture. Referenced by build-hook and check-hook.
 ---
 
-# Hook Best Practices
+# Hooks Best Practices
 
 ## What a Good Hook Does
 
-A hook is a deterministic gate. It runs because a lifecycle event happened —
-a tool is about to execute, a session started, a file changed — not because
-Claude judged the situation to warrant it. That determinism is the entire
-value proposition: when "usually" is not good enough, a hook is the primitive
-that ships guaranteed enforcement.
-
-A hook earns its place when three conditions hold: (1) the goal is an
-*invariant*, not a preference — one false positive per session is enough to
-generate bypass culture and nullify the gate; (2) the enforcement point maps
-to a specific lifecycle event; (3) the check can be expressed in a shell
-one-liner or a lean script. If any of those three fails — advisory guidance,
-no lifecycle hook, semantic judgment required — the goal belongs to a
-different primitive (CLAUDE.md, a rule, a skill).
-
-**What a hook is not.** Not an unconditional static block (that is
-`permissions.deny`). Not a preference (that is CLAUDE.md). Not semantic
-evaluation of file content (that is a rule). Not a procedure invoked by Claude
-(that is a skill).
+A Claude Code hook is a short, single-purpose script the agent invokes at a defined event — `PreToolUse`, `PostToolUse`, `UserPromptSubmit`, `Stop`, `Notification`, `SubagentStop`, or `PreCompact` — to apply deterministic policy on the critical path. Good hooks are fast, fail safely, stay auditable, and never surprise a reviewer: they read a JSON payload from stdin, make one decision, emit a structured log line, and return via a well-known exit code. The value proposition is narrow. A hook earns its place when the policy is mechanical (block `rm -rf /`, redact secrets, lint on save, record an audit trail) and would be error-prone to enforce via prompt instructions. If the work needs the model's judgment, it belongs in a skill or a subagent, not a hook.
 
 ## Anatomy
 
-### Event selection
+A hook ships as two artifacts. A **registration entry** in `.claude/settings.json` (team-shared) or `.claude/settings.local.json` (gitignored, personal), bound to a single event, scoped by a narrow `matcher`, pointing at a **script path** — not an inline pipeline, not `bash -c`. And the **script** itself under `.claude/hooks/`, named by event and purpose (`pre-tool-use--block-destructive-rm.sh`), with a shebang, the executable bit, and a header comment stating **Event**, **Matcher**, **Effect**, **Failure-mode** (`fail-closed` for safety-critical / `fail-open` for advisory), and **Bypass** (how to disable in an incident).
 
-Hooks fire on named lifecycle events. The event determines what the hook can
-do — PreToolUse can block, PostToolUse cannot; Stop and SubagentStop have
-loop-protection obligations; non-tool events have different payload shapes.
+Beneath the header, bash hooks set strict mode immediately (`set -euo pipefail`); Python hooks declare `main()` and a locked import block. The body reads stdin as strict JSON, validates fields, makes one decision, writes a reason to stderr on block, emits one structured JSON log line to stderr on exit, and returns via `0` (allow), `2` (block with feedback), or another non-zero code for hook-internal bugs. A test fixture under `tests/` or `.claude/hooks/tests/` pipes a representative payload and asserts the contract.
 
-| Category | Events | Blockable? |
-|----------|--------|------------|
-| Tool execution | `PreToolUse`, `PostToolUse`, `PostToolUseFailure` | PreToolUse only |
-| Session lifecycle | `SessionStart`, `SessionEnd`, `UserPromptSubmit`, `PreCompact`, `PostCompact`, `InstructionsLoaded`, `ConfigChange`, `CwdChanged`, `FileChanged` | UserPromptSubmit / PreCompact / ConfigChange |
-| Agent coordination | `Stop`, `StopFailure`, `SubagentStart`, `SubagentStop`, `TeammateIdle` | Stop / SubagentStop / TeammateIdle |
-| Tasks & worktrees | `TaskCreated`, `TaskCompleted`, `WorktreeCreate`, `WorktreeRemove` | TaskCreated / TaskCompleted / WorktreeCreate (any non-zero) |
-| Permission & MCP | `Notification`, `PermissionRequest`, `PermissionDenied`, `Elicitation`, `ElicitationResult` | PermissionRequest / Elicitation / ElicitationResult |
+## Authoring Principles
 
-The single most common misconfiguration is routing a blocking intent through
-`PostToolUse`: the tool has already run, the exit code is ignored, the gate
-silently fails.
+**Register on a known event with a narrow matcher.** Hooks bind to a fixed enum of events. A typo in the event key means the hook never fires and the gate silently fails open; validating `settings.json` against the known set catches this at review time. Scope each registration with a matcher that names the specific tool or pattern the hook applies to — not `*`, not `.*`, not empty. Broad matchers add latency to every tool call and output the agent must parse past.
 
-### Handler types
+**Put logic in versioned scripts, not inline commands.** `settings.json` is configuration; shell pipelines inside a `command` field are code hiding from review. A one-line `command: ".claude/hooks/pre-tool-use--block-rm.sh"` lets the script receive code review, linting, and testing. Inline pipelines skip all three and rot unnoticed.
 
-| Type | When | Cost |
-|------|------|------|
-| `command` | Most enforcement goals | None beyond subprocess |
-| `http` | POST to external endpoint | Network |
-| `prompt` | Single-turn LLM evaluation | API cost + latency |
-| `agent` | Multi-turn subagent with tools | Full Claude session |
+**Keep each hook single-purpose and bounded in size.** One script, one decision. Composition across multiple hooks is cheaper than branching inside one — multi-purpose hooks grow state, develop subtle interactions, and become impossible to disable partially. A hook that grows past the file limit is a refactor signal, not a workaround signal.
 
-Default to `command`. Reach for `prompt`/`agent` only when the judgment
-genuinely needs an LLM — on a high-frequency event like `PreToolUse`, the
-per-call cost accumulates into session sluggishness.
+**Give every script a shebang and the executable bit.** `#!/usr/bin/env bash`, `#!/usr/bin/env python3`. The shebang is the dialect contract; the executable bit is the "run directly" contract. Leaving either out forces the harness to guess, which goes wrong differently on different machines.
 
-### Matcher syntax
+**Prefer Python past the trivial-glue boundary.** Bash is fine for small wrapper hooks that grep a field and exit. Past roughly twenty lines, or whenever structured-data parsing enters the picture (JSON, SQL, shell command tokenization), switch to Python. Bash branching and quoting get expensive fast, and shell regex on serialized data is a security bug waiting to happen.
 
-Matchers select which tool invocations fire the hook. The matcher is a field
-on each hook entry in `settings.json` and follows a three-tier evaluation
-determined by the pattern content (not a flag):
+**Keep the protocol tight: JSON in, nothing-or-JSON out, reason on stderr.** Parse stdin as strict JSON (`jq` in bash, `json.load(sys.stdin)` in Python); reject on parse error. Leave stdout empty on allow; emit exactly one JSON object (`{"decision":"block","reason":"..."}`) only when structured feedback must reach the model verbatim. Send all human logs, debug traces, and error messages to stderr — Claude Code surfaces stderr on blocking exits. A stray `echo` on stdout corrupts the agent's view of the decision. Argv and env are not part of the contract; relying on them breaks silently on version updates.
 
-1. `"*"`, `""`, or omitted → wildcard: fires on every tool call for this event
-2. Alphanumeric + pipe only (`"Write|Edit|MultiEdit"`) → exact match or list
-3. Any other character (`"mcp__memory__.*"`, `"^Notebook"`) → JavaScript regex (not POSIX; case-sensitive)
+**Decide via exit codes, not prose.** `0` allows, `2` blocks with feedback (reason on stderr), other non-zero codes signal a hook-internal bug. Mixing these — returning `1` for "block," echoing "allow" on stdout, writing the reason to stdout — produces ambiguity that either lets unsafe actions through or spams "hook failed" noise.
 
-Canonical tool names: `Bash`, `Write`, `Edit`, `MultiEdit`, `Read`, `Glob`,
-`Grep`, `WebFetch`, `WebSearch`, `Agent`, `NotebookEdit`, `NotebookRead`. A
-matcher of `bash` or `write` silently matches nothing.
+**Make failures loud, bounded, and posture-declared.** `set -euo pipefail` at the top of every bash hook turns silent failures into loud, early exits; Python hooks wrap external I/O in narrow try-blocks with no bare `except: pass`. Enforce a per-hook timeout on any external call. The header comment declares whether the hook is `fail-closed` (safety-critical — block on ambiguity or timeout) or `fail-open` (advisory — allow past). An explicit posture turns a judgment call into a reviewable artifact; silence is an unmanaged default.
 
-**FileChanged exception.** `FileChanged` treats `matcher` as a `|`-separated
-list of *literal filenames*, not a regex. `".envrc|.env"` watches those two
-files; regex syntax is not interpreted there.
+**Never trust tool input; validate paths and pass argv-only to subprocesses.** Tool inputs are LLM-generated and may carry metacharacters from web content, prompt injections, or adversarial fuzzing. Canonicalize every path field through `realpath` / `os.path.realpath` before an allowlist prefix check — naive checks miss `../../../etc/passwd` and symlink escapes. Hardcode subprocess commands, allowlist flag values, and pass untrusted data only as positional arguments. `shell=True`, `bash -c "$payload"`, `eval "$tool_input"`, `os.system(...)` are equivalent foot-guns. Parse structured data with dedicated libraries (`jq`, `json.loads`), never regex.
 
-**The `if` field (v2.1.85+).** Filters individual handlers by tool name and
-arguments — tighter than `matcher` alone, because the hook process does not
-spawn at all when `if` doesn't match. Example: `"if": "Bash(git *)"` fires
-only for `git` subcommands. Only works on tool events; on non-tool events
-it prevents the hook from running entirely.
+**Forbid network I/O in `PreToolUse`; bound it elsewhere.** `PreToolUse` runs on every intercepted tool call; a single network round trip multiplies into minutes of latency per session. Blanket-ban outgoing network calls in `PreToolUse`. `PostToolUse` telemetry that must reach a network endpoint fires-and-forgets with a short timeout and fails open.
 
-### Payload schema and extraction
+**Emit one structured log line per invocation with named constants and a fixed decision enum.** A single JSON line on stderr per execution containing `hook`, `event`, `decision`, `reason`, `duration_ms` — and a correlation ID where available — is enough to audit, alert, and debug. Use a fixed enum (`allow`, `block`, `escalate`, `observe`) in logs and reason codes; declare timeouts, path prefixes, and decision values as named constants at the top. Magic numbers and free-text decisions defeat metrics and make refactoring risky. Redact secrets using a fixed pattern (`(?i)(token|secret|password|key|bearer)`); never log `os.environ`, `$(env)`, or raw stdin that may contain credentials.
 
-The command handler receives a JSON payload on stdin with fields: `session_id`,
-`transcript_path`, `cwd`, `hook_event_name`, `tool_name`, `tool_input`,
-`tool_use_id`, `permission_mode`.
+**Write a stateless, import-safe script with one entry point.** A `main()` function called from an `if __name__ == "__main__":` guard (Python) or a sourceable `main` function under `[[ "${BASH_SOURCE[0]}" == "$0" ]] && main "$@"` (bash) makes hooks testable by sourcing. Module-scope I/O, HTTP calls, or mutable globals run on import and contaminate the test environment. The same payload must produce the same decision regardless of clock, RNG, or prior invocations — non-deterministic hooks make incidents un-debuggable.
 
-`tool_input` structure is tool-specific — extracting the wrong field returns
-`null` silently:
+**Test every hook with a representative payload.** One test per hook: pipe a realistic JSON payload to stdin and assert the exit code and any stdout contract. Fixtures live beside the hook. Hooks without tests decay quietly — the first sign a gate has drifted is an incident.
 
-| Tool(s) | jq path |
-|---------|---------|
-| `Bash` | `.tool_input.command` |
-| `Write` | `.tool_input.file_path`, `.tool_input.content` |
-| `Edit`, `MultiEdit` | `.tool_input.path` |
-| `Read`, `Glob`, `Grep` | `.tool_input.path` or `.tool_input.pattern` |
-| `WebFetch`, `WebSearch` | `.tool_input.url` |
+**Pin interpreters and dependencies; keep scripts in source control.** Reference interpreters as `/usr/bin/env bash` / `/usr/bin/env python3`. Lock Python dependencies in a project-level lockfile or pinned requirements file. Do not download or generate hook scripts at runtime — provenance and reviewability require the script to live in the repository.
 
-**Safe extraction:** Always `jq -r`, store in a variable, then use. Never
-interpolate payload fields directly into a jq filter — use `--arg`:
-
-```bash
-TOOL_NAME="$(echo "${INPUT}" | jq -r '.tool_name')"
-CMD="$(echo "${INPUT}" | jq -r '.tool_input.command // empty')"
-RESULT="$(echo "${INPUT}" | jq --arg key "${TOOL_NAME}" '.fields[$key]')"
-```
-
-Treat all `tool_input` fields as untrusted: they reflect what the user asked
-Claude to do.
-
-### Exit codes and the JSON output contract
-
-Command hooks signal outcome through exit code plus optional stdout JSON.
-
-| Exit | Meaning | stdout parsed? |
-|------|---------|----------------|
-| 0 | Pass (or structured response) | Yes, as JSON |
-| 1 | Warn — error in transcript, execution proceeds | No |
-| 2 | Block (PreToolUse / blockable events only) | No |
-| other | Treated as 1 | No |
-
-**JSON output contract (exit 0 only).** stdout must be a single JSON object
-with no leading text. Fields:
-
-- `hookSpecificOutput.hookEventName` — **required**, echo the event name
-- `permissionDecision: "allow" | "deny" | "ask" | "defer"` + `permissionDecisionReason` — PreToolUse / PermissionRequest block-or-allow channel; precedence `deny > defer > ask > allow`
-- `decision: "block"` + `reason` — top-level block for UserPromptSubmit, PostToolUse, Stop, SubagentStop, PreCompact, ConfigChange, TaskCreated, TaskCompleted
-- `additionalContext` — injected into Claude's view; capped at 10,000 characters
-- `continue: false` + `stopReason` — halts entire conversation
-- `systemMessage` — user-visible message
-- `suppressOutput: true` — omits hook output from debug log
-- `sessionTitle` (UserPromptSubmit only) — auto-names session
-- `retry: true` (PermissionDenied only) — tells Claude it may retry
-- `worktreePath` (WorktreeCreate) — required return for HTTP handler; command handler prints to stdout instead
-- `hookSpecificOutput.updatedInput` (PreToolUse only) — replaces `tool_input` entirely before execution; use to sanitize/transform rather than refuse
-
-Hook stdout is **truncated silently at 10,000 characters** — large
-`additionalContext` or `systemMessage` payloads get cut mid-JSON and surface
-as "JSON validation failed" in the transcript.
-
-### Settings.json entry shape
-
-```json
-{
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gate.sh",
-            "timeout": 60
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-Spec timeout defaults: 600 s for command, 30 s for prompt, 60 s for agent.
-Tight gates should be 10–60 s so a stuck hook fails fast; a hook that
-exceeds its timeout is treated as non-blocking (operation proceeds, error
-in transcript).
-
-Optional fields: `"shell": "bash" | "powershell"`, `"statusMessage"`,
-`"asyncRewake": true` (implies `async: true`), `"headers"` and
-`"allowedEnvVars"` (HTTP), `"model"` (prompt/agent; defaults to fast model
-for prompt).
-
-### Path expansion variables
-
-- `$CLAUDE_PROJECT_DIR` — project root, resolves regardless of cwd; use this
-- Absolute paths — also fine
-- `$HOME` / `~` — expand inconsistently across versions; **silently fail** to load the script
-- `$CLAUDE_PLUGIN_ROOT` — plugin install dir (changes on update)
-- `$CLAUDE_PLUGIN_DATA` — plugin persistent data dir (survives updates)
-- `$CLAUDE_ENV_FILE` — available inside `SessionStart`, `CwdChanged`, `FileChanged` for persisting env vars
-
-### Script skeleton
-
-```bash
-#!/usr/bin/env bash
-# Hook: <enforcement goal>
-# Event: <hook event>
-
-set -Eeuo pipefail
-
-INPUT=$(cat)
-
-command -v jq &>/dev/null || { echo "jq required" >&2; exit 2; }
-
-# <enforcement logic>
-
-exit 0
-```
+**Commit shared policy; gitignore personal workflow.** `.claude/settings.json` is the team-reviewed gate set. `.claude/settings.local.json` is personal, belongs in `.gitignore`, and carries no expectation of team review. Conflating the two either imposes one engineer's workflow on the team or buries shared gates inside un-reviewed config.
 
 ## Patterns That Work
 
-**Warn before block.** Deploy a new blocking PreToolUse hook with `exit 1`
-(warning only) for at least a week before graduating to `exit 2` (block).
-Rationale: one false positive per session is sufficient to establish bypass
-culture (`--no-verify`, matcher tweaks), and once bypass is cultural the
-hook provides no protection.
+- **Scripts over inline pipelines.** A reviewable file path in `settings.json` beats any amount of cleverness in a `command` field.
+- **Exit codes over prose decisions.** Two or three integers beat a free-form string for reliability and metrics.
+- **Argv arrays over shell interpolation.** Passing untrusted input as positional arguments to a fixed command is safe; interpolating into a shell string is not.
+- **Narrow matchers over `.*` or empty.** Registering the hook against the tool it actually cares about keeps the hot path fast.
+- **`realpath` before prefix-check.** Canonicalization first, allowlist comparison second.
+- **One structured log line over scattered prints.** One JSON line on stderr per invocation supports audit and metrics; scattered prints defeat both.
+- **Declared failure-mode over implicit posture.** A header that names `fail-closed` or `fail-open` is a reviewable commitment; silence is an unmanaged default.
+- **One decision per hook, composed via multiple hooks.** Composition is cheap; branching inside one hook is not.
 
-**Safe variable injection.** Use `jq --arg key "${TOOL_NAME}"` to pass shell
-variables into jq filters rather than interpolating. Payload fields passed
-through string interpolation become a parse-time injection vector.
+## Safety
 
-**Belt-and-suspenders Stop loops.** For `Stop` and `SubagentStop` hooks that
-exit 2, layer all three loop-break mechanisms: (1) `stop_hook_active` check
-(SubagentStop only); (2) progress check on `last_assistant_message`; (3)
-session-scoped guard file keyed to `session_id`. The first alone is enough
-for SubagentStop; the third is required for Stop (its payload lacks
-`stop_hook_active`); the second lets the block resolve naturally once the
-subagent satisfies the requirement rather than remaining a hard gate.
+Some hook safety properties are checkable deterministically: a shellcheck-clean bash script, a bandit-clean Python script, the absence of `eval` / `shell=True` / `os.system` on tool-derived input, a `realpath`-guarded path check, a secret-redaction pattern on logged fields, a JSON parser (not regex) consuming stdin. These are Tier-1 territory — the audit script either finds the pattern or it does not.
 
-**Lean synchronous, async for the rest.** Synchronous hooks block Claude
-while they run. Target <1 second for synchronous gates; push anything that
-calls an LLM, touches the network, or runs a slow subprocess to
-`"async": true`. Remember: async hooks *cannot* block regardless of exit code.
+Other properties require judgment: whether a hook actually blocks the failure mode it claims to; whether a timeout is well-chosen for the workload; whether a `fail-open` declaration is genuinely safe for the gate in question; whether the matcher scope matches the stated intent. These are Tier-2 dimensions — a rubric-driven review reads the hook and its header together. The author-time job is to make that review easy: name the failure mode in the header, keep the body short enough to hold in working memory, and include a test that encodes the intent.
 
-**Local-only enforcement in `settings.local.json`.** The file is gitignored
-and per-developer — appropriate for personal credential-protection or
-ergonomics. Team-wide enforcement lives in `settings.json` but must be
-treated as executable code in review.
+## Review and Decay
 
-## Anti-Patterns
+Audit hooks on the same cadence as the code they gate — every change to a protected surface is an opportunity for drift. A hook retires when its rule is enforced elsewhere (a pre-commit equivalent lands upstream, a linter covers the case, the tool it gates is deprecated), when it fires often enough to be flagged as noise rather than policy, or when its failure mode no longer matches the threat model. Retirement is a deletion plus a log-trail commit message — silent disables become undocumented trust assumptions.
 
-**Blocking via PostToolUse.** The tool has already executed; the exit code
-cannot undo it. Fails to enforce silently.
+A well-built hook reads like a contract: one event, one matcher, one decision, one log line, a documented failure mode, a tested fixture. Anything more is either two hooks pretending to be one, or a skill.
 
-**`async: true` with `exit 2`.** Async hooks run after the operation
-proceeds. Exit 2 is ignored. Looks like a blocker; is not one.
-
-**Unguarded `Stop` / `SubagentStop` with `exit 2`.** Creates an infinite
-loop. Requires a session kill to recover.
-
-**`$HOME` or `~` in `command`.** Expansion is inconsistent across Claude Code
-versions; the hook silently fails to load. `$CLAUDE_PROJECT_DIR` is the
-spec's reference pattern.
-
-**Missing `INPUT=$(cat)`.** Scripts that do not consume stdin hang or fail
-silently when the payload exceeds the OS pipe buffer.
-
-**`eval` on payload values.** `tool_input.command` reflects user input; feeding
-it to `eval` is shell injection with no safe sanitization.
-
-**Unquoted payload expansions.** `$var` (not `"${var}"`) undergoes
-word-splitting and globbing; payload content can exploit that.
-
-**Bare command names in adversarial environments.** `jq`, `grep` without
-absolute paths are susceptible to PATH hijack. Matters most in
-project-level `settings.json` (team commit access) and CI (runner-injected PATH).
-
-**Wrong jq field paths for the matcher.** `jq -r '.tool_input.command'` on a
-Write hook returns `null` silently. Field paths must match the tool's
-`tool_input` schema.
-
-**Blocking enforcement on interactive-only events under `claude -p`.** CI /
-non-interactive mode cannot answer `AskUserQuestion` or `ExitPlanMode`.
-Anchor CI-critical enforcement on `PreToolUse` with an `updatedInput` response.
-
-**Multiple `PreToolUse` hooks returning `updatedInput` for the same tool.**
-Hooks run in parallel; last to finish wins. Non-deterministic silently.
-
-**User-level hooks (`~/.claude/settings.json`) alongside CI usage.** Fires in
-every project including CI automation. Enforcement designed for local
-ergonomics applies where it was never reviewed.
-
-## Safety & Maintenance
-
-**Static analysis.** Run ShellCheck and `shfmt -i 2` on every hook script.
-ShellCheck catches quoting errors, deprecated syntax, conditional misuse;
-`shfmt` enforces consistent formatting. Both are a floor — wrong exit-code
-intent and incorrect jq field paths remain invisible to static analysis.
-When ShellCheck false-positives on jq-assigned variables (SC2034) or
-single-quoted JSON strings (SC2016), suppress *inline* or via
-`.shellcheckrc`, never wholesale.
-
-**Shell hygiene preamble.** `set -Eeuo pipefail` at the top. Wrap detection
-commands (`grep`, `diff`, `test`, `[`) that legitimately exit non-zero
-with `|| true` or inside `if`; otherwise `-e` aborts the hook and produces
-false positives. Use `[[` over `[`; use `#!/usr/bin/env bash` over
-`#!/bin/bash` for portability. Never commit `set -x`.
-
-**Output routing.** Errors and block messages go to stderr (`>&2`). stdout is
-for structured JSON on exit 0; anything else on stdout is either parsed as
-JSON (and fails) or ignored (wasted work).
-
-**Attack surface (CVE-2025-59536).** Any collaborator with commit access to
-project `settings.json` can inject hooks that execute arbitrary commands on
-every team member's machine when the project is opened. Treat hook additions
-to project `settings.json` with the same scrutiny as executable source.
-Personal-only enforcement belongs in `settings.local.json`.
-
-**Recursive-loop safety.** Never invoke `claude` or `claude-code` from inside
-a hook command. Each spawn re-fires hooks on the nested session and compounds
-exponentially. If LLM-mediated decisions genuinely need to run inside a hook,
-use `type: "prompt"` or `type: "agent"` instead of shelling out to `claude`.
-
-**Shell profile pollution.** If `~/.bashrc` / `~/.zshrc` emits output
-unconditionally, that output corrupts the stdin JSON pipe and causes parse
-failures. Guard interactive-only output: `if [[ $- == *i* ]]; then ...; fi`.
-
-**Idempotency.** A hook that runs twice must produce the same outcome. No
-unbounded log appending, no counter increments, no files that are never
-cleaned up.
-
-**Latency budget.** <1 second for synchronous hooks. Move anything slower to
-`async: true`. Session sluggishness from slow hooks generates bypass pressure.
-
-**CLAUDE.md overlap.** A hook that duplicates a CLAUDE.md instruction may be
-intentional (belt-and-suspenders: advisory layer + deterministic layer), or
-it may be stale. Surface the overlap; let the human decide. Do not treat
-duplication as always-wrong.
-
-**Known limitations:**
-- **Path expansion** — only `$CLAUDE_PROJECT_DIR` and absolute paths are guaranteed.
-- **Non-interactive (`claude -p`)** — `AskUserQuestion` and `ExitPlanMode` block; use a PreToolUse hook with `permissionDecision: "allow"` + `updatedInput` to pre-answer.
-- **Shell profile pollution** — non-interactive shells spawn hooks; guard interactive-only output.
-- **Copilot compatibility** — Copilot serializes tool arguments as `toolArgs` (JSON string), not `tool_input` (object). Cross-platform hooks require a detection branch or separate configurations.

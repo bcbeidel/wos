@@ -25,11 +25,12 @@ set -Eeuo pipefail
 IFS=$'\n\t'
 
 PROGNAME="$(basename "${0}")"
+readonly PROGNAME
 
-REQUIRED_CMDS=(awk find basename)
+readonly REQUIRED_CMDS=(awk find basename)
 
-WARN_THRESHOLD=200
-FAIL_THRESHOLD=500
+readonly WARN_THRESHOLD=200
+readonly FAIL_THRESHOLD=500
 
 usage() {
   cat <<'EOF'
@@ -55,8 +56,8 @@ EOF
 
 install_hint() {
   case "${1}" in
-    awk|find|basename) printf 'should be preinstalled on any POSIX system' ;;
-    *)                 printf 'see your package manager' ;;
+    awk | find | basename) printf 'should be preinstalled on any POSIX system' ;;
+    *) printf 'see your package manager' ;;
   esac
 }
 
@@ -68,7 +69,7 @@ preflight() {
       missing+=("${cmd}")
     fi
   done
-  if [ "${#missing[@]}" -gt 0 ]; then
+  if [[ "${#missing[@]}" -gt 0 ]]; then
     for cmd in "${missing[@]}"; do
       printf '%s: missing required command %q. Install: %s\n' \
         "${PROGNAME}" "${cmd}" "$(install_hint "${cmd}")" >&2
@@ -99,12 +100,12 @@ check_file() {
   local count
   count="$(count_nonblank "${file}")"
 
-  if [ "${count}" -gt "${FAIL_THRESHOLD}" ]; then
+  if [[ "${count}" -gt "${FAIL_THRESHOLD}" ]]; then
     emit_fail "${file}" "file size" \
       "${count} non-blank lines exceeds ${FAIL_THRESHOLD}-line hard cap" \
       "Split into rules and move long-form rationale to .context/<name>.md or a CLAUDE.md section"
     return 1
-  elif [ "${count}" -gt "${WARN_THRESHOLD}" ]; then
+  elif [[ "${count}" -gt "${WARN_THRESHOLD}" ]]; then
     emit_warn "${file}" "file size" \
       "${count} non-blank lines exceeds ${WARN_THRESHOLD}-line soft cap" \
       "Split into topic files (e.g., testing-unit.md + testing-integration.md)"
@@ -117,9 +118,9 @@ check_path() {
   local any=0
   local file
 
-  if [ -f "${target}" ]; then
+  if [[ -f "${target}" ]]; then
     check_file "${target}" || any=1
-  elif [ -d "${target}" ]; then
+  elif [[ -d "${target}" ]]; then
     while IFS= read -r file; do
       check_file "${file}" || any=1
     done < <(find "${target}" -type f -name '*.md' 2>/dev/null)
@@ -131,13 +132,16 @@ check_path() {
 }
 
 main() {
-  if [ "$#" -eq 0 ]; then
+  if [[ "$#" -eq 0 ]]; then
     usage >&2
     exit 64
   fi
 
   case "${1:-}" in
-    -h|--help) usage; exit 0 ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
   esac
 
   preflight
@@ -151,6 +155,6 @@ main() {
   exit "${any}"
 }
 
-if [ "${0}" = "${BASH_SOURCE[0]:-$0}" ]; then
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   main "$@"
 fi
