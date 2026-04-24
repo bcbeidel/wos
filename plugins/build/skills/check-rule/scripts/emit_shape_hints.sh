@@ -36,8 +36,9 @@ set -Eeuo pipefail
 IFS=$'\n\t'
 
 PROGNAME="$(basename "${0}")"
+readonly PROGNAME
 
-REQUIRED_CMDS=(awk find basename)
+readonly REQUIRED_CMDS=(awk find basename)
 
 usage() {
   cat <<'EOF'
@@ -64,8 +65,8 @@ EOF
 
 install_hint() {
   case "${1}" in
-    awk|find|basename) printf 'should be preinstalled on any POSIX system' ;;
-    *)                 printf 'see your package manager' ;;
+    awk | find | basename) printf 'should be preinstalled on any POSIX system' ;;
+    *) printf 'see your package manager' ;;
   esac
 }
 
@@ -77,7 +78,7 @@ preflight() {
       missing+=("${cmd}")
     fi
   done
-  if [ "${#missing[@]}" -gt 0 ]; then
+  if [[ "${#missing[@]}" -gt 0 ]]; then
     for cmd in "${missing[@]}"; do
       printf '%s: missing required command %q. Install: %s\n' \
         "${PROGNAME}" "${cmd}" "$(install_hint "${cmd}")" >&2
@@ -127,9 +128,9 @@ scan_path() {
   local target="$1"
   local file
 
-  if [ -f "${target}" ]; then
+  if [[ -f "${target}" ]]; then
     scan_file "${target}"
-  elif [ -d "${target}" ]; then
+  elif [[ -d "${target}" ]]; then
     while IFS= read -r file; do
       scan_file "${file}"
     done < <(find "${target}" -type f -name '*.md' 2>/dev/null)
@@ -140,13 +141,16 @@ scan_path() {
 }
 
 main() {
-  if [ "$#" -eq 0 ]; then
+  if [[ "$#" -eq 0 ]]; then
     usage >&2
     exit 64
   fi
 
   case "${1:-}" in
-    -h|--help) usage; exit 0 ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
   esac
 
   preflight
@@ -157,12 +161,12 @@ main() {
     scan_path "${target}" || arg_err=1
   done
 
-  if [ "${arg_err}" -ne 0 ]; then
+  if [[ "${arg_err}" -ne 0 ]]; then
     exit 64
   fi
   exit 0
 }
 
-if [ "${0}" = "${BASH_SOURCE[0]:-$0}" ]; then
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   main "$@"
 fi
