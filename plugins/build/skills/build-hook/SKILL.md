@@ -30,18 +30,27 @@ rubric both halves of the pair share.
 Confirm a hook is the right primitive. Full framework:
 [primitive-routing.md](../../_shared/references/primitive-routing.md).
 
-- **Unconditional permanent block** (never allow tool X, no exceptions ever) → route to `settings.json` `permissions.deny`.
-- **Advisory guidance or preference** (prefer X, follow this convention) → route to CLAUDE.md or `/build:build-skill`.
-- **Semantic judgment on file content** (convention too nuanced for grep) → route to `/build:build-rule`.
-- **Specific lifecycle trigger + must fire regardless of LLM judgment** → proceed.
+- **Unconditional permanent block** (never allow tool X, no exceptions ever) →
+  route to `settings.json` `permissions.deny`.
+- **Advisory guidance or preference** (prefer X, follow this convention) →
+  route to CLAUDE.md or `/build:build-skill`.
+- **Semantic judgment on file content** (convention too nuanced for grep) →
+  route to `/build:build-rule`.
+- **Specific lifecycle trigger + must fire regardless of LLM judgment** →
+  proceed.
 
 ## 2. Scope Gate
 
 Refuse — and recommend an alternative — when any of these signal:
 
-1. **The goal is a preference, not an invariant.** Hooks spend their authority on false positives. If the user is unsure whether they'd want a bypass path, the goal is advisory — route to CLAUDE.md or a skill.
-2. **The check needs semantic judgment.** If the criterion cannot be expressed as a shell one-liner or a lean script (format, naming pattern, file existence, command shape), route to `/build:build-rule`.
-3. **No lifecycle event maps to the goal.** If the trigger is "after the user thinks about X," there is no hook to write.
+1. **The goal is a preference, not an invariant.** Hooks spend their authority
+   on false positives. If the user is unsure whether they'd want a bypass path,
+   the goal is advisory — route to CLAUDE.md or a skill.
+2. **The check needs semantic judgment.** If the criterion cannot be expressed
+   as a shell one-liner or a lean script (format, naming pattern, file
+   existence, command shape), route to `/build:build-rule`.
+3. **No lifecycle event maps to the goal.** If the trigger is "after the user
+   thinks about X," there is no hook to write.
 
 ## 3. Elicit
 
@@ -136,10 +145,59 @@ Then offer:
 > "Run `/build:check-hook` to audit the configuration for coverage gaps,
 > misconfigurations, and safety issues?"
 
+## Example
+
+Invocation: `/build:build-hook PreToolUse "block direct pushes to main"`
+
+Route confirms the goal is an invariant (not advisory) and maps to a
+blockable event — PreToolUse on Bash can refuse a `git push` to `main`.
+Proceeds to Elicit.
+
+Elicit pre-fills event = `PreToolUse`, enforcement goal = "block direct
+pushes to main". Asks only handler type; user confirms `command`.
+
+Draft produces two artifacts from the principles-doc skeleton:
+
+```bash
+#!/usr/bin/env bash
+set -Eeuo pipefail
+INPUT=$(cat)
+command -v jq &>/dev/null || { echo "jq required" >&2; exit 2; }
+
+CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
+if [[ "$CMD" =~ git[[:space:]]+push[[:space:]]+.*\bmain\b ]]; then
+  echo "blocked: direct pushes to main are gated; push to a feature branch" >&2
+  exit 2
+fi
+exit 0
+```
+
+```json
+{"hooks":{"PreToolUse":[{"matcher":"Bash","hooks":[{"type":"command",
+ "command":"\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/block-main-push.sh",
+ "timeout":10}]}]}}
+```
+
+Safety Check confirms: `exit-code-contract` (`exit 2` on block),
+`stdin-consumption` (`INPUT=$(cat)`), `command-path-expansion`
+(`$CLAUDE_PROJECT_DIR`), `injection-safety` (quoted expansion, no `eval`),
+`jq-handling` (availability check present, Bash field path correct),
+`shell-hygiene` (preamble, stderr). Not a Stop event — skip §6. Rule
+Overlap scan: no matching CLAUDE.md instruction. Review Gate: user
+approves.
+
+Save writes `.claude/hooks/block-main-push.sh`, runs `chmod +x`, shows
+the settings.json snippet for manual merge.
+
+Test runs the three-layer verification from `hook-testing.md`, then
+offers `/build:check-hook` to audit the configuration.
+
 ## Anti-Pattern Guards
 
 1. **Skipping Route/Scope Gate.** A goal that fits `permissions.deny` or CLAUDE.md should never reach the Draft step.
-2. **Blocking via PostToolUse.** PostToolUse cannot prevent execution; presenting a PostToolUse draft for a blocking goal is a misconfiguration that silently fails to enforce.
+2. **Blocking via PostToolUse.** PostToolUse cannot prevent execution;
+   presenting a PostToolUse draft for a blocking goal is a misconfiguration
+   that silently fails to enforce.
 3. **`async: true` with `exit 2`.** Async hooks run after execution regardless of exit code.
 4. **Writing files before the Review Gate.** Skipping the gate bypasses the only safety checkpoint.
 5. **Auto-patching `settings.json`.** Always show the snippet; let the user apply.
@@ -151,7 +209,10 @@ Then offer:
 - Won't build a hook when `permissions.deny` covers the goal — unconditional blocks need no script.
 - Won't build a hook for advisory guidance — suggest CLAUDE.md or a skill instead.
 - Won't skip the Safety Check against `audit-dimensions.md`.
-- Recovery if a hook is written in error: `chmod -x .claude/hooks/<name>.sh` (disables without deleting) or remove the file and its `settings.json` entry. A configured hook whose script is missing or non-executable silently fails and leaves normal tool flow intact.
+- Recovery if a hook is written in error: `chmod -x .claude/hooks/<name>.sh`
+  (disables without deleting) or remove the file and its `settings.json`
+  entry. A configured hook whose script is missing or non-executable silently
+  fails and leaves normal tool flow intact.
 
 ## Handoff
 

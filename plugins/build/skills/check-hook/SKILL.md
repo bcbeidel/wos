@@ -21,7 +21,8 @@ Audit a project's Claude Code hooks configuration against the rubric in
 [hook-best-practices.md](../../_shared/references/hook-best-practices.md).
 Read-only until the opt-in Repair Loop.
 
-**Workflow sequence:** 1. Scope → 2. Primitive Routing Scan → 3. Judgment Checks → 4. Platform Scope → 5. Report → 6. Opt-In Repair Loop
+**Workflow sequence:** 1. Scope → 2. Primitive Routing Scan →
+3. Judgment Checks → 4. Platform Scope → 5. Report → 6. Opt-In Repair Loop
 
 ## 1. Scope
 
@@ -64,7 +65,7 @@ specific issue, severity (`fail` / `warn`).
 ## 4. Platform Scope
 
 These checks target Claude Code (`settings.json` / `settings.local.json`).
-If the project's hooks may run on additional platforms (Copilot, etc.),
+If the project's hooks may run on additional platforms beyond Claude Code,
 read [platform-limitations.md](references/platform-limitations.md) and
 append platform-specific findings as a separate report section.
 
@@ -106,22 +107,79 @@ rewrites, or requires user judgment (CLAUDE.md overlap).
 Show the diff before writing. Terminate when the user selects no further
 findings, enters `n`, or confirms `done`.
 
+## Example
+
+Invocation: `/build:check-hook` (no argument; defaults to
+`.claude/settings.json` and `.claude/settings.local.json`).
+
+Scope finds `settings.json` with three hooks: a `PreToolUse` on `Bash`,
+a `PostToolUse` on `Write` described as a "lint gate," and a blocking
+`Stop` hook.
+
+Primitive Routing Scan reads `CLAUDE.md` and finds one advisory rule —
+"never commit files containing `TODO(ME)` markers" — that is shell-
+expressible and has a lifecycle trigger. Flags as `warn`, recommends
+converting to a `PreToolUse` hook.
+
+Judgment Checks evaluate each hook against
+[audit-dimensions.md](references/audit-dimensions.md):
+
+- `PostToolUse` lint gate → `event-matcher-fit` fail: PostToolUse cannot
+  block; move to PreToolUse.
+- `PostToolUse` lint gate → `async-blocking-coherence` fail:
+  `"async": true` with `exit 2` paths — cannot block regardless.
+- `Stop` hook → `stop-loop-guard` fail: blocking `exit 2` with no
+  `session_id`-keyed guard file.
+
+Platform Scope skipped — no evidence the hooks run outside Claude Code.
+
+Report:
+
+```
+4 issues across 3 hooks (3 fail, 1 warn)
+
+event          | hook command          | dimension                | finding
+---------------+-----------------------+--------------------------+---------------------------
+PostToolUse    | lint-after-write.sh   | event-matcher-fit        | PostToolUse cannot block
+PostToolUse    | lint-after-write.sh   | async-blocking-coherence | async:true + exit 2
+Stop           | enforce-test-pass.sh  | stop-loop-guard          | No re-entry guard
+—              | CLAUDE.md             | primitive-routing        | TODO(ME) rule — convert to PreToolUse
+```
+
+Repair Loop: user enters `1,3`. Finding 1 routes to `/build:build-hook`
+(substantive rewrite; event must change). Finding 3 is a direct edit
+from the `stop-loop-guard` entry in
+[repair-playbook.md](references/repair-playbook.md) — add the
+session-scoped guard snippet. User confirms the diff; file updated.
+
 ## Anti-Pattern Guards
 
-1. **Treating rule overlap as always wrong.** CLAUDE.md + hook duplication can be intentional belt-and-suspenders; flag for user decision, do not auto-remove.
-2. **Skipping Primitive Routing Scan when no hooks exist.** Absence of hooks is itself a coverage gap worth surfacing.
-3. **Reading settings outside the project.** Only `.claude/settings.json` and `.claude/settings.local.json` under the current project root, unless the user passes an explicit path.
-4. **Bulk-applying fixes.** Per-finding confirmation required. Some findings (CLAUDE.md overlap, blocking-before-warn graduation) are intentional mid-deployment states.
+1. **Treating rule overlap as always wrong.** CLAUDE.md + hook duplication
+   can be intentional belt-and-suspenders; flag for user decision, do not
+   auto-remove.
+2. **Skipping Primitive Routing Scan when no hooks exist.** Absence of hooks
+   is itself a coverage gap worth surfacing.
+3. **Reading settings outside the project.** Only `.claude/settings.json`
+   and `.claude/settings.local.json` under the current project root, unless
+   the user passes an explicit path.
+4. **Bulk-applying fixes.** Per-finding confirmation required. Some findings
+   (CLAUDE.md overlap, blocking-before-warn graduation) are intentional
+   mid-deployment states.
 
 ## Key Instructions
 
 - Read-only until the Repair Loop; no writes without per-finding confirmation.
 - Always run Primitive Routing Scan before the judgment pass — even with zero hooks configured.
-- `stop-loop-guard` findings are `fail`, not `warn` — unguarded blocking Stop hooks require a session kill to recover.
-- Recovery: outside the Repair Loop this skill modifies nothing; any edits it produces can be reverted with `git diff` / `git checkout`.
+- `stop-loop-guard` findings are `fail`, not `warn` — unguarded blocking Stop
+  hooks require a session kill to recover.
+- Recovery: outside the Repair Loop this skill modifies nothing; any edits
+  it produces can be reverted with `git diff` / `git checkout`.
 
 ## Handoff
 
 **Receives:** Settings file path (optional); defaults to `.claude/settings.json` and `.claude/settings.local.json`.
-**Produces:** Findings table per hook; optional targeted edits gated by per-finding user confirmation in the Repair Loop.
-**Chainable to:** `/build:build-hook` (create a new hook or substantially rewrite one flagged by the audit); `/build:check-skill-pair hook` (audit pair-level integrity).
+**Produces:** Findings table per hook; optional targeted edits gated by
+per-finding user confirmation in the Repair Loop.
+**Chainable to:** `/build:build-hook` (create a new hook or substantially
+rewrite one flagged by the audit); `/build:check-skill-pair hook` (audit
+pair-level integrity).
