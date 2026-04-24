@@ -89,14 +89,22 @@ check_file() {
   local body_chars
   body_chars="$(body_text "${file}" | wc -c | awk '{print $1}')"
 
+  local rec_hard="Split the workflow — at this size the prompt competes"
+  rec_hard+=" with task context. Consider two subagents or moving"
+  rec_hard+=" reference material into a linked file."
+
+  local rec_soft="Trim the body — target <=1,500 tokens. Remove"
+  rec_soft+=" expansions, collapse redundant examples, move reference"
+  rec_soft+=" material into references/."
+
   if [ "${body_chars}" -ge "${HARD_THRESHOLD}" ]; then
     emit_fail "${file}" "size-hard" \
       "body is ${body_chars} chars (>=${HARD_THRESHOLD}, ~3,000 tokens)" \
-      "Split the workflow — at this size the prompt competes directly with task context. Consider two subagents or moving reference material into a linked file."
+      "${rec_hard}"
   elif [ "${body_chars}" -ge "${SOFT_THRESHOLD}" ]; then
     emit_warn "${file}" "size-soft" \
       "body is ${body_chars} chars (>=${SOFT_THRESHOLD}, ~1,500 tokens)" \
-      "Trim the body — target <=1,500 tokens. Remove expansions, collapse redundant examples, move reference material into references/."
+      "${rec_soft}"
   fi
 }
 
@@ -123,7 +131,10 @@ main() {
   fi
 
   case "${1:-}" in
-    -h|--help) usage; exit 0 ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
   esac
 
   preflight

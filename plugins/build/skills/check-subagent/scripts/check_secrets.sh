@@ -93,6 +93,11 @@ scan_file() {
     i=$((i + 1))
   done
 
+  local placeholder_re="[:=][[:space:]]*[\"']"
+  placeholder_re+="(your[-_]|example|redacted|null|none|undefined|"
+  placeholder_re+="placeholder|todo|fixme|xxx|changeme|change[-_]me|"
+  placeholder_re+="foo|bar|baz|abc|xyz)"
+
   while IFS= read -r hit; do
     line="${hit%%:*}"
     emit_finding "${file}" "credential assignment" "${line}"
@@ -102,7 +107,7 @@ scan_file() {
       | grep -Ev "[:=][[:space:]]*[\"']\\\$" \
       | grep -Ev "[:=][[:space:]]*[\"']\\{" \
       | grep -Ev "[:=][[:space:]]*[\"']<" \
-      | grep -iEv "[:=][[:space:]]*[\"'](your[-_]|example|redacted|null|none|undefined|placeholder|todo|fixme|xxx|changeme|change[-_]me|foo|bar|baz|abc|xyz)" \
+      | grep -iEv "${placeholder_re}" \
       || true
   )
 
@@ -136,7 +141,10 @@ main() {
   fi
 
   case "${1:-}" in
-    -h|--help) usage; exit 0 ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
   esac
 
   preflight

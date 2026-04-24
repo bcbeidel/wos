@@ -80,7 +80,7 @@ extract_name() {
 
 is_generic_stem() {
   case "$1" in
-    agent|agents|helper|default|subagent|test|example) return 0 ;;
+    agent | agents | helper | default | subagent | test | example) return 0 ;;
   esac
   return 1
 }
@@ -147,7 +147,10 @@ main() {
   fi
 
   case "${1:-}" in
-    -h|--help) usage; exit 0 ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
   esac
 
   preflight

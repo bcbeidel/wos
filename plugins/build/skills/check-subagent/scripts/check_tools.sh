@@ -147,7 +147,7 @@ check_file() {
   while IFS= read -r item; do
     [ -z "${item}" ] && continue
     case "${item}" in
-      '*'|all|all_tools|ALL)
+      '*' | all | all_tools | ALL)
         emit_fail "${file}" "tools-wildcard" \
           "tools contains wildcard entry '${item}'" \
           "Replace wildcard with an enumerated list of the tools the workflow actually uses."
@@ -176,7 +176,7 @@ check_file() {
     local has_write=0
     while IFS= read -r item; do
       case "${item}" in
-        Write|Edit) has_write=1 ;;
+        Write | Edit) has_write=1 ;;
       esac
     done <<<"${tools}"
     if [ "${has_write}" -eq 1 ] && [ "${isolation}" != "worktree" ]; then
@@ -210,7 +210,10 @@ main() {
   fi
 
   case "${1:-}" in
-    -h|--help) usage; exit 0 ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
   esac
 
   preflight

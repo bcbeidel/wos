@@ -85,7 +85,7 @@ check_file() {
 
   # location-dir: must contain an agents/ segment in its path
   case "${file}" in
-    */.claude/agents/*|*/agents/*|.claude/agents/*|agents/*)
+    */.claude/agents/* | */agents/* | .claude/agents/* | agents/*)
       # OK — includes .claude/agents/, plugins/<plugin>/agents/, ~/.claude/agents/
       ;;
     *)
@@ -119,7 +119,10 @@ main() {
   fi
 
   case "${1:-}" in
-    -h|--help) usage; exit 0 ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
   esac
 
   preflight

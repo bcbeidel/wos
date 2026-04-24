@@ -25,7 +25,7 @@ IFS=$'\n\t'
 
 PROGNAME="$(basename "${0}")"
 
-THRESHOLD=60   # Jaccard * 100; >=60 => flag
+THRESHOLD=60 # Jaccard * 100; >=60 => flag
 
 REQUIRED_CMDS=(awk basename find tr)
 
@@ -128,7 +128,9 @@ jaccard_pct() {
 
 emit_warn() {
   printf 'WARN  %s — description-collision: %s (similarity %s%%)\n' "$1" "$2" "$3"
-  printf '  Recommendation: Differentiate the descriptions (each naming a distinct trigger surface + exclusion + return), or merge into one subagent.\n'
+  printf '  Recommendation: Differentiate the descriptions (each'
+  printf ' naming a distinct trigger surface + exclusion + return),'
+  printf ' or merge into one subagent.\n'
 }
 
 # Collect all target files into an array.
@@ -152,7 +154,10 @@ main() {
   fi
 
   case "${1:-}" in
-    -h|--help) usage; exit 0 ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
   esac
 
   preflight
@@ -169,18 +174,20 @@ main() {
   fi
 
   # Tokenize each file's description into a temp file (paired arrays).
-  local tmpdir
+  # Register the trap before mktemp so a signal between the two calls
+  # cannot leak the temp directory.
+  local tmpdir=""
+  trap '[[ -n "${tmpdir}" ]] && rm -rf "${tmpdir}"' EXIT INT TERM
   tmpdir="$(mktemp -d)"
-  trap 'rm -rf "${tmpdir}"' EXIT
 
   local i tok_file desc
   for i in "${!files[@]}"; do
     desc="$(extract_description "${files[$i]}")"
     tok_file="${tmpdir}/tok.${i}"
     if [ -n "${desc}" ]; then
-      tokenize "${desc}" > "${tok_file}"
+      tokenize "${desc}" >"${tok_file}"
     else
-      : > "${tok_file}"
+      : >"${tok_file}"
     fi
   done
 
