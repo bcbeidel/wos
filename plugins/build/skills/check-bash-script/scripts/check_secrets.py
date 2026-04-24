@@ -40,10 +40,28 @@ _CREDENTIAL_VAR_RE = re.compile(
 )
 
 _PLACEHOLDER_VALUE_PREFIXES = (
-    "$", "{", "<",
-    "your-", "your_", "example", "redacted", "null", "none", "undefined",
-    "placeholder", "todo", "fixme", "xxx", "changeme", "change-me",
-    "change_me", "foo", "bar", "baz", "abc", "xyz",
+    "$",
+    "{",
+    "<",
+    "your-",
+    "your_",
+    "example",
+    "redacted",
+    "null",
+    "none",
+    "undefined",
+    "placeholder",
+    "todo",
+    "fixme",
+    "xxx",
+    "changeme",
+    "change-me",
+    "change_me",
+    "foo",
+    "bar",
+    "baz",
+    "abc",
+    "xyz",
 )
 
 
@@ -82,7 +100,7 @@ def _collect_targets(paths: list[Path]) -> list[Path]:
 def _emit(path: Path, pattern_name: str, lineno: int) -> None:
     print(f"FAIL  {path} — secret: {pattern_name} at line {lineno}")
     print(
-        '  Recommendation: Remove the secret, rotate the credential, '
+        "  Recommendation: Remove the secret, rotate the credential, "
         'and read it from "${VAR:?VAR required}" instead.'
     )
 
@@ -114,12 +132,14 @@ def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="check_secrets.py",
         description=(
-            "Tier-1 bash secrets scanner "
-            "(named API keys + credential assignments)."
+            "Tier-1 bash secrets scanner (named API keys + credential assignments)."
         ),
     )
     parser.add_argument(
-        "paths", nargs="+", type=Path, metavar="path",
+        "paths",
+        nargs="+",
+        type=Path,
+        metavar="path",
         help="One or more .sh/.bash files or directories (non-recursive).",
     )
     return parser

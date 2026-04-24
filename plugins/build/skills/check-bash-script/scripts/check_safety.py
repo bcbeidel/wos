@@ -98,7 +98,10 @@ def _check_eval(path: Path, lines: list[str]) -> bool:
         if any(j in line or j in prev for j in _EVAL_JUSTIFICATIONS):
             continue
         _emit(
-            "FAIL", path, "eval", lineno,
+            "FAIL",
+            path,
+            "eval",
+            lineno,
             "uses `eval` without justification comment",
             "Replace with case dispatch, parameter expansion, or array call; "
             "or add `# shellcheck disable=SC2294` or `# eval-justified: <reason>`",
@@ -128,7 +131,10 @@ def _check_gnu_flags(path: Path, lines: list[str]) -> None:
         if label is None:
             continue
         _emit(
-            "WARN", path, "gnu-flags", lineno,
+            "WARN",
+            path,
+            "gnu-flags",
+            lineno,
             f"uses GNU-only flag ({label})",
             "Declare `# requires: gnu-coreutils` in the header, "
             "or use a portable form (e.g., `sed -e ... > out && mv out file`)",
@@ -143,7 +149,10 @@ def _check_tmp_literal(path: Path, lines: list[str]) -> bool:
             continue
         if _TMP_LITERAL_RE.search(line):
             _emit(
-                "FAIL", path, "tmp-literal", lineno,
+                "FAIL",
+                path,
+                "tmp-literal",
+                lineno,
                 "has hardcoded /tmp or /var/tmp literal",
                 "Use `mktemp` (or `mktemp -d`) and pair with `trap` cleanup",
             )
@@ -170,7 +179,10 @@ def get_parser() -> argparse.ArgumentParser:
         description="Tier-1 bash safety checker (eval, GNU flags, /tmp literals).",
     )
     parser.add_argument(
-        "paths", nargs="+", type=Path, metavar="path",
+        "paths",
+        nargs="+",
+        type=Path,
+        metavar="path",
         help="One or more .sh/.bash files or directories (non-recursive).",
     )
     return parser

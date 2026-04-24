@@ -27,17 +27,34 @@ SHELLCHECK_CMD = "shellcheck"
 _BASH_SHEBANGS = ("#!/usr/bin/env bash", "#!/bin/bash", "#!/usr/bin/env -S bash")
 _BASH_EXTENSIONS = (".sh", ".bash")
 
-_FAIL_CODES = frozenset({
-    "SC2086", "SC2046", "SC2068", "SC2294",
-    "SC2010", "SC2012", "SC2045",
-})
+_FAIL_CODES = frozenset(
+    {
+        "SC2086",
+        "SC2046",
+        "SC2068",
+        "SC2294",
+        "SC2010",
+        "SC2012",
+        "SC2045",
+    }
+)
 
 _INCLUDED_CODES = (
-    "SC2086", "SC2046", "SC2068", "SC2294",
-    "SC2010", "SC2012", "SC2045",
-    "SC2154", "SC2155", "SC2006",
-    "SC2013", "SC2162", "SC2038",
-    "SC2164", "SC2002",
+    "SC2086",
+    "SC2046",
+    "SC2068",
+    "SC2294",
+    "SC2010",
+    "SC2012",
+    "SC2045",
+    "SC2154",
+    "SC2155",
+    "SC2006",
+    "SC2013",
+    "SC2162",
+    "SC2038",
+    "SC2164",
+    "SC2002",
 )
 
 _RECOMMENDATIONS = {
@@ -160,7 +177,10 @@ def get_parser() -> argparse.ArgumentParser:
         description="Tier-1 bash lint check via shellcheck (curated rule set).",
     )
     parser.add_argument(
-        "paths", nargs="+", type=Path, metavar="path",
+        "paths",
+        nargs="+",
+        type=Path,
+        metavar="path",
         help="One or more .sh/.bash files or directories (non-recursive).",
     )
     return parser

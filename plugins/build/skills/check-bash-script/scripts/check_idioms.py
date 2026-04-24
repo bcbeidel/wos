@@ -65,7 +65,11 @@ def _collect_targets(paths: list[Path]) -> list[Path]:
 
 
 def _emit(
-    path: Path, check: str, lineno: int, message: str, recommendation: str,
+    path: Path,
+    check: str,
+    lineno: int,
+    message: str,
+    recommendation: str,
 ) -> None:
     print(f"WARN  {path} — {check}: line {lineno} {message}")
     print(f"  Recommendation: {recommendation}.")
@@ -100,18 +104,27 @@ def _check_file(path: Path) -> None:
         print(f"check_idioms.py: cannot read {path}: {err}", file=sys.stderr)
         return
     _scan(
-        path, lines, "bracket-test", _SINGLE_BRACKET_RE,
+        path,
+        lines,
+        "bracket-test",
+        _SINGLE_BRACKET_RE,
         "uses `[ ... ]`; prefer `[[ ... ]]` in bash",
         "Use double-bracket tests (no word-splitting, pattern matching)",
         skip_if=_DOUBLE_BRACKET_RE,
     )
     _scan(
-        path, lines, "printf-over-echo", _ECHO_ANTI_RE,
+        path,
+        lines,
+        "printf-over-echo",
+        _ECHO_ANTI_RE,
         "non-trivial output; prefer printf",
         "Use printf for portable output with flags or escape sequences",
     )
     _scan(
-        path, lines, "var-braces", _UNBRACED_VAR_RE,
+        path,
+        lines,
+        "var-braces",
+        _UNBRACED_VAR_RE,
         "has bare-dollar expansion next to identifier chars",
         "Brace the expansion when it abuts identifier characters",
     )
@@ -123,7 +136,10 @@ def get_parser() -> argparse.ArgumentParser:
         description="Tier-1 bash idiom checker (WARN-only style findings).",
     )
     parser.add_argument(
-        "paths", nargs="+", type=Path, metavar="path",
+        "paths",
+        nargs="+",
+        type=Path,
+        metavar="path",
         help="One or more .sh/.bash files or directories (non-recursive).",
     )
     return parser

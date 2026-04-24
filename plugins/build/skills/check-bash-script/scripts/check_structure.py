@@ -78,7 +78,11 @@ def _collect_targets(paths: list[Path]) -> list[Path]:
 
 
 def _emit(
-    severity: str, path: Path, check: str, message: str, recommendation: str,
+    severity: str,
+    path: Path,
+    check: str,
+    message: str,
+    recommendation: str,
 ) -> None:
     print(f"{severity}  {path} — {check}: {message}")
     print(f"  Recommendation: {recommendation}.")
@@ -86,11 +90,14 @@ def _emit(
 
 def _check_shebang(path: Path, lines: list[str]) -> bool:
     first = lines[0] if lines else ""
-    if first in ("#!/usr/bin/env bash", "#!/bin/bash") \
-            or first.startswith("#!/usr/bin/env -S bash"):
+    if first in ("#!/usr/bin/env bash", "#!/bin/bash") or first.startswith(
+        "#!/usr/bin/env -S bash"
+    ):
         return False
     _emit(
-        "FAIL", path, "shebang",
+        "FAIL",
+        path,
+        "shebang",
         f"first line is {first!r}, expected a bash shebang",
         "Replace the first line with `#!/usr/bin/env bash`",
     )
@@ -109,7 +116,9 @@ def _check_strict_mode(path: Path, lines: list[str]) -> bool:
         if count >= STRICT_MODE_WINDOW:
             break
     _emit(
-        "FAIL", path, "strict-mode",
+        "FAIL",
+        path,
+        "strict-mode",
         "`set -euo pipefail` not found in prologue",
         "Add `set -euo pipefail` immediately after the shebang",
     )
@@ -122,7 +131,9 @@ def _check_header_comment(path: Path, lines: list[str]) -> None:
     if comment_count >= MIN_HEADER_COMMENTS:
         return
     _emit(
-        "WARN", path, "header-comment",
+        "WARN",
+        path,
+        "header-comment",
         "no purpose/usage block in first 10 lines",
         "Add a header block: purpose, usage, deps, exit codes",
     )
@@ -132,7 +143,9 @@ def _check_main_fn(path: Path, lines: list[str]) -> None:
     if any(_MAIN_FN_RE.match(ln) for ln in lines):
         return
     _emit(
-        "WARN", path, "main-fn",
+        "WARN",
+        path,
+        "main-fn",
         "no `main` function defined",
         "Wrap execution in main() and call from the sourceable guard",
     )
@@ -142,7 +155,9 @@ def _check_main_guard(path: Path, lines: list[str]) -> None:
     if any(_MAIN_GUARD_RE.search(ln) for ln in lines):
         return
     _emit(
-        "WARN", path, "main-guard",
+        "WARN",
+        path,
+        "main-guard",
         "missing BASH_SOURCE-equals-0 sourceable guard",
         "Add the canonical BASH_SOURCE guard calling main at EOF",
     )
@@ -153,7 +168,9 @@ def _check_readonly_config(path: Path, lines: list[str]) -> None:
     readonly_decls = sum(1 for ln in lines if _READONLY_DECL_RE.match(ln))
     if upper_assigns >= 2 and readonly_decls == 0:
         _emit(
-            "WARN", path, "readonly-config",
+            "WARN",
+            path,
+            "readonly-config",
             "top-level UPPERCASE constants not readonly",
             "Declare top-level constants readonly to prevent reassignment",
         )
@@ -176,7 +193,9 @@ def _check_mktemp_trap(path: Path, lines: list[str]) -> None:
             break
     if first_trap is None or first_trap > first_mktemp:
         _emit(
-            "WARN", path, "mktemp-trap-pairing",
+            "WARN",
+            path,
+            "mktemp-trap-pairing",
             f"mktemp at line {first_mktemp} without prior trap EXIT",
             "Add `trap 'rm -rf \"${tmpdir}\"' EXIT INT TERM` immediately after mktemp",
         )
@@ -205,7 +224,10 @@ def get_parser() -> argparse.ArgumentParser:
         description="Tier-1 bash structural checker (7 sub-checks).",
     )
     parser.add_argument(
-        "paths", nargs="+", type=Path, metavar="path",
+        "paths",
+        nargs="+",
+        type=Path,
+        metavar="path",
         help="One or more .sh/.bash files or directories (non-recursive).",
     )
     return parser
