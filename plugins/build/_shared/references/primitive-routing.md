@@ -54,6 +54,8 @@ Route: `/build:build-subagent` scaffolds a `.claude/agents/<name>.md` definition
 
 **GitHub Actions workflows** exist for repository-triggered CI/CD — YAML files under `.github/workflows/` that run on GitHub-hosted or self-hosted runners and carry the trust boundary of the repository they live in. Pinning posture, top-level permissions, and the handling of `pull_request_target` are security-load-bearing in a way a shell script or a CLAUDE.md entry is not — the synthesis this pair enforces is shaped by the 2025 tj-actions and reviewdog supply-chain incidents and GitHub's 2026 security roadmap. Not a composite action (`action.yml` under `.github/actions/<name>/` — separate primitive with a different rubric), not an organization ruleset, not a Dependabot config, not a GitHub App. Route: `/build:build-github-workflow` to scaffold a new workflow file; `/build:check-github-workflow` to audit an existing workflow file or the whole `.github/workflows/` directory against `actionlint`, `zizmor`, `yamllint`, `shellcheck` on extracted `run:` content, plus seven judgment dimensions in [github-workflow-best-practices.md](github-workflow-best-practices.md).
 
+**Resolvers** exist for repos whose dynamic context — where to file new content and which docs to load before recurring tasks — has outgrown AGENTS.md alone. A resolver is a root-level `RESOLVER.md` with two machine-managed tables (filing and context) plus a one-line AGENTS.md pointer and a `.resolver/evals.yml` sidecar; the managed region regenerates from disk conventions, and evals prove the routing. Not a skill-dispatch resolver (that's handled by the `description` field on each SKILL.md), not a shared-reference linter (that's authoring-time hygiene, a separate concern). Route: `/build:build-resolver` to scaffold or regenerate the three artifacts; `/build:check-resolver` to audit the pointer, managed region, path resolution, filing coverage, context actionability, eval representativeness, dark capabilities, and staleness against the rubric in [resolver-best-practices.md](resolver-best-practices.md).
+
 ## Routing Test
 
 Two questions route most decisions:
@@ -68,6 +70,7 @@ If neither resolves it:
 - Commit-time gate for staged changes, reproducible across developer machines → **Pre-commit config**
 - The artifact is a project's top-level `README.md` → **README**
 - YAML file under `.github/workflows/` that fires on repository events → **GitHub Actions workflow**
+- Root-level routing table for filing new content and loading context doc bundles → **Resolver**
 
 ## When You've Chosen the Wrong Primitive
 
