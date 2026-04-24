@@ -70,6 +70,3 @@ Audit hooks on the same cadence as the code they gate — every change to a prot
 
 A well-built hook reads like a contract: one event, one matcher, one decision, one log line, a documented failure mode, a tested fixture. Anything more is either two hooks pretending to be one, or a skill.
 
----
-
-*Distilled from the `claude-code-agentic-hooks` ensemble (2026-04-22, six-model panel across OpenAI, Anthropic, Google, xAI). Inclusion bar: ≥2 model families per `coverage-llm.md`, AND either the affordable-tier Anthropic model raised the rule or the check is mechanically deterministic. Three rules were judgment-promoted: stdout-protocol discipline, fail-mode declaration (deterministic via header field), and event-name registration (clustering discrepancy between coverage sources).*
