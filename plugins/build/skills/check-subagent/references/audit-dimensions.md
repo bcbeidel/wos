@@ -16,12 +16,12 @@ dimension cites the source principle it audits from
 Seven scripts, ~18 atomic checks. Each script emits findings in the
 fixed lint format (`SEVERITY  <path> — <check>: <detail>` +
 `Recommendation:`). Exit codes: `0` clean / WARN / INFO / HINT-only;
-`1` on FAIL; `64` arg error; `69` missing optional dependency
-(`gitleaks` is optional and degrades gracefully to a regex fallback).
+`1` on FAIL; `64` arg error (including path-not-found); `69` missing
+POSIX dependency (`awk`, `find`, `basename`, `grep`, `tr`, `wc`).
 
 | Script | Check ID | What | Severity | Source principle |
 |---|---|---|---|---|
-| `check_secrets.sh` | `secret` | API keys, tokens, private-key headers via regex pattern list (or `gitleaks` when available) | FAIL | No embedded secrets |
+| `check_secrets.sh` | `secret` | API key / token patterns (AWS, GitHub, OpenAI, Anthropic, Stripe) + PEM private-key headers + credential-shaped assignments; placeholders excluded | FAIL | No embedded secrets |
 | `check_location.sh` | `location-dir` | File is under `.claude/agents/`, `~/.claude/agents/`, or `plugins/<plugin>/agents/` | FAIL | Location and file format |
 | `check_location.sh` | `location-ext` | File extension is `.md` | FAIL | Location and file format |
 | `check_frontmatter.sh` | `fm-delimiter` | `---`-delimited YAML frontmatter block at file head | FAIL | Frontmatter shape |
@@ -50,12 +50,12 @@ evaluation is premature. Other FAILs (`fm-description-length`,
 `name-stem-match`, `size-hard`) leave a parseable definition that
 judgment can still evaluate productively.
 
-**Missing-tool degradation.** `check_secrets.sh` emits an INFO
-finding (`tool-missing: gitleaks`) and falls back to inline regex
-patterns when `gitleaks` is absent. Exit stays `0` (or `1` if the
-regex fallback finds a secret). Coverage is reduced but not zero —
-surfacing the INFO is the user's signal to install `gitleaks` for
-full coverage.
+**No optional dependencies.** The current Tier-1 script set depends
+only on POSIX utilities (`awk`, `find`, `basename`, `grep`, `tr`,
+`wc`). A non-zero exit 69 from any script indicates a broken
+environment, not a missing optional tool. A future enhancement could
+wrap `gitleaks` for richer secret-pattern coverage; until then, the
+regex-only scan is the sole code path.
 
 ## Tier-2 — Judgment Dimensions
 

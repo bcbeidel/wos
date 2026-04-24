@@ -91,7 +91,7 @@ skills do not.
 
 | Script | Checks |
 |---|---|
-| `check_secrets.sh` | API key / token / private-key-header patterns in frontmatter and body; wraps `gitleaks` when present, falls back to inline regex when absent |
+| `check_secrets.sh` | Regex scan for AWS / GitHub / OpenAI / Anthropic / Stripe API key patterns, PEM private-key headers, and credential-shaped `password` / `secret` / `token` / `api_key` / `access_key` / `private_key` assignments; skips obvious placeholders (`your-`, `example`, `redacted`, `foo`, etc.) |
 | `check_location.sh` | File is under `.claude/agents/`, `~/.claude/agents/`, or `plugins/<plugin>/agents/`; extension is `.md` |
 | `check_frontmatter.sh` | `---`-delimited YAML block present at file head; `name` and `description` keys present and non-empty; `description` ≤1,024 chars (spec truncation cap); plugin-subagent no-op detection (`permissionMode`/`hooks`/`mcpServers` set in a plugin path); `memory:` + narrow `tools` implicit Read/Write/Edit expansion |
 | `check_naming.sh` | `name` is kebab-case (`^[a-z][a-z0-9]*(-[a-z0-9]+)*$`); filename stem equals `name`; filename is not generic (`agent.md`, `helper.md`) |
@@ -100,9 +100,9 @@ skills do not.
 | `check_structure.sh` | Body has at least one `##` heading; presence of a Scope / Out-of-scope heading |
 
 **Exit-code contract every script honors:** `0` on clean / WARN /
-INFO / HINT-only; `1` on one or more FAIL; `64` on argument error;
-`69` on missing optional dependency (e.g., `gitleaks`) — coverage
-degrades gracefully.
+INFO / HINT-only; `1` on one or more FAIL; `64` on argument error
+(including path-not-found); `69` on missing POSIX dependency (`awk`,
+`find`, `basename`, `grep`, `tr`, `wc`).
 
 **FAIL findings that exclude the file from Tier-2:**
 
@@ -238,10 +238,10 @@ judgment-dimension findings may be skipped without regret.
   file. A dimension that does not apply returns PASS silently.
 - Repairs require per-finding confirmation — each change writes
   individually and waits for explicit approval before the next.
-- When a Tier-1 script reports a missing optional dependency (exit
-  69 from `check_secrets.sh` without `gitleaks`), surface the
-  dependency name and install hint; the audit continues with the
-  regex fallback.
+- When a Tier-1 script reports a missing dependency (exit 69),
+  surface the dependency name and install hint before continuing.
+  All current Tier-1 dependencies are POSIX basics; exit 69 in
+  practice means a broken environment, not a missing optional.
 - Won't modify files without per-change confirmation — the audit is
   read-only by default.
 - Won't audit paths outside `$ARGUMENTS` — the scope the user named
