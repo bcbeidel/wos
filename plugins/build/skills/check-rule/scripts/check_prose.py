@@ -134,9 +134,7 @@ def scan_file(path: Path) -> None:
         return
 
     lines = text.splitlines()
-    _, fm_end = frontmatter_bounds(
-        [line + "\n" for line in lines]
-    )
+    _, fm_end = frontmatter_bounds([line + "\n" for line in lines])
 
     in_code = False
     for idx, line in enumerate(lines, start=1):
