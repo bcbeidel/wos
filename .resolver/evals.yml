@@ -1,0 +1,46 @@
+cases:
+  # --- Filing positives (one per row) ---
+  - prompt: "save this context doc about agent-facing document structure"
+    expected_filing: .context/
+  - prompt: "draft an implementation plan for the new resolver skill pair"
+    expected_filing: .plans/
+  - prompt: "write up the architectural sketch for the wiki refactor"
+    expected_filing: .designs/
+  - prompt: "capture this SIFT investigation into agent testing"
+    expected_filing: .research/
+  - prompt: "save this reusable prompt for synthesis-to-skill-pair workflow"
+    expected_filing: .prompts/
+
+  # --- Context positives (one per row) ---
+  - prompt: "I'm going to build a new build-X / check-X primitive pair"
+    expected_context:
+      - plugins/build/_shared/references/skill-pair-best-practices.md
+      - plugins/build/_shared/references/primitive-routing.md
+  - prompt: "authoring a new Claude Code skill"
+    expected_context:
+      - plugins/build/_shared/references/skill-best-practices.md
+      - plugins/build/_shared/references/primitive-routing.md
+  - prompt: "plan the next feature for the wiki plugin"
+    expected_context:
+      - plugins/work/_shared/references/plan-format.md
+      - plugins/work/_shared/references/feedback-loop.md
+  - prompt: "kick off research using SIFT on agentic frameworks"
+    expected_context:
+      - plugins/wiki/skills/research/references/
+  - prompt: "write a RESOLVER.md for a new repo"
+    expected_context:
+      - plugins/build/_shared/references/resolver-best-practices.md
+
+  # --- Negatives (overlap risk) ---
+  - prompt: "save this implementation plan for auth refactor"
+    expected_filing: .plans/
+    not_expected_filing: .designs/
+  - prompt: "draft a design doc proposing the new retention model"
+    expected_filing: .designs/
+    not_expected_filing: .plans/
+  - prompt: "save this research on architectural patterns for ingestion"
+    expected_filing: .research/
+    not_expected_filing: .designs/
+  - prompt: "capture this reusable prompt for auditing a pipeline"
+    expected_filing: .prompts/
+    not_expected_filing: .context/
