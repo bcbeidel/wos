@@ -363,7 +363,7 @@ def extract_preferences(content: str) -> List[str]:
 
     Parses the ``### Preferences`` subsection between managed markers and
     returns the list of preference strings (without ``- `` bullet prefix).
-    Used by reindex and update_preferences to preserve existing preferences.
+    Used by update_preferences to preserve existing preferences.
 
     Args:
         content: Full AGENTS.md file content.
