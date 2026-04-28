@@ -12,6 +12,14 @@ from typing import List
 
 from wiki.document import parse_document
 
+_AMBIENT_DIRS = frozenset({
+    ".git", ".github", ".claude", ".claude-plugin", ".resolver",
+    ".venv", ".cache", ".pytest_cache", ".ruff_cache", ".mypy_cache",
+    ".eggs", "__pycache__", "node_modules", "dist", "build", "target",
+})
+
+DEFAULT_RESOLVER_THRESHOLD = 3
+
 # ── Per-file helper ────────────────────────────────────────────────
 
 
@@ -66,6 +74,7 @@ class Project:
     def validate(
         self,
         verify_urls: bool = True,
+        resolver_threshold: int = DEFAULT_RESOLVER_THRESHOLD,
     ) -> List[dict]:
         """Validate all managed documents and project configuration.
 
@@ -75,6 +84,8 @@ class Project:
 
         Args:
             verify_urls: If False, skip source URL reachability checks.
+            resolver_threshold: Minimum number of conventionful top-level
+                directories before recommending a RESOLVER.md.
 
         Returns:
             List of all issue dicts found.
@@ -82,14 +93,17 @@ class Project:
         from wiki.document import Document
 
         issues: List[dict] = []
-        issues.extend(self.check_project_files())
+        issues.extend(self.check_project_files(resolver_threshold=resolver_threshold))
 
         for doc in Document.scan(str(self.root)):
             issues.extend(doc.issues(self.root, verify_urls=verify_urls))
 
         return issues
 
-    def check_project_files(self) -> List[dict]:
+    def check_project_files(
+        self,
+        resolver_threshold: int = DEFAULT_RESOLVER_THRESHOLD,
+    ) -> List[dict]:
         """Warn when AGENTS.md or CLAUDE.md are missing or misconfigured.
 
         Checks:
@@ -150,19 +164,99 @@ class Project:
                     "severity": "warn",
                 })
 
+        issues.extend(check_resolver_recommendation(root, threshold=resolver_threshold))
         return issues
 
 # ── Module-level convenience functions ────────────────────────────
 
 
-def check_project_files(root: Path) -> List[dict]:
+def check_project_files(
+    root: Path,
+    resolver_threshold: int = DEFAULT_RESOLVER_THRESHOLD,
+) -> List[dict]:
     """Check AGENTS.md and CLAUDE.md configuration. See Project.check_project_files."""
-    return Project(root).check_project_files()
+    return Project(root).check_project_files(resolver_threshold=resolver_threshold)
 
 
 def validate_project(
     root: Path,
     verify_urls: bool = True,
+    resolver_threshold: int = DEFAULT_RESOLVER_THRESHOLD,
 ) -> List[dict]:
     """Validate all managed documents in a project. See Project.validate."""
-    return Project(root).validate(verify_urls=verify_urls)
+    return Project(root).validate(
+        verify_urls=verify_urls,
+        resolver_threshold=resolver_threshold,
+    )
+
+
+# ── Resolver recommendation ───────────────────────────────────────
+
+
+def _conventionful_dirs(root: Path) -> List[str]:
+    """Return names of top-level directories that look like filing targets.
+
+    A directory counts when it contains ≥2 markdown files with YAML
+    frontmatter (file begins with a ``---`` delimiter). Naming patterns
+    are not enforced — any project that uses frontmatter qualifies.
+    Walks the subtree but skips ambient directory names at any depth.
+    """
+    found: List[str] = []
+    try:
+        children = sorted(root.iterdir())
+    except OSError:
+        return found
+
+    for child in children:
+        if not child.is_dir() or child.name in _AMBIENT_DIRS:
+            continue
+        count = 0
+        for md in child.rglob("*.md"):
+            if any(part in _AMBIENT_DIRS for part in md.parts):
+                continue
+            if _has_frontmatter(md):
+                count += 1
+                if count >= 2:
+                    found.append(child.name)
+                    break
+    return found
+
+
+def _has_frontmatter(path: Path) -> bool:
+    """Return True if the file's first non-empty line is a ``---`` delimiter."""
+    try:
+        with path.open("r", encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                stripped = line.strip()
+                if not stripped:
+                    continue
+                return stripped == "---"
+    except OSError:
+        return False
+    return False
+
+
+def check_resolver_recommendation(
+    root: Path,
+    threshold: int = DEFAULT_RESOLVER_THRESHOLD,
+) -> List[dict]:
+    """Warn when the repo crosses the resolver threshold but lacks RESOLVER.md.
+
+    The default mirrors `/build:build-resolver`'s primitive check: ≥3
+    top-level directories whose contents follow a filing convention.
+    Pass ``threshold`` to override.
+    """
+    if (root / "RESOLVER.md").is_file():
+        return []
+    dirs = _conventionful_dirs(root)
+    if len(dirs) < threshold:
+        return []
+    return [{
+        "file": "RESOLVER.md",
+        "issue": (
+            f"No RESOLVER.md, but {len(dirs)} directories follow filing"
+            f" conventions ({', '.join(dirs)})."
+            " Run /build:build-resolver to scaffold a routing table."
+        ),
+        "severity": "warn",
+    }]

@@ -61,8 +61,8 @@ class ResearchDocument(Document):
     def issues(self, root: Path, verify_urls: bool = True, **_: object) -> List[dict]:
         """Return base issues plus research-specific checks.
 
-        Adds: related path existence, sources required, sources-as-dicts
-        warning, draft marker warning, and source URL reachability (fail/warn).
+        Adds: related path existence, and source URL reachability when
+        ``verify_urls`` is True.
 
         Args:
             root: Project root directory.
@@ -82,28 +82,6 @@ class ResearchDocument(Document):
                     "issue": f"Related path does not exist: {rel}",
                     "severity": "fail",
                 })
-
-        if not self.sources:
-            result.append({
-                "file": self.path,
-                "issue": "Research document has no sources",
-                "severity": "fail",
-            })
-
-        for idx, source in enumerate(self.sources):
-            if isinstance(source, dict):
-                result.append({
-                    "file": self.path,
-                    "issue": f"sources[{idx}] is a dict, expected a URL string",
-                    "severity": "warn",
-                })
-
-        if "<!-- DRAFT -->" in self.content:
-            result.append({
-                "file": self.path,
-                "issue": "Research document contains <!-- DRAFT --> marker",
-                "severity": "warn",
-            })
 
         if verify_urls and self.sources:
             urls = []
