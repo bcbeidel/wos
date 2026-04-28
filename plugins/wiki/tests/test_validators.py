@@ -160,6 +160,24 @@ class TestCheckResolverRecommendation:
         assert len(issues) == 1
         assert issues[0]["severity"] == "warn"
 
+    def test_threshold_override_lowers_trigger(self, tmp_path: Path) -> None:
+        from wiki.project import check_resolver_recommendation
+
+        # Two conventionful dirs would normally not warn (default threshold 3),
+        # but threshold=2 should produce a warning.
+        _seed_conventionful_dirs(tmp_path, [".context", ".plans"])
+        assert check_resolver_recommendation(tmp_path) == []
+        issues = check_resolver_recommendation(tmp_path, threshold=2)
+        assert len(issues) == 1
+        assert issues[0]["severity"] == "warn"
+
+    def test_threshold_override_raises_trigger(self, tmp_path: Path) -> None:
+        from wiki.project import check_resolver_recommendation
+
+        # Three conventionful dirs warns by default; threshold=5 should silence it.
+        _seed_conventionful_dirs(tmp_path, [".context", ".plans", ".designs"])
+        assert check_resolver_recommendation(tmp_path, threshold=5) == []
+
     def test_ignores_ambient_dirs(self, tmp_path: Path) -> None:
         from wiki.project import check_resolver_recommendation
 
@@ -274,59 +292,19 @@ class TestCompoundSuffixValidation:
         issues = validate_file(md_file, tmp_path, verify_urls=False)
         assert issues == []
 
-    def test_compound_suffix_infers_type_for_research_validation(
+    def test_compound_suffix_research_no_sources_passes_lint(
         self, tmp_path: Path
     ) -> None:
-        """Research file with compound suffix (no frontmatter type) triggers
-        research-specific validation (sources required)."""
+        """Research file with no sources passes lint — sources are not enforced
+        as a frontmatter floor."""
         from wiki.project import validate_file
 
         md_file = tmp_path / "docs" / "research" / "topic.research.md"
         md_file.parent.mkdir(parents=True)
-        # No type in frontmatter, no sources — should fail because
-        # suffix infers type=research, and research requires sources
         md_file.write_text(_md("Topic", "A research topic"))
 
         issues = validate_file(md_file, tmp_path, verify_urls=False)
-        assert any(
-            "sources" in i["issue"].lower() and i["severity"] == "fail"
-            for i in issues
-        )
-
-    def test_compound_suffix_research_with_sources_passes(
-        self, tmp_path: Path
-    ) -> None:
-        """Research file with compound suffix and sources passes validation."""
-        from wiki.project import validate_file
-
-        md_file = tmp_path / "docs" / "research" / "topic.research.md"
-        md_file.parent.mkdir(parents=True)
-        # No explicit type — inferred from suffix; has sources
-        md_file.write_text(_md(
-            "Topic", "A research topic",
-            sources=["https://example.com/src"],
-        ))
-
-        issues = validate_file(md_file, tmp_path, verify_urls=False)
-        assert not any("sources" in i["issue"].lower() for i in issues)
-
-    def test_compound_suffix_draft_marker_check(self, tmp_path: Path) -> None:
-        """Draft marker surfaced via doc.issues() on ResearchDocument."""
-        from wiki.document import parse_document
-
-        text = (
-            "---\n"
-            "name: Draft Research\n"
-            "description: In-progress research\n"
-            "sources:\n"
-            "  - https://example.com/src\n"
-            "---\n"
-            "# Research\n\n<!-- DRAFT -->\n\nContent.\n"
-        )
-        doc = parse_document("docs/research/topic.research.md", text)
-        assert doc.type == "research"
-        issues = doc.issues(tmp_path, verify_urls=False)
-        assert any("DRAFT" in i["issue"] for i in issues)
+        assert issues == []
 
     def test_validate_project_includes_compound_suffix_files(
         self, tmp_path: Path

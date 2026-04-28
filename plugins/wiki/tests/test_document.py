@@ -621,37 +621,17 @@ class TestFactoryRouting:
 
 
 class TestResearchDocumentIssues:
-    def test_no_sources_is_fail(self, tmp_path) -> None:
-        from wiki.research import ResearchDocument
-
-        doc = ResearchDocument(
-            path="a.md", name="N", description="D",
-            content="body", type="research",
-        )
-        result = doc.issues(tmp_path, verify_urls=False)
-        assert any(i["severity"] == "fail" and "sources" in i["issue"] for i in result)
-
-    def test_draft_marker_is_warn(self, tmp_path) -> None:
+    def test_research_doc_with_only_name_description_passes(self, tmp_path) -> None:
+        """Research lint floor is name/description; no sources or DRAFT-marker
+        check enforced at validation time."""
         from wiki.research import ResearchDocument
 
         doc = ResearchDocument(
             path="a.md", name="N", description="D",
             content="<!-- DRAFT -->\nbody", type="research",
-            sources=["https://example.com"],
         )
         result = doc.issues(tmp_path, verify_urls=False)
-        assert any(i["severity"] == "warn" and "DRAFT" in i["issue"] for i in result)
-
-    def test_dict_source_is_warn(self, tmp_path) -> None:
-        from wiki.research import ResearchDocument
-
-        doc = ResearchDocument(
-            path="a.md", name="N", description="D",
-            content="body", type="research",
-            sources=[{"url": "https://example.com"}],
-        )
-        result = doc.issues(tmp_path, verify_urls=False)
-        assert any(i["severity"] == "warn" and "dict" in i["issue"] for i in result)
+        assert result == []
 
     def test_valid_research_doc_no_issues(self, tmp_path) -> None:
         from wiki.research import ResearchDocument

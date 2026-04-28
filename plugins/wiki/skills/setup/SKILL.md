@@ -110,7 +110,8 @@ the chain explicitly. This is the setup's last action.
 2. Otherwise, count top-level directories that contain ≥2 markdown files
    with valid YAML frontmatter. Ambient dirs (`.git`, `node_modules`,
    `.venv`, `dist`, `build`, etc.) are excluded.
-3. **If the count is ≥3**, prompt:
+3. **If the count meets the resolver threshold** (default 3; the user
+   may pass a different threshold), prompt:
 
    > "This repo has N directories with markdown content
    > ({list}) but no `RESOLVER.md`. A resolver gives Claude a routing
@@ -125,9 +126,11 @@ the chain explicitly. This is the setup's last action.
 4. **If the count is below threshold**, do nothing. AGENTS.md alone
    suffices.
 
-The threshold mirrors `/build:build-resolver`'s own primitive check
-(`build-resolver/SKILL.md` Step 0). Keep the two in sync — if the
-threshold there changes, change it here.
+The default mirrors `/build:build-resolver`'s own primitive check
+(`build-resolver/SKILL.md` Step 0). Both consult the same
+`check_resolver_recommendation` helper in `wiki.project`, which accepts
+a `threshold` argument — projects with different conventions can pass
+their own value rather than relying on the default.
 
 ### 6. Report
 

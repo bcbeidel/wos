@@ -42,19 +42,24 @@ python <plugin-scripts-dir>/lint.py --root . --json
 
 # Exit 1 on any issue (including warnings)
 python <plugin-scripts-dir>/lint.py --root . --strict
+
+# Override the resolver-recommendation threshold (default: 3)
+python <plugin-scripts-dir>/lint.py --root . --resolver-threshold 5
 ```
 
 Exit code: 1 if any `fail`, 0 if only `warn`. Use `--strict` to exit 1 on any issue.
 
 ## The Checks
 
-### 1. Frontmatter Validation (fail + warn)
+### 1. Frontmatter Validation (fail)
 
 Verifies:
 - **fail:** `name` and `description` are non-empty
-- **fail:** `type: research` documents have a non-empty `sources` list
-- **warn:** Source items should be URL strings, not dicts
-- **warn:** Context files should have `related` fields
+
+Other frontmatter fields (`type`, `sources`, `confidence`, schema-defined
+values, etc.) are not enforced here. Project-specific schema validation
+belongs in the project's own conventions — `wiki/SCHEMA.md` lint hooks
+in when present.
 
 ### 2. Source URL Reachability (fail + warn) — opt-in
 
@@ -69,11 +74,14 @@ Checks that local file paths in `related` exist on disk.
 
 ### 4. Resolver Threshold (warn)
 
-Warns when no `RESOLVER.md` exists at the project root but ≥3 top-level
-directories contain ≥2 markdown files with valid YAML frontmatter
-(ambient dirs like `.git`, `node_modules`, `.venv` excluded). The
-recommendation is to run `/build:build-resolver`. Routing-artifact
-quality (when a resolver *does* exist) is not checked here — see
+Warns when no `RESOLVER.md` exists at the project root but enough
+top-level directories contain ≥2 markdown files with valid YAML
+frontmatter (ambient dirs like `.git`, `node_modules`, `.venv`
+excluded). The recommendation is to run `/build:build-resolver`.
+
+The default threshold is 3 conventionful directories — override with
+`--resolver-threshold N`. Routing-artifact quality (when a resolver
+*does* exist) is not checked here — see
 [Resolver Evaluation](#resolver-evaluation).
 
 ## Interpreting Results
@@ -120,27 +128,11 @@ After presenting audit results, offer to help resolve actionable warnings:
   `/build:build-resolver` to scaffold a routing table. Show the
   conventionful directories the lint check detected so the user can
   judge whether the recommendation fits.
-- **403/429 URL warnings:** Present each blocked URL to the user and ask
-  them to verify it manually. For each URL:
-  1. Show the URL and the file it appears in
-  2. Ask the user to verify the URL. Offer these options:
-     - **Visit in browser** and confirm it's still valid
-     - **Provide a screenshot** of the page (drag/paste image)
-     - **Provide a printed PDF** of the page (drag/paste file)
-     - **Paste the page content** or a relevant excerpt
-     - **Mark as dead** if the URL no longer works
-  3. Based on response:
-     - User confirms valid or provides content → no source change needed.
-       If the user provided a screenshot, PDF, or pasted content, use it
-       to verify the source is still relevant to the document. Note any
-       discrepancies.
-     - User says dead → offer to remove it from the document's `sources:`
-       list. Show the proposed edit and get approval before writing.
-     - User provides a replacement URL → offer to update the `sources:`
-       entry. Verify the new URL with `python <plugin-scripts-dir>/check_url.py URL`
-       before writing.
-
-  Process URLs one at a time. Do not batch-ask about all URLs at once.
+- **403/429 URL warnings:** List the blocked URLs and the files they
+  appear in. Ask the user to verify them manually — these sites likely
+  block automated checks rather than indicate dead links. The user
+  decides whether each URL is still valid; lint does not prescribe a
+  verification protocol.
 
 ## Key Instructions
 

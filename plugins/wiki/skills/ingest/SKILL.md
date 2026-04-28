@@ -69,11 +69,11 @@ these resolved values, not hard-coded paths.
 
 With the source content and wiki context in hand:
 
-### Step 0: Discuss Key Takeaways
+### Step 0: Discuss Key Takeaways (opt-in)
 
-Before proposing the page list, present your reading of the source to the user
-and invite correction. This is the default behaviour — skip only when
-`--no-discuss` is passed.
+When `--discuss` is passed, present your reading of the source to the user
+and invite correction before proposing the page list. Otherwise, skip
+straight to Step 1.
 
 **Single source:**
 
@@ -90,16 +90,11 @@ emphasizing differently before I propose the page list?
 consolidated discussion — one list per source, one round of feedback for all.
 Do not run a separate round-trip per source.
 
-**Opt-out:** If the user passes `--no-discuss`, skip this step entirely and
-proceed directly to Step 1.
-
 ### Step 1: Identify Affected Pages
 
-Identify **5–15 wiki pages** that this source meaningfully informs — both:
+Identify the wiki pages this source meaningfully informs — both:
 - **Existing pages** that should be updated with new information or connections
 - **New pages** to create for topics the source covers that have no existing page
-
-If the source is narrow and fewer than 5 pages genuinely apply, proceed with what applies. Do not pad.
 
 **Emergent path selection for new pages:** Based on the filing target(s)
 resolved in Pre-Ingest and the inventory scan, propose a subdirectory
@@ -111,14 +106,17 @@ top level. If no relevant subdirectory exists, propose a new one whose
 name reflects the topic cluster. The user can override any proposed
 path at Step 1b.
 
-**Source summary page:** Always include one source summary page for the
-ingested source (see [Step 3a](#step-3a-create-source-summary-page)).
-Place it in the filing target — using a separate "source summary" row if
-the resolver defines one, otherwise alongside concept pages.
-Idempotency: if a source summary page already exists for this URL
-(matched by URL in the `sources:` frontmatter field), update it rather
-than creating a duplicate — append new claims, never remove existing
-ones.
+**Source summary page (conditional):** If the project's RESOLVER.md
+filing table defines a row for "source summary" pages — or the schema
+loaded in Pre-Ingest defines a `source-summary` `type:` value —
+include one source summary page for the ingested source (see
+[Step 3a](#step-3a-create-source-summary-page)). Idempotency: if a
+source summary page already exists for this URL (matched by URL in
+the `sources:` frontmatter field), update it rather than creating a
+duplicate — append new claims, never remove existing ones.
+
+If the project does not define a source-summary convention, skip the
+summary page. Concept and entity pages are sufficient.
 
 ### Step 1b: Confirm Before Writing
 
@@ -166,10 +164,11 @@ For topics the source covers with no existing page, create a new page:
   structure of existing pages in the same filing target
 - Add `related:` links to existing pages that connect
 
-### Step 3a: Create Source Summary Page
+### Step 3a: Create Source Summary Page (conditional)
 
-For every ingest, create (or update) a source summary page in addition to the
-concept and entity pages.
+When the project defines a source-summary convention (see Step 1),
+create or update a source summary page in addition to the concept and
+entity pages. Skip this step if the convention is not defined.
 
 **Structure:**
 
@@ -250,7 +249,7 @@ The high-rigor path is never required. It is appropriate when the user wants to 
 
 **URL ingest:**
 > "Ingest this article: https://example.com/llm-caching"
-→ Fetch content → resolve filing/schema via RESOLVER.md → identify 5–15 pages → update/create pages → lint
+→ Fetch content → resolve filing/schema via RESOLVER.md → identify affected pages → update/create pages → lint
 
 **File ingest:**
 > "Add to wiki: .research/2026-04-10-caching-patterns.research.md"
@@ -274,8 +273,6 @@ The high-rigor path is never required. It is appropriate when the user wants to 
 3. **Writing interpretation into source summary pages** — source summary pages record what the source says, not what you conclude from it. Synthesis and evaluation belong in concept or synthesis pages, not in `type: source-summary` pages.
 4. **Skipping Pre-Ingest resolution** — proceeding without resolving filing target and schema (via RESOLVER.md or user prompt) causes pages to land in the wrong directory and frontmatter to misalign with project vocabulary. Pre-Ingest is required, not optional context.
 5. **Silent contradiction** — when source content conflicts with an existing page, the anti-pattern is choosing one version silently. The correct action is the contradiction marker. Unresolved conflicts belong to the user, not the ingest operation.
-6. **Padding to hit the 5-page minimum** — if a narrow source genuinely affects fewer than 5 pages, proceed with what applies. Forcing connections to reach a target count produces low-quality updates that degrade the wiki.
-7. **Assigning confidence without cross-referencing** — confidence tier should reflect corroboration across pages, not just the source's claimed authority. A single primary source warrants `medium` at best until cross-referenced with existing pages.
 
 ## Handoff
 

@@ -59,19 +59,41 @@ def main() -> None:
         action="store_true",
         help="Exit 1 on any issue (including warnings)",
     )
+    parser.add_argument(
+        "--resolver-threshold",
+        type=int,
+        default=None,
+        help=(
+            "Minimum number of conventionful top-level directories before"
+            " recommending a RESOLVER.md (default: 3)"
+        ),
+    )
     args = parser.parse_args()
 
     # Deferred imports — keeps --help fast
-    from wiki.project import validate_file, validate_project
+    from wiki.project import (
+        DEFAULT_RESOLVER_THRESHOLD,
+        validate_file,
+        validate_project,
+    )
 
     root = Path(args.root).resolve()
+    resolver_threshold = (
+        args.resolver_threshold
+        if args.resolver_threshold is not None
+        else DEFAULT_RESOLVER_THRESHOLD
+    )
 
     # Single-file or project mode
     if args.file:
         file_path = Path(args.file).resolve()
         issues = validate_file(file_path, root, verify_urls=args.urls)
     else:
-        issues = validate_project(root, verify_urls=args.urls)
+        issues = validate_project(
+            root,
+            verify_urls=args.urls,
+            resolver_threshold=resolver_threshold,
+        )
 
     # Wiki validation — auto-activated when wiki/SCHEMA.md is present
     wiki_schema = root / "wiki" / "SCHEMA.md"
