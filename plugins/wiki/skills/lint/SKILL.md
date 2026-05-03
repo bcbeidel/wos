@@ -6,6 +6,7 @@ description: >
   "check lint", "check health", "validate documents", "run validation",
   "audit content quality", "review documents", "check coverage",
   "check freshness", "run health check", or "what needs attention".
+allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[path/to/file.md]"
 user-invocable: true
 references: []

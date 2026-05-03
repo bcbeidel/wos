@@ -9,6 +9,7 @@ description: >
   user wants to "audit a makefile", "check my makefile", or "lint
   a makefile". Not for POSIX-`make`, compilation trees, or
   recursive multi-module builds.
+allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[path]"
 user-invocable: true
 references:

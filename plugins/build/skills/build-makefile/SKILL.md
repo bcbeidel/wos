@@ -8,6 +8,7 @@ description: >
   `clean`. Use when the user wants to "create a makefile", "scaffold
   a makefile", or "new makefile for [X]". Not for POSIX-`make`,
   compilation-driving Makefiles, or multi-module recursive builds.
+allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[purpose]"
 user-invocable: true
 references:
