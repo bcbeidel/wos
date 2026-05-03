@@ -405,13 +405,14 @@ Output: five files plus a routing-doc diff adding a paragraph under
   dogfoods the routing it helps maintain; authoring scripts inline
   would bypass the rubric this skill's whole design tells users to
   respect.
-- Recovery if the pair is scaffolded in error: `rm -rf
-  <SKILL_ROOT>/build-<name>/ <SKILL_ROOT>/check-<name>/
-  <SHARED_REF_DIR>/<name>-best-practices.md` and revert the
-  `primitive-routing.md` change (plugin mode). The artifacts are
-  self-contained (no settings.json entries, no shared-module
-  registration beyond the routing doc), so removal leaves no dangling
-  state.
+- Recovery if the pair is scaffolded in error: prefer `git restore` /
+  `git clean` (for unstaged scaffolding) or `git revert` (for committed
+  scaffolding) to undo the change atomically. If git is not an option,
+  delete `<SKILL_ROOT>/build-<name>/`, `<SKILL_ROOT>/check-<name>/`,
+  and `<SHARED_REF_DIR>/<name>-best-practices.md`, then revert the
+  `primitive-routing.md` change. The artifacts are self-contained
+  (no settings.json entries, no shared-module registration beyond the
+  routing doc), so removal leaves no dangling state.
 
 ## Handoff
 
