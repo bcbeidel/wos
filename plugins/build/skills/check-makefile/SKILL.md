@@ -74,17 +74,17 @@ script's FAIL exit — all nine contribute findings to the merge.
 SCRIPTS="${SKILL_DIR}/scripts"
 TARGETS="$ARGUMENTS"
 
-"$SCRIPTS/check_secrets.py"        $TARGETS   # FAIL: secret patterns — excludes from Tier-2
-"$SCRIPTS/check_structure.py"      $TARGETS   # FAIL: SHELL/.SHELLFLAGS; WARN: MAKEFLAGS, .DEFAULT_GOAL, .DELETE_ON_ERROR, header
-"$SCRIPTS/check_phony.py"          $TARGETS   # WARN: non-file targets missing from .PHONY
-"$SCRIPTS/check_help.py"           $TARGETS   # WARN: missing help target, missing ## descriptions
-"$SCRIPTS/check_indent.py"         $TARGETS   # FAIL: space-indented recipe lines
-"$SCRIPTS/check_naming.py"         $TARGETS   # WARN: non-conforming public target names
-"$SCRIPTS/check_variables.py"      $TARGETS   # WARN: bare = without comment, top-level $(shell …)
-"$SCRIPTS/check_safety.py"         $TARGETS   # FAIL: sudo/global-install/curl|sh/unguarded rm; WARN: unconfirmed destructive targets
-"$SCRIPTS/check_recipes.py"        $TARGETS   # WARN: literal `make`, @ discipline, || true without comment, recipe length
-bash "$SCRIPTS/check_checkmake.sh" $TARGETS   # INFO if checkmake absent; WARN on checkmake findings
-bash "$SCRIPTS/check_size.sh"      $TARGETS   # WARN: file > 300 non-blank lines or lines > 120 chars
+"$SCRIPTS/check_secrets.py"        "$TARGETS"   # FAIL: secret patterns — excludes from Tier-2
+"$SCRIPTS/check_structure.py"      "$TARGETS"   # FAIL: SHELL/.SHELLFLAGS; WARN: MAKEFLAGS, .DEFAULT_GOAL, .DELETE_ON_ERROR, header
+"$SCRIPTS/check_phony.py"          "$TARGETS"   # WARN: non-file targets missing from .PHONY
+"$SCRIPTS/check_help.py"           "$TARGETS"   # WARN: missing help target, missing ## descriptions
+"$SCRIPTS/check_indent.py"         "$TARGETS"   # FAIL: space-indented recipe lines
+"$SCRIPTS/check_naming.py"         "$TARGETS"   # WARN: non-conforming public target names
+"$SCRIPTS/check_variables.py"      "$TARGETS"   # WARN: bare = without comment, top-level $(shell …)
+"$SCRIPTS/check_safety.py"         "$TARGETS"   # FAIL: sudo/global-install/curl|sh/unguarded rm; WARN: unconfirmed destructive targets
+"$SCRIPTS/check_recipes.py"        "$TARGETS"   # WARN: literal `make`, @ discipline, || true without comment, recipe length
+bash "$SCRIPTS/check_checkmake.sh" "$TARGETS"   # INFO if checkmake absent; WARN on checkmake findings
+bash "$SCRIPTS/check_size.sh"      "$TARGETS"   # WARN: file > 300 non-blank lines or lines > 120 chars
 ```
 
 The scripts live next to `SKILL.md` under `scripts/` and are
