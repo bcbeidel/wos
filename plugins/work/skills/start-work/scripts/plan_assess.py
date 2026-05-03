@@ -17,15 +17,31 @@ import json
 import sys
 from pathlib import Path
 
-# Locate the sibling wiki plugin via fixed `__file__` navigation.
-# plugins/work/skills/start-work/scripts/ → start-work → skills → work → plugins
-_wiki_root = Path(__file__).resolve().parent.parent.parent.parent.parent / "wiki"
-_wiki_marker = _wiki_root / "src" / "wiki" / "__init__.py"
-# Defense-in-depth: only insert the resolved root into sys.path if it
-# actually looks like the wiki plugin. Marker check is the import-shadowing
-# guardrail.
-if _wiki_marker.is_file() and str(_wiki_root) not in sys.path:
-    sys.path.insert(0, str(_wiki_root))
+# Discover the installed wiki plugin so `from wiki.plan import PlanDocument`
+# below resolves when the package was not pip-installed. The script lives at
+# plugins/work/skills/start-work/scripts/<file> and the wiki plugin lives at
+# plugins/wiki/, so the candidate location is reachable via parents[4]/wiki.
+_candidate = Path(__file__).resolve().parents[4] / "wiki"
+
+
+def _is_legitimate_wiki_plugin(p: Path) -> bool:
+    """Strict containment check before sys.path registration.
+
+    Returns True only when the candidate directory has the expected name,
+    sits directly under a parent named 'plugins', and exposes the wiki
+    package marker file. Any deviation means we refuse to register it,
+    blocking import shadowing if the script is relocated to an unexpected
+    layout.
+    """
+    return (
+        p.name == "wiki"
+        and p.parent.name == "plugins"
+        and (p / "src" / "wiki" / "__init__.py").is_file()
+    )
+
+
+if _is_legitimate_wiki_plugin(_candidate) and str(_candidate) not in sys.path:
+    sys.path.insert(0, str(_candidate))
 
 
 def main() -> None:
