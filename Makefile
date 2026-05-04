@@ -6,6 +6,7 @@
 #
 # Usage:
 #   make help                       # show targets
+#   make dev                        # launch claude with all local plugins loaded
 #   make scan PLUGIN=build          # scan one plugin
 #   make scan-all                   # scan every plugins/<name>/
 #   make scan-clean                 # remove scan-output/
@@ -25,10 +26,24 @@ SKILL_SCANNER ?= skill-scanner
 SKILL_SCANNER_LLM_MODEL ?= anthropic/claude-opus-4-6
 FAIL_ON_SEVERITY ?= high
 
-.PHONY: help scan scan-all scan-clean
+CLAUDE ?= claude
+ARGS ?=
+PLUGIN_MANIFESTS := $(wildcard plugins/*/.claude-plugin/plugin.json)
+PLUGIN_DIRS := $(patsubst %/.claude-plugin/plugin.json,%,$(PLUGIN_MANIFESTS))
+PLUGIN_DIR_FLAGS := $(foreach d,$(PLUGIN_DIRS),--plugin-dir ./$(d))
+
+.PHONY: help dev scan scan-all scan-clean
 
 help: ## Show this help and exit
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*## / {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+
+dev: ## Launch claude with every local plugin loaded (override installed copies)
+	@if [[ -z "$(PLUGIN_DIRS)" ]]; then \
+		echo "error: no plugins/*/.claude-plugin/plugin.json found" >&2; \
+		exit 2; \
+	fi
+	@echo "loading: $(PLUGIN_DIRS)"
+	$(CLAUDE) $(PLUGIN_DIR_FLAGS) $(ARGS)
 
 scan: ## Scan one plugin (PLUGIN=<name> required)
 	if [[ -z "$(PLUGIN)" ]]; then \
