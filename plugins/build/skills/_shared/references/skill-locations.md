@@ -37,7 +37,7 @@ The five-artifact pair resolves as:
 ```
 
 The `references:` frontmatter inside each generated SKILL.md uses the
-relative path `../../_shared/references/<primitive>-best-practices.md`
+relative path `../_shared/references/<primitive>-best-practices.md`
 in all three targets — the structure mirrors across scopes by design,
 so the relative reference is target-invariant.
 

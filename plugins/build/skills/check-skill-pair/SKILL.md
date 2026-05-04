@@ -19,11 +19,11 @@ description: >
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[primitive-name]"
 references:
-  - ../../_shared/references/skill-best-practices.md
-  - ../../_shared/references/primitive-routing.md
-  - ../../_shared/references/skill-pair-best-practices.md
-  - ../../_shared/references/skill-locations.md
-  - ../../_shared/references/brief-best-practices.md
+  - ../_shared/references/skill-best-practices.md
+  - ../_shared/references/primitive-routing.md
+  - ../_shared/references/skill-pair-best-practices.md
+  - ../_shared/references/skill-locations.md
+  - ../_shared/references/brief-best-practices.md
   - references/audit-dimensions.md
   - references/repair-playbook.md
 license: MIT
@@ -59,7 +59,7 @@ are prose-heuristic and stay out of the script.
 5. Report → 6. Opt-In Repair Loop
 
 `<SKILL_ROOT>` and `<SHARED_REF_DIR>` resolve from the chosen target
-— see [skill-locations.md](../../_shared/references/skill-locations.md)
+— see [skill-locations.md](../_shared/references/skill-locations.md)
 for the prefix table.
 
 ## 1. Scope
@@ -83,7 +83,7 @@ The six artifact slots `audit_pair.py` inspects:
 Pick the placement scope before invoking the script. If `$ARGUMENTS`
 includes `--target <plugin|project|user>`, use it. Otherwise apply
 the inference rule from
-[skill-locations.md](../../_shared/references/skill-locations.md):
+[skill-locations.md](../_shared/references/skill-locations.md):
 walk up CWD for a plugin source tree, then for a project `.claude/`
 directory, falling back to `user`. Surface the inferred target in
 one line and confirm before invoking the script.

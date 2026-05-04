@@ -21,7 +21,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[path]"
 user-invocable: true
 references:
-  - ../../_shared/references/readme-best-practices.md
+  - ../_shared/references/readme-best-practices.md
   - references/audit-dimensions.md
   - references/repair-playbook.md
 license: MIT
@@ -32,7 +32,7 @@ license: MIT
 Audit a project's top-level `README.md` for structural soundness,
 safety, completeness, and adherence to the rubric. The rubric — what a
 good README does, the anatomy, the patterns that work — lives in
-[readme-best-practices.md](../../_shared/references/readme-best-practices.md).
+[readme-best-practices.md](../_shared/references/readme-best-practices.md).
 This skill is the audit workflow; the principles doc is what it
 audits against.
 

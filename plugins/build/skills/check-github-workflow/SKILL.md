@@ -17,7 +17,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[path]"
 user-invocable: true
 references:
-  - ../../_shared/references/github-workflow-best-practices.md
+  - ../_shared/references/github-workflow-best-practices.md
   - references/audit-dimensions.md
   - references/repair-playbook.md
 license: MIT
@@ -29,7 +29,7 @@ Audit a GitHub Actions workflow file for structural soundness,
 safety posture, pinning discipline, and adherence to the authoring
 rubric. The rubric — authoring principles, patterns that work,
 anti-patterns — lives in
-[github-workflow-best-practices.md](../../_shared/references/github-workflow-best-practices.md).
+[github-workflow-best-practices.md](../_shared/references/github-workflow-best-practices.md).
 This skill is the audit workflow; the principles doc is what it
 audits against.
 

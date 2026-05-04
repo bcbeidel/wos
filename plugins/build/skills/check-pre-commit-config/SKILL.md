@@ -15,7 +15,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[path-to-repo-root-or-config-file]"
 user-invocable: true
 references:
-  - ../../_shared/references/pre-commit-config-best-practices.md
+  - ../_shared/references/pre-commit-config-best-practices.md
   - references/audit-dimensions.md
   - references/repair-playbook.md
 license: MIT
@@ -27,7 +27,7 @@ Audit a `.pre-commit-config.yaml` — plus the local shell/Python
 scripts it invokes — for reproducibility, scope, safety, error
 handling, and adherence to the `pre-commit` framework's conventions.
 The rubric lives in
-[pre-commit-config-best-practices.md](../../_shared/references/pre-commit-config-best-practices.md).
+[pre-commit-config-best-practices.md](../_shared/references/pre-commit-config-best-practices.md).
 This skill is the audit workflow; the principles doc is what it
 audits against.
 

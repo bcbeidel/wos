@@ -72,7 +72,7 @@ Severity:
 **Pass:** brief file exists, all five required sections are present, the *So-what* names a specific gap / user / problem rather than a category description, and *Scope boundaries* lists concrete in/out items rather than "the usual".
 **Warn:** brief is missing entirely; or one or more required sections are absent; or the *So-what* reads as a category description (e.g., "this codifies best practices for X") rather than a specific intent; or *Scope boundaries* is empty / vague.
 **Severity:** warn (presence and content). Briefs are throw-away — a missing brief does not break the pair, but it leaves the build untraceable to its original intent.
-**Principles section:** *What a Brief Is* and *Anti-Patterns* in [brief-best-practices.md](../../../../_shared/references/brief-best-practices.md).
+**Principles section:** *What a Brief Is* and *Anti-Patterns* in [brief-best-practices.md](../../_shared/references/brief-best-practices.md).
 
 ## Tier-2: Content
 

@@ -5,8 +5,8 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[target directory — defaults to CWD; walks up to the nearest RESOLVER.md and audits that one]"
 user-invocable: true
 references:
-  - ../../_shared/references/resolver-best-practices.md
-  - ../../_shared/references/brief-best-practices.md
+  - ../_shared/references/resolver-best-practices.md
+  - ../_shared/references/brief-best-practices.md
   - references/audit-dimensions.md
   - references/repair-playbook.md
 license: MIT
@@ -16,7 +16,7 @@ license: MIT
 
 Evaluate a root-level resolver in three tiers: deterministic artifact and path checks (no LLM), per-dimension semantic evaluation (one locked-rubric LLM call), and cross-artifact reachability + staleness against disk state.
 
-The audit rubric mirrors the authoring principles in [resolver-best-practices.md](../../_shared/references/resolver-best-practices.md). When the principles doc changes, the dimensions follow.
+The audit rubric mirrors the authoring principles in [resolver-best-practices.md](../_shared/references/resolver-best-practices.md). When the principles doc changes, the dimensions follow.
 
 ## Workflow
 

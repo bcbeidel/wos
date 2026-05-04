@@ -9,7 +9,7 @@ The check-python-script audit runs in three tiers. This document is
 the inventory: every deterministic check Tier-1 emits, every
 judgment dimension Tier-2 evaluates. Every dimension cites the source
 principle it audits from
-[python-script-best-practices.md](../../../_shared/references/python-script-best-practices.md).
+[python-script-best-practices.md](../../_shared/references/python-script-best-practices.md).
 
 ## Tier-1 — Deterministic Checks
 

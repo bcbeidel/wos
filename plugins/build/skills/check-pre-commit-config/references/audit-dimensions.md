@@ -9,7 +9,7 @@ The check-pre-commit-config audit runs in three tiers. This document
 is the inventory: every deterministic check Tier-1 emits, every
 judgment dimension Tier-2 evaluates. Every dimension cites the source
 principle it audits from
-[pre-commit-config-best-practices.md](../../../_shared/references/pre-commit-config-best-practices.md).
+[pre-commit-config-best-practices.md](../../_shared/references/pre-commit-config-best-practices.md).
 
 ## Tier-1 — Deterministic Checks
 

@@ -10,9 +10,9 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[hook event] [enforcement goal]"
 user-invocable: true
 references:
-  - ../../_shared/references/hook-best-practices.md
-  - ../../_shared/references/primitive-routing.md
-  - ../../_shared/references/brief-best-practices.md
+  - ../_shared/references/hook-best-practices.md
+  - ../_shared/references/primitive-routing.md
+  - ../_shared/references/brief-best-practices.md
   - references/hook-testing.md
 license: MIT
 ---
@@ -21,7 +21,7 @@ license: MIT
 
 Scaffold a Claude Code hook — an event-driven handler that enforces a quality
 gate deterministically, bypassing LLM judgment. See
-[hook-best-practices.md](../../_shared/references/hook-best-practices.md) for the
+[hook-best-practices.md](../_shared/references/hook-best-practices.md) for the
 rubric both halves of the pair share.
 
 **Workflow sequence:** 0. Brief → 1. Route → 2. Scope Gate → 3. Elicit →
@@ -36,7 +36,7 @@ the hook name derived from the enforcement goal (e.g.,
 `block-main-push`, `redact-secrets-on-save`); pre-fill from
 `$ARGUMENTS` `[hook event] [enforcement goal]` if present, otherwise
 ask now. Format follows
-[brief-best-practices.md](../../_shared/references/brief-best-practices.md):
+[brief-best-practices.md](../_shared/references/brief-best-practices.md):
 five required H2 sections (*User ask*, *So-what*, *Scope boundaries*,
 *Planned artifacts*, *Planned handoffs*) plus an empty *Decisions log*.
 
@@ -57,7 +57,7 @@ Do not overwrite the brief silently.
 ## 1. Route
 
 Confirm a hook is the right primitive. Full framework:
-[primitive-routing.md](../../_shared/references/primitive-routing.md).
+[primitive-routing.md](../_shared/references/primitive-routing.md).
 
 - **Unconditional permanent block** (never allow tool X, no exceptions ever) →
   route to `settings.json` `permissions.deny`.
@@ -88,7 +88,7 @@ pre-fill the first two fields, confirm with the user, then ask only the
 handler-type question. Otherwise ask one at a time:
 
 1. **Hook event** — which lifecycle moment? See the event table in
-   [hook-best-practices.md §Anatomy §Event selection](../../_shared/references/hook-best-practices.md).
+   [hook-best-practices.md §Anatomy §Event selection](../_shared/references/hook-best-practices.md).
    If the goal is to block, the event must be PreToolUse or another blockable event.
 2. **Handler type** — `command` (default), `http`, `prompt`, or `agent`. Default
    to `command` unless the enforcement genuinely needs an LLM.
@@ -108,11 +108,11 @@ settings.json entry, path-expansion variables). Tick each item in
 drafted.
 
 **Artifact 1 — Hook script.** Start from the skeleton in
-[hook-best-practices.md §Anatomy §Script skeleton](../../_shared/references/hook-best-practices.md).
+[hook-best-practices.md §Anatomy §Script skeleton](../_shared/references/hook-best-practices.md).
 Fill in the enforcement logic.
 
 **Artifact 2 — settings.json entry.** Start from the entry shape in
-[hook-best-practices.md §Anatomy §Settings.json entry shape](../../_shared/references/hook-best-practices.md).
+[hook-best-practices.md §Anatomy §Settings.json entry shape](../_shared/references/hook-best-practices.md).
 Pick a `timeout` appropriate for the gate (10–60 s typical).
 
 Present both artifacts to the user before the Safety Check.
@@ -139,7 +139,7 @@ dimension passes. High-leverage checks for a fresh scaffold:
 
 A Stop hook that exits 2 without a re-entry guard creates an infinite loop.
 Apply the belt-and-suspenders pattern from
-[hook-best-practices.md §Patterns That Work](../../_shared/references/hook-best-practices.md):
+[hook-best-practices.md §Patterns That Work](../_shared/references/hook-best-practices.md):
 
 - **SubagentStop:** inspect `stop_hook_active` and `last_assistant_message`.
 - **Stop:** use a session-scoped guard file keyed to `session_id` (the `Stop` payload lacks `stop_hook_active`).

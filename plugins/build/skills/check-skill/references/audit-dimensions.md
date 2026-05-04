@@ -15,7 +15,7 @@ frontmatter shape) with code — faster, cheaper, and more reliable than
 asking the LLM to parse them.
 
 The Tier-2 rubric mirrors the authoring principles in
-[skill-best-practices.md](../../../_shared/references/skill-best-practices.md).
+[skill-best-practices.md](../../_shared/references/skill-best-practices.md).
 Each dimension cites its source principle. When a principle changes, the
 dimension follows.
 
@@ -117,7 +117,7 @@ verdict "N/A".
 
 ### Dimension 1: Description Retrieval Signal
 
-*(principle — [Write the description as a retrieval signal](../../../_shared/references/skill-best-practices.md))*
+*(principle — [Write the description as a retrieval signal](../../_shared/references/skill-best-practices.md))*
 
 **What it checks:** Whether the `description` front-loads concrete invocation triggers a router can match on, rather than describing the skill's internal mechanics.
 
@@ -138,7 +138,7 @@ verdict "N/A".
 
 ### Dimension 2: Trigger Conditions
 
-*(principle — [Declare triggers as scannable conditions](../../../_shared/references/skill-best-practices.md))*
+*(principle — [Declare triggers as scannable conditions](../../_shared/references/skill-best-practices.md))*
 
 **What it checks:** Whether the `## When to use` section contains concrete, scannable conditions that confirm the skill applies — not a restatement of the description.
 
@@ -159,7 +159,7 @@ verdict "N/A".
 
 ### Dimension 3: Step Discipline
 
-*(principle — [Write Steps as a numbered sequence of atomic actions](../../../_shared/references/skill-best-practices.md))*
+*(principle — [Write Steps as a numbered sequence of atomic actions](../../_shared/references/skill-best-practices.md))*
 
 **What it checks:** Whether each step is one atomic imperative action, free of rationale/commentary, with shallow conditional nesting.
 
@@ -181,7 +181,7 @@ verdict "N/A".
 
 ### Dimension 4: Clarity and Consistency
 
-*(principle — [Speak in plain, direct English](../../../_shared/references/skill-best-practices.md))*
+*(principle — [Speak in plain, direct English](../../_shared/references/skill-best-practices.md))*
 
 **What it checks:** Whether the skill uses undefined jargon, inconsistent terminology, or hedging that Tier-1's wordlist didn't catch.
 
@@ -201,7 +201,7 @@ verdict "N/A".
 
 ### Dimension 5: Prerequisites and Contract
 
-*(principle — [State preconditions once / Declare inputs, outputs, and their shapes](../../../_shared/references/skill-best-practices.md))*
+*(principle — [State preconditions once / Declare inputs, outputs, and their shapes](../../_shared/references/skill-best-practices.md))*
 
 **What it checks:** Whether `## Prerequisites` names the actual dependencies (tools, env vars, language versions, privilege tier, input/output shapes) or is a placeholder heading.
 
@@ -224,7 +224,7 @@ verdict "N/A".
 
 ### Dimension 6: Failure Handling
 
-*(principle — [Write a failure contract](../../../_shared/references/skill-best-practices.md))*
+*(principle — [Write a failure contract](../../_shared/references/skill-best-practices.md))*
 
 **What it checks:** Whether `## Failure modes` names real failure modes with recovery actions, and whether polling/retry/wait steps name timeouts and backoff.
 
@@ -247,7 +247,7 @@ verdict "N/A".
 
 ### Dimension 7: Safety Gating
 
-*(principle — [Destructive operations gate on confirmation](../../../_shared/references/skill-best-practices.md))*
+*(principle — [Destructive operations gate on confirmation](../../_shared/references/skill-best-practices.md))*
 
 **What it checks:** When the skill contains destructive operations, whether an explicit approval gate precedes them.
 
@@ -270,7 +270,7 @@ verdict "N/A".
 
 ### Dimension 8: Example Realism
 
-*(principle — [Anchor with a concrete example](../../../_shared/references/skill-best-practices.md))*
+*(principle — [Anchor with a concrete example](../../_shared/references/skill-best-practices.md))*
 
 **What it checks:** Whether `## Examples` uses real inputs, outputs, and side effects — not synthetic `foo`/`bar` placeholders.
 
@@ -293,7 +293,7 @@ verdict "N/A".
 
 ### Dimension 9: Mechanical-Work Partition
 
-*(principle — [Partition mechanical work from judgment](../../../_shared/references/skill-best-practices.md))*
+*(principle — [Partition mechanical work from judgment](../../_shared/references/skill-best-practices.md))*
 
 **What it checks:** Whether mechanical substeps (file existence, regex match, count, schema validity, fixed-list lookup, exit-code branching) are extracted to sibling scripts the SKILL.md invokes — or kept inline as prose the LLM has to re-derive on every invocation.
 
@@ -423,7 +423,7 @@ Recommendation: [specific change if WARN, else "None"]
 
 ## Tier 3: Cross-Skill Description Collision
 
-*(principle — [Write the description as a retrieval signal](../../../_shared/references/skill-best-practices.md))*
+*(principle — [Write the description as a retrieval signal](../../_shared/references/skill-best-practices.md))*
 
 Run after per-skill semantic evaluation. Compare descriptions across
 the skill collection and flag pairs whose triggers overlap enough to

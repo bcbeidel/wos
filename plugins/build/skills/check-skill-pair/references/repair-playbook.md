@@ -86,7 +86,7 @@ existed, the orchestrator skipped Step 0, or the brief was written
 but the *So-what* drifted toward generic framing.
 **Fix:** for missing-or-incomplete-presence, write or extend
 `.briefs/<primitive>.brief.md` per
-[brief-best-practices.md](../../../_shared/references/brief-best-practices.md).
+[brief-best-practices.md](../../_shared/references/brief-best-practices.md).
 For generic *So-what*, ask the user to name the specific gap, user,
 or recurring problem this primitive addresses; rewrite the paragraph
 to anchor in those specifics. Briefs are throw-away — a retroactive

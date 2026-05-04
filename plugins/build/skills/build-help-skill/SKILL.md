@@ -13,9 +13,9 @@ version: 1.0.0
 owner: build-plugin
 license: MIT
 references:
-  - ../../_shared/references/help-skill-best-practices.md
-  - ../../_shared/references/primitive-routing.md
-  - ../../_shared/references/skill-best-practices.md
+  - ../_shared/references/help-skill-best-practices.md
+  - ../_shared/references/primitive-routing.md
+  - ../_shared/references/skill-best-practices.md
   - scripts/render_skill_table.py
 ---
 
@@ -30,7 +30,7 @@ to `AGENTS.md` / `RESOLVER.md` / the plugin README.
 
 Authoring principles — what makes a help-skill load-bearing, the
 canonical anatomy, the patterns that keep the index honest — live in
-[help-skill-best-practices.md](../../_shared/references/help-skill-best-practices.md).
+[help-skill-best-practices.md](../_shared/references/help-skill-best-practices.md).
 This skill is the workflow; the principles doc is the rubric.
 
 ## When to use
@@ -61,7 +61,7 @@ This skill is the workflow; the principles doc is the rubric.
    `/build:build-skill`), a top-level README (route to
    `/build:build-readme`), or a global router skill (out of scope —
    per-plugin scoping is intentional). Full decision matrix in
-   [primitive-routing.md](../../_shared/references/primitive-routing.md).
+   [primitive-routing.md](../_shared/references/primitive-routing.md).
 
 2. **Resolve the plugin.** Read `$ARGUMENTS`. If it names a plugin
    (e.g., `build`, `wiki`, `work`, `consider`), confirm
@@ -120,11 +120,11 @@ This skill is the workflow; the principles doc is the rubric.
    router cannot disambiguate two skills that match the same trigger.
 
 7. **Draft the SKILL.md.** Follow the anatomy in
-   [help-skill-best-practices.md](../../_shared/references/help-skill-best-practices.md).
+   [help-skill-best-practices.md](../_shared/references/help-skill-best-practices.md).
    Required frontmatter: `name: help` (literal — the slug is fixed),
    `description` (from Step 6), `version: 1.0.0`, `owner:
    <plugin>-plugin`, `license: MIT`, `references:` pointing at
-   `../../_shared/references/help-skill-best-practices.md`. Required
+   `../_shared/references/help-skill-best-practices.md`. Required
    body: H1 `# /<plugin>:help`, the one-sentence synopsis from Step 4,
    a `## Skills in this plugin` section wrapping a managed-region
    marker pair (`<!-- generated: do not edit by hand; regenerate

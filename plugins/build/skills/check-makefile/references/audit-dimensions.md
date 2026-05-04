@@ -9,7 +9,7 @@ The check-makefile audit runs in three tiers. This document is the
 inventory: every deterministic check Tier-1 emits, every judgment
 dimension Tier-2 evaluates. Every dimension cites the source
 principle it audits from
-[makefile-best-practices.md](../../../_shared/references/makefile-best-practices.md).
+[makefile-best-practices.md](../../_shared/references/makefile-best-practices.md).
 
 ## Tier-1 — Deterministic Checks
 

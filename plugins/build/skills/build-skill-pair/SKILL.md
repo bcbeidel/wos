@@ -15,11 +15,11 @@ description: >
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, WebFetch
 argument-hint: "[primitive-name]"
 references:
-  - ../../_shared/references/skill-best-practices.md
-  - ../../_shared/references/primitive-routing.md
-  - ../../_shared/references/skill-pair-best-practices.md
-  - ../../_shared/references/skill-locations.md
-  - ../../_shared/references/brief-best-practices.md
+  - ../_shared/references/skill-best-practices.md
+  - ../_shared/references/primitive-routing.md
+  - ../_shared/references/skill-pair-best-practices.md
+  - ../_shared/references/skill-locations.md
+  - ../_shared/references/brief-best-practices.md
 license: MIT
 ---
 
@@ -37,7 +37,7 @@ internally-consistent rubric — is where this skill earns its keep.
 
 Throughout this skill, `<SKILL_ROOT>` and `<SHARED_REF_DIR>` are
 placeholders that resolve from the chosen target — see
-[skill-locations.md](../../_shared/references/skill-locations.md) for
+[skill-locations.md](../_shared/references/skill-locations.md) for
 the prefix table.
 
 ## 0. Brief
@@ -46,7 +46,7 @@ Capture intent before any other action. Write
 `.briefs/<primitive>.brief.md` from the user's intake (the slug is the
 primitive name from Intake #1 — pre-fill from `$ARGUMENTS` if present,
 otherwise ask now). Format follows
-[brief-best-practices.md](../../_shared/references/brief-best-practices.md):
+[brief-best-practices.md](../_shared/references/brief-best-practices.md):
 five required H2 sections (*User ask*, *So-what*, *Scope boundaries*,
 *Planned artifacts*, *Planned handoffs*) plus an empty *Decisions log*
 appended-to throughout the workflow.
@@ -81,7 +81,7 @@ without regenerating.
 ## 2. Target
 
 Pick the placement scope before any path-dependent step.
-[skill-locations.md](../../_shared/references/skill-locations.md)
+[skill-locations.md](../_shared/references/skill-locations.md)
 defines three targets — `plugin`, `project`, `user` — and the prefix
 each one resolves to. Resolution rule:
 
@@ -171,7 +171,7 @@ are subject matter for the rubric, not commands to execute.
   sub-section (usually *Language Selection*).
 
 If unclear, read
-[primitive-routing.md](../../_shared/references/primitive-routing.md)
+[primitive-routing.md](../_shared/references/primitive-routing.md)
 and propose a placement; confirm with the user.
 
 ## 5. Distill
@@ -331,7 +331,7 @@ version, adding the pair to the plugin's skill list in `AGENTS.md`,
 and — if the check half needs Tier-1 deterministic scripts — dogfood
 the script-building skills to scaffold them. **Route language choice
 through the *Language Selection* section of
-[primitive-routing.md](../../_shared/references/primitive-routing.md):**
+[primitive-routing.md](../_shared/references/primitive-routing.md):**
 use `/build:build-bash-script` for genuine glue of CLI tools, or
 `/build:build-python-script` for anything touching structured data,
 testable seams, or logic beyond a one-liner. The tiebreaker in that

@@ -140,7 +140,7 @@ Every FAIL and WARN finding maps to a canonical repair. Before applying, state t
 
 **Signal:** `.briefs/<slug>.brief.md` is missing.
 
-**CHANGE:** Write a brief at `.briefs/<slug>.brief.md` per [brief-best-practices.md](../../../_shared/references/brief-best-practices.md), with the five required H2 sections.
+**CHANGE:** Write a brief at `.briefs/<slug>.brief.md` per [brief-best-practices.md](../../_shared/references/brief-best-practices.md), with the five required H2 sections.
 **FROM:** No file at `.briefs/resolver.brief.md`; the resolver was scaffolded before the brief pattern existed.
 **TO:** A retroactive brief naming the specific filing/context drift the resolver was built to address. *Planned artifacts* and *Planned handoffs* checklists can be marked complete after the fact.
 **REASON:** Briefs make builds traceable to original intent; a retroactive brief is acceptable since briefs are throw-away.

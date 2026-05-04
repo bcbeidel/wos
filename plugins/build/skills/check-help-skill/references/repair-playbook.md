@@ -64,7 +64,7 @@ version: 1.0.0
 owner: build-plugin
 license: MIT
 references:
-  - ../../_shared/references/help-skill-best-practices.md
+  - ../_shared/references/help-skill-best-practices.md
 ---
 ```
 **REASON** Required frontmatter is the cache-busting and ownership

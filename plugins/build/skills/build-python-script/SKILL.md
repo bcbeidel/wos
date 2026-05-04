@@ -14,8 +14,8 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[purpose]"
 user-invocable: true
 references:
-  - ../../_shared/references/python-script-best-practices.md
-  - ../../_shared/references/primitive-routing.md
+  - ../_shared/references/python-script-best-practices.md
+  - ../_shared/references/primitive-routing.md
 license: MIT
 ---
 
@@ -25,7 +25,7 @@ Scaffold a standalone Python 3 script: a single-file program that runs
 from the shell, does one clear thing, and returns a useful exit code.
 The authoring rubric — what makes a script load-bearing, the anatomy
 template, patterns that work — lives in
-[python-script-best-practices.md](../../_shared/references/python-script-best-practices.md).
+[python-script-best-practices.md](../_shared/references/python-script-best-practices.md).
 This skill is the workflow; the principles doc is the rubric.
 
 This skill is not for Claude Code hooks (`/build:build-hook` owns that
@@ -61,7 +61,7 @@ Python is the right language before asking scaffold-specific questions.
 
 The full language-selection decision lives in the *Language Selection*
 section of
-[primitive-routing.md](../../_shared/references/primitive-routing.md) —
+[primitive-routing.md](../_shared/references/primitive-routing.md) —
 consult it when the choice is not obvious. **Tiebreaker rule from that
 doc:** when the decision is genuinely balanced, Python wins on
 interpretability.
@@ -244,7 +244,7 @@ Present both artifacts to the user before any safety checks.
 ## 5. Safety Check
 
 Review the draft against the rubric in
-[python-script-best-practices.md](../../_shared/references/python-script-best-practices.md)
+[python-script-best-practices.md](../_shared/references/python-script-best-practices.md)
 before presenting. Group the checks:
 
 **Structure.** Shebang is exactly `#!/usr/bin/env python3`. Module

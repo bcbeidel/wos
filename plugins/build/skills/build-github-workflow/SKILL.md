@@ -16,8 +16,8 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[purpose]"
 user-invocable: true
 references:
-  - ../../_shared/references/github-workflow-best-practices.md
-  - ../../_shared/references/primitive-routing.md
+  - ../_shared/references/github-workflow-best-practices.md
+  - ../_shared/references/primitive-routing.md
 license: MIT
 ---
 
@@ -29,7 +29,7 @@ permissions / timeout / concurrency / pinning posture, and stays
 under the Checks-UI-and-required-checks contract. The authoring
 rubric — anatomy template, authoring principles, patterns that work,
 anti-patterns — lives in
-[github-workflow-best-practices.md](../../_shared/references/github-workflow-best-practices.md).
+[github-workflow-best-practices.md](../_shared/references/github-workflow-best-practices.md).
 This skill is the workflow; the principles doc is the rubric.
 
 The scope is **a single workflow file**. Composite actions,
@@ -243,7 +243,7 @@ Present both artifacts before safety checks.
 ## 5. Safety Check
 
 Review the draft against
-[github-workflow-best-practices.md](../../_shared/references/github-workflow-best-practices.md)
+[github-workflow-best-practices.md](../_shared/references/github-workflow-best-practices.md)
 before presenting. Fail any check → revise; the Review Gate is for
 user approval, not correctness recovery.
 

@@ -44,7 +44,7 @@ version: 1.0.0
 owner: <plugin>-plugin
 license: MIT
 references:
-  - ../../_shared/references/help-skill-best-practices.md
+  - ../_shared/references/help-skill-best-practices.md
 ---
 
 # /<plugin>:help

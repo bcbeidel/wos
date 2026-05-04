@@ -16,8 +16,8 @@ description: >
 argument-hint: "[project-name]"
 user-invocable: true
 references:
-  - ../../_shared/references/readme-best-practices.md
-  - ../../_shared/references/primitive-routing.md
+  - ../_shared/references/readme-best-practices.md
+  - ../_shared/references/primitive-routing.md
 license: MIT
 ---
 
@@ -27,7 +27,7 @@ Scaffold a project's top-level `README.md`: the first file a stranger
 sees after `git clone`, a dependency listing, or a package-registry
 page. The authoring rubric — what a good README does, the anatomy
 template, the patterns that work — lives in
-[readme-best-practices.md](../../_shared/references/readme-best-practices.md).
+[readme-best-practices.md](../_shared/references/readme-best-practices.md).
 This skill is the workflow; the principles doc is the rubric.
 
 **Scope is top-level only.** Sub-package READMEs inside a monorepo
@@ -209,7 +209,7 @@ line to the user before any safety checks.
 ## 5. Safety Check
 
 Review the draft against the rubric in
-[readme-best-practices.md](../../_shared/references/readme-best-practices.md)
+[readme-best-practices.md](../_shared/references/readme-best-practices.md)
 before presenting. Group the checks:
 
 **Structure.** Single H1 on first content line. One-sentence

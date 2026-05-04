@@ -15,7 +15,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[path]"
 user-invocable: true
 references:
-  - ../../_shared/references/subagent-best-practices.md
+  - ../_shared/references/subagent-best-practices.md
   - references/audit-dimensions.md
   - references/repair-playbook.md
 license: MIT
@@ -27,7 +27,7 @@ Audit Claude Code custom subagent definitions for structural
 soundness, tool-scope hygiene, routing-contract clarity, and safety
 posture. The rubric — what makes a subagent load-bearing, the file
 anatomy, the patterns that work — lives in
-[subagent-best-practices.md](../../_shared/references/subagent-best-practices.md).
+[subagent-best-practices.md](../_shared/references/subagent-best-practices.md).
 This skill is the audit workflow; the principles doc is what it
 audits against.
 

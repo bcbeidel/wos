@@ -4,15 +4,15 @@ description: Scaffold a root-level RESOLVER.md — a dual routing table (filing 
 argument-hint: "[target directory — defaults to CWD; walks up to nearest existing RESOLVER.md, or scaffolds at target]"
 user-invocable: true
 references:
-  - ../../_shared/references/resolver-best-practices.md
-  - ../../_shared/references/primitive-routing.md
-  - ../../_shared/references/brief-best-practices.md
+  - ../_shared/references/resolver-best-practices.md
+  - ../_shared/references/primitive-routing.md
+  - ../_shared/references/brief-best-practices.md
 license: MIT
 ---
 
 # /build:build-resolver
 
-Scaffold the three linked artifacts that make a resolver work: `RESOLVER.md` at the target repo root with a machine-managed region, a one-line AGENTS.md pointer, and a seeded `.resolver/evals.yml`. The skill is the workflow; authoring principles live in [resolver-best-practices.md](../../_shared/references/resolver-best-practices.md).
+Scaffold the three linked artifacts that make a resolver work: `RESOLVER.md` at the target repo root with a machine-managed region, a one-line AGENTS.md pointer, and a seeded `.resolver/evals.yml`. The skill is the workflow; authoring principles live in [resolver-best-practices.md](../_shared/references/resolver-best-practices.md).
 
 ## Workflow
 
@@ -22,7 +22,7 @@ Capture intent before any other workflow step. Write
 `.briefs/<slug>.brief.md` from the user's intake. The slug is
 `resolver` for a root-scoped resolver, or the target directory slug
 for a nested resolver (e.g., `plugins-resolver`). Format follows
-[brief-best-practices.md](../../_shared/references/brief-best-practices.md):
+[brief-best-practices.md](../_shared/references/brief-best-practices.md):
 five required H2 sections (*User ask*, *So-what*, *Scope boundaries*,
 *Planned artifacts*, *Planned handoffs*) plus an empty *Decisions log*.
 
@@ -63,7 +63,7 @@ Walk up from the target directory looking for an existing `RESOLVER.md`. The fir
   - Re-run evals after writing (Step 8)
 - **Not found** → scaffold mode at the target directory itself:
   - The target becomes the resolver root
-  - Confirm with the user before scaffolding a nested resolver (anything other than the repo root) — nesting earns its place only when filing rules genuinely diverge per subtree (see [resolver-best-practices.md](../../_shared/references/resolver-best-practices.md) → "Nesting")
+  - Confirm with the user before scaffolding a nested resolver (anything other than the repo root) — nesting earns its place only when filing rules genuinely diverge per subtree (see [resolver-best-practices.md](../_shared/references/resolver-best-practices.md) → "Nesting")
 
 Announce the mode, the resolver root, and what will change before proceeding. All subsequent steps operate scoped to the resolver root, not necessarily the repo root.
 

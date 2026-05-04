@@ -16,8 +16,8 @@ description: >
 argument-hint: "[project-context]"
 user-invocable: true
 references:
-  - ../../_shared/references/pre-commit-config-best-practices.md
-  - ../../_shared/references/primitive-routing.md
+  - ../_shared/references/pre-commit-config-best-practices.md
+  - ../_shared/references/primitive-routing.md
 license: MIT
 ---
 
@@ -26,7 +26,7 @@ license: MIT
 Scaffold a `.pre-commit-config.yaml` plus any accompanying local hook
 scripts. The authoring rubric — anatomy template, patterns that work,
 anti-patterns, safety posture — lives in
-[pre-commit-config-best-practices.md](../../_shared/references/pre-commit-config-best-practices.md).
+[pre-commit-config-best-practices.md](../_shared/references/pre-commit-config-best-practices.md).
 This skill is the workflow; the principles doc is the rubric.
 
 This skill is **`pre-commit` framework only by scope**. Hand-rolled

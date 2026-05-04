@@ -13,8 +13,8 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob, WebFetch, WebSearch
 argument-hint: "[name or intent]"
 user-invocable: true
 references:
-  - ../../_shared/references/subagent-best-practices.md
-  - ../../_shared/references/primitive-routing.md
+  - ../_shared/references/subagent-best-practices.md
+  - ../_shared/references/primitive-routing.md
 license: MIT
 ---
 
@@ -25,7 +25,7 @@ in `.claude/agents/` (project) or `~/.claude/agents/` (user) that the
 routing agent can delegate to with confidence. The authoring rubric —
 what a good subagent does, the file anatomy, the patterns that work —
 lives in
-[subagent-best-practices.md](../../_shared/references/subagent-best-practices.md).
+[subagent-best-practices.md](../_shared/references/subagent-best-practices.md).
 This skill is the workflow; the principles doc is the rubric.
 
 A subagent is a **full context fork** — high-cost compared to a skill
@@ -53,7 +53,7 @@ questions.
   `/build:build-python-script`.
 
 The full primitive-selection decision lives in
-[primitive-routing.md](../../_shared/references/primitive-routing.md).
+[primitive-routing.md](../_shared/references/primitive-routing.md).
 
 **Right primitive** — proceed to Scope Gate only when at least one
 subagent-specific justification holds:

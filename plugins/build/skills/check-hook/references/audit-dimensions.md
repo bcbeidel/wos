@@ -7,7 +7,7 @@ description: Scoreable rubric for /build:check-hook. Each dimension has pass/fai
 
 Sixteen dimensions grouped as Structure (6), Safety (7), and Maintenance (3).
 Each dimension enforces a specific section of
-[hook-best-practices.md](../../../_shared/references/hook-best-practices.md).
+[hook-best-practices.md](../../_shared/references/hook-best-practices.md).
 
 ## Tier-2 — Structure
 
@@ -149,4 +149,4 @@ Each dimension enforces a specific section of
 **Pass:** Brief file exists; all five required sections are present; *So-what* names a specific scenario the hook prevents (a real near-miss, a class of mistakes the team kept making) rather than reading as "deterministically enforces X"; *Scope boundaries* lists concrete in/out items.
 **Fail:** Brief is missing entirely; or one or more required sections are absent; or the *So-what* reads as a category description; or *Scope boundaries* is empty / vague.
 **Severity:** `warn` (presence and content). Briefs are throw-away — a missing brief does not break the hook, but it leaves the build untraceable to its original intent. Hooks built before the brief pattern existed will trip this; a retroactive brief is acceptable.
-**Principles section:** [brief-best-practices.md](../../../_shared/references/brief-best-practices.md) §What a Brief Is and §Anti-Patterns
+**Principles section:** [brief-best-practices.md](../../_shared/references/brief-best-practices.md) §What a Brief Is and §Anti-Patterns

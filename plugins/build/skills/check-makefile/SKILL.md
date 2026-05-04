@@ -13,7 +13,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[path]"
 user-invocable: true
 references:
-  - ../../_shared/references/makefile-best-practices.md
+  - ../_shared/references/makefile-best-practices.md
   - references/audit-dimensions.md
   - references/repair-playbook.md
 license: MIT
@@ -26,7 +26,7 @@ help/`.PHONY` coverage, variable and recipe hygiene, and adherence
 to the workflow-orchestration rubric. The rubric — what makes a
 Makefile load-bearing, the anatomy, the patterns that work — lives
 in
-[makefile-best-practices.md](../../_shared/references/makefile-best-practices.md).
+[makefile-best-practices.md](../_shared/references/makefile-best-practices.md).
 This skill is the audit workflow; the principles doc is what it
 audits against.
 

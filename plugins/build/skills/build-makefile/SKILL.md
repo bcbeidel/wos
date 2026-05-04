@@ -12,8 +12,8 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[purpose]"
 user-invocable: true
 references:
-  - ../../_shared/references/makefile-best-practices.md
-  - ../../_shared/references/primitive-routing.md
+  - ../_shared/references/makefile-best-practices.md
+  - ../_shared/references/primitive-routing.md
 license: MIT
 ---
 
@@ -23,7 +23,7 @@ Scaffold a top-level `Makefile` that orchestrates developer workflows
 (build, test, lint, fmt, run, deploy, clean, ci) as a single source
 of truth shared by local developers and CI. The authoring rubric —
 anatomy, patterns that work, safety posture — lives in
-[makefile-best-practices.md](../../_shared/references/makefile-best-practices.md).
+[makefile-best-practices.md](../_shared/references/makefile-best-practices.md).
 This skill is the workflow; the principles doc is the rubric.
 
 This skill is scoped to **GNU Make ≥ 4.0 with bash pinned as `SHELL`**.
@@ -209,7 +209,7 @@ Present both artifacts to the user before any safety checks.
 ## 5. Safety Check
 
 Review the draft against the rubric in
-[makefile-best-practices.md](../../_shared/references/makefile-best-practices.md)
+[makefile-best-practices.md](../_shared/references/makefile-best-practices.md)
 before presenting. Group the checks:
 
 **Header.** `SHELL := bash`. `.SHELLFLAGS := -eu -o pipefail -c`.

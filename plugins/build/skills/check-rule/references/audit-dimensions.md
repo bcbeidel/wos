@@ -14,7 +14,7 @@ Handle deterministic checks (file location, glob syntax, file size) with
 code — faster, cheaper, and more reliable than asking the LLM to parse them.
 
 The Tier-2 rubric mirrors the authoring principles in
-[rule-best-practices.md](../../../_shared/references/rule-best-practices.md).
+[rule-best-practices.md](../../_shared/references/rule-best-practices.md).
 Each dimension cites its source principle. When a principle changes, the
 dimension follows.
 
@@ -125,7 +125,7 @@ rule with no examples) return PASS silently with verdict "N/A".
 
 ### Dimension 1: Framing
 
-*(principle — [Frame in the positive](../../../_shared/references/rule-best-practices.md))*
+*(principle — [Frame in the positive](../../_shared/references/rule-best-practices.md))*
 
 **What it checks:** Whether the rule states what to do, not only what
 to avoid. Negations are linguistically fragile — a dropped or
@@ -148,7 +148,7 @@ also name a target; pure prohibitions leave the target implicit.
 
 ### Dimension 2: Specificity
 
-*(principle — [Specific enough to be falsifiable](../../../_shared/references/rule-best-practices.md) + [Direct, definite voice](../../../_shared/references/rule-best-practices.md); canonical — Anthropic's "Use 2-space indentation" vs. "Format code properly" example)*
+*(principle — [Specific enough to be falsifiable](../../_shared/references/rule-best-practices.md) + [Direct, definite voice](../../_shared/references/rule-best-practices.md); canonical — Anthropic's "Use 2-space indentation" vs. "Format code properly" example)*
 
 **What it checks:** Whether the rule's directives are concrete enough
 that a reviewer (or Claude) can verify compliance unambiguously.
@@ -173,7 +173,7 @@ that a reviewer (or Claude) can verify compliance unambiguously.
 
 ### Dimension 3: Single Concern
 
-*(principle — [One claim per file](../../../_shared/references/rule-best-practices.md))*
+*(principle — [One claim per file](../../_shared/references/rule-best-practices.md))*
 
 **What it checks:** Whether the rule covers a single topic. A file
 that mixes unrelated conventions is two rules, not one.
@@ -196,7 +196,7 @@ that mixes unrelated conventions is two rules, not one.
 
 ### Dimension 4: Why Adequacy
 
-*(principle — [Include the *why*](../../../_shared/references/rule-best-practices.md) — for judgment-based rules, name failure cost + exception)*
+*(principle — [Include the *why*](../../_shared/references/rule-best-practices.md) — for judgment-based rules, name failure cost + exception)*
 
 **What it checks:** Whether the rule includes reasoning, and for
 judgment-based rules, whether the why names the failure cost (what
@@ -226,7 +226,7 @@ vocabulary, or multi-paragraph why prose.
 
 ### Dimension 5: Scope Tightness
 
-*(principle — [Scope tightly with `paths:`](../../../_shared/references/rule-best-practices.md))*
+*(principle — [Scope tightly with `paths:`](../../_shared/references/rule-best-practices.md))*
 
 **What it checks:** Whether the rule's `paths:` scope matches the
 breadth of its actual content. An unscoped rule is a context tax on
@@ -250,7 +250,7 @@ or file type but omits `paths:` wastes budget.
 
 ### Dimension 6: Staleness
 
-*(principle — [Describe the codebase as it is](../../../_shared/references/rule-best-practices.md))*
+*(principle — [Describe the codebase as it is](../../_shared/references/rule-best-practices.md))*
 
 **What it checks:** Whether the rule references file paths, commands,
 or code patterns that no longer exist in the codebase.
@@ -279,7 +279,7 @@ commands and imports still appear?
 
 ### Dimension 7: Judgment-Not-Linter
 
-*(principle — [Reserve rules for judgment](../../../_shared/references/rule-best-practices.md))*
+*(principle — [Reserve rules for judgment](../../_shared/references/rule-best-practices.md))*
 
 **What it checks:** Whether the rule restates a check that a formatter,
 linter, or type-checker already enforces. Deterministic checks dilute
@@ -305,7 +305,7 @@ the authority of rules that genuinely need judgment.
 
 ### Dimension 8: Example Realism
 
-*(principle — [Domain-specific examples over synthetic placeholders](../../../_shared/references/rule-best-practices.md); research-grounded — evidence-anchored rubrics deliver +0.17 QWK over inference-only)*
+*(principle — [Domain-specific examples over synthetic placeholders](../../_shared/references/rule-best-practices.md); research-grounded — evidence-anchored rubrics deliver +0.17 QWK over inference-only)*
 
 **What it checks:** Whether example code (when present) uses real
 identifiers from the codebase rather than synthetic placeholders.
@@ -433,7 +433,7 @@ Recommendation: [specific change if WARN, else "None"]
 
 ## Tier 3: Cross-Rule Conflict Detection
 
-*(principle — [Deconflicted rules over overlapping ones](../../../_shared/references/rule-best-practices.md))*
+*(principle — [Deconflicted rules over overlapping ones](../../_shared/references/rule-best-practices.md))*
 
 Run after per-rule semantic evaluation. Compare rule pairs that could
 co-fire.

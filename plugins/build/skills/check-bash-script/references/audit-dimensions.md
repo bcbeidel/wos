@@ -9,7 +9,7 @@ The check-bash-script audit runs in three tiers. This document is the
 inventory: every deterministic check Tier-1 emits, every judgment
 dimension Tier-2 evaluates. Every dimension cites the source principle
 it audits from
-[bash-script-best-practices.md](../../../_shared/references/bash-script-best-practices.md).
+[bash-script-best-practices.md](../../_shared/references/bash-script-best-practices.md).
 
 ## Tier-1 — Deterministic Checks
 

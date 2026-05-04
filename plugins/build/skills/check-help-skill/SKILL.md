@@ -14,8 +14,8 @@ version: 1.0.0
 owner: build-plugin
 license: MIT
 references:
-  - ../../_shared/references/help-skill-best-practices.md
-  - ../../_shared/references/skill-best-practices.md
+  - ../_shared/references/help-skill-best-practices.md
+  - ../_shared/references/skill-best-practices.md
   - references/audit-dimensions.md
   - references/repair-playbook.md
   - scripts/check_help_skill.py
@@ -35,7 +35,7 @@ The full check inventory lives in
 [audit-dimensions.md](references/audit-dimensions.md). Repair
 recipes live in [repair-playbook.md](references/repair-playbook.md).
 The principles audited come from
-[help-skill-best-practices.md](../../_shared/references/help-skill-best-practices.md).
+[help-skill-best-practices.md](../_shared/references/help-skill-best-practices.md).
 
 ## When to use
 

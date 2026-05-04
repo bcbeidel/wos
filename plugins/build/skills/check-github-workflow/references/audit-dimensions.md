@@ -9,7 +9,7 @@ The check-github-workflow audit runs in three tiers. This document
 is the inventory: every deterministic check Tier-1 emits, every
 judgment dimension Tier-2 evaluates. Every dimension cites the
 source principle it audits from
-[github-workflow-best-practices.md](../../../_shared/references/github-workflow-best-practices.md).
+[github-workflow-best-practices.md](../../_shared/references/github-workflow-best-practices.md).
 
 ## Tier-1 — Deterministic Checks
 

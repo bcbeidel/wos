@@ -7,7 +7,7 @@ description: Evaluation criteria for auditing a root-level resolver — Tier-1 d
 
 Resolver auditing uses a three-tier hierarchy: deterministic checks first (no LLM), then semantic evaluation (one LLM call with a locked rubric), then cross-artifact reachability against the live filesystem.
 
-Handle deterministic checks (pointer presence, path resolution, YAML parse, mtime) with code. The Tier-2 rubric mirrors the authoring principles in [resolver-best-practices.md](../../../_shared/references/resolver-best-practices.md).
+Handle deterministic checks (pointer presence, path resolution, YAML parse, mtime) with code. The Tier-2 rubric mirrors the authoring principles in [resolver-best-practices.md](../../_shared/references/resolver-best-practices.md).
 
 ## Table of Contents
 
@@ -66,7 +66,7 @@ For each dimension: **verdict** (WARN, PASS, or N/A), **evidence**, **recommenda
 
 ### Dimension 1: Filing Coverage
 
-*(principle — [Disk-derived, not hand-curated](../../../_shared/references/resolver-best-practices.md))*
+*(principle — [Disk-derived, not hand-curated](../../_shared/references/resolver-best-practices.md))*
 
 **What it checks:** Does the filing table reflect the directories that actually exist? Dark capabilities — directories on disk not listed in the filing table and not in the out-of-scope list — are the "surgeon the hospital can't find" failure mode.
 
@@ -85,7 +85,7 @@ For each dimension: **verdict** (WARN, PASS, or N/A), **evidence**, **recommenda
 
 ### Dimension 2: Context Actionability
 
-*(principle — [Cross-link, don't restate](../../../_shared/references/resolver-best-practices.md))*
+*(principle — [Cross-link, don't restate](../../_shared/references/resolver-best-practices.md))*
 
 **What it checks:** Does each context-table row name concrete paths (files or directories), not vague prose? Is the bundle size appropriate — enough to compress useful context, not so many that the bundle defeats the purpose?
 
@@ -105,7 +105,7 @@ For each dimension: **verdict** (WARN, PASS, or N/A), **evidence**, **recommenda
 
 ### Dimension 3: Eval Representativeness
 
-*(principle — [Trigger evals prove routing](../../../_shared/references/resolver-best-practices.md); research-grounded — OpenAI skill-eval guidance on positive + negative trigger coverage)*
+*(principle — [Trigger evals prove routing](../../_shared/references/resolver-best-practices.md); research-grounded — OpenAI skill-eval guidance on positive + negative trigger coverage)*
 
 **What it checks:** Do the evals exercise both filing and context routing? Is there at least one case per filing row? Are there negative cases catching overlap?
 
@@ -126,7 +126,7 @@ For each dimension: **verdict** (WARN, PASS, or N/A), **evidence**, **recommenda
 
 ### Dimension 4: Brief Presence and Content
 
-*(principle — [brief-best-practices.md](../../../_shared/references/brief-best-practices.md))*
+*(principle — [brief-best-practices.md](../../_shared/references/brief-best-practices.md))*
 
 **What it checks:** Does `.briefs/<slug>.brief.md` exist (slug = `resolver` for root-scoped, target dir slug for nested), with the five required H2 sections (*User ask*, *So-what*, *Scope boundaries*, *Planned artifacts*, *Planned handoffs*)? Does the *So-what* paragraph name a specific gap or recurring problem this resolver addresses, rather than reading as a category description? Are scope boundaries concrete?
 
@@ -151,7 +151,7 @@ This dimension is **brief-presence-and-content** in cross-checker rubric vocabul
 
 ## Tier-3 — Cross-Artifact Checks
 
-*(principle — [Reachability + staleness](../../../_shared/references/resolver-best-practices.md))*
+*(principle — [Reachability + staleness](../../_shared/references/resolver-best-practices.md))*
 
 ### Signal: drift between managed region and fresh regeneration
 

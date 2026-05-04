@@ -9,7 +9,7 @@ The check-subagent audit runs in three tiers. This document is the
 inventory: every deterministic check Tier-1 emits, every judgment
 dimension Tier-2 evaluates, and the cross-entity Tier-3 check. Every
 dimension cites the source principle it audits from
-[subagent-best-practices.md](../../../_shared/references/subagent-best-practices.md).
+[subagent-best-practices.md](../../_shared/references/subagent-best-practices.md).
 
 ## Tier-1 — Deterministic Checks
 

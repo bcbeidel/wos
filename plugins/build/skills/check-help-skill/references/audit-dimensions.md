@@ -9,7 +9,7 @@ The check-help-skill audit runs in three tiers. This document is the
 inventory: every deterministic check Tier-1 emits, every judgment
 dimension Tier-2 evaluates, and the cross-entity collision check
 Tier-3 runs. Every dimension cites the source principle from
-[help-skill-best-practices.md](../../../_shared/references/help-skill-best-practices.md)
+[help-skill-best-practices.md](../../_shared/references/help-skill-best-practices.md)
 that it audits.
 
 ## Tier-1 — Deterministic Checks

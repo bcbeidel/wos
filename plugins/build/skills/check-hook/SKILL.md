@@ -10,8 +10,8 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[settings.json path]"
 user-invocable: true
 references:
-  - ../../_shared/references/hook-best-practices.md
-  - ../../_shared/references/brief-best-practices.md
+  - ../_shared/references/hook-best-practices.md
+  - ../_shared/references/brief-best-practices.md
   - references/audit-dimensions.md
   - references/repair-playbook.md
   - references/platform-limitations.md
@@ -21,7 +21,7 @@ license: MIT
 # Check Hook
 
 Audit a project's Claude Code hooks configuration against the rubric in
-[hook-best-practices.md](../../_shared/references/hook-best-practices.md).
+[hook-best-practices.md](../_shared/references/hook-best-practices.md).
 Read-only until the opt-in Repair Loop.
 
 **Workflow sequence:** 1. Scope → 2. Primitive Routing Scan →
