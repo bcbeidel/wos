@@ -25,10 +25,21 @@ SKILL_SCANNER ?= skill-scanner
 SKILL_SCANNER_LLM_MODEL ?= anthropic/claude-opus-4-6
 FAIL_ON_SEVERITY ?= high
 
-.PHONY: help scan scan-all scan-clean
+.PHONY: help scan scan-all scan-clean claude
+
+PLUGIN_DIRS := $(wildcard plugins/*)
+PLUGIN_DIR_FLAGS := $(addprefix --plugin-dir ,$(PLUGIN_DIRS))
+ARGS ?=
 
 help: ## Show this help and exit
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*## / {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+
+claude: ## Launch claude with every plugins/*/ loaded (ARGS="..." for extra flags)
+	@if [[ -z "$(PLUGIN_DIRS)" ]]; then \
+		echo "error: no plugins/ subdirectories found" >&2; \
+		exit 2; \
+	fi
+	exec claude $(PLUGIN_DIR_FLAGS) $(ARGS)
 
 scan: ## Scan one plugin (PLUGIN=<name> required)
 	if [[ -z "$(PLUGIN)" ]]; then \
