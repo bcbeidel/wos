@@ -300,13 +300,13 @@ Eight tasks. Tasks 1–3 build the subagent and orchestrator; Tasks 4–5 wire i
 
 **Depends on:** Task 1
 
-- [x] **Step 1:** Implement `invoke_subagent(rule_md: str, artifact: str, findings: list | None) -> dict` using the Anthropic Python SDK. Use `claude-sonnet-4-6` for cost/quality balance (revisit per `consider:pick-model`). <!-- sha:PENDING -->
-- [x] **Step 2:** Apply prompt caching: `cache_control` markers on the system prompt block and on the rule_md block. Artifact gets a separate cache marker per artifact. <!-- sha:PENDING -->
-- [x] **Step 3:** Enforce tool-use output: include `tool_choice={"type": "tool", "name": "report_audit_finding"}` so the subagent must call the tool. Parse the tool input as the structured result. <!-- sha:PENDING -->
-- [x] **Step 4:** Failure handling: if response is text-only (model didn't call tool), retry once with an appended user message ("You must call the tool. Retrying."). On second failure, raise `SubagentToolCallError` with the response text for debugging. <!-- sha:PENDING -->
-- [x] **Step 5:** Add a `--dry-run` mode that prints the prompt + tool definition without calling the API (useful for fixture authoring). <!-- sha:PENDING -->
-- [x] **Step 6:** Add basic unit tests in `plugins/build/agents/audit-dispatcher/tests/test_invoke_subagent.py` — at minimum: dry-run produces expected prompt structure; mock-API call returns parsed result; retry-then-fail path raises. <!-- sha:PENDING -->
-- [x] **Step 7:** Commit: `feat(agents): add audit-dispatcher invocation wrapper with tool-use and caching`. <!-- sha:PENDING -->
+- [x] **Step 1:** Implement `invoke_subagent(rule_md: str, artifact: str, findings: list | None) -> dict` using the Anthropic Python SDK. Use `claude-sonnet-4-6` for cost/quality balance (revisit per `consider:pick-model`). <!-- sha:7b96ebb -->
+- [x] **Step 2:** Apply prompt caching: `cache_control` markers on the system prompt block and on the rule_md block. Artifact gets a separate cache marker per artifact. <!-- sha:7b96ebb -->
+- [x] **Step 3:** Enforce tool-use output: include `tool_choice={"type": "tool", "name": "report_audit_finding"}` so the subagent must call the tool. Parse the tool input as the structured result. <!-- sha:7b96ebb -->
+- [x] **Step 4:** Failure handling: if response is text-only (model didn't call tool), retry once with an appended user message ("You must call the tool. Retrying."). On second failure, raise `SubagentToolCallError` with the response text for debugging. <!-- sha:7b96ebb -->
+- [x] **Step 5:** Add a `--dry-run` mode that prints the prompt + tool definition without calling the API (useful for fixture authoring). <!-- sha:7b96ebb -->
+- [x] **Step 6:** Add basic unit tests in `plugins/build/agents/audit-dispatcher/tests/test_invoke_subagent.py` — at minimum: dry-run produces expected prompt structure; mock-API call returns parsed result; retry-then-fail path raises. <!-- sha:7b96ebb -->
+- [x] **Step 7:** Commit: `feat(agents): add audit-dispatcher invocation wrapper with tool-use and caching`. <!-- sha:7b96ebb -->
 
 ---
 
@@ -317,10 +317,10 @@ Eight tasks. Tasks 1–3 build the subagent and orchestrator; Tasks 4–5 wire i
 
 **Depends on:** Task 2
 
-- [ ] **Step 1:** Implement `audit(artifact_path: str, skill_dir: str) -> list[dict]`: enumerate rule files, derive rule_ids from filenames, detect script implementations by naming convention (`check_<rule_id>` in `<skill_dir>/scripts/check_*.py` or `<skill_dir>/scripts/check_*.sh`), run script checks for deterministic rules, invoke subagent in recipe mode for fired findings, invoke subagent in judgment mode for non-deterministic rules.
-- [ ] **Step 2:** Add a `--rules <id1,id2>` filter for running a subset (eval harness uses this).
-- [ ] **Step 3:** Add basic unit test that orchestrator correctly classifies a rule as deterministic vs. judgment-only based on script presence.
-- [ ] **Step 4:** Commit: `feat(agents): add audit orchestrator that wires scripts + subagent dispatcher`.
+- [x] **Step 1:** Implement `audit(artifact_path: str, skill_dir: str) -> list[dict]`: enumerate rule files, derive rule_ids from filenames, detect script implementations by naming convention (`check_<rule_id>` in `<skill_dir>/scripts/check_*.py` or `<skill_dir>/scripts/check_*.sh`), run script checks for deterministic rules, invoke subagent in recipe mode for fired findings, invoke subagent in judgment mode for non-deterministic rules. <!-- sha:PENDING -->
+- [x] **Step 2:** Add a `--rules <id1,id2>` filter for running a subset (eval harness uses this). <!-- sha:PENDING -->
+- [x] **Step 3:** Add basic unit test that orchestrator correctly classifies a rule as deterministic vs. judgment-only based on script presence. <!-- sha:PENDING -->
+- [x] **Step 4:** Commit: `feat(agents): add audit orchestrator that wires scripts + subagent dispatcher`. <!-- sha:PENDING -->
 
 ---
 
