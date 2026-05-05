@@ -2,7 +2,7 @@
 name: check-bash-script Rule Decomposition (Pilot)
 description: Pilot a unified per-rule documentation convention on check-bash-script — each rule becomes one flat `rule-*.md` file using the Claude-rule body shape (per `rule-best-practices.md`); the same file serves both Claude (ambient editing) and the audit dispatcher subagent.
 type: plan
-status: executing
+status: completed
 branch: refactor/check-bash-script-rule-decomposition
 related:
   - .plans/2026-05-02-reference-doc-splitting.plan.md
@@ -413,29 +413,29 @@ pilot learnings.
 
 **Depends on:** Task 5
 
-- [x] **Step 1:** Build a minimal purpose-built fixture at `/tmp/equiv-fixture.sh` — ~5–10 lines of bash with one intentional rule violation (e.g., shebang present but `set -euo pipefail` missing, so `strict-mode` fires; nothing else). Single-rule fixtures make the equivalence test trivially interpretable. Run the full audit on it from the pre-pilot state (clean worktree on `main` or `git stash` + checkout). Save JSON output to `/tmp/equiv-pre.json`. <!-- sha:PENDING -->
-- [x] **Step 2:** Run the same audit on the same fixture post-pilot. Save JSON output to `/tmp/equiv-post.json`. Diff: `diff /tmp/equiv-pre.json /tmp/equiv-post.json` — empty. Findings must be identical (rule ids, severities, locations). If different, the per-rule files contain a bug; script logic was untouched, so divergence means content drift. <!-- sha:PENDING -->
-- [x] **Step 3:** Run the scanner on `plugins/build/skills/check-bash-script/`. Confirm `LLM_CONTEXT_BUDGET_EXCEEDED` findings on `references/audit-dimensions.md` and `references/repair-playbook.md` are gone (files deleted). Confirm no new findings on the per-rule files (each is well under cap). <!-- sha:PENDING -->
-- [x] **Step 4:** Finalize `PILOT-NOTES.md` with: (a) the alignment audit table from Task 1; (b) cross-skill rule duplication observations — which rules in this skill are obviously also present in `check-skill` / `check-python-script` based on rule name and topic (surface impressions, not a rigorous comparison); (c) recompose surprises encountered during Tasks 2–4 (rules where translating audit prose to convention prose was awkward; what the resolution was); (d) explicit recommendations for the rollout sweep (changes to template, ordering hints, gotchas); (e) script-binding inventory for follow-up #407. <!-- sha:PENDING -->
-- [x] **Step 5:** Commit: `docs(check-bash-script): record pilot equivalence test and decomposition notes`. <!-- sha:PENDING -->
+- [x] **Step 1:** Build a minimal purpose-built fixture at `/tmp/equiv-fixture.sh` — ~5–10 lines of bash with one intentional rule violation (e.g., shebang present but `set -euo pipefail` missing, so `strict-mode` fires; nothing else). Single-rule fixtures make the equivalence test trivially interpretable. Run the full audit on it from the pre-pilot state (clean worktree on `main` or `git stash` + checkout). Save JSON output to `/tmp/equiv-pre.json`. <!-- sha:09f2dc5 -->
+- [x] **Step 2:** Run the same audit on the same fixture post-pilot. Save JSON output to `/tmp/equiv-post.json`. Diff: `diff /tmp/equiv-pre.json /tmp/equiv-post.json` — empty. Findings must be identical (rule ids, severities, locations). If different, the per-rule files contain a bug; script logic was untouched, so divergence means content drift. <!-- sha:09f2dc5 -->
+- [x] **Step 3:** Run the scanner on `plugins/build/skills/check-bash-script/`. Confirm `LLM_CONTEXT_BUDGET_EXCEEDED` findings on `references/audit-dimensions.md` and `references/repair-playbook.md` are gone (files deleted). Confirm no new findings on the per-rule files (each is well under cap). <!-- sha:09f2dc5 -->
+- [x] **Step 4:** Finalize `PILOT-NOTES.md` with: (a) the alignment audit table from Task 1; (b) cross-skill rule duplication observations — which rules in this skill are obviously also present in `check-skill` / `check-python-script` based on rule name and topic (surface impressions, not a rigorous comparison); (c) recompose surprises encountered during Tasks 2–4 (rules where translating audit prose to convention prose was awkward; what the resolution was); (d) explicit recommendations for the rollout sweep (changes to template, ordering hints, gotchas); (e) script-binding inventory for follow-up #407. <!-- sha:09f2dc5 -->
+- [x] **Step 5:** Commit: `docs(check-bash-script): record pilot equivalence test and decomposition notes`. <!-- sha:09f2dc5 -->
 
 ---
 
 ## Validation
 
-- [ ] `ls plugins/build/skills/check-bash-script/references/rule-*.md | wc -l` — 40 (32 Tier-1 + 7 Tier-2 + 1 Tier-3).
-- [ ] `ls plugins/build/skills/check-bash-script/references/_hub.md` — exists.
-- [ ] `ls plugins/build/skills/check-bash-script/references/audit-dimensions.md plugins/build/skills/check-bash-script/references/repair-playbook.md 2>&1 | grep -c 'No such file'` — 2 (both deleted).
-- [ ] Every per-rule file under 10K chars: `find plugins/build/skills/check-bash-script/references -name 'rule-*.md' -exec wc -c {} \; | awk '$1 > 10000'` — empty.
-- [ ] Frontmatter integrity: `python3 -c "import yaml,glob; [yaml.safe_load(open(p).read().split('---')[1]) for p in glob.glob('plugins/build/skills/check-bash-script/references/*.md')]"` — no parse errors.
-- [ ] Every rule file has `name` and `description` non-empty: `python3 -c "import yaml,glob,sys; [sys.exit(f'missing fields: {p}') for p in glob.glob('plugins/build/skills/check-bash-script/references/rule-*.md') if not (lambda fm: fm.get('name') and fm.get('description'))(yaml.safe_load(open(p).read().split('---')[1]))]"`.
-- [ ] Every rule file body has `**Why:**` and `**How to apply:**` markers: `for f in plugins/build/skills/check-bash-script/references/rule-*.md; do grep -q '**Why:**' "$f" && grep -q '**How to apply:**' "$f" || echo "MISSING SHAPE: $f"; done` — empty.
-- [ ] SKILL.md `references:` array integrity: every enumerated path exists on disk: `python3 -c "import yaml,os,sys; fm=yaml.safe_load(open('plugins/build/skills/check-bash-script/SKILL.md').read().split('---')[1]); [sys.exit(f'missing: {r}') for r in fm['references'] if not os.path.exists(os.path.join('plugins/build/skills/check-bash-script', r))]"`.
-- [ ] **Equivalence test** (Task 6 Step 2): pre-pilot and post-pilot audit-run JSON outputs are identical for the fixture artifact.
-- [ ] Scanner re-run on `plugins/build/skills/check-bash-script/`: zero `LLM_CONTEXT_BUDGET_EXCEEDED` findings on `references/*`.
-- [ ] `git diff --stat main...refactor/check-bash-script-rule-decomposition -- plugins/build/skills/check-skill plugins/build/skills/check-python-script plugins/build/skills/check-rule plugins/wiki/ plugins/work/ plugins/consider/` — empty (only check-bash-script touched).
-- [ ] `git log --oneline refactor/check-bash-script-rule-decomposition ^main | wc -l` — between 40 and 50 commits.
-- [ ] `PILOT-NOTES.md` exists and contains all five sections (alignment table, duplication observations, recompose notes, rollout recommendations, script-binding inventory).
+- [x] `ls plugins/build/skills/check-bash-script/references/rule-*.md | wc -l` — 40 (32 Tier-1 + 7 Tier-2 + 1 Tier-3).
+- [x] `ls plugins/build/skills/check-bash-script/references/_hub.md` — exists.
+- [x] `ls plugins/build/skills/check-bash-script/references/audit-dimensions.md plugins/build/skills/check-bash-script/references/repair-playbook.md 2>&1 | grep -c 'No such file'` — 2 (both deleted).
+- [x] Every per-rule file under 10K chars: `find plugins/build/skills/check-bash-script/references -name 'rule-*.md' -exec wc -c {} \; | awk '$1 > 10000'` — empty.
+- [x] Frontmatter integrity: `python3 -c "import yaml,glob; [yaml.safe_load(open(p).read().split('---')[1]) for p in glob.glob('plugins/build/skills/check-bash-script/references/*.md')]"` — no parse errors.
+- [x] Every rule file has `name` and `description` non-empty: `python3 -c "import yaml,glob,sys; [sys.exit(f'missing fields: {p}') for p in glob.glob('plugins/build/skills/check-bash-script/references/rule-*.md') if not (lambda fm: fm.get('name') and fm.get('description'))(yaml.safe_load(open(p).read().split('---')[1]))]"`.
+- [x] Every rule file body has `**Why:**` and `**How to apply:**` markers: `for f in plugins/build/skills/check-bash-script/references/rule-*.md; do grep -q '**Why:**' "$f" && grep -q '**How to apply:**' "$f" || echo "MISSING SHAPE: $f"; done` — empty.
+- [x] SKILL.md `references:` array integrity: every enumerated path exists on disk: `python3 -c "import yaml,os,sys; fm=yaml.safe_load(open('plugins/build/skills/check-bash-script/SKILL.md').read().split('---')[1]); [sys.exit(f'missing: {r}') for r in fm['references'] if not os.path.exists(os.path.join('plugins/build/skills/check-bash-script', r))]"`.
+- [x] **Equivalence test** (Task 6 Step 2): pre-pilot and post-pilot audit-run JSON outputs are identical for the fixture artifact.
+- [x] Scanner re-run on `plugins/build/skills/check-bash-script/`: zero `LLM_CONTEXT_BUDGET_EXCEEDED` findings on `references/*`.
+- [x] `git diff --stat main...refactor/check-bash-script-rule-decomposition -- plugins/build/skills/check-skill plugins/build/skills/check-python-script plugins/build/skills/check-rule plugins/wiki/ plugins/work/ plugins/consider/` — empty (only check-bash-script touched).
+- [x] `git log --oneline refactor/check-bash-script-rule-decomposition ^main | wc -l` — between 40 and 50 commits.
+- [x] `PILOT-NOTES.md` exists and contains all five sections (alignment table, duplication observations, recompose notes, rollout recommendations, script-binding inventory).
 
 ## Notes
 
