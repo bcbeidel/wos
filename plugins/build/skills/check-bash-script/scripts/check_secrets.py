@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
-"""Tier-1 bash secrets scanner.
+"""Tier-1 bash secrets scanner — emits JSON envelope per `_common`.
 
 Scans .sh/.bash files for committed credentials:
   - Named API key patterns (AWS, GitHub, OpenAI, Anthropic, Stripe).
   - Credential-shaped variable assignments (PASSWORD=, TOKEN=, etc.),
     with obvious placeholders ($VAR, {TEMPLATE}, "your-...", etc.) skipped.
 
-All findings are FAIL. A FAIL excludes the file from Tier-2 judgment.
+Single-rule script. Emits one envelope: rule_id="secret".
+All findings are status="fail". A FAIL excludes the file from Tier-2 judgment.
+
+Exit codes: 0 on clean (overall_status="pass" / "inapplicable"),
+1 on overall_status="fail", 64 on argument error.
 
 Example:
     ./check_secrets.py path/to/script.sh path/to/scripts/
@@ -19,7 +23,10 @@ import re
 import sys
 from pathlib import Path
 
+from _common import emit_json_finding, emit_rule_envelope, print_envelope
+
 EXIT_USAGE = 64
+RULE_ID = "secret"
 
 _BASH_SHEBANGS = ("#!/usr/bin/env bash", "#!/bin/bash", "#!/usr/bin/env -S bash")
 _BASH_EXTENSIONS = (".sh", ".bash")
@@ -64,6 +71,18 @@ _PLACEHOLDER_VALUE_PREFIXES = (
     "xyz",
 )
 
+_RECOMMEND_TEMPLATE = (
+    "Remove the literal credential and rotate it (assume the value in source "
+    "is already compromised). Declare each secret at the top of the script "
+    'with `readonly VAR="${ENV_VAR:?ENV_VAR env var required}"` and reference '
+    "the variable everywhere downstream — never inline. When a secret manager "
+    "is available (vault, aws secretsmanager, pass), prefer fetching from there "
+    "over plain env vars.\n\n"
+    "Example:\n"
+    '    readonly API_KEY="${OPENAI_API_KEY:?OPENAI_API_KEY env var required}"\n'
+    '    readonly DB_URL="${DATABASE_URL:?DATABASE_URL env var required}"\n'
+)
+
 
 class _UsageError(Exception):
     pass
@@ -97,35 +116,56 @@ def _collect_targets(paths: list[Path]) -> list[Path]:
     return files
 
 
-def _emit(path: Path, pattern_name: str, lineno: int) -> None:
-    print(f"FAIL  {path} — secret: {pattern_name} at line {lineno}")
-    print(
-        "  Recommendation: Remove the secret, rotate the credential, "
-        'and read it from "${VAR:?VAR required}" instead.'
-    )
-
-
 def _is_placeholder(value: str) -> bool:
     return value.lower().startswith(_PLACEHOLDER_VALUE_PREFIXES)
 
 
-def _scan_file(path: Path) -> bool:
+def _scan_file(path: Path) -> list[dict]:
+    """Return list of finding dicts for one file."""
     try:
         lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
     except OSError as err:
         print(f"check_secrets.py: cannot read {path}: {err}", file=sys.stderr)
-        return False
-    any_fail = False
+        return []
+    findings: list[dict] = []
     for lineno, line in enumerate(lines, 1):
         for name, pattern in _NAMED_PATTERNS:
             if pattern.search(line):
-                _emit(path, name, lineno)
-                any_fail = True
+                findings.append(
+                    emit_json_finding(
+                        rule_id=RULE_ID,
+                        status="fail",
+                        location={
+                            "line": lineno,
+                            "context": f"{path}: {name}",
+                        },
+                        reasoning=(
+                            f"Detected {name} pattern at line {lineno}. "
+                            "Committed credentials leak via git history, build "
+                            "logs, and shoulder-surfed terminals."
+                        ),
+                        recommended_changes=_RECOMMEND_TEMPLATE,
+                    )
+                )
         match = _CREDENTIAL_VAR_RE.search(line)
         if match and not _is_placeholder(match.group("value")):
-            _emit(path, "credential variable assignment", lineno)
-            any_fail = True
-    return any_fail
+            findings.append(
+                emit_json_finding(
+                    rule_id=RULE_ID,
+                    status="fail",
+                    location={
+                        "line": lineno,
+                        "context": f"{path}: credential variable assignment",
+                    },
+                    reasoning=(
+                        f"Credential-shaped variable assignment at line {lineno} "
+                        "with a non-placeholder literal value. Assume the value "
+                        "is compromised and rotate it."
+                    ),
+                    recommended_changes=_RECOMMEND_TEMPLATE,
+                )
+            )
+    return findings
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -147,17 +187,20 @@ def get_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = get_parser().parse_args(argv)
-    any_fail = False
     try:
         files = _collect_targets(args.paths)
-        for f in files:
-            if _scan_file(f):
-                any_fail = True
     except _UsageError:
         return EXIT_USAGE
     except KeyboardInterrupt:
         return 130
-    return 1 if any_fail else 0
+
+    all_findings: list[dict] = []
+    for f in files:
+        all_findings.extend(_scan_file(f))
+
+    envelope = emit_rule_envelope(rule_id=RULE_ID, findings=all_findings)
+    print_envelope(envelope)
+    return 1 if envelope["overall_status"] == "fail" else 0
 
 
 if __name__ == "__main__":
