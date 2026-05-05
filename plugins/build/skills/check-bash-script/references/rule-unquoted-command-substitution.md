@@ -1,6 +1,6 @@
 ---
 name: Quote Command Substitutions
-description: Quote command substitutions: `"$(cmd)"` not `$(cmd)`. Same word-splitting and globbing hazards as unquoted variables (shellcheck SC2046).
+description: 'Quote command substitutions: `"$(cmd)"` not `$(cmd)`. Same word-splitting and globbing hazards as unquoted variables (shellcheck SC2046).'
 paths:
   - "**/*.sh"
   - "**/*.bash"
