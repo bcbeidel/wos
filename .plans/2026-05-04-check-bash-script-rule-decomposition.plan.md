@@ -352,11 +352,11 @@ pilot learnings.
 
 **Depends on:** Task 1
 
-- [x] **Step 1:** Write `rule-strict-mode.md` end-to-end using the `rule-best-practices.md` shape. Frontmatter: `name`, `description`, `paths: ["**/*.sh", "**/*.bash"]`. Body: imperative + Why + How to apply + bash code example + exception block. Verify substance is preserved against source files (no semantic drift). <!-- sha:PENDING -->
-- [x] **Step 2:** Write `rule-output-discipline.md` end-to-end. Tier-2 rule body has more rubric content (criteria for judging) — confirm the unified shape accommodates this without forcing a `## Detection` / `## Repair` split. The rubric IS the How-to-apply; the recipe IS the example/exception. <!-- sha:PENDING -->
-- [x] **Step 3:** Write `rule-cross-entity-collision.md` end-to-end. Tier-3 rules describe cross-script analysis; `paths:` may be broader (e.g., `["**/*.sh", "**/*.bash"]`) since the rule applies to bash files in aggregate. <!-- sha:PENDING -->
-- [x] **Step 4:** Self-review the three files for template fit. If anything doesn't generalize cleanly, revise the template definition in this plan's Approach section before continuing. Update the recompose plan in PILOT-NOTES if learnings shift it. <!-- sha:PENDING -->
-- [x] **Step 5:** Commit: `docs(check-bash-script): lock per-rule unified-shape templates with three pilot rules`. <!-- sha:PENDING -->
+- [x] **Step 1:** Write `rule-strict-mode.md` end-to-end using the `rule-best-practices.md` shape. Frontmatter: `name`, `description`, `paths: ["**/*.sh", "**/*.bash"]`. Body: imperative + Why + How to apply + bash code example + exception block. Verify substance is preserved against source files (no semantic drift). <!-- sha:40fa38f -->
+- [x] **Step 2:** Write `rule-output-discipline.md` end-to-end. Tier-2 rule body has more rubric content (criteria for judging) — confirm the unified shape accommodates this without forcing a `## Detection` / `## Repair` split. The rubric IS the How-to-apply; the recipe IS the example/exception. <!-- sha:40fa38f -->
+- [x] **Step 3:** Write `rule-cross-entity-collision.md` end-to-end. Tier-3 rules describe cross-script analysis; `paths:` may be broader (e.g., `["**/*.sh", "**/*.bash"]`) since the rule applies to bash files in aggregate. <!-- sha:40fa38f -->
+- [x] **Step 4:** Self-review the three files for template fit. If anything doesn't generalize cleanly, revise the template definition in this plan's Approach section before continuing. Update the recompose plan in PILOT-NOTES if learnings shift it. <!-- sha:40fa38f -->
+- [x] **Step 5:** Commit: `docs(check-bash-script): lock per-rule unified-shape templates with three pilot rules`. <!-- sha:40fa38f -->
 
 **Task 2 deliverables:**
 - 3 pilot rule files (`rule-strict-mode.md`, `rule-output-discipline.md`, `rule-cross-entity-collision.md`) — under 10K cap each (1.9K, 2.5K, 3.1K).
@@ -371,9 +371,9 @@ pilot learnings.
 
 **Depends on:** Task 2
 
-- [ ] **Step 1:** Author each Tier-1 rule file using the locked template. Substance preserved from `audit-dimensions.md` (table row + relevant note) and `repair-playbook.md` (matching `### Signal:` section). Recompose into the unified body shape: imperative, Why, How to apply, optional example. **Combined-entry splits** (SC2010/2012/2045 → 3 files; SC2013/2162 → 2 files): each split file's body adapts the original combined recipe to the specific SC code; cross-references via body prose ("see also: rule-ls-instead-of-find.md").
-- [ ] **Step 2:** One commit per file: `docs(check-bash-script): add rule file <rule-id>`.
-- [ ] **Step 3:** After all 31 written, sanity check: `ls plugins/build/skills/check-bash-script/references/rule-*.md | wc -l` returns 33 (32 Tier-1 + 1 Tier-3 from Task 2; Tier-2 not yet authored). Confirm no rule-id collisions.
+- [x] **Step 1:** Author each Tier-1 rule file using the locked template. Substance preserved from `audit-dimensions.md` (table row + relevant note) and `repair-playbook.md` (matching `### Signal:` section). Recompose into the unified body shape: imperative, Why, How to apply, optional example. **Combined-entry splits** (SC2010/2012/2045 → 3 files; SC2013/2162 → 2 files): each split file's body adapts the original combined recipe to the specific SC code; cross-references via body prose ("see also: rule-ls-instead-of-find.md"). <!-- sha:dfe1a8b -->
+- [x] **Step 2:** One commit per file: `docs(check-bash-script): add rule file <rule-id>`. <!-- sha:dfe1a8b -->
+- [x] **Step 3:** After all 31 written, sanity check: `ls plugins/build/skills/check-bash-script/references/rule-*.md | wc -l` returns 33 (32 Tier-1 + 1 Tier-3 from Task 2; Tier-2 not yet authored). Confirm no rule-id collisions. <!-- sha:dfe1a8b -->
 
 ---
 
@@ -383,9 +383,9 @@ pilot learnings.
 
 **Depends on:** Task 3
 
-- [ ] **Step 1:** Author each Tier-2 dimension file using the locked template. Body content carries from `audit-dimensions.md` H3 sections under `## Tier-2` (rubric → How to apply / examples) and `repair-playbook.md` `### D{N}` sections (recipe → example/exception). Tier-2 rules have more body content because the LLM uses the body as the rubric — keep it focused but allow longer How-to-apply sections.
-- [ ] **Step 2:** One commit per file: `docs(check-bash-script): add rule file <dimension-id>`.
-- [ ] **Step 3:** After all 6 written, total `references/rule-*.md` count: 40 (32 Tier-1 + 7 Tier-2 + 1 Tier-3).
+- [x] **Step 1:** Author each Tier-2 dimension file using the locked template. Body content carries from `audit-dimensions.md` H3 sections under `## Tier-2` (rubric → How to apply / examples) and `repair-playbook.md` `### D{N}` sections (recipe → example/exception). Tier-2 rules have more body content because the LLM uses the body as the rubric — keep it focused but allow longer How-to-apply sections. <!-- sha:564c8ff -->
+- [x] **Step 2:** One commit per file: `docs(check-bash-script): add rule file <dimension-id>`. <!-- sha:564c8ff -->
+- [x] **Step 3:** After all 6 written, total `references/rule-*.md` count: 40 (32 Tier-1 + 7 Tier-2 + 1 Tier-3). <!-- sha:564c8ff -->
 
 ---
 
