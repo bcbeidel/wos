@@ -198,13 +198,31 @@ def _build_request(
 
 
 def _extract_tool_input(response: Any) -> dict | None:
-    """Return the tool_use block's input dict, or None if no tool_use present."""
+    """Return the tool_use block's input dict, or None if no tool_use present.
+
+    Coerces string-encoded `findings` into the proper array shape. The
+    Anthropic tool-use schema validation is permissive — the model
+    occasionally serializes the `findings` array to a JSON string instead
+    of returning the structured array. Defensive `json.loads` lets
+    downstream consumers always get a list.
+    """
     for block in getattr(response, "content", []):
         if (
             getattr(block, "type", None) == "tool_use"
             and getattr(block, "name", None) == "report_audit_finding"
         ):
-            return dict(block.input)
+            result = dict(block.input)
+            findings = result.get("findings")
+            if isinstance(findings, str):
+                try:
+                    parsed = json.loads(findings)
+                    if isinstance(parsed, list):
+                        result["findings"] = parsed
+                except (json.JSONDecodeError, ValueError):
+                    # Leave as string; downstream can decide how to handle
+                    # malformed JSON. Don't drop the data.
+                    pass
+            return result
     return None
 
 

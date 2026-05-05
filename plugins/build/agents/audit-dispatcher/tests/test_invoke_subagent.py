@@ -172,6 +172,49 @@ def test_invoke_subagent_retries_once_on_text_only():
     assert "did not call" in last_messages[-1]["content"]
 
 
+def test_invoke_subagent_coerces_string_findings_to_list():
+    """When the model serializes findings as a JSON string, coerce it to a list."""
+    findings_as_string = json.dumps(
+        [{"status": "fail", "reasoning": "x", "recommended_changes": "y"}]
+    )
+    tool_block = SimpleNamespace(
+        type="tool_use",
+        name="report_audit_finding",
+        input={
+            "rule_id": "test-rule",
+            "overall_status": "fail",
+            "findings": findings_as_string,  # string, not list
+        },
+    )
+    response = SimpleNamespace(content=[tool_block])
+    client = MockClient([response])
+    result = invoke_subagent.invoke_subagent(
+        RULE_MD, ARTIFACT, findings=None, client=client
+    )
+    assert isinstance(result["findings"], list)
+    assert len(result["findings"]) == 1
+    assert result["findings"][0]["status"] == "fail"
+
+
+def test_invoke_subagent_leaves_malformed_string_findings_as_is():
+    """Unparseable string findings stay as string; don't drop the data."""
+    tool_block = SimpleNamespace(
+        type="tool_use",
+        name="report_audit_finding",
+        input={
+            "rule_id": "test-rule",
+            "overall_status": "fail",
+            "findings": "[malformed json {",
+        },
+    )
+    response = SimpleNamespace(content=[tool_block])
+    client = MockClient([response])
+    result = invoke_subagent.invoke_subagent(
+        RULE_MD, ARTIFACT, findings=None, client=client
+    )
+    assert result["findings"] == "[malformed json {"
+
+
 def test_invoke_subagent_raises_after_two_text_only_responses():
     client = MockClient(
         [
