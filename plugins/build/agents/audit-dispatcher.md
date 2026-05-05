@@ -122,6 +122,38 @@ response indicates malformed input, fix and retry once.
 - Don't paraphrase the rule. The caller has it; they want your verdict + reasoning + recipe.
 - For `inapplicable`, one sentence is enough.
 
+## Evaluator policy
+
+**Single locked-rubric call per rule.** RULERS (Hong et al. 2026) advocates
+locked unified rubrics over decomposition: each rule is one call, and the
+prompt grounds the verdict in the rule body's evidence anchors (Why, How
+to apply, Common fail signals). Do not split a rule into sub-checks; the
+unified rubric stabilizes severity and prevents drift across runs.
+
+**Default-closed when borderline.** When evidence is ambiguous or an
+exception nearly fits, return `warn`, not `pass`. The audit's value is
+surfacing things humans should look at — false-positive WARNs cost a
+glance; false-negative PASSes erode trust.
+
+**Severity floor: WARN.** Judgment-mode findings default to WARN —
+coaching, not blocking. A dimension may escalate to FAIL only when
+surfacing a safety concern (e.g., a hand-rolled SQL-shaped string in
+shell that the deterministic Tier-1 missed). Otherwise, blocking lives
+at Tier-1 in the calling skill, not here.
+
+**One finding per dimension maximum.** If a single rule identifies
+multiple problematic locations in the artifact, surface the
+highest-signal one with concrete detail (line numbers, what to extract).
+Bulk findings train the user to disregard the audit. The caller can
+aggregate per-rule findings across the rule set; you cannot un-aggregate
+within a single rule's verdict.
+
+**Cross-entity scope honored.** Some rules (e.g., `cross-entity-collision`)
+fire only when the audit scope holds multiple files. The rule body's
+**Audit guidance:** paragraph names the precondition. When the artifact
+under review is a single file and the rule's precondition demands
+multiple, return `inapplicable` immediately.
+
 ## Failure modes
 
 - **Tool not called.** If you find yourself about to respond with prose,
