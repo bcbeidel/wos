@@ -358,7 +358,18 @@ The audit should accept any of these but flag scripts where the binding is undoc
 
 Populated during Tasks 2–4. Each entry: rule, surprise, resolution.
 
-*(empty — to be filled during Tasks 2–4)*
+### Task 2 — template lock
+
+**Tier-2 rules want a "Common fail signals" sub-list.** The unified Claude-rule template (per `rule-best-practices.md`) shows imperative + Why + How to apply + optional example + Exception. For Tier-2 rules consumed by an LLM judge, an explicit "Common fail signals" sub-list inside or after "How to apply" gives the judge concrete patterns to flag. Added in `rule-output-discipline.md`. This is template enrichment, not template violation — the bullets read naturally as elaboration of How-to-apply.
+
+**Tier-3 rules need an "Audit guidance" or "Applicability" subsection.** The `paths:` field captures "this rule applies when editing files matching X" but can't express "this rule fires only when multiple scripts are in scope." Cross-entity rules need a small note about scope/applicability that Tier-1 and Tier-2 rules don't. Added in `rule-cross-entity-collision.md`.
+
+**The unified body shape works for all three tiers.** No `## Detection` / `## Repair` split was needed. Substance from `audit-dimensions.md` (definition) and `repair-playbook.md` (recipe) carried into the unified body without loss. Recompose was the right discipline, not verbatim move.
+
+**Recommended template extensions** (carry into the rollout sweep template):
+- Tier-1: imperative + Why + How to apply + example + optional Exception. (Standard.)
+- Tier-2: imperative + Why + How to apply + example + Common fail signals (sub-list) + Exception. (Extended for LLM-judge rubric.)
+- Tier-3: imperative + Why + How to apply + example + Audit guidance (sub-paragraph on applicability) + Exception. (Extended for cross-entity scope.)
 
 ---
 

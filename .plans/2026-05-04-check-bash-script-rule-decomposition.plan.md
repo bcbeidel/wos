@@ -329,12 +329,17 @@ pilot learnings.
 - Create: `.plans/PILOT-NOTES-check-bash-script-decomposition.md` (start the file)
 - Reference (read-only): both source `references/*.md`
 
-- [ ] **Step 1:** Build the alignment table — every Tier-1 signal name in `repair-playbook.md` mapped to its row in the `audit-dimensions.md` Tier-1 table; every Tier-2 dimension cross-referenced 1:1; the Tier-3 entry mapped.
-- [ ] **Step 2:** Identify orphans (rule with no recipe, or recipe with no rule). For each orphan: write the missing half during the sweep, or document why intentional.
-- [ ] **Step 3:** Confirm the rule-id list — the canonical kebab-case id for each of the 40 destination files. Resolve any naming ambiguities; write the canonical id list into PILOT-NOTES.
-- [ ] **Step 4:** For each rule, sketch the unified body shape in 2–3 lines: what's the one-line imperative; what's the Why (failure cost + exception); what's the How-to-apply; is there an example. This is the recompose plan — no full prose yet, just enough to confirm the source content maps to the unified shape without losing substance.
-- [ ] **Step 5:** Verify each Tier-1 rule maps to a real function in `scripts/`. Use `grep -rn "def check_" plugins/build/skills/check-bash-script/scripts/` for Python and `grep -nE '^[a-z_]+\(\)' plugins/build/skills/check-bash-script/scripts/*.sh` for Bash. Record the script-binding (by convention, not frontmatter) in PILOT-NOTES alongside the rule-id list. This data informs follow-up #407.
-- [ ] **Step 6:** Commit: `docs(check-bash-script): record alignment audit and recompose plan for decomposition pilot`.
+- [x] **Step 1:** Build the alignment table — every Tier-1 signal name in `repair-playbook.md` mapped to its row in the `audit-dimensions.md` Tier-1 table; every Tier-2 dimension cross-referenced 1:1; the Tier-3 entry mapped. <!-- sha:d6c53a4 -->
+- [x] **Step 2:** Identify orphans (rule with no recipe, or recipe with no rule). For each orphan: write the missing half during the sweep, or document why intentional. <!-- sha:d6c53a4 -->
+- [x] **Step 3:** Confirm the rule-id list — the canonical kebab-case id for each of the 40 destination files. Resolve any naming ambiguities; write the canonical id list into PILOT-NOTES. <!-- sha:d6c53a4 -->
+- [x] **Step 4:** For each rule, sketch the unified body shape in 2–3 lines: what's the one-line imperative; what's the Why (failure cost + exception); what's the How-to-apply; is there an example. This is the recompose plan — no full prose yet, just enough to confirm the source content maps to the unified shape without losing substance. <!-- sha:d6c53a4 -->
+- [x] **Step 5:** Verify each Tier-1 rule maps to a real function in `scripts/`. Use `grep -rn "def check_" plugins/build/skills/check-bash-script/scripts/` for Python and `grep -nE '^[a-z_]+\(\)' plugins/build/skills/check-bash-script/scripts/*.sh` for Bash. Record the script-binding (by convention, not frontmatter) in PILOT-NOTES alongside the rule-id list. This data informs follow-up #407. <!-- sha:d6c53a4 -->
+- [x] **Step 6:** Commit: `docs(check-bash-script): record alignment audit and recompose plan for decomposition pilot`. <!-- sha:d6c53a4 -->
+
+**Task 1 deliverables (PILOT-NOTES sections):**
+- Alignment audit table — 40 rules, 0 orphans, 1:1 mapping confirmed
+- Recompose sketches — 40 sketches confirming unified body shape fits all rules
+- Script-binding inventory — bindings recorded; **finding for #407**: bindings NOT 1:1 by function name (e.g., `check_idioms.py::_check_file` emits 3 rules; `check_shellcheck.py::_check_file` delegates 12 rules; `check_size.sh::check_file` emits 2 rules)
 
 ---
 
@@ -347,11 +352,16 @@ pilot learnings.
 
 **Depends on:** Task 1
 
-- [ ] **Step 1:** Write `rule-strict-mode.md` end-to-end using the `rule-best-practices.md` shape. Frontmatter: `name`, `description`, `paths: ["**/*.sh", "**/*.bash"]`. Body: imperative + Why + How to apply + bash code example + exception block. Verify substance is preserved against source files (no semantic drift).
-- [ ] **Step 2:** Write `rule-output-discipline.md` end-to-end. Tier-2 rule body has more rubric content (criteria for judging) — confirm the unified shape accommodates this without forcing a `## Detection` / `## Repair` split. The rubric IS the How-to-apply; the recipe IS the example/exception.
-- [ ] **Step 3:** Write `rule-cross-entity-collision.md` end-to-end. Tier-3 rules describe cross-script analysis; `paths:` may be broader (e.g., `["**/*.sh", "**/*.bash"]`) since the rule applies to bash files in aggregate.
-- [ ] **Step 4:** Self-review the three files for template fit. If anything doesn't generalize cleanly, revise the template definition in this plan's Approach section before continuing. Update the recompose plan in PILOT-NOTES if learnings shift it.
-- [ ] **Step 5:** Commit: `docs(check-bash-script): lock per-rule unified-shape templates with three pilot rules`.
+- [x] **Step 1:** Write `rule-strict-mode.md` end-to-end using the `rule-best-practices.md` shape. Frontmatter: `name`, `description`, `paths: ["**/*.sh", "**/*.bash"]`. Body: imperative + Why + How to apply + bash code example + exception block. Verify substance is preserved against source files (no semantic drift). <!-- sha:PENDING -->
+- [x] **Step 2:** Write `rule-output-discipline.md` end-to-end. Tier-2 rule body has more rubric content (criteria for judging) — confirm the unified shape accommodates this without forcing a `## Detection` / `## Repair` split. The rubric IS the How-to-apply; the recipe IS the example/exception. <!-- sha:PENDING -->
+- [x] **Step 3:** Write `rule-cross-entity-collision.md` end-to-end. Tier-3 rules describe cross-script analysis; `paths:` may be broader (e.g., `["**/*.sh", "**/*.bash"]`) since the rule applies to bash files in aggregate. <!-- sha:PENDING -->
+- [x] **Step 4:** Self-review the three files for template fit. If anything doesn't generalize cleanly, revise the template definition in this plan's Approach section before continuing. Update the recompose plan in PILOT-NOTES if learnings shift it. <!-- sha:PENDING -->
+- [x] **Step 5:** Commit: `docs(check-bash-script): lock per-rule unified-shape templates with three pilot rules`. <!-- sha:PENDING -->
+
+**Task 2 deliverables:**
+- 3 pilot rule files (`rule-strict-mode.md`, `rule-output-discipline.md`, `rule-cross-entity-collision.md`) — under 10K cap each (1.9K, 2.5K, 3.1K).
+- PILOT-NOTES "Recompose surprises" populated with template-fit observations: Tier-2 rules want "Common fail signals" sub-list; Tier-3 rules want "Audit guidance" subsection. Unified body shape works for all three tiers.
+- Recommended template extensions carried into rollout-sweep template (per-tier shape variants).
 
 ---
 
