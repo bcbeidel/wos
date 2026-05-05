@@ -317,10 +317,10 @@ Eight tasks. Tasks 1–3 build the subagent and orchestrator; Tasks 4–5 wire i
 
 **Depends on:** Task 2
 
-- [x] **Step 1:** Implement `audit(artifact_path: str, skill_dir: str) -> list[dict]`: enumerate rule files, derive rule_ids from filenames, detect script implementations by naming convention (`check_<rule_id>` in `<skill_dir>/scripts/check_*.py` or `<skill_dir>/scripts/check_*.sh`), run script checks for deterministic rules, invoke subagent in recipe mode for fired findings, invoke subagent in judgment mode for non-deterministic rules. <!-- sha:PENDING -->
-- [x] **Step 2:** Add a `--rules <id1,id2>` filter for running a subset (eval harness uses this). <!-- sha:PENDING -->
-- [x] **Step 3:** Add basic unit test that orchestrator correctly classifies a rule as deterministic vs. judgment-only based on script presence. <!-- sha:PENDING -->
-- [x] **Step 4:** Commit: `feat(agents): add audit orchestrator that wires scripts + subagent dispatcher`. <!-- sha:PENDING -->
+- [x] **Step 1:** Implement `audit(artifact_path: str, skill_dir: str) -> list[dict]`: enumerate rule files, derive rule_ids from filenames, detect script implementations by naming convention (`check_<rule_id>` in `<skill_dir>/scripts/check_*.py` or `<skill_dir>/scripts/check_*.sh`), run script checks for deterministic rules, invoke subagent in recipe mode for fired findings, invoke subagent in judgment mode for non-deterministic rules. <!-- sha:693f271 -->
+- [x] **Step 2:** Add a `--rules <id1,id2>` filter for running a subset (eval harness uses this). <!-- sha:693f271 -->
+- [x] **Step 3:** Add basic unit test that orchestrator correctly classifies a rule as deterministic vs. judgment-only based on script presence. <!-- sha:693f271 -->
+- [x] **Step 4:** Commit: `feat(agents): add audit orchestrator that wires scripts + subagent dispatcher`. <!-- sha:693f271 -->
 
 ---
 
@@ -331,9 +331,9 @@ Eight tasks. Tasks 1–3 build the subagent and orchestrator; Tasks 4–5 wire i
 
 **Depends on:** Task 3, plus the per-rule pilot landed (`.plans/2026-05-04-check-bash-script-rule-decomposition.plan.md`)
 
-- [ ] **Step 1:** Replace `check-bash-script`'s existing audit script entry point with a thin wrapper that invokes the new orchestrator: `audit_bash_script(path) → orchestrator.audit(path, skill_dir=__file__.parent.parent)`.
-- [ ] **Step 2:** Run the audit on a known artifact end-to-end. Confirm output is the structured `[{rule_id, overall_status, findings}]` list.
-- [ ] **Step 3:** Commit: `feat(check-bash-script): integrate audit-dispatcher subagent`.
+- [x] **Step 1:** Replace `check-bash-script`'s existing audit script entry point with a thin wrapper that invokes the new orchestrator: `audit_bash_script(path) → orchestrator.audit(path, skill_dir=__file__.parent.parent)`. <!-- sha:PENDING -->
+- [x] **Step 2:** Run the audit on a known artifact end-to-end. Confirm output is the structured `[{rule_id, overall_status, findings}]` list. <!-- sha:PENDING -->
+- [x] **Step 3:** Commit: `feat(check-bash-script): integrate audit-dispatcher subagent`. <!-- sha:PENDING -->
 
 ---
 
