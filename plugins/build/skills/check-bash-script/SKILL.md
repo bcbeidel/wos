@@ -16,47 +16,12 @@ argument-hint: "[path]"
 user-invocable: true
 references:
   - ../../_shared/references/bash-script-best-practices.md
-  - references/_hub.md
-  - references/rule-backtick-command-substitution.md
-  - references/rule-bracket-test.md
-  - references/rule-cd-without-exit-handling.md
-  - references/rule-commenting-intent.md
-  - references/rule-cross-entity-collision.md
-  - references/rule-eval-of-array.md
-  - references/rule-eval.md
-  - references/rule-find-xargs-without-print0.md
-  - references/rule-for-line-in-cat.md
-  - references/rule-format.md
-  - references/rule-function-design.md
-  - references/rule-gnu-flags.md
-  - references/rule-header-comment.md
-  - references/rule-input-validation.md
-  - references/rule-iterating-ls-output.md
-  - references/rule-line-length.md
-  - references/rule-ls-grep-parsing.md
-  - references/rule-ls-instead-of-find.md
-  - references/rule-main-fn.md
-  - references/rule-main-guard.md
-  - references/rule-mktemp-trap-pairing.md
-  - references/rule-naming.md
-  - references/rule-output-discipline.md
-  - references/rule-performance-intent.md
-  - references/rule-printf-over-echo.md
-  - references/rule-read-without-r.md
-  - references/rule-readonly-config.md
-  - references/rule-referenced-but-not-assigned.md
-  - references/rule-secret.md
-  - references/rule-shebang.md
-  - references/rule-size.md
-  - references/rule-strict-mode.md
-  - references/rule-subprocess-tool-hygiene.md
-  - references/rule-tmp-literal.md
-  - references/rule-unquoted-args-expansion.md
-  - references/rule-unquoted-command-substitution.md
-  - references/rule-unquoted-variable-expansion.md
-  - references/rule-unscoped-function-variable.md
-  - references/rule-useless-cat.md
-  - references/rule-var-braces.md
+  - references/check-commenting-intent.md
+  - references/check-cross-entity-collision.md
+  - references/check-function-design.md
+  - references/check-input-validation.md
+  - references/check-output-discipline.md
+  - references/check-performance-intent.md
 license: MIT
 ---
 
