@@ -1,12 +1,35 @@
 #!/usr/bin/env python3
-"""Tier-1 bash lint check wrapping `shellcheck`.
+"""Tier-1 bash lint check wrapping `shellcheck` — emits JSON ARRAY of 15 envelopes.
 
-Runs shellcheck on each target with a curated rule selector, parses the
-JSON output, maps each finding's rule code to FAIL or WARN, and emits
-findings in the toolkit's fixed lint format.
+Runs shellcheck on each target with a curated rule selector, parses the JSON
+output, maps each SC code to one of 15 toolkit rule_ids, and emits one
+envelope per rule_id (empty findings for rules that did not fire).
 
-shellcheck is optional — when absent, emits a single INFO line and
-exits 0. Other Tier-1 scripts continue to run.
+shellcheck is optional — when absent, every envelope is emitted with
+overall_status="inapplicable" and exits 0. Other Tier-1 scripts continue
+to run.
+
+SC code → rule_id mapping:
+  SC2086 → unquoted-variable-expansion        (fail)
+  SC2046 → unquoted-command-substitution      (fail)
+  SC2068 → unquoted-args-expansion            (fail)
+  SC2294 → eval-of-array                      (fail)
+  SC2010 → ls-grep-parsing                    (fail)
+  SC2012 → ls-instead-of-find                 (fail)
+  SC2045 → iterating-ls-output                (fail)
+  SC2154 → referenced-but-not-assigned        (warn)
+  SC2155 → unscoped-function-variable         (warn)
+  SC2006 → backtick-command-substitution      (warn)
+  SC2013 → for-line-in-cat                    (warn)
+  SC2162 → read-without-r                     (warn)
+  SC2038 → find-xargs-without-print0          (warn)
+  SC2164 → cd-without-exit-handling           (warn)
+  SC2002 → useless-cat                        (warn)
+
+Exit codes:
+  0  — overall_status pass / warn / inapplicable for every envelope
+  1  — any envelope has overall_status=fail
+  64 — usage error
 
 Example:
     ./check_shellcheck.py path/to/script.sh path/to/scripts/
@@ -21,62 +44,173 @@ import subprocess
 import sys
 from pathlib import Path
 
+from _common import emit_json_finding, emit_rule_envelope, print_envelope
+
 EXIT_USAGE = 64
 SHELLCHECK_CMD = "shellcheck"
 
 _BASH_SHEBANGS = ("#!/usr/bin/env bash", "#!/bin/bash", "#!/usr/bin/env -S bash")
 _BASH_EXTENSIONS = (".sh", ".bash")
 
-_FAIL_CODES = frozenset(
-    {
-        "SC2086",
-        "SC2046",
-        "SC2068",
-        "SC2294",
-        "SC2010",
-        "SC2012",
-        "SC2045",
-    }
-)
+# SC code → (rule_id, severity)
+_SC_TO_RULE: dict[str, tuple[str, str]] = {
+    "SC2086": ("unquoted-variable-expansion", "fail"),
+    "SC2046": ("unquoted-command-substitution", "fail"),
+    "SC2068": ("unquoted-args-expansion", "fail"),
+    "SC2294": ("eval-of-array", "fail"),
+    "SC2010": ("ls-grep-parsing", "fail"),
+    "SC2012": ("ls-instead-of-find", "fail"),
+    "SC2045": ("iterating-ls-output", "fail"),
+    "SC2154": ("referenced-but-not-assigned", "warn"),
+    "SC2155": ("unscoped-function-variable", "warn"),
+    "SC2006": ("backtick-command-substitution", "warn"),
+    "SC2013": ("for-line-in-cat", "warn"),
+    "SC2162": ("read-without-r", "warn"),
+    "SC2038": ("find-xargs-without-print0", "warn"),
+    "SC2164": ("cd-without-exit-handling", "warn"),
+    "SC2002": ("useless-cat", "warn"),
+}
 
-_INCLUDED_CODES = (
-    "SC2086",
-    "SC2046",
-    "SC2068",
-    "SC2294",
-    "SC2010",
-    "SC2012",
-    "SC2045",
-    "SC2154",
-    "SC2155",
-    "SC2006",
-    "SC2013",
-    "SC2162",
-    "SC2038",
-    "SC2164",
-    "SC2002",
-)
+# Order must match _SC_TO_RULE insertion order (Python 3.7+ preserves it),
+# but pin explicitly so the output array is stable.
+_RULE_ORDER = [v[0] for v in _SC_TO_RULE.values()]
+_INCLUDED_CODES = tuple(_SC_TO_RULE.keys())
 
-_RECOMMENDATIONS = {
-    "SC2086": 'Quote the expansion: "${var}" or "$(cmd)".',
-    "SC2046": 'Quote the expansion: "${var}" or "$(cmd)".',
-    "SC2068": 'Use "$@" to forward arguments — never unquoted $@.',
-    "SC2294": 'Invoke the array directly: "${arr[@]}" — never call eval on it.',
-    "SC2154": (
-        "Assign the variable, set a default ${var:-x}, or guard with ${var:?msg}."
+_RECIPES: dict[str, str] = {
+    "unquoted-variable-expansion": (
+        'Quote every variable expansion: `"$var"`. For arrays use '
+        '`"${arr[@]}"` (one argument per element). Unquoted expansion '
+        "word-splits on IFS and globs filenames — the largest source of "
+        "real-world Bash bugs.\n\n"
+        "Example:\n"
+        '    for f in "${files[@]}"; do\n'
+        '      process "$f"\n'
+        "    done\n"
     ),
-    "SC2155": (
-        'Split: `local x` then `x="$(cmd)"` to preserve the substitution exit status.'
+    "unquoted-command-substitution": (
+        'Wrap every `$(...)` expansion in double quotes when used as an '
+        'argument or value: `"$(cmd)"`. Same word-split / glob hazard as '
+        "variable expansion.\n\n"
+        "Example:\n"
+        '    cd "$(pwd)/subdir"\n'
+        '    process_file "$(find_input_path)"\n'
     ),
-    "SC2006": "Replace backticks with $(...) — nestable and readable.",
-    "SC2010": "Do not parse ls — use globs or find -print0 | xargs -0.",
-    "SC2012": "Do not parse ls — use globs or find -print0 | xargs -0.",
-    "SC2045": "Do not parse ls — use globs or find -print0 | xargs -0.",
-    "SC2013": "Use while IFS= read -r line; do ...; done < file for iteration.",
-    "SC2162": "Use while IFS= read -r line; do ...; done < file for iteration.",
-    "SC2038": "Use find -print0 | xargs -0 or -exec {} + for filename safety.",
-    "SC2164": "Add `|| exit` after `cd`, or rely on `set -e` and document.",
-    "SC2002": "Pipe directly: cmd file instead of cat file | cmd (style-only).",
+    "unquoted-args-expansion": (
+        'Always quote `$@` when forwarding arguments: `cmd "$@"`. Use '
+        '`"$*"` only for joining into a log message — it concatenates '
+        "the array into one string with the first IFS char.\n\n"
+        "Example:\n"
+        "    run_with_logging() {\n"
+        "      printf 'starting: %s\\n' \"$*\" >&2\n"
+        '      "$@"\n'
+        "    }\n"
+    ),
+    "eval-of-array": (
+        'Remove the `eval`. `"${cmd[@]}"` already preserves argument '
+        "boundaries; `eval` re-parses them, discarding the array form's "
+        "protection.\n\n"
+        "Example:\n"
+        '    cmd=(rm -rf "$user_input")\n'
+        '    "${cmd[@]}"\n'
+    ),
+    "ls-grep-parsing": (
+        "Replace `ls | grep PATTERN` with a bash glob (`*.log`) or "
+        "`find . -name 'PATTERN'`. `ls` output is for humans — programmatic "
+        "parsing breaks on whitespace and newlines.\n\n"
+        "Example:\n"
+        "    files=( *.log )\n"
+        '    for f in "${files[@]}"; do process "$f"; done\n'
+    ),
+    "ls-instead-of-find": (
+        "Replace `ls -l | awk` parsing with `stat -c`/`stat -f` (single "
+        "file) or `find -printf` (recursive). `ls -l` columns vary across "
+        "BSD/GNU.\n\n"
+        "Example:\n"
+        '    size=$(stat -c \'%s\' "$file" 2>/dev/null '
+        '|| stat -f \'%z\' "$file")\n'
+        "    find . -maxdepth 1 -type f -printf '%s %p\\n'\n"
+    ),
+    "iterating-ls-output": (
+        "Replace `for f in $(ls PATTERN)` with `for f in PATTERN`. "
+        "Use `shopt -s nullglob` to make unmatched globs expand to "
+        "nothing (otherwise the literal pattern leaks through).\n\n"
+        "Example:\n"
+        "    shopt -s nullglob\n"
+        "    for f in *.log; do\n"
+        '      process "$f"\n'
+        "    done\n"
+        "    shopt -u nullglob\n"
+    ),
+    "referenced-but-not-assigned": (
+        "For required external inputs use `${var:?msg}`; for optional "
+        "use `${var:-default}`; for variables sourced from another file "
+        "add `# shellcheck source=path/to/helpers.sh` so shellcheck can "
+        "follow the assignment.\n\n"
+        "Example:\n"
+        "    config_path=\"${config_path:-/etc/myapp/config.yml}\"\n"
+        '    process "${config_path:?config_path required}"\n'
+    ),
+    "unscoped-function-variable": (
+        "Split `local var=$(cmd)` into `local var; var=\"$(cmd)\"` so the "
+        "substitution's exit status is preserved under `set -e`. The "
+        "combined form swallows the inner failure (local always returns 0).\n\n"
+        "Example:\n"
+        "    some_function() {\n"
+        "      local result\n"
+        '      result="$(some_cmd)"\n'
+        '      process "$result"\n'
+        "    }\n"
+    ),
+    "backtick-command-substitution": (
+        'Replace `` `cmd` `` with `"$(cmd)"`. Mechanical and safe; '
+        "dollar-paren is nestable, more readable, and the canonical form.\n\n"
+        "Example:\n"
+        "    count=\"$(wc -l < file)\"\n"
+        '    result="$(grep pattern "$(find . -name \'*.txt\')")"\n'
+    ),
+    "for-line-in-cat": (
+        "Replace `for line in $(cat file)` with "
+        "`while IFS= read -r line; do ...; done < file`. The `for-cat` "
+        "form word-splits and globs each line — broken on whitespace, "
+        "broken on filenames containing wildcards.\n\n"
+        "Example:\n"
+        "    while IFS= read -r line; do\n"
+        '      process "$line"\n'
+        "    done < file\n"
+    ),
+    "read-without-r": (
+        "Add `-r` to every `read` that processes input lines. Without "
+        "`-r`, `read` interprets backslashes — `\\n` becomes `n`. "
+        "Canonical iteration: `while IFS= read -r line`.\n\n"
+        "Example:\n"
+        "    while IFS= read -r line; do\n"
+        '      process "$line"\n'
+        "    done < file\n"
+    ),
+    "find-xargs-without-print0": (
+        "Pair `-print0` with `xargs -0`, or prefer `find ... -exec cmd "
+        "{} +`. Without null-separation, filenames containing spaces or "
+        "newlines split into multiple arguments.\n\n"
+        "Example:\n"
+        "    find . -name '*.log' -print0 | xargs -0 rm\n"
+        "    find . -name '*.log' -exec rm {} +\n"
+    ),
+    "cd-without-exit-handling": (
+        "Add `|| exit` to every `cd` (or `|| return 1` inside a "
+        "function); never run destructive ops after an unguarded `cd`. "
+        "A failed `cd` followed by `rm -rf *` has destroyed real systems.\n\n"
+        "Example:\n"
+        "    cd /some/dir || exit\n"
+        "    rm -rf *\n"
+    ),
+    "useless-cat": (
+        "Replace `cat file | cmd` with `cmd file` (when supported) or "
+        "`< file cmd` (preserves left-to-right reading). One less fork "
+        "and the lint signal stays clean.\n\n"
+        "Example:\n"
+        "    grep pattern file\n"
+        "    < file grep pattern\n"
+    ),
 }
 
 _INSTALL_HINT = (
@@ -117,17 +251,6 @@ def _collect_targets(paths: list[Path]) -> list[Path]:
     return files
 
 
-def _severity_for(code: str) -> str:
-    return "FAIL" if code in _FAIL_CODES else "WARN"
-
-
-def _recommendation_for(code: str) -> str:
-    return _RECOMMENDATIONS.get(
-        code,
-        f"See https://www.shellcheck.net/wiki/{code} for details.",
-    )
-
-
 def _run_shellcheck(target: Path) -> list[dict]:
     include = ",".join(_INCLUDED_CODES)
     try:
@@ -153,28 +276,41 @@ def _run_shellcheck(target: Path) -> list[dict]:
     return parsed if isinstance(parsed, list) else []
 
 
-def _check_file(target: Path) -> bool:
-    any_fail = False
+def _scan_file(target: Path, per_rule: dict[str, list[dict]]) -> None:
     for finding in _run_shellcheck(target):
         code_num = finding.get("code")
         if code_num is None:
             continue
         code = f"SC{code_num}"
-        message = finding.get("message", "").rstrip()
-        lineno = finding.get("line", 0)
-        col = finding.get("column", 0)
-        severity = _severity_for(code)
-        print(f"{severity}  {target} — {code}: {message} (line {lineno}:{col})")
-        print(f"  Recommendation: {_recommendation_for(code)}")
-        if severity == "FAIL":
-            any_fail = True
-    return any_fail
+        if code not in _SC_TO_RULE:
+            continue
+        rule_id, severity = _SC_TO_RULE[code]
+        message = (finding.get("message") or "").rstrip()
+        lineno = int(finding.get("line", 0) or 0) or 1
+        per_rule[rule_id].append(
+            emit_json_finding(
+                rule_id=rule_id,
+                status=severity,
+                location={"line": lineno, "context": f"{target}: {code} {message}"},
+                reasoning=(
+                    f"shellcheck {code} at line {lineno}: {message}"
+                ),
+                recommended_changes=_RECIPES[rule_id],
+            )
+        )
+
+
+def _emit_inapplicable_array() -> list[dict]:
+    return [
+        emit_rule_envelope(rule_id=r, findings=[], inapplicable=True)
+        for r in _RULE_ORDER
+    ]
 
 
 def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="check_shellcheck.py",
-        description="Tier-1 bash lint check via shellcheck (curated rule set).",
+        description="Tier-1 bash lint check via shellcheck (15-rule curated set).",
     )
     parser.add_argument(
         "paths",
@@ -189,22 +325,25 @@ def get_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = get_parser().parse_args(argv)
     if shutil.which(SHELLCHECK_CMD) is None:
-        print(
-            f"INFO  <{SHELLCHECK_CMD}> — tool-missing: shellcheck not installed; "
-            f"{len(_INCLUDED_CODES)} rule codes skipped"
-        )
-        print(f"  Recommendation: {_INSTALL_HINT}")
+        print_envelope(_emit_inapplicable_array())
+        print(f"INFO: shellcheck not installed; {_INSTALL_HINT}", file=sys.stderr)
         return 0
-    any_fail = False
     try:
         files = _collect_targets(args.paths)
-        for f in files:
-            if _check_file(f):
-                any_fail = True
     except _UsageError:
         return EXIT_USAGE
     except KeyboardInterrupt:
         return 130
+
+    per_rule: dict[str, list[dict]] = {r: [] for r in _RULE_ORDER}
+    for f in files:
+        _scan_file(f, per_rule)
+
+    envelopes = [
+        emit_rule_envelope(rule_id=r, findings=per_rule[r]) for r in _RULE_ORDER
+    ]
+    print_envelope(envelopes)
+    any_fail = any(e["overall_status"] == "fail" for e in envelopes)
     return 1 if any_fail else 0
 
 
