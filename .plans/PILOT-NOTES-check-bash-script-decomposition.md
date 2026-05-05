@@ -371,18 +371,99 @@ Populated during Tasks 2–4. Each entry: rule, surprise, resolution.
 - Tier-2: imperative + Why + How to apply + example + Common fail signals (sub-list) + Exception. (Extended for LLM-judge rubric.)
 - Tier-3: imperative + Why + How to apply + example + Audit guidance (sub-paragraph on applicability) + Exception. (Extended for cross-entity scope.)
 
+### Tasks 3–5 — bulk authoring + hub + cleanup
+
+**Combined-entry splits work cleanly.** SC2010/2012/2045 split into 3 files (`ls-grep-parsing`, `ls-instead-of-find`, `iterating-ls-output`) — each SC code has a distinct anti-pattern even when the repair recipe direction is shared. Same for SC2013/2162 (split into `for-line-in-cat`, `read-without-r`). Each split file uses cross-references in the body ("see also: rule-ls-instead-of-find.md") to keep the family discoverable. **Recommendation:** keep the split pattern in the rollout sweep — single SC code per file, body cross-links to siblings.
+
+**File-shape rules (`size`, `line-length`) split cleanly even though they share a script.** `check_size.sh::check_file` emits findings for both rules; the rule files are independent because the conventions are orthogonal (one is about total length, the other about per-line length). The `script:` binding is many-to-one (script-to-rule), and that's fine — the binding lives in the script, not the rule frontmatter. **Recommendation:** issue #407's audit must support many-to-one bindings; naming-convention-only binding (`check_<rule_id>`) breaks here.
+
+**Hub authoring discovered the RULERS softening.** While writing `_hub.md`'s Tier-2 framing block, recognized the citation should be softened per the cleanup recommendation in #409. Used direction-only form in the hub (no specific "11.5 points" claim). Other check-* skills citing this in their docs still need cleanup — that's #409's scope.
+
+**SKILL.md `references:` array becomes long.** 41 entries (1 hub + 40 rules + 1 best-practices). This is the cost of the unified shape — Claude's skill loader is now told about every rule file. The alternative (just hub + best-practices, with the hub's TOC providing rule discovery) was considered but rejected because the rule files need to be eagerly loadable when Claude is editing bash scripts. **Future consideration:** if hub-generation tooling lands (a script that produces SKILL.md `references:` from disk state), the array becomes derived rather than hand-maintained. Out of pilot scope; potential follow-up.
+
+**Per-rule commits create useful rollback boundaries.** 40 individual commits (one per rule file) plus 4 task milestones. The granular-revert design held up — if any single rule's recompose turned out wrong, reverting one commit fixes it without disturbing the others. **Recommendation for sweep:** keep the per-file commit discipline in #408. Commit messages of the form `docs(<skill>): add rule file <id>` are short and grep-able.
+
 ---
 
 ## Rollout recommendations
 
-Populated during Task 6. Each entry: actionable change to the template or the recipe for sweep #408.
+Actionable changes for sweep [#408](https://github.com/bcbeidel/toolkit/issues/408) and the scaffolder/audit follow-ups.
 
-*(empty — to be filled during Task 6)*
+### Templates (per-tier shape)
+
+The single unified shape (per `rule-best-practices.md`) is the right baseline. Three tier-specific extensions improve fit:
+
+- **Tier-1:** Standard shape (imperative + Why + How to apply + example + optional Exception). Body 1.5–2K. Detection lives in a script; rule body is the convention documentation + repair recipe.
+- **Tier-2:** Add **Common fail signals** sub-list inside or after How-to-apply. Gives the LLM judge concrete patterns to flag. Body 2.5–3K.
+- **Tier-3:** Add **Audit guidance** subsection covering applicability scope (when does the rule fire?). Body 2.5–3K.
+
+Issue [#406](https://github.com/bcbeidel/toolkit/issues/406) (build-skill scaffolder) should generate per-tier templates with these structural variants — not a single template applied uniformly.
+
+### Authoring discipline
+
+- **Substance, not bytes.** "Verbatim move" doesn't apply with the unified shape — recompose audit prose ("Signal X — fix by doing Y") into convention prose ("Do X. Why: ... How to apply: ..."). The substance must be preserved exactly; the framing is what shifts.
+- **Per-rule commits** (`docs(<skill>): add rule file <id>`) for granular revert. 40 commits for the pilot was tractable and useful.
+- **Combined-entry splits** are first-class — each SC code or each composite rule gets its own file, cross-linked in the body. Don't merge unrelated rules to reduce file count.
+- **Time budget:** ~5–10 min per Tier-1 rule, ~15–20 min per Tier-2 rule, ~15 min per Tier-3 rule. Pilot took roughly 8–10 hours of focused authoring work for `check-bash-script` (40 rules); budget similar per skill for the sweep.
+
+### Audit infrastructure changes
+
+Issue **#407** (`check-skill` audit recognition) needs richer mapping than naming-convention bindings — `check-bash-script` has multiple cases where one script function emits findings for several rules:
+- `check_idioms.py::_check_file` emits findings for `bracket-test`, `printf-over-echo`, `var-braces`.
+- `check_shellcheck.py::_check_file` delegates 15 rules to the `shellcheck` binary.
+- `check_size.sh::check_file` emits findings for `size` and `line-length`.
+
+Recommendations:
+1. Don't enforce strict `check_<rule_id>` naming. Accept many-to-one (one function → many rules) and one-to-many (one rule → multiple functions across scripts).
+2. The audit can validate the binding via a per-script docstring or a registry file (e.g., `scripts/_rules.json` mapping rule_id → script::function). Pilot did not introduce a registry; record this as an open design question for #407.
+3. Audit should validate frontmatter has non-empty `name` and `description`, body has `**Why:**` and `**How to apply:**` markers. Flag rule files missing either.
+
+### Hub structure
+
+The hub (`_hub.md`) should:
+- Group rules by tier (Deterministic / Judgment / Cross-Entity) with section headers.
+- Lead with cross-rule framing (RULERS guidance, Tier-1 short-circuit, default-closed evaluator policy, missing-tool degradation, one-finding-per-dimension cap, cross-entity applicability). These are conventions the LLM judge needs that don't fit per-rule.
+- Use one-line bullets per rule with a short description. Keep the hub itself well under 10K (the pilot's hub is 6.8K).
+- **Soften RULERS citation** (per #409) — direction-only, no specific "11.5 points" claim.
+
+### SKILL.md `references:` array
+
+The array became long (41 entries). Two paths:
+1. **Hand-maintained** (the pilot's choice). Acceptable for now; alphabetical order is stable and reviewable.
+2. **Generated** from disk state by a small script. Future work — would let new rules be auto-discovered. Not in pilot scope.
+
+The sweep should use option 1 unless a generation tool lands first.
+
+### Distribution model (out of scope but worth noting)
+
+Per-rule files at `references/rule-*.md` are plugin-distributed. Claude reads them ambiently when `paths:` matches. A toolkit-internal `.claude/rules/bash-scripts.md` pointer file would give Claude ambient guidance when editing bash scripts in the toolkit repo itself; a similar pointer in user projects would do the same for them. This is the rule + audit pairing pattern endorsed by `rule-best-practices.md`. Not in pilot scope; flag as a future follow-up issue.
 
 ---
 
 ## Cross-skill rule duplication observations
 
-Populated during Task 6. Surface impressions of which rules in `check-bash-script` likely repeat in other check-* skills.
+Surface impressions only — not a rigorous comparison. Rules in `check-bash-script` whose names/topics likely repeat in `check-skill`, `check-python-script`, `check-rule`, or `check-readme`. Input to a future `_shared/references/` extraction decision (separate plan, not Stage 1).
 
-*(empty — to be filled during Task 6)*
+### High-confidence duplicates (almost certainly repeat verbatim or near-verbatim)
+
+- **`secret`** — appears in `check-skill`, `check-python-script`, `check-readme`, probably others. Same regex-based detection, same recipe (externalize to env var with `${VAR:?MESSAGE}`).
+- **`size`** / **body-length** — `check-skill` and `check-python-script` both have a body-length rule (warn at one threshold, fail at another). The threshold values differ but the convention is the same.
+- **`line-length`** — likely in `check-skill`, `check-python-script`, possibly `check-rule`. Same 100-char convention typically; some skills may use 120.
+- **`commenting-intent`** (Tier-2 D7) — `check-skill` and `check-python-script` likely have an analogous "comments explain why, not what" judgment dimension.
+- **`naming`** (Tier-2 D6) — `check-python-script` definitely has a naming dimension (snake_case vs ALLCAPS conventions). Different language, similar shape.
+- **`function-design`** (Tier-2 D5) — `check-python-script` has analogous "function cohesion" rules. Same rubric, different language.
+
+### Likely duplicates (similar topics, may differ in detail)
+
+- **`output-discipline`** (Tier-2 D1) — Python scripts also have stdout/stderr conventions, though the patterns are slightly different (`print` vs `sys.stderr.write`).
+- **`input-validation`** (Tier-2 D2) — every script-family check-* skill likely has a "validate inputs early" dimension. The specifics (argparse vs `${var:?}`) differ but the principle is shared.
+- **`subprocess-tool-hygiene`** (Tier-2 D3) — Python's analog is "preflight imports" or "verify external tools at import time." Different patterns; same intent.
+
+### Implications for future `_shared/references/` extraction
+
+A reasonable extraction for the duplicates above:
+
+- **Cross-script-family Tier-1 rules** (`secret`, `size`, `line-length`) could live at `_shared/references/rule-secret.md`, etc., with each check-* skill's `SKILL.md references:` array enumerating the shared file. Risk: shared rule body might not fit each language's nuances perfectly. Mitigation: make the shared rule body language-agnostic (focus on the convention, not the syntax); per-language exceptions go in per-skill rules that "extend" the shared base.
+- **Cross-language Tier-2 dimensions** (`commenting-intent`, `naming`, `function-design`, `output-discipline`) similarly extractable. Body would be language-agnostic; LLM judge applies the rubric to whichever language the artifact is in.
+
+This is a substantial architectural decision — affects authoring workflow, audit machinery, and the question of how language-specific exceptions get layered onto shared rules. **Not pilot scope.** Recommended separate plan after sweep #408 lands; the sweep gives concrete data on what duplications exist (the surface impressions above need verification).

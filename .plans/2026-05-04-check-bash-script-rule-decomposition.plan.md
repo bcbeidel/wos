@@ -399,10 +399,10 @@ pilot learnings.
 
 **Depends on:** Task 4
 
-- [ ] **Step 1:** Author `_hub.md` — frontmatter (`name`, `description`); body groups rules under `## Deterministic Checks (32)`, `## Judgment Dimensions (7)`, `## Cross-Entity (1)` headers; one bullet per rule with a short description. Carries cross-rule framing notes (RULERS guidance, Tier-1 short-circuit on Tier-2, default-closed evaluator policy) at the top.
-- [ ] **Step 2:** Update `SKILL.md` `references:` array to enumerate: existing `_shared/references/bash-script-best-practices.md` + `references/_hub.md` + every `references/rule-*.md`. Sort alphabetically for stability.
-- [ ] **Step 3:** Delete `audit-dimensions.md` and `repair-playbook.md`.
-- [ ] **Step 4:** Commit (single commit): `refactor(check-bash-script): add hub, update SKILL.md references, delete monolithic source files`.
+- [x] **Step 1:** Author `_hub.md` — frontmatter (`name`, `description`); body groups rules under `## Deterministic Checks (32)`, `## Judgment Dimensions (7)`, `## Cross-Entity (1)` headers; one bullet per rule with a short description. Carries cross-rule framing notes (RULERS guidance, Tier-1 short-circuit on Tier-2, default-closed evaluator policy) at the top. <!-- sha:2c450ad -->
+- [x] **Step 2:** Update `SKILL.md` `references:` array to enumerate: existing `_shared/references/bash-script-best-practices.md` + `references/_hub.md` + every `references/rule-*.md`. Sort alphabetically for stability. <!-- sha:2c450ad -->
+- [x] **Step 3:** Delete `audit-dimensions.md` and `repair-playbook.md`. <!-- sha:2c450ad -->
+- [x] **Step 4:** Commit (single commit): `refactor(check-bash-script): add hub, update SKILL.md references, delete monolithic source files`. <!-- sha:2c450ad -->
 
 ---
 
@@ -413,11 +413,11 @@ pilot learnings.
 
 **Depends on:** Task 5
 
-- [ ] **Step 1:** Build a minimal purpose-built fixture at `/tmp/equiv-fixture.sh` — ~5–10 lines of bash with one intentional rule violation (e.g., shebang present but `set -euo pipefail` missing, so `strict-mode` fires; nothing else). Single-rule fixtures make the equivalence test trivially interpretable. Run the full audit on it from the pre-pilot state (clean worktree on `main` or `git stash` + checkout). Save JSON output to `/tmp/equiv-pre.json`.
-- [ ] **Step 2:** Run the same audit on the same fixture post-pilot. Save JSON output to `/tmp/equiv-post.json`. Diff: `diff /tmp/equiv-pre.json /tmp/equiv-post.json` — empty. Findings must be identical (rule ids, severities, locations). If different, the per-rule files contain a bug; script logic was untouched, so divergence means content drift.
-- [ ] **Step 3:** Run the scanner on `plugins/build/skills/check-bash-script/`. Confirm `LLM_CONTEXT_BUDGET_EXCEEDED` findings on `references/audit-dimensions.md` and `references/repair-playbook.md` are gone (files deleted). Confirm no new findings on the per-rule files (each is well under cap).
-- [ ] **Step 4:** Finalize `PILOT-NOTES.md` with: (a) the alignment audit table from Task 1; (b) cross-skill rule duplication observations — which rules in this skill are obviously also present in `check-skill` / `check-python-script` based on rule name and topic (surface impressions, not a rigorous comparison); (c) recompose surprises encountered during Tasks 2–4 (rules where translating audit prose to convention prose was awkward; what the resolution was); (d) explicit recommendations for the rollout sweep (changes to template, ordering hints, gotchas); (e) script-binding inventory for follow-up #407.
-- [ ] **Step 5:** Commit: `docs(check-bash-script): record pilot equivalence test and decomposition notes`.
+- [x] **Step 1:** Build a minimal purpose-built fixture at `/tmp/equiv-fixture.sh` — ~5–10 lines of bash with one intentional rule violation (e.g., shebang present but `set -euo pipefail` missing, so `strict-mode` fires; nothing else). Single-rule fixtures make the equivalence test trivially interpretable. Run the full audit on it from the pre-pilot state (clean worktree on `main` or `git stash` + checkout). Save JSON output to `/tmp/equiv-pre.json`. <!-- sha:PENDING -->
+- [x] **Step 2:** Run the same audit on the same fixture post-pilot. Save JSON output to `/tmp/equiv-post.json`. Diff: `diff /tmp/equiv-pre.json /tmp/equiv-post.json` — empty. Findings must be identical (rule ids, severities, locations). If different, the per-rule files contain a bug; script logic was untouched, so divergence means content drift. <!-- sha:PENDING -->
+- [x] **Step 3:** Run the scanner on `plugins/build/skills/check-bash-script/`. Confirm `LLM_CONTEXT_BUDGET_EXCEEDED` findings on `references/audit-dimensions.md` and `references/repair-playbook.md` are gone (files deleted). Confirm no new findings on the per-rule files (each is well under cap). <!-- sha:PENDING -->
+- [x] **Step 4:** Finalize `PILOT-NOTES.md` with: (a) the alignment audit table from Task 1; (b) cross-skill rule duplication observations — which rules in this skill are obviously also present in `check-skill` / `check-python-script` based on rule name and topic (surface impressions, not a rigorous comparison); (c) recompose surprises encountered during Tasks 2–4 (rules where translating audit prose to convention prose was awkward; what the resolution was); (d) explicit recommendations for the rollout sweep (changes to template, ordering hints, gotchas); (e) script-binding inventory for follow-up #407. <!-- sha:PENDING -->
+- [x] **Step 5:** Commit: `docs(check-bash-script): record pilot equivalence test and decomposition notes`. <!-- sha:PENDING -->
 
 ---
 
