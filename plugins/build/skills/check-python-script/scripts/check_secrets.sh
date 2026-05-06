@@ -1,15 +1,11 @@
 #!/usr/bin/env bash
 #
-# check_secrets.sh — Scan Python scripts for committed secrets.
+# check_secrets.sh — Scan Python scripts for committed secrets. Emits a
+# JSON ARRAY containing one envelope (rule_id="secret") per
+# scripts/_common.py.
 #
-# Deterministic Tier-1 Safety check invoked by /build:check-python-script.
-# Scans *.py files for well-known API key patterns and for
-# credential-shaped variable assignments, skipping obvious placeholders.
-#
-# Toolkit convention — not from the ensemble synthesis. Adapted from the
-# peer check-rule/scripts/scan_secrets.sh. A FAIL finding excludes the
-# file from Tier-2 judgment (the model should not evaluate content that
-# leaks credentials).
+# secret (FAIL): committed API key / token / credential-shaped variable
+# assignment.
 #
 # Usage:
 #   check_secrets.sh <path> [<path> ...]
@@ -17,13 +13,13 @@
 # Paths may be .py files or directories (top-level .py only).
 #
 # Exit codes:
-#   0   no findings
+#   0   no FAIL findings
 #   1   one or more FAIL findings
 #   64  usage error
 #   69  missing dependency
 #
 # Dependencies:
-#   grep, find, basename
+#   grep, find, basename, python3
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -31,7 +27,21 @@ IFS=$'\n\t'
 PROGNAME="$(basename "${0}")"
 readonly PROGNAME
 
-readonly REQUIRED_CMDS=(grep find basename)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly SCRIPT_DIR
+
+readonly REQUIRED_CMDS=(grep find basename python3)
+
+readonly _RULE_ORDER="secret"
+
+readonly RECIPE_SECRET='Remove the secret from source. Replace with `os.environ.get("<VAR_NAME>")` and document the env var in the module docstring. Rotate any leaked credential — committed secrets leak through git history, logs, and backups. Externalizing to the environment is the minimum bar; a secret manager is better where available.
+
+Example:
+    import os
+    API_KEY = os.environ.get("OPENAI_API_KEY")
+    if not API_KEY:
+        sys.exit("OPENAI_API_KEY not set")
+'
 
 usage() {
   cat <<'EOF'
@@ -57,6 +67,7 @@ EOF
 install_hint() {
   case "${1}" in
     grep | find | basename) printf 'should be preinstalled on any POSIX system' ;;
+    python3) printf 'install Python 3.9+' ;;
     *) printf 'see your package manager' ;;
   esac
 }
@@ -76,13 +87,6 @@ preflight() {
     done
     exit 69
   fi
-}
-
-emit_finding() {
-  local path="$1" name="$2" line="$3"
-  printf 'FAIL  %s — secret: %s at line %s\n' "${path}" "${name}" "${line}"
-  printf '  Recommendation: Remove the secret, rotate the credential, '
-  printf 'and read it from os.environ.get("<VAR_NAME>") instead.\n'
 }
 
 # Parallel arrays: specific API key patterns and their display names.
@@ -105,13 +109,12 @@ readonly PATTERN_REGEXES=(
 )
 
 # Credential-shaped variable assignment with a non-empty quoted value.
-# Python idiom — looks for `NAME = "value"` at any indent level.
 readonly GENERIC_VAR_REGEX="(password|secret|token|api_key|access_key|private_key)""\
 [[:space:]]*=[[:space:]]*[\"'][^\"']+[\"']"
 
+# TSV: <rule_id>\t<status>\t<file>\t<line>\t<context>
 scan_file() {
   local file="$1"
-  local found=0
   local i name pattern hit line
 
   i=0
@@ -120,17 +123,14 @@ scan_file() {
     pattern="${PATTERN_REGEXES[${i}]}"
     while IFS= read -r hit; do
       line="${hit%%:*}"
-      emit_finding "${file}" "${name}" "${line}"
-      found=1
+      printf 'secret\tfail\t%s\t%s\t%s detected\n' "${file}" "${line}" "${name}"
     done < <(grep -nE "${pattern}" "${file}" 2>/dev/null || true)
     i=$((i + 1))
   done
 
-  # Credential-shaped assignments, minus obvious placeholders.
   while IFS= read -r hit; do
     line="${hit%%:*}"
-    emit_finding "${file}" "credential variable assignment" "${line}"
-    found=1
+    printf 'secret\tfail\t%s\t%s\tcredential variable assignment\n' "${file}" "${line}"
   done < <(
     grep -niE "${GENERIC_VAR_REGEX}" "${file}" 2>/dev/null \
       | grep -Ev "=[[:space:]]*[\"']\\\$" \
@@ -140,28 +140,73 @@ scan_file() {
 placeholder|todo|fixme|xxx|changeme|change[-_]me|foo|bar|baz|abc|xyz)" \
       || true
   )
-
-  return "${found}"
 }
 
 scan_path() {
   local target="$1"
-  local any=0
   local file
-
   if [[ -f "${target}" ]]; then
     case "${target}" in
-      *.py) scan_file "${target}" || any=1 ;;
+      *.py) scan_file "${target}" ;;
     esac
   elif [[ -d "${target}" ]]; then
     while IFS= read -r file; do
-      scan_file "${file}" || any=1
+      scan_file "${file}"
     done < <(find "${target}" -maxdepth 1 -type f -name '*.py' 2>/dev/null)
   else
     printf '%s: path not found: %s\n' "${PROGNAME}" "${target}" >&2
     return 64
   fi
-  return "${any}"
+}
+
+readonly EMIT_PY='
+import os
+import sys
+
+sys.path.insert(0, os.environ["CHECK_PY_SCRIPT_DIR"])
+from _common import emit_json_finding, emit_rule_envelope, print_envelope
+
+order = os.environ["CHECK_PY_RULE_ORDER"].split(",")
+recipes = {
+    "secret": os.environ["CHECK_PY_RECIPE_SECRET"],
+}
+
+per_rule = {r: [] for r in order}
+for line in sys.stdin:
+    line = line.rstrip("\n")
+    if not line:
+        continue
+    parts = line.split("\t", 4)
+    if len(parts) != 5:
+        continue
+    rule_id, status, path, lineno, context = parts
+    if rule_id not in per_rule:
+        continue
+    try:
+        line_int = int(lineno)
+    except ValueError:
+        line_int = 1
+    per_rule[rule_id].append(
+        emit_json_finding(
+            rule_id=rule_id,
+            status=status,
+            location={"line": line_int, "context": f"{path}: {context}"},
+            reasoning=f"{path}: {context}.",
+            recommended_changes=recipes[rule_id],
+        )
+    )
+
+envelopes = [emit_rule_envelope(rule_id=r, findings=per_rule[r]) for r in order]
+print_envelope(envelopes)
+if any(e["overall_status"] == "fail" for e in envelopes):
+    sys.exit(1)
+'
+
+emit_envelopes() {
+  CHECK_PY_SCRIPT_DIR="${SCRIPT_DIR}" \
+    CHECK_PY_RULE_ORDER="${_RULE_ORDER}" \
+    CHECK_PY_RECIPE_SECRET="${RECIPE_SECRET}" \
+    python3 -c "${EMIT_PY}"
 }
 
 main() {
@@ -179,13 +224,13 @@ main() {
 
   preflight
 
-  local any=0
-  local target
-  for target in "$@"; do
-    scan_path "${target}" || any=1
-  done
-
-  exit "${any}"
+  local target rc=0
+  {
+    for target in "$@"; do
+      scan_path "${target}"
+    done
+  } | emit_envelopes || rc=$?
+  exit "${rc}"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
