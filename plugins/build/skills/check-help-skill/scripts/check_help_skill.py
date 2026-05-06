@@ -1,13 +1,21 @@
 #!/usr/bin/env python3
 """Run Tier-1 deterministic checks against a help-skill SKILL.md.
 
-Walks the help-skill against the audit-dimensions.md Tier-1 inventory
-and emits lint-format findings: SEVERITY  <path> — <check-id>: <message>.
+Emits a JSON array of envelopes per scripts/_common.py — one envelope
+per rule_id (17 rule_ids covering frontmatter shape, security patterns,
+the managed skill-index region, workflow curation, and trigger shape).
+Empty findings → overall_status=pass.
+
+Each finding carries a non-empty `recommended_changes` recipe sourced
+from help-skill-best-practices.md (and the deleted repair-playbook.md);
+the orchestrator does not enrich. Tier-2 (5 judgment dimensions) and
+Tier-3 (trigger collision) are not handled by this script — they live
+as references/check-*.md files read inline by the primary agent.
 
 Exit codes:
-    0 — clean / WARN-only / INFO-only
-    1 — at least one FAIL finding
-    2 — usage error
+    0 — overall_status pass / warn for every emitted envelope
+    1 — overall_status=fail for any envelope
+    64 — usage error
 
 Examples:
     ./check_help_skill.py work
@@ -23,7 +31,10 @@ import subprocess
 import sys
 from pathlib import Path
 
-EXIT_USAGE = 2
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _common import emit_json_finding, emit_rule_envelope, print_envelope  # noqa: E402
+
+EXIT_USAGE = 64
 EXIT_INTERRUPTED = 130
 
 PLUGIN_ROOT = Path(__file__).resolve().parents[3]
@@ -95,7 +106,159 @@ BODY_LINE_HARD = 200
 WORD_LIMIT = 12
 DRIFT_PREFIX_WORDS = 6
 
+# (severity, check_id, message). Severity is "FAIL" or "WARN" from the
+# detection layer; converted to "fail" / "warn" by _make_json_finding.
 Finding = tuple[str, str, str]
+
+
+# ---- Rule IDs and recipes (sourced from help-skill-best-practices.md
+# ---- and the deleted repair-playbook.md). Each rule_id below is one
+# ---- the detection layer below emits; the recipe is canonical guidance
+# ---- copied through to the audit's recommended_changes field.
+
+_RULE_ORDER: list[str] = [
+    "slug-mismatch",
+    "frontmatter-shape",
+    "frontmatter-invented-key",
+    "body-line-count",
+    "secret",
+    "tls-disable",
+    "pipe-to-shell",
+    "synopsis-present",
+    "managed-region-present",
+    "skill-index-coverage",
+    "skill-index-no-self",
+    "description-fidelity",
+    "workflow-section-present",
+    "workflow-freshness",
+    "pointer-resolution",
+    "pointer-broken-fail",
+    "description-trigger-shape",
+]
+
+_RECIPES: dict[str, str] = {
+    "slug-mismatch": (
+        "Set frontmatter `name: help` and ensure the directory basename is "
+        "also `help`. Move the file if the directory is named anything else. "
+        "`/<plugin>:help` resolves on the literal slug — renaming defeats "
+        "discoverable invocation."
+    ),
+    "frontmatter-shape": (
+        "Add the missing required frontmatter keys: `name`, `description`, "
+        "`version`, `owner`, `license`, `references:` (with at least the "
+        "`help-skill-best-practices.md` path). Required frontmatter is the "
+        "cache-busting and ownership signal consumers rely on."
+    ),
+    "frontmatter-invented-key": (
+        "Remove the unsanctioned frontmatter key. If the information is "
+        "load-bearing, move it to the body. Unknown frontmatter keys are "
+        "silently ignored by Claude Code; including them implies a contract "
+        "that does not exist. Sanctioned keys are documented in "
+        "`skill-best-practices.md`."
+    ),
+    "body-line-count": (
+        "Trim the body. Move long-form rationale to AGENTS.md or the plugin "
+        "README; tighten workflow descriptions to one sentence each. Target "
+        "≤150 lines, hard ceiling ≤200. A help-skill is an index, not "
+        "documentation; length dilutes the orientation."
+    ),
+    "secret": (
+        "Remove the secret. Help-skills should not contain credentials of "
+        "any kind. If the context requires one, replace with a reference to "
+        "an environment variable. A help-skill is committed and trusted by "
+        "Claude as instructions; embedded secrets are a breach."
+    ),
+    "tls-disable": (
+        "Remove the security-weakening instruction. Document the real fix "
+        "in CONTRIBUTING or file a bug. Security-weakening guidance "
+        "outlives the issue that prompted it."
+    ),
+    "pipe-to-shell": (
+        "Remove the pipe-to-shell installer invocation (`curl ... | bash`, "
+        "`wget ... | sh`, `iex (iwr ...)`). If installer guidance is "
+        "needed, link to a workflow skill instead. Help-skills are "
+        "orientation surfaces; supply-chain installers belong inside "
+        "workflow skills with explicit safety gates."
+    ),
+    "synopsis-present": (
+        "Add a single-sentence synopsis below the H1, before the first H2. "
+        "Example: `# /build:help\\n\\nAuthor and audit Claude Code "
+        "primitives — skills, hooks, rules, subagents, and scripts.\\n\\n## "
+        "Skills in this plugin`. The synopsis is the most-read line; "
+        "skipping it forces the caller to translate the skill table into "
+        "a value proposition."
+    ),
+    "managed-region-present": (
+        "Wrap the skill table in `<!-- generated: do not edit by hand; "
+        "regenerate from disk -->` and `<!-- /generated -->` markers. "
+        "Without the markers, the auditor cannot detect hand edits and "
+        "drift becomes invisible."
+    ),
+    "skill-index-coverage": (
+        "Regenerate the table from `plugins/<plugin>/skills/*/` directory "
+        "listing — typically by running the plugin's `build-help-skill` "
+        "render script. Add rows for any sibling skill missing from the "
+        "table; remove rows for skills that no longer exist on disk. The "
+        "skill table is the most-read and most-drift-prone part of the "
+        "document."
+    ),
+    "skill-index-no-self": (
+        "Remove the `help` row from the skill-index table. The generator "
+        "must exclude `name == \"help\"` — listing the help-skill in its "
+        "own table is recursive and confusing."
+    ),
+    "description-fidelity": (
+        "Regenerate the trigger column for the affected row from the "
+        "sibling skill's current `description` (first ~12 words). Do not "
+        "hand-polish. The table is the disk-derived view of sibling "
+        "descriptions; drift means the index lies about what siblings do."
+    ),
+    "workflow-section-present": (
+        "Add a `## Common workflows` section with at least one curated "
+        "chain. Do not auto-generate; ask the user. Example: `- **Build "
+        "new feature** — \\`scope-work\\` → \\`plan-work\\` → "
+        "\\`start-work\\` → \\`verify-work\\`. *Use when starting from "
+        "requirements.*` Triage scaffolding is what differentiates a "
+        "help-skill from the directory listing."
+    ),
+    "workflow-freshness": (
+        "Either remove the broken skill reference from the workflow "
+        "chain, or update the chain to use a current sibling. A workflow "
+        "chain that references a removed skill is a broken pointer — "
+        "followers land on nothing."
+    ),
+    "pointer-resolution": (
+        "Fix the broken relative link. From `plugins/<plugin>/skills/help/"
+        "SKILL.md`, the repo root is four directories up "
+        "(`../../../../`); AGENTS.md and RESOLVER.md typically live there. "
+        "The plugin README is at `../../README.md` (two up)."
+    ),
+    "pointer-broken-fail": (
+        "Same fix as `pointer-resolution`: correct the relative path. The "
+        "FAIL severity reflects that AGENTS.md / RESOLVER.md / the plugin "
+        "README are load-bearing navigation — a help-skill whose pointer "
+        "to AGENTS.md is broken sends callers nowhere."
+    ),
+    "description-trigger-shape": (
+        "Rewrite the `description` to lead with `Use when` and include "
+        "concrete trigger phrases. Example: `Use when the caller asks "
+        "\"what's in the build plugin\", \"list build skills\", \"how do "
+        "I use build\", or wants to see which build skill fits a task.` "
+        "Capability-shaped descriptions do not retrieve; the router reads "
+        "the description as a trigger condition."
+    ),
+}
+
+
+def _make_json_finding(rule_id: str, severity: str, message: str) -> dict:
+    """Convert a Finding tuple to a JSON-envelope finding dict."""
+    return emit_json_finding(
+        rule_id=rule_id,
+        status="fail" if severity == "FAIL" else "warn",
+        location={"line": 0, "context": message},
+        reasoning=message,
+        recommended_changes=_RECIPES[rule_id],
+    )
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -470,17 +633,25 @@ def check_description_trigger_shape(fm: dict[str, str]) -> list[Finding]:
     return out
 
 
-def render_findings(path: Path, findings: list[Finding]) -> str:
-    order = {"FAIL": 0, "WARN": 1, "INFO": 2}
-    findings.sort(key=lambda f: (order.get(f[0], 99), f[1], f[2]))
-    counts = {"FAIL": 0, "WARN": 0, "INFO": 0}
-    for sev, _, _ in findings:
-        counts[sev] = counts.get(sev, 0) + 1
-    lines = [f"{sev}  {path} — {cid}: {msg}" for sev, cid, msg in findings]
-    if findings:
-        lines.append("")
-    lines.append(f"{counts['FAIL']} fail, {counts['WARN']} warn, {counts['INFO']} info")
-    return "\n".join(lines) + "\n"
+def build_envelopes(findings: list[Finding]) -> list[dict]:
+    """Convert lint-format findings to a JSON array of envelopes.
+
+    One envelope per rule_id in _RULE_ORDER, regardless of which rules
+    fired. Empty findings → overall_status=pass. Findings whose check_id
+    is not in _RULE_ORDER are dropped (defensive against typos in the
+    detection layer).
+    """
+    per_rule: dict[str, list[dict]] = {rid: [] for rid in _RULE_ORDER}
+    for severity, check_id, message in findings:
+        if check_id not in per_rule:
+            continue
+        per_rule[check_id].append(
+            _make_json_finding(check_id, severity, message)
+        )
+    return [
+        emit_rule_envelope(rule_id=rid, findings=per_rule[rid])
+        for rid in _RULE_ORDER
+    ]
 
 
 def run(args: argparse.Namespace) -> int:
@@ -524,8 +695,9 @@ def run(args: argparse.Namespace) -> int:
     findings += check_pointer_resolution(body, skill_md)
     findings += check_description_trigger_shape(fm)
 
-    sys.stdout.write(render_findings(skill_md, findings))
-    return 1 if any(f[0] == "FAIL" for f in findings) else 0
+    envelopes = build_envelopes(findings)
+    print_envelope(envelopes)
+    return 1 if any(env["overall_status"] == "fail" for env in envelopes) else 0
 
 
 def main(argv: list[str] | None = None) -> int:
