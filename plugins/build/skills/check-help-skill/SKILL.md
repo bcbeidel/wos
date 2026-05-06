@@ -6,7 +6,7 @@ description: >-
   help-skill is up to date", or "is the skill table in this help-skill
   current". Audits a plugins/<plugin>/skills/help/SKILL.md against the
   help-skill rubric — coverage, freshness, frontmatter fidelity, plus
-  five judgment dimensions.
+  five judgment dimensions and a trigger-collision check.
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[path to help-skill SKILL.md, or plugin name]"
 user-invocable: true
@@ -16,180 +16,168 @@ license: MIT
 references:
   - ../../_shared/references/help-skill-best-practices.md
   - ../../_shared/references/skill-best-practices.md
-  - references/audit-dimensions.md
-  - references/repair-playbook.md
-  - scripts/check_help_skill.py
+  - references/check-dual-audience.md
+  - references/check-scope-discipline.md
+  - references/check-triage-scaffolding.md
+  - references/check-trigger-collision.md
+  - references/check-trigger-quality.md
+  - references/check-workflow-curation.md
 ---
 
 # /build:check-help-skill
 
 Audit a help-skill — the SKILL.md at
-`plugins/<plugin>/skills/help/SKILL.md` — against the rubric. The
-audit runs in three tiers: deterministic checks (skill-index
-coverage, freshness, frontmatter fidelity, line count, slug, secret
-patterns); judgment checks (workflow curation, triage scaffolding,
-dual audience, scope discipline, trigger quality); and a cross-
-entity check (trigger collision against sibling skills).
-
-The full check inventory lives in
-[audit-dimensions.md](references/audit-dimensions.md). Repair
-recipes live in [repair-playbook.md](references/repair-playbook.md).
-The principles audited come from
+`plugins/<plugin>/skills/help/SKILL.md` — against the rubric in
 [help-skill-best-practices.md](../../_shared/references/help-skill-best-practices.md).
 
-## When to use
+This skill follows the [check-skill
+pattern](../../_shared/references/check-skill-pattern.md). Tier-1 is
+deterministic via `scripts/check_help_skill.py` (17 rule_ids; emits a
+JSON array of envelopes via `_common.py`). Tier-2 has 5 judgment
+dimensions read inline by the primary agent. Tier-3 is the
+trigger-collision cross-entity rule.
 
-- The user says "audit / check / review / lint a help-skill"
-- The user passes a path to a help-skill SKILL.md or names a plugin
-  whose help-skill should be audited
-- After `/build:build-help-skill` writes a new help-skill (the build
-  step chains to this skill automatically)
-- A sibling skill in the plugin was added, removed, or renamed —
-  drift check
-- A plugin version bump — confirm the help-skill still reflects the
-  plugin's shape
+## Workflow
 
-## Prerequisites
+### 1. Resolve the target
 
-- Working directory contains a checkout with the target plugin
-- Read access to `plugins/<plugin>/skills/help/SKILL.md` and to
-  every sibling `plugins/<plugin>/skills/*/SKILL.md`
-- `$ARGUMENTS` either names the help-skill path or names the plugin
-  (resolves to `plugins/<plugin>/skills/help/SKILL.md`)
+Read `$ARGUMENTS`. If it ends in `SKILL.md`, treat as the path. If it
+names a plugin (e.g., `work`), resolve to
+`plugins/<plugin>/skills/help/SKILL.md`. If the file does not exist,
+stop — there is nothing to audit (recommend `/build:build-help-skill
+<plugin>`). If the path resolves to a SKILL.md whose `name` is not
+`help`, stop and route to `/build:check-skill`.
 
-## Steps
+### 2. Tier-1 deterministic checks
 
-1. **Resolve the target.** Read `$ARGUMENTS`. If it ends in
-   `SKILL.md`, treat as the path. If it names a plugin (e.g.,
-   `work`), resolve to `plugins/<plugin>/skills/help/SKILL.md`. If
-   the file does not exist, stop — there is nothing to audit. If
-   the path resolves to a SKILL.md whose `name` is not `help`, stop
-   and route to `/build:check-skill` — this auditor is for help-
-   skills only.
-
-2. **Run Tier-1 deterministic checks.** Invoke
-   `scripts/check_help_skill.py <plugin-or-path>` and capture
-   stdout. The script enforces the audit-dimensions.md Tier-1
-   inventory — slug fidelity, frontmatter shape, line count,
-   secret/TLS/pipe-to-shell patterns, synopsis presence,
-   managed-region presence, skill-index coverage and
-   no-self-listing, description fidelity, workflow section
-   presence and freshness, pointer resolution — and emits findings
-   in lint format with severities (FAIL / WARN / INFO). The LLM
-   reasons over the script's output, not the raw SKILL.md. Exit 0
-   indicates clean / WARN-only / INFO-only; exit 1 indicates at
-   least one FAIL.
-
-3. **FAIL gate.** Any FAIL finding excludes the file from Tier-2
-   judgment — fix the structural issue before evaluating quality.
-   The exclusion list: `slug-mismatch`, `secret`, `managed-region-
-   missing`, `skill-index-coverage` (rows for skills that don't
-   exist on disk), `pointer-broken-fail` (broken pointer to
-   AGENTS.md / RESOLVER.md / plugin README, which are load-bearing
-   navigation). Other FAILs may be present at this point but are
-   surfaced and continue.
-
-4. **Run Tier-2 judgment checks.** One LLM evaluation per file
-   covering all five dimensions: workflow curation (at least one
-   composed chain, not just a flat list); triage scaffolding (task
-   → skill mapping is actionable, not just a description echo);
-   dual audience (readable for both human typing `/<plugin>:help`
-   and agent looking up routing); scope discipline (does not
-   duplicate AGENTS.md or README content); trigger quality
-   (description fires on meta-questions about the plugin, not on
-   the plugin's own workflows). Each dimension returns
-   PASS / WARN / FAIL with one-sentence rationale, citing the
-   source principle.
-
-5. **Run Tier-3 cross-entity check.** For each sibling skill in the
-   plugin, compare its `description` against the help-skill's
-   `description` for trigger collision. Heuristic: shared
-   trigger-phrase tokens above a threshold flag as INFO; an
-   identical "Use when the user/caller asks…" phrasing across two
-   skills flags as WARN. The router cannot disambiguate two skills
-   that match the same trigger — surface every collision so the
-   user can narrow either side.
-
-6. **Report.** Emit findings in the lint-style format used across
-   the toolkit's check-* skills: severity, ID, location (line:col
-   when applicable), one-line message, source principle. Group by
-   tier. End with a summary count and the `/build:check-help-skill
-   --repair` invitation.
-
-7. **Opt-in repair loop.** If the user opts in (`y` / specific
-   finding IDs), apply canonical repairs from
-   [repair-playbook.md](references/repair-playbook.md) one finding
-   at a time, with explicit confirmation per fix. Re-run Tier-1
-   after each fix to verify it landed cleanly. Tier-2 dimensions
-   are coaching — surface them but do not auto-repair without
-   explicit per-finding approval.
-
-## Failure modes
-
-- **Target file missing.** Step 1 stops the workflow. Recovery:
-  scaffold via `/build:build-help-skill <plugin>` first, or correct
-  the path argument.
-- **Target is not a help-skill.** Step 1 routes to
-  `/build:check-skill`. Recovery: re-invoke the appropriate
-  auditor.
-- **Sibling skills unreadable.** If `plugins/<plugin>/skills/*/
-  SKILL.md` cannot be parsed (malformed frontmatter), Tier-1
-  coverage and fidelity checks emit `tool-degraded` INFO findings
-  and continue. Recovery: fix the malformed sibling first; the
-  help-skill audit is downstream.
-- **Tier-2 LLM call fails.** Surface the failure as an INFO
-  finding; Tier-1 results stand. Recovery: re-run the audit; do not
-  block on transient model failures.
-- **Repair playbook lacks a recipe for a finding.** A
-  finding-without-recipe is a gap in the playbook itself, not a
-  failure of the auditor. Surface to the user; the recipe should be
-  added to `repair-playbook.md` in a follow-up.
-
-## Examples
-
-<example>
-Invocation:
+Invoke the script:
 
 ```bash
-/build:check-help-skill work
+python3 plugins/build/skills/check-help-skill/scripts/check_help_skill.py <plugin-or-path>
 ```
 
-Step 1 — Resolves to `plugins/work/skills/help/SKILL.md`. File
-exists. `name: help`. Proceed.
+Parse stdout as JSON. The script emits an array of 17 envelopes — one
+per rule_id, regardless of which fired. Each envelope:
+`{rule_id, overall_status, findings[]}`, with each finding carrying
+`{status, location, reasoning, recommended_changes}`.
+`recommended_changes` is canonical — copy through verbatim to the report.
 
-Step 2 — Tier-1: 0 FAIL, 1 WARN, 0 INFO.
-- WARN `description-fidelity` — table row for `plan-work` reads
-  *"Plan a multi-step task"* but the current
-  `plugins/work/skills/plan-work/SKILL.md` description starts *"Use
-  when the user has a spec or requirements for a multi-step
-  task…"*. Source: *Description fidelity — entries reflect actual
-  frontmatter*.
+**Rule set** (17 Tier-1 rules):
 
-Step 3 — No FAIL exclusion; proceed to Tier-2.
+| Severity | rule_id |
+|---|---|
+| fail | `slug-mismatch` |
+| warn | `frontmatter-shape` |
+| warn | `frontmatter-invented-key` |
+| warn | `body-line-count` |
+| fail | `secret` |
+| fail | `tls-disable` |
+| fail | `pipe-to-shell` |
+| warn | `synopsis-present` |
+| fail | `managed-region-present` |
+| fail | `skill-index-coverage` |
+| warn | `skill-index-no-self` |
+| warn | `description-fidelity` |
+| warn | `workflow-section-present` |
+| warn | `workflow-freshness` |
+| warn | `pointer-resolution` |
+| fail | `pointer-broken-fail` |
+| warn | `description-trigger-shape` |
 
-Step 4 — Tier-2: 5 PASS.
+Exit codes: `0` if no envelope is `fail`; `1` if any envelope is
+`fail`; `64` on argument error.
 
-Step 5 — Tier-3: no trigger collisions.
+**Tier-2 exclusion list.** Any `slug-mismatch`, `secret`,
+`tls-disable`, `pipe-to-shell`, `managed-region-present`,
+`skill-index-coverage` (rows for skills that don't exist on disk), or
+`pointer-broken-fail` finding excludes the file from Tier-2 — fix the
+structural issue before evaluating quality. Other FAILs surface and
+allow Tier-2 to proceed.
 
-Step 6 — Reports 1 WARN. Invites repair.
+### 3. Tier-2 judgment dimensions
 
-Step 7 — User accepts the repair. Playbook recipe regenerates the
-managed region from sibling frontmatter; re-runs Tier-1; finding
-clears. Reports clean.
-</example>
+For each file that passed the Tier-2 exclusion gate, evaluate against
+the **5 judgment rules** at `references/check-*.md`:
 
-## Key Instructions
+| File | Dimension | Severity |
+|---|---|---|
+| [check-workflow-curation.md](references/check-workflow-curation.md) | D1 — `## Common workflows` carries composed chains | warn |
+| [check-triage-scaffolding.md](references/check-triage-scaffolding.md) | D2 — task → skill mapping is actionable | warn |
+| [check-dual-audience.md](references/check-dual-audience.md) | D3 — readable for both human and agent audiences | warn |
+| [check-scope-discipline.md](references/check-scope-discipline.md) | D4 — stays inside (synopsis, index, workflows, pointers) | warn |
+| [check-trigger-quality.md](references/check-trigger-quality.md) | D5 — fires on meta-questions, not the plugin's own workflows | warn |
 
-- Run Tier-1 before Tier-2; FAIL findings exclude the file from
-  judgment evaluation. Audit cleanly is the contract.
-- Cite the source principle for every finding — every dimension in
-  `audit-dimensions.md` names the
-  `help-skill-best-practices.md` section it enforces.
-- Tier-3 trigger-collision check is what makes this auditor
-  load-bearing — a help-skill in isolation looks fine; a help-skill
-  that fights its siblings only fails when the router has to choose.
-- Repair is opt-in and per-finding; never apply playbook recipes
-  without explicit user confirmation.
+#### Evaluator policy
+
+- **Single locked-rubric pass.** Read all 5 rule files first, then
+  evaluate the help-skill in turn against each. Don't re-decompose
+  into sub-checks (RULERS, Hong et al. 2026).
+- **Default-closed when borderline.** When evidence is ambiguous,
+  return `warn`, not `pass`.
+- **Severity floor: WARN.** All 5 Tier-2 dimensions are coaching, not
+  blocking. Escalate to FAIL only for safety concerns Tier-1 missed.
+- **One finding per dimension maximum.** If a single hook trips one
+  dimension at multiple locations, surface the highest-signal one.
+
+### 4. Tier-3 cross-entity trigger collision
+
+Evaluate against
+[check-trigger-collision.md](references/check-trigger-collision.md).
+For every sibling skill in the plugin, compare its `description`
+against the help-skill's `description`. The rule documents two
+heuristics: token overlap (shared trigger-phrase tokens above
+threshold; `info` at 3+, `warn` at 5+) and identical trigger phrasing
+(`warn`).
+
+This is the **load-bearing** dimension — a help-skill in isolation
+can pass Tier-1 and Tier-2 cleanly while being fundamentally broken
+when the router has to pick between it and a colliding sibling.
+Skipping Tier-3 leaves the highest-value defect undetected.
+
+### 5. Report
+
+Merge Tier-1 (script JSON) + Tier-2 (judgment) + Tier-3 (judgment)
+findings into a unified table:
+
+```
+| Tier | rule_id | Location | Status | Reasoning |
+|------|---------|----------|--------|-----------|
+```
+
+Sort: `fail` before `warn` before `inapplicable`; Tier-1 before Tier-2
+before Tier-3 within severity. Summary line at top and bottom: `N
+fail, N warn across N rules`. If any envelope is `fail` and excludes
+Tier-2, name the trigger.
+
+For each finding's `Recommendation:` line, copy `recommended_changes`
+through verbatim. Multi-paragraph recipes condense to the first
+paragraph in the report; the full recipe is presented in the repair
+loop.
+
+### 6. Opt-in repair loop
+
+Ask exactly once:
+
+> "Apply fixes? Enter `y` (all), `n` (skip), or comma-separated
+> finding numbers."
+
+For each selected finding, route per the recipe in
+`recommended_changes`:
+
+- **Direct edit** — frontmatter shape, slug, synopsis, pointer
+  resolution, description rewrite. Show diff; write on confirmation.
+- **Routed to another skill** — `/build:build-help-skill <plugin>`
+  (rebuild from scratch when the file is too damaged); table
+  regeneration is typically delegated to the plugin's
+  `build-help-skill` render script.
+- **Tier-2/3 judgment** — workflow curation, scope discipline, trigger
+  collision. Ask the user; rewrite the section/description; show
+  diff; write on confirmation.
+
+After each applied fix, re-run the Tier-1 script (or re-judge the
+Tier-2/3 dimension) on the affected scope so subsequent findings
+reflect the new state. Terminate when the user enters `n` or
+exhausts findings.
 
 ## Anti-Pattern Guards
 
@@ -197,32 +185,52 @@ clears. Reports clean.
    parses cleanly but collides with siblings will misroute callers
    silently. Tier-3 is the load-bearing dimension; running only
    Tier-1 + Tier-2 leaves the highest-value defect undetected.
-2. **Auto-repairing Tier-2 findings.** Judgment dimensions (workflow
-   curation, dual audience, scope discipline) need user input.
-   Auto-applying playbook recipes without confirmation produces
+2. **Auto-repairing Tier-2 findings.** Judgment dimensions
+   (workflow curation, dual audience, scope discipline) need user
+   input. Auto-applying recipes without confirmation produces
    plausible but wrong rewrites.
 3. **Treating description-fidelity as deterministic-equivalent.**
    The check compares the table's trigger column to the sibling's
    current description; minor wording differences are expected
    (truncation to ~12 words). The check fires on *substantive*
    drift (a sibling description changed and the table did not).
-   Reporting trivial wording deltas as FAIL produces noise.
 4. **Inlining a chained skill instead of invoking it.** MUST invoke
-   `/build:check-skill` via the Skill tool when Step 1 routes off-
-   target. MUST NOT inline a partial check-skill audit. The
-   shortcut bypasses the chained skill's rubric.
+   `/build:check-skill` via the Skill tool when Step 1 routes
+   off-target.
+5. **Re-evaluating scripted rules in Tier-2.** The script is
+   authoritative for the 17 Tier-1 rules; trust the `pass` envelope.
+6. **Suppressing the inapplicable envelope.** When a sibling SKILL.md
+   cannot be read (malformed frontmatter), the affected coverage /
+   fidelity rule emits inapplicable — surface it; do not silently skip.
+7. **Embellishing scripts' recommended_changes.** Each rule's recipe
+   constant is canonical guidance sourced from
+   `help-skill-best-practices.md`. Copy it through; do not paraphrase.
+
+## Key Instructions
+
+- Run Tier-1 before Tier-2; the FAIL exclusion list above gates
+  judgment evaluation.
+- Cite the source principle for every finding — every rule's body
+  names the `help-skill-best-practices.md` section it enforces.
+- Tier-3 (trigger-collision) is load-bearing — never skip.
+- Repair is opt-in and per-finding; never apply recipes without
+  explicit user confirmation.
+- Recovery: read-only outside the Repair Loop; edits revertable via
+  `git diff` / `git checkout`.
 
 ## Handoff
 
 **Receives:** Path to a help-skill SKILL.md or a plugin name.
 
-**Produces:** A finding report (FAIL / WARN / INFO with source
-principle citations) and an opt-in repair loop. Does not write to
-disk unless the user opts in to repair.
+**Produces:** A unified findings table merging the 17 Tier-1
+envelopes (script JSON), 5 Tier-2 judgment findings, and the Tier-3
+trigger-collision finding. Each row: tier, rule_id, location, status,
+reasoning + recommended_changes excerpt. Optionally — per user
+confirmation in the Repair Loop — targeted edits to the help-skill
+SKILL.md.
 
 **Chainable to:** `/build:check-skill <path>` (catches generic
 SKILL.md structural issues outside the help-skill rubric);
-`/build:check-skill-pair help-skill` (audits pair-level integrity —
-principles doc present, audit/playbook coverage, routing
-registration); `/build:build-help-skill <plugin>` (when the target
-file does not exist).
+`/build:check-skill-pair help-skill` (audits pair-level integrity);
+`/build:build-help-skill <plugin>` (when the target file does not
+exist or is too damaged for repair).
