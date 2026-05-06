@@ -16,254 +16,158 @@ argument-hint: "[path]"
 user-invocable: true
 references:
   - ../../_shared/references/subagent-best-practices.md
-  - references/audit-dimensions.md
-  - references/repair-playbook.md
+  - references/check-description-as-router-prompt.md
+  - references/check-failure-behavior.md
+  - references/check-injection-surface.md
+  - references/check-output-contract.md
+  - references/check-scope-discipline.md
+  - references/check-tool-proportionality.md
+  - references/check-voice-and-framing.md
 license: MIT
 ---
 
 # Check Subagent
 
-Audit Claude Code custom subagent definitions for structural
-soundness, tool-scope hygiene, routing-contract clarity, and safety
-posture. The rubric — what makes a subagent load-bearing, the file
-anatomy, the patterns that work — lives in
-[subagent-best-practices.md](../../_shared/references/subagent-best-practices.md).
-This skill is the audit workflow; the principles doc is what it
-audits against.
+Audit Claude Code custom subagent definitions for structural soundness, tool-scope hygiene, routing-contract clarity, and safety posture. The rubric — what makes a subagent load-bearing, the file anatomy, the patterns that work — lives in [subagent-best-practices.md](../../_shared/references/subagent-best-practices.md).
 
-The audit runs in three tiers. **Tier-1** is deterministic — seven
-shell scripts run per target and emit fixed-format findings.
-**Tier-2** is a single locked-rubric LLM call per target evaluating
-all seven [audit dimensions](references/audit-dimensions.md) at once;
-dimensions that do not apply return PASS silently. **Tier-3** is
-cross-entity collision detection — when the scope holds multiple
-subagents in the same directory, pairwise description similarity
-flags overlapping routing surface.
-
-Read-only by default. The opt-in repair loop applies fixes only after
-per-finding confirmation.
+This skill follows the [check-skill pattern](../../_shared/references/check-skill-pattern.md). Tier-1 detection is in 8 scripts emitting JSON envelopes via `_common.py` (20 rule_ids total). Tier-2 has 7 judgment dimensions read inline by the primary agent. Tier-3 is `description-collision` (mechanically detected by `check_collision.sh`).
 
 ## Workflow
-
-1. Scope → 2. Tier-1 Deterministic Checks → 3. Tier-2 Judgment
-Checks → 4. Tier-3 Description Collision → 5. Report → 6. Opt-In
-Repair Loop.
 
 ### 1. Scope
 
 Read `$ARGUMENTS`:
 
-- **Single path to a `.md` file under an `agents/` directory** —
-  audit that file.
-- **Directory path** — walk the directory, audit every `.md` file at
-  the top level. Do not recurse — subagent definitions are top-level
-  by convention.
-- **Empty** — default to `.claude/agents/` in the current working
-  directory. If it does not exist or is empty, state the absence and
-  exit.
+- **Single path to a subagent `.md` file** — audit that file.
+- **Directory path** — walk top-level for subagent definitions (files at `.claude/agents/`, `~/.claude/agents/`, or `plugins/<plugin>/agents/`).
+- **Empty** — refuse and explain.
 
-Confirm the scope aloud before proceeding ("Auditing <path> (N
-subagent(s) found)").
+Confirm the scope aloud before proceeding.
 
 ### 2. Tier-1 Deterministic Checks
 
-Run seven scripts in sequence against each target. Each exits `0` on
-clean / WARN / INFO / HINT and `1` on one or more FAIL; do not stop
-on any script's FAIL — all seven contribute to the merged report.
+Invoke 8 detection scripts:
 
 ```bash
-SCRIPTS="${SKILL_DIR}/scripts"   # resolved by Claude at invocation
+SCRIPTS="${SKILL_DIR}/scripts"
 TARGETS="$ARGUMENTS"
 
-bash "$SCRIPTS/check_secrets.sh"     $TARGETS   # FAIL: secret patterns — excludes from Tier-2
-bash "$SCRIPTS/check_location.sh"    $TARGETS   # FAIL: wrong directory / wrong extension
-bash "$SCRIPTS/check_frontmatter.sh" $TARGETS   # FAIL: missing delimiter / name / description; description >1024 chars
-bash "$SCRIPTS/check_naming.sh"      $TARGETS   # FAIL: name ≠ filename stem; WARN: non-kebab-case; HINT: generic filename
-bash "$SCRIPTS/check_tools.sh"       $TARGETS   # FAIL: wildcard tool entry; WARN: omitted tools / Agent listed / parallel-write risk
-bash "$SCRIPTS/check_size.sh"        $TARGETS   # WARN: body ≥6,000 chars (~1,500 tokens); FAIL: ≥12,000 chars (~3,000 tokens)
-bash "$SCRIPTS/check_structure.sh"   $TARGETS   # WARN: no body headings; INFO: scope section absent
+bash "$SCRIPTS/check_secrets.sh"     $TARGETS   # 1 rule:  secret (FAIL)
+bash "$SCRIPTS/check_location.sh"    $TARGETS   # 2 rules: location-dir, location-ext (FAIL)
+bash "$SCRIPTS/check_frontmatter.sh" $TARGETS   # 6 rules: fm-* + plugin-noop, memory-expansion
+bash "$SCRIPTS/check_naming.sh"      $TARGETS   # 3 rules: name-kebab, name-stem-match, generic-filename
+bash "$SCRIPTS/check_tools.sh"       $TARGETS   # 4 rules: tools-omitted, tools-wildcard, agent-listed, parallel-write-risk
+bash "$SCRIPTS/check_size.sh"        $TARGETS   # 1 rule:  size (warn ≥6000 chars; fail ≥12000)
+bash "$SCRIPTS/check_structure.sh"   $TARGETS   # 2 rules: no-headings, scope-absent
+bash "$SCRIPTS/check_collision.sh"   $TARGETS   # 1 rule:  description-collision (Tier-3 mechanically detected)
 ```
 
-The scripts live next to `SKILL.md` under `scripts/` and are
-executable. Claude resolves `${SKILL_DIR}` from the skill's own
-directory at invocation time — hooks use `$CLAUDE_PLUGIN_ROOT`, but
-skills do not.
+Each script emits a JSON array of envelopes: `{rule_id, overall_status, findings[]}`. `recommended_changes` is canonical — copy through verbatim.
 
-**Script-to-check map:**
+**Script-to-rules map** (20 Tier-1 rule_ids):
 
-| Script | Checks |
-|---|---|
-| `check_secrets.sh` | Regex scan for AWS / GitHub / OpenAI / Anthropic / Stripe API key patterns, PEM private-key headers, and credential-shaped `password` / `secret` / `token` / `api_key` / `access_key` / `private_key` assignments; skips obvious placeholders (`your-`, `example`, `redacted`, `foo`, etc.) |
-| `check_location.sh` | File is under `.claude/agents/`, `~/.claude/agents/`, or `plugins/<plugin>/agents/`; extension is `.md` |
-| `check_frontmatter.sh` | `---`-delimited YAML block present at file head; `name` and `description` keys present and non-empty; `description` ≤1,024 chars (spec truncation cap); plugin-subagent no-op detection (`permissionMode`/`hooks`/`mcpServers` set in a plugin path); `memory:` + narrow `tools` implicit Read/Write/Edit expansion |
-| `check_naming.sh` | `name` is kebab-case (`^[a-z][a-z0-9]*(-[a-z0-9]+)*$`); filename stem equals `name`; filename is not generic (`agent.md`, `helper.md`) |
-| `check_tools.sh` | `tools` declared explicitly; no wildcards (`*`, `all`, `all_tools`); `Agent` not listed in a subagent-scope definition; `background: true` + Write/Edit without `isolation: worktree` |
-| `check_size.sh` | Body character count — WARN ≥6,000 chars (~1,500 tokens), FAIL ≥12,000 chars (~3,000 tokens) |
-| `check_structure.sh` | Body has at least one `##` heading; presence of a Scope / Out-of-scope heading |
+| Script | rule_ids | Severity |
+|---|---|---|
+| `check_secrets.sh` | `secret` | fail |
+| `check_location.sh` | `location-dir` | fail |
+| `check_location.sh` | `location-ext` | fail |
+| `check_frontmatter.sh` | `fm-delimiter` | fail |
+| `check_frontmatter.sh` | `fm-name` | fail |
+| `check_frontmatter.sh` | `fm-description` | fail |
+| `check_frontmatter.sh` | `fm-description-length` | fail |
+| `check_frontmatter.sh` | `plugin-noop` | warn |
+| `check_frontmatter.sh` | `memory-expansion` | warn |
+| `check_naming.sh` | `name-kebab` | warn |
+| `check_naming.sh` | `name-stem-match` | fail |
+| `check_naming.sh` | `generic-filename` | warn |
+| `check_tools.sh` | `tools-omitted` | warn |
+| `check_tools.sh` | `tools-wildcard` | fail |
+| `check_tools.sh` | `agent-listed` | warn |
+| `check_tools.sh` | `parallel-write-risk` | warn |
+| `check_size.sh` | `size` | warn (≥6000) / fail (≥12000) |
+| `check_structure.sh` | `no-headings` | warn |
+| `check_structure.sh` | `scope-absent` | warn |
+| `check_collision.sh` | `description-collision` | warn (Tier-3) |
 
-**Exit-code contract every script honors:** `0` on clean / WARN /
-INFO / HINT-only; `1` on one or more FAIL; `64` on argument error
-(including path-not-found); `69` on missing POSIX dependency (`awk`,
-`find`, `basename`, `grep`, `tr`, `wc`).
+**Tier-2 exclusion list.** Any FAIL in `secret`, `location-dir`, `location-ext`, `fm-delimiter`, `fm-name`, `fm-description`, `fm-description-length`, `name-stem-match`, `tools-wildcard`, or `size` (>12000 char case) excludes the subagent from Tier-2 — malformed definitions don't reach the LLM step.
 
-**FAIL findings that exclude the file from Tier-2:**
+### 3. Tier-2 Semantic Dimensions (One LLM Call per Subagent)
 
-- Any `check_secrets.sh` FAIL (secrets present — evaluation unsafe).
-- `check_location.sh` FAIL (file is not a subagent definition).
-- `check_frontmatter.sh` FAIL on missing delimiter or missing
-  `name` / `description` (the routing contract does not exist).
-- `check_tools.sh` wildcard FAIL (effective tool set is unresolvable).
+For each structurally valid subagent, evaluate against the **7 judgment rules** at `references/check-*.md`:
 
-**FAIL findings that do NOT exclude from Tier-2:** description
-over-length, name-stem mismatch, body-size hard-fail — the file is
-still parseable and the judgment rubric can evaluate productively.
+| File | Dimension | Severity |
+|---|---|---|
+| [check-scope-discipline.md](references/check-scope-discipline.md) | D1 — clear in-scope / out-of-scope; out-of-scope refusals | warn |
+| [check-description-as-router-prompt.md](references/check-description-as-router-prompt.md) | D2 — description leads with caller's situation, not subagent's function | warn |
+| [check-tool-proportionality.md](references/check-tool-proportionality.md) | D3 — tools allowlist is the minimum needed | warn |
+| [check-output-contract.md](references/check-output-contract.md) | D4 — output shape and termination explicit | warn |
+| [check-voice-and-framing.md](references/check-voice-and-framing.md) | D5 — direct, definite voice; no marketing or hedging | warn |
+| [check-failure-behavior.md](references/check-failure-behavior.md) | D6 — named failure modes with explicit recovery | warn |
+| [check-injection-surface.md](references/check-injection-surface.md) | D7 — payload-derived input not exec'd or eval'd unsafely | warn |
 
-**WARN / INFO / HINT findings never exclude.** They surface in the
-report alongside Tier-2 findings.
+#### Evaluator policy
 
-### 3. Tier-2 Judgment Checks
+- **Single locked-rubric pass per subagent.** Read all 7 rule files first, then evaluate each subagent in one LLM call. Don't re-decompose into sub-checks (RULERS, Hong et al. 2026 — per-dimension calls cost ~11.5 points of agreement).
+- **Default-closed when borderline.** When evidence is ambiguous, return `warn`, not `pass`.
+- **Severity floor: WARN.** All 7 Tier-2 dimensions are coaching, not blocking. Escalate to FAIL only for safety concerns Tier-1 missed.
+- **One finding per dimension per subagent maximum.** Surface the highest-signal location with concrete excerpts.
 
-For each file that passed the Tier-2-exclusion filter, make a single
-LLM call against the rubric in
-[audit-dimensions.md](references/audit-dimensions.md). All seven
-dimensions run together — no trigger gating. A dimension that does
-not apply (e.g., D7 Injection Surface on a subagent that does not
-interpolate user input) returns PASS silently.
+Include the full subagent definition verbatim — never summarize. Dimensions that don't apply (e.g., D7 Injection Surface on a subagent that never reads input) return `inapplicable` silently.
 
-The seven dimensions:
+### 4. Tier-3 Cross-Entity Collision
 
-| Dimension | What it judges |
-|---|---|
-| D1 Scope Discipline | Single responsibility; scope and out-of-scope stated explicitly; workflow does not mix unrelated concerns |
-| D2 Description as Router Prompt | Verb-phrase capability opener; explicit trigger conditions; at least one exclusion; stated return/output; proactive-invocation signal when the workflow implies self-delegation |
-| D3 Tool Proportionality | Effective tool set matches the described workflow; `Bash` / `Write` / `Edit` grants carry body-level scoping; path constraints on file-modifying tools where the tool supports them |
-| D4 Output Contract | Output format is mandated and machine-parsable; one concrete example supplied at points of genuine ambiguity |
-| D5 Voice & Framing | Imperative mood throughout; consistent terminology; no hedging (`try your best`, `if possible`, `might want to`) or apology language |
-| D6 Failure Behavior | Explicit handling for blockers (bad input, missing access, ambiguous request); deterministic exit — no silent workarounds |
-| D7 Injection Surface | User input not interpolated raw into the prompt; external text treated as data, not instructions |
-
-Feed the file contents (and any Tier-1 HINT lines — none currently
-emitted by the default script set) into the prompt. Parse the
-response into the fixed lint format (one finding per dimension at
-most; PASS produces no finding).
-
-### 4. Tier-3 Description Collision
-
-When the scope holds multiple subagent files, run description
-collision detection:
-
-```bash
-bash "$SCRIPTS/check_collision.sh" $TARGETS   # WARN: pairwise description Jaccard ≥0.6
-```
-
-Pairwise token-set Jaccard similarity across every
-`.claude/agents/*.md` pair; flag any pair scoring ≥0.6 as a
-routing-collision risk. Overlapping descriptions produce
-non-deterministic routing — the main agent has no basis to pick
-between two agents that claim the same trigger surface.
-
-Report collisions as WARN findings, named pairwise (`file-a.md`
-vs. `file-b.md`, similarity 0.71). Single-file scope skips this tier.
+`description-collision` is mechanically detected at Tier-1 by `check_collision.sh` (pairwise token-set Jaccard ≥0.6). Returns `pass` (no collisions) or `warn` (collisions surfaced) per pair. Single-subagent scope returns `inapplicable`.
 
 ### 5. Report
 
-Emit a unified findings table sorted by severity (FAIL > WARN > INFO
-> HINT), then by file path, then by check. Summary line at top and
-bottom:
+Merge findings from all 3 tiers into a unified table:
 
 ```
-N fail, N warn, N info across N subagent(s)
+| Tier | rule_id | Location | Status | Reasoning |
+|------|---------|----------|--------|-----------|
 ```
 
-Lint format:
+Sort: `fail` before `warn` before `inapplicable`; Tier-1 before Tier-2 before Tier-3 within severity. Each finding's `Recommendation:` line copies through `recommended_changes` verbatim.
 
-```
-SEVERITY  <path> — <check>: <detail>
-  Recommendation: <specific change>
-```
-
-If any file was excluded from Tier-2, name it and the exclusion-
-trigger finding.
+Close with: `N subagents audited, M findings (X fail, Y warn)` or `N subagents audited — no findings`.
 
 ### 6. Opt-In Repair Loop
 
-After presenting findings, ask:
+Ask exactly once:
 
-> "Apply fixes? Enter `y` (all), `n` (skip), or comma-separated
-> finding numbers."
+> "Apply fixes? Enter y (all), n (skip), or comma-separated numbers."
 
-For each selected finding, follow the recipe in
-[repair-playbook.md](references/repair-playbook.md):
+For each selected finding:
 
-1. Read the relevant section of the target file.
-2. Propose a minimal specific edit — fix the finding without
-   restructuring surrounding content.
-3. Show the diff.
-4. Write the change only on explicit user confirmation.
-5. Re-run the Tier-1 script (or the relevant Tier-2 dimension) that
-   produced the finding; confirm the fix holds.
+- **Direct edit** — frontmatter shape, name slug, kebab-case rename, tools allowlist correction. Show diff; write on confirmation.
+- **Routed to another skill** — substantial rewrites → `/build:build-subagent`.
+- **Tier-2/3 judgment** — scope discipline, description, tool proportionality, etc. Ask the user; rewrite the section; show diff; write on confirmation.
 
-Per-change confirmation is non-negotiable. Bulk application removes
-the user's ability to review individual edits. Canonical-category
-findings (spec-documented FAILs) should be applied first;
-judgment-dimension findings may be skipped without regret.
+After each applied fix, re-run the relevant Tier-1 script (or re-judge the Tier-2/3 dimension). Terminate when the user enters `n` or exhausts findings.
 
 ## Anti-Pattern Guards
 
-1. **Running Tier-2 before Tier-1** — deterministic checks are cheap
-   and authoritative; running them first avoids spending LLM calls on
-   files that should have been excluded.
-2. **Trigger-gating Tier-2 dimensions** — all seven dimensions run on
-   every non-excluded file. A dimension that doesn't apply returns
-   PASS silently. Conditional dimensions produce inconsistent
-   rubrics across runs.
-3. **Applying all repair fixes in one batch** — per-finding
-   confirmation is required.
-4. **Recursing into agent subdirectories** — subagent definitions
-   are top-level by convention. Recursion pulls in unrelated `.md`
-   files the rubric does not model.
-5. **Skipping Tier-3 on multi-file scope** — description-collision
-   detection is cheap and catches a documented failure mode that no
-   single-file check can see.
-6. **Silent-pass on generic filenames** — `agent.md` or `helper.md`
-   are HINT-level under `check_naming.sh`; surface them rather than
-   dropping them from the report.
-7. **Flagging broad tool sets by absolute count** — Tool
-   Proportionality anchors to the workflow description, not a fixed
-   allowlist ceiling.
+1. **Per-dimension LLM call.** Collapse into one locked-rubric call per subagent.
+2. **LLM-evaluating format compliance.** Frontmatter shape, slug syntax, body length — handle deterministically in Tier-1.
+3. **Ambiguous compliance reported as PASS.** Surface as WARN (default-closed).
+4. **Vague finding text.** Cite the specific subagent file and exact phrasing.
+5. **Bulk-applying fixes.** Per-finding confirmation required.
+6. **Re-evaluating scripted rules in Tier-2.** Scripts are authoritative for the 20 Tier-1 rules; trust the `pass` envelope.
+7. **Suppressing the inapplicable envelope.** When a dimension does not apply (e.g., D7 against a subagent that never reads input), surface `inapplicable`.
+8. **Embellishing scripts' `recommended_changes`.** Each rule's recipe constant is canonical guidance sourced from `subagent-best-practices.md`. Copy through.
 
 ## Key Instructions
 
-- Tier-1 scripts run first and always. Tier-2 runs only on files
-  that passed the Tier-2-exclusion filter.
-- All seven Tier-2 dimensions are evaluated on every non-excluded
-  file. A dimension that does not apply returns PASS silently.
-- Repairs require per-finding confirmation — each change writes
-  individually and waits for explicit approval before the next.
-- When a Tier-1 script reports a missing dependency (exit 69),
-  surface the dependency name and install hint before continuing.
-  All current Tier-1 dependencies are POSIX basics; exit 69 in
-  practice means a broken environment, not a missing optional.
-- Won't modify files without per-change confirmation — the audit is
-  read-only by default.
-- Won't audit paths outside `$ARGUMENTS` — the scope the user named
-  is the only scope.
-- Won't audit `.md` files outside an `agents/` directory — route
-  other `.md` audits to `/build:check-skill` (for SKILL.md) or
-  `/build:check-rule` (for rules).
-- Recovery if a repair edit produces a worse state: the edit is a
-  single file change; revert with `git checkout -- <path>` or the
-  editor's undo.
+- Run Tier-1 deterministic checks first; gate LLM evaluation on structural validity.
+- Present all 7 Tier-2 dimensions as a single locked-rubric call per subagent.
+- Include the full subagent definition verbatim in every LLM evaluation.
+- Description-collision is Tier-3 but mechanically detected by `check_collision.sh` — no LLM call needed.
+- Recovery: read-only outside the Repair Loop; edits revertable via `git diff` / `git checkout`.
 
 ## Handoff
 
-**Receives:** Path to a single subagent definition (a `.md` file
-under an `agents/` directory) or a directory holding such files at
-the top level. Empty `$ARGUMENTS` defaults to `.claude/agents/`.
-**Produces:** Structured findings table in the lint format
-(`SEVERITY  <path> — <check>: <detail>` with a `Recommendation:`
-follow-up line); optionally, targeted edits applied after
-per-finding confirmation.
-**Chainable to:** `/build:build-subagent` (rebuild or respec after
-flagged repairs when the findings surface structural issues bigger
-than point fixes).
+**Receives:** Path to a single subagent `.md` file or a directory containing subagent definitions.
+
+**Produces:** A unified findings table merging the 20 Tier-1 envelopes (script JSON), 7 Tier-2 judgment findings per subagent, and the Tier-3 description-collision findings per subagent pair. Each row: tier, rule_id, location, status, reasoning + `recommended_changes` excerpt. Optionally — per user confirmation in the Repair Loop — targeted edits to subagent files.
+
+**Chainable to:** `/build:build-subagent` (rebuild non-compliant subagents); `/build:check-skill-pair subagent` (audit pair-level integrity for build/check pairs).
