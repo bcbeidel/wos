@@ -199,6 +199,19 @@ Three skills warrant separate handling because they may not have detection scrip
 
 Skills wrapping external linters follow `check_shellcheck.py`'s shape: SC-code-to-rule_id mapping dict + per-rule recipe constants. Examples: `check-makefile` (`checkmake`), `check-python-script` (`ruff`), `check-pre-commit-config` (`pre-commit`), `check-github-workflow` (`actionlint`/`zizmor`).
 
+## Carve-Out: Design+Audit Hybrid Skills
+
+Some `check-*` skills are **hybrids** — part design tool (generates a new artifact from a goal), part audit tool (validates an existing artifact). `check-skill-chain` is the canonical example: Goal mode designs a `*.chain.md` manifest from a workflow description; Manifest mode audits an existing manifest. Only the audit half fits this pattern.
+
+For these skills:
+
+- **The pattern applies to the audit half only.** Decompose its dimensions into `references/check-*.md` files; structure the audit-mode workflow as Tier-1/Tier-2/Tier-3; include the Evaluator policy subsection.
+- **The design half stays unchanged.** Keep its existing prose in SKILL.md as a parallel section. Do not force it into the Tier-1/2/3 vocabulary — it is not auditing anything.
+- **Cross-plugin tool delegation is allowed at Tier-1.** A skill can delegate structural checks to a script in another plugin (e.g., `check-skill-chain` invokes `plugins/wiki/scripts/lint.py`) when that script is the canonical authority for the artifact type. Do **not** wrap it in a thin local script just to satisfy "scripts/check_*.py owned by this skill" — duplication for compliance is the wrong tradeoff. SKILL.md documents the delegation explicitly so future readers see the reuse, not a missing script.
+- **`scripts/_common.py` is optional** when no detection scripts are owned locally. The pattern audit script (`check_skill_pattern.py`) already treats `_common.py` as conditional on `_has_detection_scripts(skill_dir)`.
+
+When a hybrid skill emerges that this carve-out doesn't cover, extend this section rather than weakening the main pattern.
+
 ## Review and Decay
 
 A `check-*` skill ages when:
