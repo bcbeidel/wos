@@ -5,10 +5,12 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[target directory — defaults to CWD; walks up to the nearest RESOLVER.md and audits that one]"
 user-invocable: true
 references:
-  - ../../_shared/references/resolver-best-practices.md
   - ../../_shared/references/brief-best-practices.md
-  - references/audit-dimensions.md
-  - references/repair-playbook.md
+  - ../../_shared/references/resolver-best-practices.md
+  - references/check-brief-presence-and-content.md
+  - references/check-context-actionability.md
+  - references/check-eval-representativeness.md
+  - references/check-filing-coverage.md
 license: MIT
 ---
 
@@ -16,67 +18,97 @@ license: MIT
 
 Evaluate a root-level resolver in three tiers: deterministic artifact and path checks (no LLM), per-dimension semantic evaluation (one locked-rubric LLM call), and cross-artifact reachability + staleness against disk state.
 
+This skill follows the [check-skill pattern](../../_shared/references/check-skill-pattern.md). Tier-1 detection is in 3 scripts emitting JSON envelopes via `_common.py` (11 rule_ids total). Tier-2 has 4 judgment dimensions read inline by the primary agent. Tier-3 cross-artifact checks are mechanized as Tier-1 rule_ids (`dark-capability`) or opt-in (`--run-evals`).
+
 The audit rubric mirrors the authoring principles in [resolver-best-practices.md](../../_shared/references/resolver-best-practices.md). When the principles doc changes, the dimensions follow.
 
 ## Workflow
 
 ### 1. Discover Resolver Artifacts
 
-Walk up from the target directory looking for `RESOLVER.md`. The first ancestor that has one becomes the **resolver root** for this audit; all checks scope to that resolver and its subtree.
+Walk up from the target directory looking for `RESOLVER.md`. The first ancestor with one becomes the **resolver root**; all checks scope to that resolver and its subtree.
 
 Locate three artifacts at the resolver root:
 - `RESOLVER.md`
-- `AGENTS.md` (for the pointer check) — at the resolver root
-- `.resolver/evals.yml` — sibling to `RESOLVER.md` under the resolver root
+- `AGENTS.md` (for the pointer check)
+- `.resolver/evals.yml` (sibling to RESOLVER.md)
 
-Report: "Found resolver at <resolver root>. Auditing N filing rows, M context rows, K eval cases."
+Report: "Found resolver at `<resolver root>`. Auditing N filing rows, M context rows, K eval cases."
 
 If no `RESOLVER.md` is found anywhere up to the filesystem root, emit FAIL and stop — nothing to audit. To audit every resolver in a repo with nested resolvers, run this skill once per resolver root.
 
-### 2. Tier 1 — Deterministic Checks
+### 2. Tier-1 Deterministic Checks
 
-Tier-1 scripts (to be scaffolded via `/build:build-python-script` per Language Selection) produce findings in the standard `FAIL|WARN|INFO|HINT  <path> — <check>: <detail>` format. Until the scripts exist, Claude performs these checks inline:
+Invoke the three detection scripts:
 
-| Check | Severity | Detail |
+```bash
+python3 plugins/build/skills/check-resolver/scripts/check_pointer.py <resolver-root>
+python3 plugins/build/skills/check-resolver/scripts/check_resolver.py <resolver-root>
+python3 plugins/build/skills/check-resolver/scripts/check_evals.py <resolver-root>
+```
+
+Each script emits a JSON array of envelopes. Parse stdout per script. The combined Tier-1 rule set:
+
+**Script-to-rules map** (11 Tier-1 rule_ids):
+
+| Script | rule_ids | Severity |
 |---|---|---|
-| AGENTS.md pointer present | FAIL | `RESOLVER.md` is referenced from `AGENTS.md` (text match) |
-| AGENTS.md pointer resolves | FAIL | The path named in the pointer exists |
-| Managed-region markers present | FAIL | Both `<!-- resolver:begin -->` and `<!-- resolver:end -->` appear exactly once |
-| Filing-table paths resolve | FAIL | Every directory named in the filing table exists on disk |
-| Context-table paths resolve | FAIL | Every doc path named in the context table exists |
-| No duplicate filing rows | FAIL | Content-type column is unique across filing rows |
-| No duplicate context rows | FAIL | Task column is unique across context rows |
-| Eval file parses | FAIL | `.resolver/evals.yml` is valid YAML with the expected schema |
-| File mtime threshold | WARN | `RESOLVER.md` mtime older than 90 days |
-| Last-eval-pass threshold | WARN | Last recorded eval-pass older than 30 days |
+| `check_pointer.py` | `pointer-present` | fail |
+| `check_pointer.py` | `pointer-resolves` | fail |
+| `check_resolver.py` | `markers-present` | fail |
+| `check_resolver.py` | `filing-paths-resolve` | fail |
+| `check_resolver.py` | `context-paths-resolve` | fail |
+| `check_resolver.py` | `filing-rows-unique` | fail |
+| `check_resolver.py` | `context-rows-unique` | fail |
+| `check_resolver.py` | `dark-capability` | warn |
+| `check_resolver.py` | `mtime-stale` | warn |
+| `check_evals.py` | `evals-parse` | fail |
+| `check_evals.py` | `eval-pass-stale` | warn |
 
-Rules with a FAIL finding from the first five rows are **excluded from Tier 2** — a malformed or unreachable resolver shouldn't burn LLM budget.
+Each finding's `recommended_changes` is canonical — copy it through verbatim. `recommended_changes` is REQUIRED on every finding.
 
-### 3. Tier 2 — Semantic Dimensions (One LLM Call)
+**Tier-2 exclusion list.** Any FAIL in `pointer-present`, `pointer-resolves`, `markers-present`, `filing-paths-resolve`, `context-paths-resolve`, `filing-rows-unique`, `context-rows-unique`, or `evals-parse` excludes the resolver from Tier-2 — a malformed or unreachable resolver shouldn't burn LLM budget.
 
-Present the four judgment dimensions from [audit-dimensions.md](references/audit-dimensions.md) as a locked rubric in one call. Include `RESOLVER.md` verbatim, the output of the directory scan, the `.resolver/evals.yml` contents, and (if present) the `.briefs/<slug>.brief.md` contents.
+**WARN findings (`dark-capability`, `mtime-stale`, `eval-pass-stale`)** never exclude. They surface alongside Tier-2 findings.
 
-1. **Filing Coverage** — Does the filing table reflect the directories that actually exist on disk? Flag dark capabilities (directories not in table and not in out-of-scope list).
-2. **Context Actionability** — Does each context row list at least one concrete doc path (not vague references)? Is the bundle size appropriate (1–4 docs)?
-3. **Eval Representativeness** — Do the evals cover both filing and context routing? Are there negative cases? Is coverage ≥1 case per filing row?
-4. **Brief Presence and Content** — Does `.briefs/<slug>.brief.md` exist with the five required H2 sections (*User ask*, *So-what*, *Scope boundaries*, *Planned artifacts*, *Planned handoffs*)? Is the *So-what* anchored in a specific filing/context drift rather than reading as a category description? Are scope boundaries concrete? Severity is WARN — briefs are throw-away; missing briefs leave the build untraceable but do not break the resolver.
+### 3. Tier-2 Judgment Dimensions
 
-Output per dimension: `evidence → reasoning → verdict (WARN or PASS) → recommendation`. Default-closed on borderline evidence.
+For resolvers that passed the Tier-2 exclusion gate, evaluate against the **4 judgment rules** at `references/check-*.md`:
 
-### 4. Tier 3 — Cross-Artifact Checks
+| File | Dimension | Severity |
+|---|---|---|
+| [check-filing-coverage.md](references/check-filing-coverage.md) | D1 — every depth-1 directory classified (filing / context / out-of-scope / ambient / delegated) | warn |
+| [check-context-actionability.md](references/check-context-actionability.md) | D2 — context rows list 1-4 concrete entries, not vague prose | warn |
+| [check-eval-representativeness.md](references/check-eval-representativeness.md) | D3 — evals exercise both filing/context routing; ≥1 case per filing row; ≥15% negative | warn |
+| [check-brief-presence-and-content.md](references/check-brief-presence-and-content.md) | D4 — `.briefs/<slug>.brief.md` exists with 5 H2s; *So-what* is specific | warn |
 
-**Dark capabilities scan.** Mechanized in `check_resolver.py` as Tier-1 `dark-capability`. For every directory under the resolver root (depth 1–2 from that root), check whether it appears in the filing table, the context table, the out-of-scope list, the ambient default list (`.git`, `node_modules`, `dist`, `build`, `.cache`, `.venv`, `target`, `__pycache__`, `.resolver`), or contains a nested `RESOLVER.md` (delegation — that subtree belongs to the nested resolver, not this one). Anything unclassified → WARN. Subdirectories of a filing dir are not auto-classified.
+#### Evaluator policy
 
-**Staleness signal.** Compare `RESOLVER.md` mtime against a fresh regeneration output (simulated via the same scan `build-resolver` would run). Differences → WARN ("filing table drifted from disk; regenerate").
+- **Single locked-rubric pass.** Read all 4 rule files first, then evaluate the resolver in one LLM call (RULERS, Hong et al. 2026). Per-dimension calls cost ~11.5 points of agreement.
+- **Default-closed when borderline.** When evidence is ambiguous, return `warn`, not `pass`.
+- **Severity floor: WARN.** All 4 Tier-2 dimensions are coaching, not blocking. Escalate to FAIL only for safety concerns Tier-1 missed.
+- **One finding per dimension maximum.** Surface the highest-signal location with concrete excerpts.
 
-**Optional: Run evals.** When invoked with `--run-evals`, execute each case in `.resolver/evals.yml`:
-- For filing cases: pose the prompt to a Claude call with RESOLVER.md in context and check whether the chosen location matches `expected_filing`.
-- For context cases: check whether the resolver surfaces the expected doc paths.
-- Emit one finding per failing case.
+Include `RESOLVER.md` verbatim in the Tier-2 prompt — never summarize. Include the directory scan output, `.resolver/evals.yml`, and `.briefs/<slug>.brief.md` (if present).
+
+### 4. Tier-3 Cross-Artifact Checks
+
+**Dark-capabilities scan.** Mechanized as Tier-1 `dark-capability` (already part of `check_resolver.py`'s output). For every directory under the resolver root (depth 1–2), classify as: in-filing, in-context, in-out-of-scope, ambient (`.git`, `node_modules`, `dist`, `build`, `.cache`, `.venv`, `target`, `__pycache__`, `.resolver`), or delegated (nested `RESOLVER.md`). Anything unclassified surfaces as `warn`. Subdirectories of a filing dir are not auto-classified.
+
+**Managed-region drift.** Currently judgment-evaluated as part of D1 (filing-coverage). Future work could mechanize as a separate Tier-3 rule that diffs the live managed region against a fresh regeneration.
+
+**Optional: `--run-evals`.** When invoked with `--run-evals`, execute each case in `.resolver/evals.yml` against a Claude call with RESOLVER.md in context. Each failing case surfaces as a Tier-3 finding. This step is opt-in (slow and costs LLM calls).
 
 ### 5. Report Findings
 
-Output all findings in file/issue/severity format. Sort: Tier-1 FAIL → Tier-2 FAIL → Tier-3 FAIL → Tier-1 WARN → Tier-2 WARN → Tier-3 WARN. Each finding carries a `Recommendation:` line drawn from [repair-playbook.md](references/repair-playbook.md).
+Merge findings from all three sources (3 detection scripts' JSON envelopes + 4 Tier-2 judgment findings + optional `--run-evals` results) into a unified table:
+
+```
+| Tier | rule_id | Location | Status | Reasoning |
+|------|---------|----------|--------|-----------|
+```
+
+Sort: `fail` before `warn` before `inapplicable`; Tier-1 before Tier-2 before Tier-3 within severity. Each finding's `Recommendation:` line copies through `recommended_changes` verbatim.
 
 Close with:
 - `Resolver audited — no findings` or
@@ -84,66 +116,42 @@ Close with:
 
 ### 6. Opt-In Repair Loop
 
-After presenting findings, ask:
+Ask exactly once:
+
 > "Apply fixes? Enter y (all), n (skip), or comma-separated numbers."
 
-For each selected finding, draw the canonical repair from `repair-playbook.md`. Show the diff; apply only on per-change confirmation. Re-run Tier-1 after each applied fix.
+For each selected finding, route per the recipe in `recommended_changes`:
 
-## Key Instructions
+- **Direct edit** — managed-region row corrections, AGENTS.md pointer text, eval-pass timestamp refresh. Show diff; write on confirmation.
+- **Routed to another skill** — large structural drift → `/build:build-resolver --regenerate`; missing filing rows → `/build:build-resolver --add-filing <type>`.
+- **Tier-2 judgment** — filing coverage, context actionability, eval representativeness, brief content quality. Ask the user; rewrite the section; show diff; write on confirmation.
 
-- Run Tier-1 first; exclude malformed resolvers from Tier 2
-- Present the four Tier-2 dimensions in a single locked-rubric call; per-dimension calls degrade agreement (RULERS, Hong et al. 2026)
-- Include `RESOLVER.md` verbatim in the Tier-2 prompt — never summarize
-- Gate the dark-capabilities scan on depth — depth 1–2 is the sweet spot; deeper scans overwhelm with transient build outputs
-- Run evals only when `--run-evals` is passed; eval execution is slow and costs LLM calls, so keep it opt-in
-- Surface borderline evidence as WARN (default-closed)
+After each applied fix, re-run the affected Tier-1 script (or re-judge the Tier-2 dimension). Terminate when the user enters `n` or exhausts findings.
 
 ## Anti-Pattern Guards
 
-1. **LLM-evaluating path existence.** Handle with deterministic file checks (Tier 1); paths either resolve or they don't.
-2. **Per-dimension Tier-2 calls.** Collapse into one locked-rubric call per resolver.
+1. **LLM-evaluating path existence.** Path existence is Tier-1's job (deterministic file checks); paths either resolve or they don't.
+2. **Per-dimension Tier-2 calls.** Collapse into one locked-rubric call per resolver. Per-dimension splits cost ~11.5 points of agreement.
 3. **Hand-managed region edits treated as valid.** Any row in the managed region that doesn't regenerate from disk is drift — FAIL or WARN depending on whether the row still resolves.
-4. **Reporting without recommendations.** Every finding names the specific change from the repair playbook.
-5. **Silent out-of-scope expansion.** If the user asks to suppress a dark-capability finding, add the directory to the explicit out-of-scope list; don't silently ignore it.
+4. **Reporting without recommendations.** Every finding's `recommended_changes` is canonical; copy it through.
+5. **Silent out-of-scope expansion.** If the user asks to suppress a dark-capability finding, add the directory to the explicit out-of-scope list in RESOLVER.md; don't silently ignore.
+6. **Re-evaluating scripted rules in Tier-2.** Scripts are authoritative for the 11 Tier-1 rules; trust the `pass` envelope.
+7. **Suppressing the inapplicable envelope.** When a sub-artifact (e.g., `.resolver/evals.yml`) is missing, the affected Tier-1 rule emits `fail` — do not collapse downstream rules to silent skip.
+8. **Embellishing scripts' `recommended_changes`.** Each rule's recipe constant is canonical guidance sourced from `resolver-best-practices.md`. Copy it through; do not paraphrase.
 
-## Example
+## Key Instructions
 
-<example>
-User: `/build:check-resolver`
-
-Step 1 — Discovers `RESOLVER.md` at repo root, `AGENTS.md`, `.resolver/evals.yml`.
-
-Step 2 Tier 1:
-- AGENTS.md pointer present — PASS
-- Managed-region markers present — PASS
-- Filing paths resolve — FAIL: `.designs/` not found (filing row points at non-existent directory)
-- Eval file parses — PASS
-- File mtime 102 days old — WARN
-
-Step 3 Tier 2 (excludes `.designs/` row from filing coverage assessment):
-- Filing Coverage — WARN: `.inbox/` directory on disk, not in table or out-of-scope
-- Context Actionability — PASS
-- Eval Representativeness — WARN: 8 cases all positive, no negative cases
-
-Step 4 Tier 3:
-- Dark capability: `.inbox/` — WARN (already flagged in Tier 2)
-- Staleness: filing table drift (`.designs/` removed from disk, still in table) — WARN
-
-Output:
-```
-FAIL  RESOLVER.md — filing path .designs/ does not resolve
-  Recommendation: Remove `.designs/` row or restore the directory
-WARN  RESOLVER.md — mtime 102 days; staleness threshold 90 days
-  Recommendation: Run /build:build-resolver --regenerate
-WARN  RESOLVER.md — dark capability: .inbox/ not in filing table or out-of-scope
-  Recommendation: Add to filing table or out-of-scope list
-WARN  .resolver/evals.yml — no negative cases in 8 eval rows
-  Recommendation: Add 1-2 negative cases per filing row (prompt routes AWAY from similar directory)
-```
-</example>
+- Run Tier-1 first; the FAIL exclusion list above gates judgment evaluation.
+- Present the 4 Tier-2 dimensions in a single locked-rubric call; per-dimension calls degrade agreement.
+- Include `RESOLVER.md` verbatim in the Tier-2 prompt — never summarize.
+- The dark-capability scan is gated to depth 1–2 — deeper scans overwhelm with transient build outputs.
+- Run evals only when `--run-evals` is passed; eval execution is slow.
+- Recovery: read-only outside the Repair Loop; edits revertable via `git diff` / `git checkout`.
 
 ## Handoff
 
 **Receives:** Target directory (defaults to CWD); walks up to the nearest `RESOLVER.md` and audits that resolver. Optional `--run-evals` flag.
-**Produces:** Structured findings report in file/issue/severity format.
-**Chainable to:** `/build:build-resolver --regenerate` (rebuild managed region); `/build:build-resolver --add-filing <type>` (add missing row).
+
+**Produces:** A unified findings table merging the 11 Tier-1 envelopes (script JSON), 4 Tier-2 judgment findings, and optional Tier-3 eval-execution results. Each row: tier, rule_id, location, severity, reasoning + `recommended_changes` excerpt. Optionally — per user confirmation in the Repair Loop — targeted edits to RESOLVER.md, AGENTS.md, or `.resolver/evals.yml`.
+
+**Chainable to:** `/build:build-resolver --regenerate` (rebuild managed region); `/build:build-resolver --add-filing <type>` (add missing filing row).
