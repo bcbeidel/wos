@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.3
+
+- Add `license: MIT` to skill frontmatter; teach the scaffolder and
+  `check-skill` to expect the field (#375)
+
 ## 0.1.2
 
 - Add `pick-model` skill — AI model selection advisory based on external
