@@ -1,0 +1,13 @@
+{
+  "_comment": "Canonical output shape for a check-makefile rule. 11 detection scripts emit JSON envelopes — check_secrets, check_structure, check_phony, check_help, check_indent, check_naming, check_variables, check_safety, check_recipes, check_checkmake, check_size. Each emits a single envelope or JSON array of envelopes. Schema: {rule_id, overall_status, findings[]}; per-finding: {status, location, reasoning, recommended_changes}. recommended_changes is REQUIRED — non-empty with concrete repair guidance from makefile-best-practices.md.",
+  "rule_id": "tab-indent",
+  "overall_status": "fail",
+  "findings": [
+    {
+      "status": "fail",
+      "location": {"line": 23, "context": "Makefile"},
+      "reasoning": "Recipe line uses spaces instead of a real tab. Make is silently strict about this — recipes MUST start with a tab character; spaces produce 'missing separator' errors at parse time, but worse, smart editors that auto-convert tabs to spaces can break a working Makefile invisibly.",
+      "recommended_changes": "Replace leading spaces with a real tab character on every recipe line. In Vim: `:set noexpandtab` then re-indent. In VS Code: configure the workspace to disable insertSpaces for `.makefile` / `Makefile` files. Verify with `cat -A Makefile` — recipe lines should start with `^I`."
+    }
+  ]
+}
