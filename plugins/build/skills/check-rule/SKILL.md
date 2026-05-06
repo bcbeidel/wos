@@ -6,245 +6,157 @@ argument-hint: "[path to rule file or directory — scans .claude/rules/ if omit
 user-invocable: true
 references:
   - ../../_shared/references/rule-best-practices.md
-  - references/audit-dimensions.md
-  - references/repair-playbook.md
+  - references/check-cross-rule-conflict.md
+  - references/check-example-realism.md
+  - references/check-framing.md
+  - references/check-judgment-not-linter.md
+  - references/check-scope-tightness.md
+  - references/check-single-concern.md
+  - references/check-specificity.md
+  - references/check-staleness.md
+  - references/check-why-adequacy.md
 license: MIT
 ---
 
 # /build:check-rule
 
-Evaluate the quality of an existing Claude Code rule library. Three tiers,
-in order: deterministic format checks (no LLM), per-rule semantic checks
-(eight always-on dimensions in a single locked-rubric call), then
-cross-rule conflict detection.
+Evaluate the quality of an existing Claude Code rule library. Three tiers, in order: deterministic format checks (no LLM), per-rule semantic checks (eight always-on dimensions in a single locked-rubric call), then cross-rule conflict detection.
 
-This skill evaluates the rules themselves — not files against rules.
+This skill follows the [check-skill pattern](../../_shared/references/check-skill-pattern.md). Tier-1 detection is in 5 scripts emitting JSON envelopes via `_common.py` (9 rule_ids total). Tier-2 has 8 judgment dimensions read inline by the primary agent. Tier-3 is the cross-rule-conflict judgment rule fired against rule pairs that could co-fire.
 
-The audit rubric mirrors the authoring principles in
-[rule-best-practices.md](../../_shared/references/rule-best-practices.md).
-Each Tier-2 dimension cites its source principle. When the principles doc
-changes, the dimensions should follow.
+The audit rubric mirrors the authoring principles in [rule-best-practices.md](../../_shared/references/rule-best-practices.md). Each Tier-2 dimension cites its source principle. When the principles doc changes, the dimensions follow.
 
 ## Workflow
 
 ### 1. Discover Rules
 
-Rule files live under `.claude/rules/**/*.md` (recursive). When `$ARGUMENTS`
-resolves to a path, scope discovery to that file or directory. When
-`$ARGUMENTS` is empty, scan `.claude/rules/` and (if the user maintains
-personal rules) `~/.claude/rules/`.
+Rule files live under `.claude/rules/**/*.md` (recursive). When `$ARGUMENTS` resolves to a path, scope discovery to that file or directory. When `$ARGUMENTS` is empty, scan `.claude/rules/` and (if the user maintains personal rules) `~/.claude/rules/`.
 
-Reading `~/.claude/rules/` is intentional: a rule library spans both
-project rules (`.claude/rules/`) and personal rules (`~/.claude/rules/`),
-and an audit that ignores the personal half misses real findings.
-Discovery and the audit phases (Tiers 1-3) are read-only; only the
-opt-in repair loop in Step 6 writes, and only after user confirmation
-on each change. The home-directory scope is narrowed by passing an
-explicit path argument — e.g. `/build:check-rule .claude/rules/` to
-audit project rules only.
+Reading `~/.claude/rules/` is intentional — a rule library spans both project rules and personal rules, and an audit that ignores the personal half misses real findings. Discovery and the audit phases (Tiers 1-3) are read-only; only the opt-in repair loop in Step 6 writes, and only after user confirmation per change. The home-directory scope is narrowed by passing an explicit path argument — e.g. `/build:check-rule .claude/rules/` to audit project rules only.
 
 Report: "Found N rules. Auditing..."
 
-### 2. Tier 1 — Deterministic Format Checks
+### 2. Tier-1 Deterministic Format Checks
 
-Tier 1 is implemented as six scripts under `scripts/` — four Python 3
-scripts for structural and pattern work, plus two bash scripts for
-pure text glue. Each is deterministic and emits findings in the
-standard `FAIL|WARN|INFO|HINT  <path> — <check>: <detail>` format.
-See [audit-dimensions.md](references/audit-dimensions.md) for the full
-rubric behind each check.
-
-Invoke all six scripts against the discovered rule set. The scripts
-live in `scripts/` relative to this SKILL.md — Claude resolves the
-absolute path from the skill's base directory at invocation time
-(`$CLAUDE_PLUGIN_ROOT` is documented for hook scripts, not skill-invoked
-scripts; don't rely on it here):
+Invoke 5 detection scripts (`emit_shape_hints.sh` is an informational helper, not a check):
 
 ```bash
-# SKILL_DIR = absolute path to this SKILL.md's directory (Claude fills in)
 SCRIPTS="${SKILL_DIR}/scripts"
-TARGETS="$ARGUMENTS"  # path(s) from user; default .claude/rules/
+TARGETS="$ARGUMENTS"   # default .claude/rules/
 
-python3 "$SCRIPTS/scan_secrets.py"     $TARGETS   # FAIL on any committed-secret pattern
-python3 "$SCRIPTS/check_structure.py"  $TARGETS   # FAIL location/extension; INFO unknown keys
-python3 "$SCRIPTS/check_paths_glob.py" $TARGETS   # FAIL unbalanced braces/brackets, empty, cntrl
-bash    "$SCRIPTS/check_size.sh"       $TARGETS   # WARN >200 lines, FAIL >500 lines
-python3 "$SCRIPTS/check_prose.py"      $TARGETS   # WARN hedges/prohibitions/synthetic placeholders
-bash    "$SCRIPTS/emit_shape_hints.sh" $TARGETS   # HINT lines for Tier-2 prompt context
+python3 "$SCRIPTS/scan_secrets.py"     $TARGETS   # 1 rule:  secret (FAIL)
+python3 "$SCRIPTS/check_structure.py"  $TARGETS   # 3 rules: location, extension, frontmatter-shape
+python3 "$SCRIPTS/check_paths_glob.py" $TARGETS   # 1 rule:  paths-glob (FAIL)
+bash    "$SCRIPTS/check_size.sh"       $TARGETS   # 1 rule:  size (warn >200; fail >500)
+python3 "$SCRIPTS/check_prose.py"      $TARGETS   # 3 rules: hedge, prohibition-opener, synthetic-placeholder
+bash    "$SCRIPTS/emit_shape_hints.sh" $TARGETS   # informational helper (not a check)
 ```
 
-**Script-to-check map:**
+Each script emits a JSON array of envelopes: `{rule_id, overall_status, findings[]}`, with each finding carrying `{status, location, reasoning, recommended_changes}`. `recommended_changes` is canonical — copy through verbatim.
 
-| Script | Checks | Severity levels |
+**Script-to-rules map** (9 Tier-1 rule_ids):
+
+| Script | rule_ids | Severity |
 |---|---|---|
-| `scan_secrets.py` | AWS / GitHub / OpenAI / Anthropic / Stripe key patterns + credential-shaped variable assignments | FAIL |
-| `check_structure.py` | Location (under `.claude/rules/`), Extension (`.md`, no double-extension), Frontmatter shape (only `paths:` documented) | FAIL / FAIL / INFO |
-| `check_paths_glob.py` | Balanced `{…}` and `[…]`, non-empty, no control chars | FAIL |
-| `check_size.sh` | Non-blank-line count against 200/500 thresholds | WARN / FAIL |
-| `check_prose.py` | Prose pre-check: hedges (Specificity), prohibition-only openers (Framing), synthetic placeholders in code blocks (Example Realism) | WARN |
-| `emit_shape_hints.sh` | Keyword signals (`compliant`, `non-compliant`, `violation`, `exception`, `failure`, code blocks) | HINT (informational) |
+| `scan_secrets.py` | `secret` | fail |
+| `check_structure.py` | `location` | fail |
+| `check_structure.py` | `extension` | fail |
+| `check_structure.py` | `frontmatter-shape` | warn |
+| `check_paths_glob.py` | `paths-glob` | fail |
+| `check_size.sh` | `size` | warn (>200) / fail (>500) |
+| `check_prose.py` | `hedge` | warn |
+| `check_prose.py` | `prohibition-opener` | warn |
+| `check_prose.py` | `synthetic-placeholder` | warn |
 
-**Orchestration rules:**
+**Tier-2 exclusion list.** Any FAIL in `secret`, `location`, `extension`, `paths-glob`, or `size` (>500 line case) excludes the rule from Tier-2 — malformed rules don't reach the LLM step. WARN findings (and `frontmatter-shape`) do **not** exclude.
 
-- Emit all Tier-1 output immediately, before any LLM work.
-- Rules with a FAIL finding from `scan_secrets.py`, `check_structure.py` (location/extension), or `check_paths_glob.py` are **excluded from Tier 2** — malformed rules don't reach the LLM step.
-- `check_size.sh` FAIL (>500 lines) also excludes from Tier 2.
-- `check_size.sh` WARN, `check_structure.py` INFO, and `check_prose.py` WARN findings do **not** exclude — they accompany Tier-2 output (and `check_prose.py` WARNs specifically feed Tier-2 dimensions as pre-filter signals for Specificity / Framing / Example Realism).
-- `emit_shape_hints.sh` HINT lines are not findings; collect them per file and include in the Tier-2 prompt as context so the evaluator weighs Why Adequacy and Example Realism appropriately.
-- Exit code of each script is 0 on clean / WARN-only / HINT-only, 1 on FAIL. The orchestrator treats exit 1 as the "exclude from Tier 2" signal.
+`emit_shape_hints.sh` collects keyword signals (`compliant`, `non-compliant`, `violation`, `exception`, `failure`, code-block presence) per file and supplies them as **prompt context** to Tier-2 — not as findings. The eight Tier-2 dimensions run on every rule regardless; the hints just inform the evaluator.
 
-### 3. Tier 2 — Per-Rule Semantic Checks (One LLM Call per Rule)
+### 3. Tier-2 Semantic Dimensions (One LLM Call per Rule)
 
-For each structurally valid rule, one locked-rubric LLM call assesses
-the eight always-on dimensions in
-[audit-dimensions.md](references/audit-dimensions.md):
+For each structurally valid rule, evaluate against the **8 judgment rules** at `references/check-*.md`:
 
-1. **Framing** — positive statement of what to do; no hedged phrasing
-2. **Specificity** — directive is concrete and falsifiable
-3. **Single Concern** — body covers one topic
-4. **Why Adequacy** — reasoning present; judgment-based rules name failure cost + legitimate exception
-5. **Scope Tightness** — `paths:` matches the rule's actual reach; unscoped rules that name a specific directory get flagged
-6. **Staleness** — globs resolve to real paths; examples look current
-7. **Judgment-Not-Linter** — rule doesn't restate what a formatter or type-checker already catches
-8. **Example Realism** — if examples present, they use domain-specific identifiers from the codebase, not synthetic `foo`/`bar`
+| File | Dimension | Severity |
+|---|---|---|
+| [check-framing.md](references/check-framing.md) | D1 — positive framing over pure prohibition | warn |
+| [check-specificity.md](references/check-specificity.md) | D2 — verifiable directives, no anchor-free terms | warn |
+| [check-single-concern.md](references/check-single-concern.md) | D3 — one topic per file | warn |
+| [check-why-adequacy.md](references/check-why-adequacy.md) | D4 — reasoning included; failure cost + exception for judgment-based rules | warn |
+| [check-scope-tightness.md](references/check-scope-tightness.md) | D5 — `paths:` matches content breadth | warn |
+| [check-staleness.md](references/check-staleness.md) | D6 — referenced paths/commands/imports still exist | warn |
+| [check-judgment-not-linter.md](references/check-judgment-not-linter.md) | D7 — semantic conventions only; no formatter/linter overlap | warn |
+| [check-example-realism.md](references/check-example-realism.md) | D8 — domain-specific identifiers, not synthetic placeholders | warn |
 
-Include the full rule file verbatim — never summarize. Present all
-eight dimensions in one call (per-dimension calls degrade agreement
-by ~11.5 points per RULERS, Hong et al. 2026). Dimensions that don't
-apply to the specific rule return PASS silently — e.g., Example Realism
-PASSes on a rule with no examples.
+#### Evaluator policy
 
-Output format per dimension: `evidence (quoted from rule) → reasoning →
-verdict (WARN or PASS) → recommendation`. Default-closed: borderline
-evidence surfaces as WARN, not PASS — this is evaluator policy; rules
-themselves don't declare it.
+- **Single locked-rubric pass per rule.** Read all 8 rule files first, then evaluate each rule in turn against them. Don't re-decompose into sub-checks (RULERS, Hong et al. 2026 — per-dimension calls cost ~11.5 points of agreement).
+- **Default-closed when borderline.** When evidence is ambiguous, return `warn`, not `pass`.
+- **Severity floor: WARN.** All 8 Tier-2 dimensions are coaching, not blocking. Escalate to FAIL only for safety concerns Tier-1 missed.
+- **One finding per dimension per rule maximum.** If a single rule trips one dimension at multiple locations, surface the highest-signal one with concrete excerpts.
 
-### 4. Tier 3 — Cross-Rule Conflict Detection
+Include the full rule file verbatim in the prompt — never summarize. Include the Tier-1 shape-hints keyword sniff as context. Dimensions that don't apply (e.g., D8 Example Realism on a rule with no examples) return `inapplicable` silently.
 
-After per-rule evaluation, compare rule pairs that could fire on the
-same file. Two rules can conflict when:
-- Both are always-on (no `paths:`), OR
-- Their `paths:` globs overlap
+### 4. Tier-3 Cross-Rule Conflict Detection
 
-For each candidate pair:
-1. Present both rule files verbatim
-2. Ask: "If a developer follows Rule A's guidance exactly, does Rule B
-   contradict?"
-3. Ask the reverse
-4. If either answer is yes → FAIL finding citing both rule names and the
-   specific contradiction
+Evaluate against [check-cross-rule-conflict.md](references/check-cross-rule-conflict.md). For each rule pair that could co-fire (both always-on, or `paths:` globs share at least one matching file), present both rule files verbatim and ask whether following one rule's directives violates the other.
 
-Anthropic's warning is the basis: *"if two rules contradict each other,
-Claude may pick one arbitrarily."*
+This is the **load-bearing** Tier-3 dimension — Anthropic's own warning is the basis: *"if two rules contradict each other, Claude may pick one arbitrarily."* Severity: `fail`.
+
+Tier-3 returns `inapplicable` silently when audit scope holds only a single rule (no pairs to compare).
 
 ### 5. Report Findings
 
-Output all findings in `scripts/lint.py` format (file, issue, severity).
-Sort within each severity tier: Tier-1 deterministic first, then Tier-2
-in dimension order (Framing → Specificity → Single Concern → Why
-Adequacy → Scope Tightness → Staleness → Judgment-Not-Linter → Example
-Realism), then Tier-3 conflicts; ties break alphabetically by file path.
-FAIL precedes WARN overall.
-
-Each FAIL or WARN finding must include a `Recommendation:` line with a
-specific, actionable repair drawn from
-[repair-playbook.md](references/repair-playbook.md). Generic suggestions
-("fix this") are not acceptable — name the exact change.
+Merge findings from all 3 tiers into a unified table:
 
 ```
-FAIL  .claude/rules/api-handlers.md — Malformed paths glob: "src/api/**/*.{ts" — unclosed brace
-  Recommendation: Close the brace: `"src/api/**/*.{ts,tsx}"`
-WARN  .claude/rules/code-style.md — Specificity: "format code properly" is anchor-free
-  Recommendation: Replace with a verifiable directive (e.g., "Use 2-space indentation; run prettier --check")
-WARN  .claude/rules/testing.md — File length 287 lines exceeds 200-line guidance
-  Recommendation: Split into topic files (e.g., testing-unit.md + testing-integration.md)
-WARN  .claude/rules/api-errors.md — Framing: rule states only what to avoid, no positive action named
-  Recommendation: Restate as a positive directive (e.g., "Return structured error responses via `ApiError`") instead of "Don't throw raw errors"
+| Tier | rule_id | Location | Status | Reasoning |
+|------|---------|----------|--------|-----------|
 ```
 
-Close with a summary line:
-- Findings present: `N rules audited, M findings (X fail, Y warn)`
-- No findings: `N rules audited — no findings`
+Sort: `fail` before `warn` before `inapplicable`; Tier-1 before Tier-2 before Tier-3 within severity. Each finding's `Recommendation:` line copies through `recommended_changes` verbatim.
+
+Close with: `N rules audited, M findings (X fail, Y warn)` or `N rules audited — no findings`.
 
 ### 6. Opt-In Repair Loop
 
-After presenting findings, ask:
+Ask exactly once:
 
 > "Apply fixes? Enter y (all), n (skip), or comma-separated numbers."
 
-For each selected finding, draw the canonical repair from
-[repair-playbook.md](references/repair-playbook.md). Then:
+For each selected finding, route per the recipe in `recommended_changes`:
 
-1. Read the relevant section of the rule file
-2. Apply the canonical repair (if no playbook entry exists, skip and
-   flag for manual review — do not improvise)
-3. Show the diff
-4. Write the change only on user confirmation
-5. Re-run Tier-1 deterministic checks after each applied fix
+- **Direct edit** — frontmatter shape, paths-glob syntax, file location/extension, hedge/prohibition rewording, synthetic-placeholder substitution. Show diff; write on confirmation.
+- **Routed to another skill** — substantial rule rewrites → `/build:build-rule` for scaffold-from-scratch.
+- **Tier-2/3 judgment** — framing, specificity, single concern, etc. Ask the user; rewrite the section; show diff; write on confirmation.
 
-Per-change confirmation is required — bulk application removes the
-user's ability to review individual repairs.
-
-## Key Instructions
-
-- Run Tier-1 deterministic checks first; gate LLM evaluation on structural validity so malformed rules surface as findings, not as expensive LLM calls
-- Include the Tier-1 shape-hints keyword sniff as context in the Tier-2 prompt — it informs the evaluator, not the dimension set (all eight dimensions always run)
-- Present all eight Tier-2 dimensions as a single locked-rubric call per rule — per-dimension calls degrade agreement by ~11.5 points (RULERS, Hong et al. 2026)
-- Include the full rule file verbatim in every LLM evaluation so the evaluator sees the same anchors a human reviewer would
-- Limit conflict comparison to rule pairs that could co-fire (both always-on, or overlapping `paths:` globs) — non-overlapping scoped rules cannot contradict and the comparison is wasted budget
-- Surface borderline evidence as WARN (default-closed) so ambiguous cases enter the report rather than silently passing — this is evaluator policy, not a per-rule requirement
+After each applied fix, re-run the relevant Tier-1 script (or re-judge the Tier-2/3 dimension). Terminate when the user enters `n` or exhausts findings.
 
 ## Anti-Pattern Guards
 
-1. **Per-dimension LLM call** — collapse into one locked-rubric call per rule (per-dimension splits degrade agreement by 11.5 points, RULERS)
-2. **LLM-evaluating format compliance** — handle frontmatter / glob syntax with deterministic parse (Tier 1); send only structurally valid rules to the LLM
-3. **Ambiguous compliance reported as PASS** — surface as WARN (default-closed) so the user sees the borderline case
-4. **Vague finding text** — cite the specific rule file and the exact phrasing or field that triggered the finding
-5. **Conflict-comparing non-overlapping rules** — gate Tier 3 on co-fire potential (always-on pair, or overlapping `paths:`)
-6. **Generic repair text** ("fix this", "improve specificity") — every Recommendation names the specific change, drawn from `repair-playbook.md`
-7. **Trigger-gating Tier-2 dimensions** — don't skip dimensions based on whether the rule "opts into" a shape; run all eight always. Dimensions that don't apply return PASS silently
+1. **Per-dimension LLM call** — collapse into one locked-rubric call per rule (per-dimension splits degrade agreement by 11.5 points, RULERS).
+2. **LLM-evaluating format compliance** — handle frontmatter / glob syntax / location / extension with deterministic Tier-1 scripts; send only structurally valid rules to the LLM.
+3. **Ambiguous compliance reported as PASS** — surface as WARN (default-closed) so the user sees the borderline case.
+4. **Vague finding text** — cite the specific rule file and the exact phrasing or field that triggered the finding.
+5. **Conflict-comparing non-overlapping rules** — gate Tier-3 on co-fire potential (always-on pair, or overlapping `paths:`).
+6. **Trigger-gating Tier-2 dimensions** — don't skip dimensions based on whether the rule "opts into" a shape; run all 8 always. Dimensions that don't apply return `inapplicable` silently.
+7. **Re-evaluating scripted rules in Tier-2** — scripts are authoritative for the 9 Tier-1 rules; trust the `pass` envelope.
+8. **Suppressing the inapplicable envelope** — D8 against a rule with no examples emits `inapplicable`; surface it; do not silently skip.
+9. **Embellishing scripts' `recommended_changes`** — each rule's recipe constant is canonical guidance sourced from `rule-best-practices.md`. Copy it through; do not paraphrase.
 
-## Example
+## Key Instructions
 
-<example>
-User: `/build:check-rule .claude/rules/`
-
-Step 1 — Discovers 3 rules: code-style.md, api-design.md, testing.md
-
-Step 2 — Tier 1 deterministic check:
-- code-style.md: 47 lines, no frontmatter (always-on) — passes to Tier 2
-- api-design.md: `paths: "src/api/**/*.{ts"` — unclosed brace → FAIL (excluded from Tier 2)
-- testing.md: 287 lines → WARN (proceeds to Tier 2 anyway; below 500-line FAIL threshold)
-
-Step 3 — Tier 2 semantic on 2 rules:
-- code-style.md: contains "format code properly" → WARN (Specificity). Rule is entirely positive → PASS (Framing). Covers only code style → PASS (Single Concern). No examples → PASS (Example Realism, N/A).
-- testing.md: covers unit, integration, AND e2e → WARN (Single Concern). Has compliant/non-compliant examples using `foo`/`bar` → WARN (Example Realism). Rule phrased as "Don't write flaky tests" with no positive counterpart → WARN (Framing).
-
-Step 4 — Tier 3 conflict detection: code-style.md (always-on) and
-testing.md (always-on) both fire on every session. No directive
-contradiction found.
-
-Output:
-```
-FAIL  .claude/rules/api-design.md — Malformed paths glob: unclosed brace
-  Recommendation: Close the brace: `"src/api/**/*.{ts,tsx}"`
-WARN  .claude/rules/code-style.md — Specificity: "format code properly" is anchor-free
-  Recommendation: Replace with a verifiable directive (e.g., "Use 2-space indentation; run prettier --check")
-WARN  .claude/rules/testing.md — File length 287 lines exceeds 200-line guidance
-  Recommendation: Split into testing-unit.md + testing-integration.md + testing-e2e.md
-WARN  .claude/rules/testing.md — Single Concern: covers three distinct topics (unit, integration, e2e)
-  Recommendation: Same split as above resolves both findings
-WARN  .claude/rules/testing.md — Framing: "Don't write flaky tests" states only what to avoid
-  Recommendation: Restate positively (e.g., "Write tests that produce the same result given the same inputs")
-WARN  .claude/rules/testing.md — Example Realism: examples use `foo`/`bar` placeholders
-  Recommendation: Replace with real code from the codebase
-
-3 rules audited, 6 findings (1 fail, 5 warn)
-```
-</example>
+- Run Tier-1 deterministic checks first; gate LLM evaluation on structural validity.
+- Include the Tier-1 shape-hints keyword sniff as context in the Tier-2 prompt — it informs the evaluator, not the dimension set (all 8 dimensions always run).
+- Present all 8 Tier-2 dimensions as a single locked-rubric call per rule.
+- Include the full rule file verbatim in every LLM evaluation.
+- Limit conflict comparison to rule pairs that could co-fire.
+- Surface borderline evidence as WARN (default-closed).
+- Recovery: read-only outside the Repair Loop; edits revertable via `git diff` / `git checkout`.
 
 ## Handoff
 
-**Receives:** Path to a `.md` rule file or directory under `.claude/rules/`, or no argument (scans `.claude/rules/`)
-**Produces:** Structured findings report in file/issue/severity format
-**Chainable to:** build-rule (to fix flagged issues and rebuild non-compliant rules)
+**Receives:** Path to a `.md` rule file or directory under `.claude/rules/`, or no argument (scans `.claude/rules/`).
+
+**Produces:** A unified findings table merging the 9 Tier-1 envelopes (script JSON), 8 Tier-2 judgment findings per rule, and the Tier-3 cross-rule-conflict findings per rule pair. Each row: tier, rule_id, location, status, reasoning + `recommended_changes` excerpt. Optionally — per user confirmation in the Repair Loop — targeted edits to rule files.
+
+**Chainable to:** `/build:build-rule` (rebuild non-compliant rules from scratch when targeted repair would exceed the rule's scope).
