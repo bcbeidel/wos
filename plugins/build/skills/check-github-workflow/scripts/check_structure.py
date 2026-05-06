@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Tier-1 structural checker for GitHub Actions workflows.
 
-Indentation-aware line walk (no YAML parser — stdlib only) that emits
-the nine structural check IDs documented in audit-dimensions.md:
+Indentation-aware line walk (no YAML parser — stdlib only). Emits a
+JSON ARRAY of nine envelopes:
 
   FAIL:
     - permissions-top       — top-level `permissions:` missing or `write-all`
@@ -17,6 +17,11 @@ the nine structural check IDs documented in audit-dimensions.md:
     - concurrency-group     — concurrency.group without `workflow`+`ref` keys
     - id-kebab              — job or step ID not kebab-case
 
+Exit codes:
+  0   — overall_status pass / warn / inapplicable
+  1   — any envelope overall_status=fail
+  64  — usage error
+
 Example:
     ./check_structure.py .github/workflows/ci.yml
 """
@@ -28,14 +33,159 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _common import emit_json_finding, emit_rule_envelope, print_envelope  # noqa: E402
+
 EXIT_USAGE = 64
+EXIT_INTERRUPTED = 130
 
 _WORKFLOW_SUFFIXES = (".yml", ".yaml")
 
 _KEBAB_RE = re.compile(r"^[a-z][a-z0-9-]*$")
 _DEPLOY_FILENAME_RE = re.compile(r"(?:^|[-_])(deploy|release|publish)", re.IGNORECASE)
 _CLASSIFICATION_RE = re.compile(r"^\s*#\s*classification:\s*(\w+)", re.IGNORECASE)
-_RUN_HEADER_RE = re.compile(r"^\s*(?:-\s+)?run:")
+
+_RULE_ORDER: list[str] = [
+    "workflow-name",
+    "job-name",
+    "step-name",
+    "permissions-top",
+    "timeout-minutes",
+    "defaults-shell",
+    "concurrency-group",
+    "concurrency-deploy",
+    "id-kebab",
+]
+
+_RECIPE_WORKFLOW_NAME = (
+    "Add `name: <Title>` as the first non-comment line. Without `name:`, "
+    "the Checks UI derives a label from the filename — required-check "
+    "configuration and PR comments read worse.\n\n"
+    "Example:\n"
+    "    on: push\n"
+    "      -> name: CI\n"
+    "         on: push\n"
+)
+
+_RECIPE_JOB_NAME = (
+    "Add a `name:` to the job (human-readable, distinct from the job "
+    "ID). Job names appear in the Checks UI and required-check names.\n\n"
+    "Example:\n"
+    "    jobs:\n"
+    "      test:\n"
+    "        runs-on: ubuntu-latest\n"
+    "      -> jobs:\n"
+    "           test:\n"
+    "             name: Unit tests\n"
+    "             runs-on: ubuntu-latest\n"
+)
+
+_RECIPE_STEP_NAME = (
+    "Add a `name:` above the `run:` block. Unnamed multi-line steps "
+    "render as `Run set -euo pipefail` (or longer) in logs — "
+    "unreadable in a list of 20 steps.\n\n"
+    "Example:\n"
+    "    - run: |\n"
+    "        set -euo pipefail\n"
+    "        pytest -v\n"
+    "      -> - name: Run tests\n"
+    "           run: |\n"
+    "             set -euo pipefail\n"
+    "             pytest -v\n"
+)
+
+_RECIPE_PERMISSIONS_TOP = (
+    "Add top-level `permissions: { contents: read }`. Elevate per-job "
+    "where the specific job needs write scopes. The default "
+    "`GITHUB_TOKEN` scope is too broad — a compromised action inherits "
+    "the full scope.\n\n"
+    "Example:\n"
+    "    permissions:\n"
+    "      contents: read\n"
+    "    jobs:\n"
+    "      release:\n"
+    "        permissions:\n"
+    "          contents: write   # only the release job elevates\n"
+)
+
+_RECIPE_TIMEOUT_MINUTES = (
+    "Add `timeout-minutes:` to the job. Default ceiling: 60; tune to "
+    "the expected duration + 25%% buffer. Runner default is 360 "
+    "minutes — a hung job at that default burns $40+ of compute per "
+    "incident.\n\n"
+    "Example:\n"
+    "    jobs:\n"
+    "      build:\n"
+    "        runs-on: ubuntu-latest\n"
+    "        timeout-minutes: 20\n"
+    "        steps: [...]\n"
+)
+
+_RECIPE_DEFAULTS_SHELL = (
+    "Add `defaults.run.shell: bash` at workflow top level. The default "
+    "`run:` shell differs across runner OSes (`bash` on Linux/macOS, "
+    "PowerShell on Windows). Pinning one shell avoids the class of "
+    "bugs where the same `run:` body behaves differently on different "
+    "runners.\n\n"
+    "Example:\n"
+    "    defaults:\n"
+    "      run:\n"
+    "        shell: bash\n"
+)
+
+_RECIPE_CONCURRENCY_GROUP = (
+    "Add workflow-level `concurrency` with a group keyed on "
+    "`github.workflow` and `github.ref`. Set `cancel-in-progress: true` "
+    "for PR/push workflows; omit (or set `false`) for deploy/release. "
+    "Without concurrency, force-pushes pile up queued runs and waste "
+    "minutes.\n\n"
+    "Example:\n"
+    "    concurrency:\n"
+    "      group: ${{ github.workflow }}-${{ github.ref }}\n"
+    "      cancel-in-progress: true\n"
+)
+
+_RECIPE_CONCURRENCY_DEPLOY = (
+    "Remove `cancel-in-progress: true` (or set `false`) on the "
+    "deploy/release workflow. Keep the `group:` key to serialize "
+    "deploys. Cancelling a deploy mid-run leaves systems in "
+    "inconsistent states; recovery is manual and error-prone.\n\n"
+    "Example:\n"
+    "    concurrency:\n"
+    "      group: deploy-prod\n"
+    "      cancel-in-progress: true\n"
+    "      -> concurrency:\n"
+    "           group: deploy-prod\n"
+    "           cancel-in-progress: false\n"
+)
+
+_RECIPE_ID_KEBAB = (
+    "Rename the ID to lowercase kebab-case (`build-and-test`, not "
+    "`buildAndTest` or `BuildAndTest`). Update all `needs:` / `if:` / "
+    "output references. Job IDs appear in URLs and required-check "
+    "names; mixed case hurts readability.\n\n"
+    "Example:\n"
+    "    jobs:\n"
+    "      BuildAndTest:\n"
+    "      -> jobs:\n"
+    "           build-and-test:\n"
+)
+
+_RECIPES: dict[str, str] = {
+    "workflow-name": _RECIPE_WORKFLOW_NAME,
+    "job-name": _RECIPE_JOB_NAME,
+    "step-name": _RECIPE_STEP_NAME,
+    "permissions-top": _RECIPE_PERMISSIONS_TOP,
+    "timeout-minutes": _RECIPE_TIMEOUT_MINUTES,
+    "defaults-shell": _RECIPE_DEFAULTS_SHELL,
+    "concurrency-group": _RECIPE_CONCURRENCY_GROUP,
+    "concurrency-deploy": _RECIPE_CONCURRENCY_DEPLOY,
+    "id-kebab": _RECIPE_ID_KEBAB,
+}
+
+
+class _UsageError(Exception):
+    pass
 
 
 def _iter_workflows(paths: list[Path]) -> list[Path]:
@@ -46,6 +196,9 @@ def _iter_workflows(paths: list[Path]) -> list[Path]:
                 files.extend(sorted(p.glob(f"*{suffix}")))
         elif p.is_file():
             files.append(p)
+        else:
+            print(f"check_structure.py: path not found: {p}", file=sys.stderr)
+            raise _UsageError
     return files
 
 
@@ -54,7 +207,6 @@ def _indent_of(line: str) -> int:
 
 
 def _strip_inline_comment(value: str) -> str:
-    # Very rough — misses `#` inside quoted strings, acceptable for our keys.
     if "#" in value:
         value = value.split("#", 1)[0]
     return value.strip().strip('"').strip("'")
@@ -71,8 +223,25 @@ def _classify_workflow(path: Path, lines: list[str]) -> str:
     return "ci"
 
 
-def _check_top_level(path: Path, lines: list[str]) -> list[str]:
-    findings: list[str] = []
+def _make_finding(
+    rule_id: str,
+    severity: str,
+    location_context: str,
+    reasoning: str,
+    line: int = 0,
+) -> dict:
+    return emit_json_finding(
+        rule_id=rule_id,
+        status=severity,
+        location={"line": line, "context": location_context},
+        reasoning=reasoning,
+        recommended_changes=_RECIPES[rule_id],
+    )
+
+
+def _check_top_level(
+    path: Path, lines: list[str], per_rule: dict[str, list[dict]]
+) -> None:
     has_name = False
     has_permissions = False
     permissions_value: str | None = None
@@ -103,7 +272,6 @@ def _check_top_level(path: Path, lines: list[str]) -> list[str]:
                 if tail and not tail.startswith("#"):
                     concurrency_lines.append(tail)
             elif stripped.startswith("defaults:"):
-                # Look ahead for `run: { shell: bash }` inline, or nested key.
                 block_indent = 0
                 for j in range(i, min(i + 10, len(lines))):
                     subline = lines[j]
@@ -121,38 +289,50 @@ def _check_top_level(path: Path, lines: list[str]) -> list[str]:
             in_concurrency = False
 
     if not has_name:
-        findings.append(
-            f"WARN     {path} — workflow-name: top-level `name:` missing"
-        )
-        findings.append(
-            "  Recommendation: Add `name: <Title>` as the first non-comment line."
+        per_rule["workflow-name"].append(
+            _make_finding(
+                "workflow-name",
+                "warn",
+                f"{path}: top-level `name:` missing",
+                f"{path} has no top-level `name:` field. The Checks UI "
+                "will derive a label from the filename.",
+                line=1,
+            )
         )
 
     if not has_permissions:
-        findings.append(
-            f"FAIL     {path} — permissions-top: "
-            f"top-level `permissions:` block missing"
-        )
-        findings.append(
-            "  Recommendation: Add `permissions: { contents: read }` at the "
-            "workflow top level. Elevate per-job where needed."
+        per_rule["permissions-top"].append(
+            _make_finding(
+                "permissions-top",
+                "fail",
+                f"{path}: top-level `permissions:` block missing",
+                f"{path} has no top-level `permissions:` block — the "
+                "default `GITHUB_TOKEN` scope is too broad.",
+                line=1,
+            )
         )
     elif permissions_value and permissions_value.lower() == "write-all":
-        findings.append(
-            f"FAIL     {path} — permissions-top: `permissions: write-all`"
-        )
-        findings.append(
-            "  Recommendation: Replace with `contents: read` and elevate per-job."
+        per_rule["permissions-top"].append(
+            _make_finding(
+                "permissions-top",
+                "fail",
+                f"{path}: `permissions: write-all`",
+                f"{path} sets `permissions: write-all` — the broadest "
+                "possible scope, exact opposite of least-privilege.",
+                line=1,
+            )
         )
 
     if not has_defaults_shell:
-        findings.append(
-            f"WARN     {path} — defaults-shell: "
-            f"`defaults.run.shell: bash` missing at workflow level"
-        )
-        findings.append(
-            "  Recommendation: Add a top-level `defaults: { run: { shell: bash } }` "
-            "to avoid OS-dependent shell differences."
+        per_rule["defaults-shell"].append(
+            _make_finding(
+                "defaults-shell",
+                "warn",
+                f"{path}: `defaults.run.shell: bash` missing",
+                f"{path} has no top-level `defaults.run.shell: bash`. "
+                "The default `run:` shell differs across runner OSes.",
+                line=1,
+            )
         )
 
     if concurrency_lines:
@@ -162,24 +342,27 @@ def _check_top_level(path: Path, lines: list[str]) -> list[str]:
                 "github.workflow" not in concurrency_text
                 or "github.ref" not in concurrency_text
             ):
-                findings.append(
-                    f"WARN     {path} — concurrency-group: concurrency.group "
-                    f"does not include both `github.workflow` and `github.ref`"
+                per_rule["concurrency-group"].append(
+                    _make_finding(
+                        "concurrency-group",
+                        "warn",
+                        f"{path}: concurrency.group does not include both "
+                        "`github.workflow` and `github.ref`",
+                        f"{path}: concurrency.group is set but does not "
+                        "key on both `github.workflow` and `github.ref`.",
+                        line=1,
+                    )
                 )
-                findings.append(
-                    "  Recommendation: Set "
-                    "`group: ${{ github.workflow }}-${{ github.ref }}`."
-                )
-
-    return findings
 
 
 def _check_concurrency_deploy(
-    path: Path, lines: list[str], classification: str
-) -> list[str]:
-    findings: list[str] = []
+    path: Path,
+    lines: list[str],
+    classification: str,
+    per_rule: dict[str, list[dict]],
+) -> None:
     if classification != "deploy":
-        return findings
+        return
     in_concurrency = False
     concurrency_indent = -1
     for i, line in enumerate(lines, start=1):
@@ -195,21 +378,23 @@ def _check_concurrency_deploy(
                 in_concurrency = False
                 continue
             if "cancel-in-progress" in line and "true" in line:
-                findings.append(
-                    f"FAIL     {path}:{i} — concurrency-deploy: "
-                    f"deploy/release workflow sets `cancel-in-progress: true`"
+                per_rule["concurrency-deploy"].append(
+                    _make_finding(
+                        "concurrency-deploy",
+                        "fail",
+                        f"{path}:{i}: deploy/release workflow sets "
+                        "`cancel-in-progress: true`",
+                        f"Line {i} of {path}: deploy/release workflow "
+                        "sets `cancel-in-progress: true`. Cancelling a "
+                        "deploy mid-run leaves systems inconsistent.",
+                        line=i,
+                    )
                 )
-                findings.append(
-                    "  Recommendation: Remove `cancel-in-progress` (or set "
-                    "`false`). Cancelling a deploy mid-run leaves systems "
-                    "inconsistent. Keep the `group:` key to serialize deploys."
-                )
-    return findings
 
 
-def _check_jobs(path: Path, lines: list[str]) -> list[str]:
-    """Walk `jobs:` to check per-job name / timeout / IDs and per-step names / IDs."""
-    findings: list[str] = []
+def _check_jobs(
+    path: Path, lines: list[str], per_rule: dict[str, list[dict]]
+) -> None:
     in_jobs = False
     job_indent = -1
     current_job: dict[str, object] | None = None
@@ -223,30 +408,37 @@ def _check_jobs(path: Path, lines: list[str]) -> list[str]:
         job_id = str(current_job["id"])
         job_line = int(current_job["line"])
         if not _KEBAB_RE.match(job_id):
-            findings.append(
-                f"WARN     {path}:{job_line} — id-kebab: "
-                f"job id `{job_id}` is not kebab-case"
-            )
-            findings.append(
-                "  Recommendation: Rename to lowercase kebab-case "
-                "(`build-and-test`). Update `needs:` references."
+            per_rule["id-kebab"].append(
+                _make_finding(
+                    "id-kebab",
+                    "warn",
+                    f"{path}:{job_line}: job id `{job_id}` is not kebab-case",
+                    f"Line {job_line} of {path}: job id `{job_id}` is "
+                    "not lowercase kebab-case.",
+                    line=job_line,
+                )
             )
         if not current_job.get("has_name"):
-            findings.append(
-                f"WARN     {path}:{job_line} — job-name: "
-                f"job `{job_id}` has no `name:` field"
-            )
-            findings.append(
-                "  Recommendation: Add `name: <Human-readable title>` under the job."
+            per_rule["job-name"].append(
+                _make_finding(
+                    "job-name",
+                    "warn",
+                    f"{path}:{job_line}: job `{job_id}` has no `name:` field",
+                    f"Job `{job_id}` at line {job_line} of {path} has "
+                    "no `name:` field.",
+                    line=job_line,
+                )
             )
         if not current_job.get("has_timeout"):
-            findings.append(
-                f"FAIL     {path}:{job_line} — timeout-minutes: "
-                f"job `{job_id}` has no `timeout-minutes:`"
-            )
-            findings.append(
-                "  Recommendation: Add `timeout-minutes: <n>` (default ceiling 60). "
-                "Runner default is 360 minutes."
+            per_rule["timeout-minutes"].append(
+                _make_finding(
+                    "timeout-minutes",
+                    "fail",
+                    f"{path}:{job_line}: job `{job_id}` has no `timeout-minutes:`",
+                    f"Job `{job_id}` at line {job_line} of {path} has "
+                    "no `timeout-minutes:` — runner default is 360 minutes.",
+                    line=job_line,
+                )
             )
 
     def _flush_step() -> None:
@@ -255,21 +447,26 @@ def _check_jobs(path: Path, lines: list[str]) -> list[str]:
         step_line = int(current_step["line"])
         step_id = current_step.get("id")
         if step_id and isinstance(step_id, str) and not _KEBAB_RE.match(step_id):
-            findings.append(
-                f"WARN     {path}:{step_line} — id-kebab: "
-                f"step id `{step_id}` is not kebab-case"
-            )
-            findings.append(
-                "  Recommendation: Rename to lowercase kebab-case. "
-                "Update `steps.<id>.outputs` references."
+            per_rule["id-kebab"].append(
+                _make_finding(
+                    "id-kebab",
+                    "warn",
+                    f"{path}:{step_line}: step id `{step_id}` is not kebab-case",
+                    f"Line {step_line} of {path}: step id `{step_id}` "
+                    "is not lowercase kebab-case.",
+                    line=step_line,
+                )
             )
         if current_step.get("is_multiline_run") and not current_step.get("has_name"):
-            findings.append(
-                f"WARN     {path}:{step_line} — step-name: "
-                f"multi-line `run:` step has no `name:`"
-            )
-            findings.append(
-                "  Recommendation: Add `name: <Action>` above the `run:` block."
+            per_rule["step-name"].append(
+                _make_finding(
+                    "step-name",
+                    "warn",
+                    f"{path}:{step_line}: multi-line `run:` step has no `name:`",
+                    f"Line {step_line} of {path}: multi-line `run:` "
+                    "step has no `name:` — log lines will be unreadable.",
+                    line=step_line,
+                )
             )
 
     for i, line in enumerate(lines, start=1):
@@ -295,7 +492,6 @@ def _check_jobs(path: Path, lines: list[str]) -> list[str]:
             if job_indent == -1 and indent > 0:
                 job_indent = indent
 
-            # New job entry: `  <id>:` at job_indent.
             if indent == job_indent and line.rstrip().endswith(":"):
                 _flush_step()
                 _flush_job()
@@ -313,7 +509,6 @@ def _check_jobs(path: Path, lines: list[str]) -> list[str]:
             if current_job is None:
                 continue
 
-            # Inside a job — key at job_indent + 2 (typical 2-space YAML).
             inner_indent = job_indent + 2
             if indent == inner_indent:
                 _flush_step()
@@ -327,8 +522,6 @@ def _check_jobs(path: Path, lines: list[str]) -> list[str]:
                     if tail and tail[0].isdigit():
                         current_job["has_timeout"] = True
                 elif stripped.startswith("uses:"):
-                    # Reusable workflow call — inherits timeout semantics
-                    # from the callee; treat as having a timeout.
                     current_job["has_timeout"] = True
                     current_job["has_name"] = True
                 elif stripped.startswith("steps:"):
@@ -337,7 +530,6 @@ def _check_jobs(path: Path, lines: list[str]) -> list[str]:
                 continue
 
             if in_steps and indent > steps_indent:
-                # Step-level parse.
                 stripped_no_dash = line.lstrip()
                 if stripped_no_dash.startswith("- "):
                     _flush_step()
@@ -355,7 +547,6 @@ def _check_jobs(path: Path, lines: list[str]) -> list[str]:
                             rest[len("id:"):].strip()
                         )
                     elif rest.startswith("run:"):
-                        # Single-line run — no name needed.
                         pass
                     continue
                 if current_step is None:
@@ -375,48 +566,54 @@ def _check_jobs(path: Path, lines: list[str]) -> list[str]:
 
     _flush_step()
     _flush_job()
-    return findings
 
 
-def _scan(path: Path) -> list[str]:
+def _scan(path: Path, per_rule: dict[str, list[dict]]) -> None:
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
     except (OSError, UnicodeDecodeError) as exc:
-        print(f"WARN     {path} — read: {exc}", file=sys.stderr)
-        return []
+        print(f"check_structure.py: cannot read {path}: {exc}", file=sys.stderr)
+        return
 
     classification = _classify_workflow(path, lines)
-    findings: list[str] = []
-    findings.extend(_check_top_level(path, lines))
-    findings.extend(_check_concurrency_deploy(path, lines, classification))
-    findings.extend(_check_jobs(path, lines))
-    return findings
+    _check_top_level(path, lines, per_rule)
+    _check_concurrency_deploy(path, lines, classification, per_rule)
+    _check_jobs(path, lines, per_rule)
 
 
-def main(argv: list[str]) -> int:
+def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Structural checks for GitHub Actions workflows."
+        prog="check_structure.py",
+        description="Structural checks for GitHub Actions workflows.",
     )
-    parser.add_argument("paths", nargs="+", type=Path)
-    args = parser.parse_args(argv)
+    parser.add_argument(
+        "paths",
+        nargs="+",
+        type=Path,
+        metavar="path",
+        help="One or more workflow .yml/.yaml files or directories.",
+    )
+    return parser
 
-    workflows = _iter_workflows(args.paths)
-    if not workflows:
-        print("INFO     no workflow files found in provided paths")
-        return 0
 
-    had_fail = False
-    for path in workflows:
-        for line in _scan(path):
-            print(line)
-            if line.startswith("FAIL"):
-                had_fail = True
-
-    return 1 if had_fail else 0
+def main(argv: list[str] | None = None) -> int:
+    args = get_parser().parse_args(argv)
+    try:
+        per_rule: dict[str, list[dict]] = {r: [] for r in _RULE_ORDER}
+        files = _iter_workflows(args.paths)
+        for path in files:
+            _scan(path, per_rule)
+        envelopes = [
+            emit_rule_envelope(rule_id=r, findings=per_rule[r]) for r in _RULE_ORDER
+        ]
+        print_envelope(envelopes)
+        any_fail = any(e["overall_status"] == "fail" for e in envelopes)
+        return 1 if any_fail else 0
+    except _UsageError:
+        return EXIT_USAGE
+    except KeyboardInterrupt:
+        return EXIT_INTERRUPTED
 
 
 if __name__ == "__main__":
-    try:
-        sys.exit(main(sys.argv[1:]))
-    except KeyboardInterrupt:
-        sys.exit(130)
+    sys.exit(main())

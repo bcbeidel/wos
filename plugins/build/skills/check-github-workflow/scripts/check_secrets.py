@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
 """Tier-1 hardcoded-secret scanner for GitHub Actions workflows.
 
+Emits a JSON ARRAY with a single envelope (rule_id="secret", FAIL).
+
 Flags literal tokens that match well-known credential shapes. Source
-text only — does not evaluate expressions. Every finding is FAIL and
-excludes the file from Tier-2 judgment (the file carries a live
-credential; judgment-level coaching on layout is the wrong coverage).
+text only — does not evaluate expressions.
+
+Exit codes:
+  0   — overall_status pass / inapplicable
+  1   — overall_status fail
+  64  — usage error
 
 Example:
     ./check_secrets.py .github/workflows/ci.yml
@@ -18,13 +23,32 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _common import emit_json_finding, emit_rule_envelope, print_envelope  # noqa: E402
+
 EXIT_USAGE = 64
+EXIT_INTERRUPTED = 130
 
 _WORKFLOW_SUFFIXES = (".yml", ".yaml")
 
+_RULE_ORDER: list[str] = ["secret"]
+
+_RECIPE_SECRET = (
+    "Remove the literal credential from workflow source. Replace with "
+    "a `${{ secrets.<NAME> }}` reference to a GitHub Secret configured "
+    "in the repository or environment. Rotate the exposed credential — "
+    "its prior presence in git history means it cannot be trusted "
+    "going forward.\n\n"
+    "Example:\n"
+    "    env:\n"
+    "      API_KEY: sk-proj-abc123def456...\n"
+    "      -> env:\n"
+    "           API_KEY: ${{ secrets.OPENAI_API_KEY }}\n"
+)
+
+_RECIPES: dict[str, str] = {"secret": _RECIPE_SECRET}
+
 # Anchored credential patterns. Each entry is (label, compiled-regex).
-# Regexes match the substring that *is* the credential, not the
-# surrounding YAML — the caller frames the finding.
 _PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("AWS access key id", re.compile(r"\bAKIA[0-9A-Z]{16}\b")),
     (
@@ -54,6 +78,10 @@ _PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
 )
 
 
+class _UsageError(Exception):
+    pass
+
+
 def _iter_workflows(paths: list[Path]) -> list[Path]:
     files: list[Path] = []
     for p in paths:
@@ -62,55 +90,88 @@ def _iter_workflows(paths: list[Path]) -> list[Path]:
                 files.extend(sorted(p.glob(f"*{suffix}")))
         elif p.is_file():
             files.append(p)
+        else:
+            print(f"check_secrets.py: path not found: {p}", file=sys.stderr)
+            raise _UsageError
     return files
 
 
-def _scan(path: Path) -> list[tuple[int, str, str]]:
-    findings: list[tuple[int, str, str]] = []
+def _make_finding(
+    rule_id: str,
+    severity: str,
+    location_context: str,
+    reasoning: str,
+    line: int = 0,
+) -> dict:
+    return emit_json_finding(
+        rule_id=rule_id,
+        status=severity,
+        location={"line": line, "context": location_context},
+        reasoning=reasoning,
+        recommended_changes=_RECIPES[rule_id],
+    )
+
+
+def _scan(path: Path, per_rule: dict[str, list[dict]]) -> None:
     try:
         text = path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as exc:
-        print(f"WARN     {path} — read: {exc}", file=sys.stderr)
-        return findings
+        print(f"check_secrets.py: cannot read {path}: {exc}", file=sys.stderr)
+        return
     for lineno, line in enumerate(text.splitlines(), start=1):
         # Skip lines that are obviously secret *references*, not literals.
         if "${{ secrets." in line or "${{secrets." in line:
             continue
         for label, pattern in _PATTERNS:
             if pattern.search(line):
-                findings.append((lineno, label, line.strip()))
+                snippet = line.strip()[:120]
+                per_rule["secret"].append(
+                    _make_finding(
+                        "secret",
+                        "fail",
+                        f"{path}:{lineno}: {label}",
+                        f"Line {lineno} of {path}: {label} detected — "
+                        f"`{snippet}`. Hardcoded credentials leak through "
+                        "git history, logs, artifacts, and forks.",
+                        line=lineno,
+                    )
+                )
                 break  # one finding per line is enough
-    return findings
 
 
-def main(argv: list[str]) -> int:
+def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Scan GitHub Actions workflow YAML for hardcoded secrets."
+        prog="check_secrets.py",
+        description="Scan GitHub Actions workflow YAML for hardcoded secrets.",
     )
-    parser.add_argument("paths", nargs="+", type=Path)
-    args = parser.parse_args(argv)
+    parser.add_argument(
+        "paths",
+        nargs="+",
+        type=Path,
+        metavar="path",
+        help="One or more workflow .yml/.yaml files or directories.",
+    )
+    return parser
 
-    workflows = _iter_workflows(args.paths)
-    if not workflows:
-        print("INFO     no workflow files found in provided paths")
-        return 0
 
-    had_fail = False
-    for path in workflows:
-        for lineno, label, snippet in _scan(path):
-            had_fail = True
-            print(f"FAIL     {path}:{lineno} — secret: {label} detected")
-            print(f"         (context) {snippet[:120]}")
-            print("  Recommendation: Remove the literal credential from source. "
-                  "Replace with ${{ secrets.<NAME> }} referencing a GitHub Secret. "
-                  "Rotate the exposed credential immediately — it is in git "
-                  "history even after removal.")
-
-    return 1 if had_fail else 0
+def main(argv: list[str] | None = None) -> int:
+    args = get_parser().parse_args(argv)
+    try:
+        per_rule: dict[str, list[dict]] = {r: [] for r in _RULE_ORDER}
+        files = _iter_workflows(args.paths)
+        for path in files:
+            _scan(path, per_rule)
+        envelopes = [
+            emit_rule_envelope(rule_id=r, findings=per_rule[r]) for r in _RULE_ORDER
+        ]
+        print_envelope(envelopes)
+        any_fail = any(e["overall_status"] == "fail" for e in envelopes)
+        return 1 if any_fail else 0
+    except _UsageError:
+        return EXIT_USAGE
+    except KeyboardInterrupt:
+        return EXIT_INTERRUPTED
 
 
 if __name__ == "__main__":
-    try:
-        sys.exit(main(sys.argv[1:]))
-    except KeyboardInterrupt:
-        sys.exit(130)
+    sys.exit(main())
