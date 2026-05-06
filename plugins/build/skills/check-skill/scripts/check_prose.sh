@@ -1,37 +1,43 @@
 #!/usr/bin/env bash
 #
 # check_prose.sh — Tier-1 prose pre-checks for Claude Code SKILL.md
-# files: hedging/filler words, absolute-path references outside code.
+# files. Emits a JSON ARRAY of two envelopes (rule_id="prose-hedge",
+# rule_id="absolute-path") per scripts/_common.py.
 #
-# Hedging words (case-insensitive whole-word): etc., maybe, probably,
-# somehow, generally, sometimes, TBD, ???.
-#
-# Absolute-path references: `/home/…`, `~/…`, Windows drive-letter
-# paths (`C:\…`), and multi-component backslash paths (`foo\bar`).
-#
-# Both checks emit WARN — these are heuristics that Tier-2's
-# Clarity & Consistency dimension refines.
+# prose-hedge:    whole-word hedge match (etc, maybe, probably, somehow,
+#                 generally, sometimes, TBD) plus the literal `???`,
+#                 outside fenced code blocks. WARN.
+# absolute-path:  /home/..., /Users/..., ~/..., Windows drive-letter
+#                 paths, multi-component backslash paths, outside fenced
+#                 code blocks. WARN.
 #
 # Usage:
 #   check_prose.sh <path> [<path> ...]
 #
 # Exit codes:
-#   0   always (WARN only)
+#   0   no FAIL findings (WARN only — never produces FAIL)
+#   1   one or more FAIL findings (not produced by this script)
 #   64  usage error
 #   69  missing dependency
 #
 # Dependencies:
-#   awk, find, basename
+#   awk, find, basename, python3
 
 set -Eeuo pipefail
 IFS=$'\n\t'
 
 PROGNAME="$(basename "${0}")"
+readonly PROGNAME
 
-REQUIRED_CMDS=(awk find basename)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly SCRIPT_DIR
 
-# Whole-word hedges. Matched case-insensitively outside fenced blocks.
-HEDGES=(etc maybe probably somehow generally sometimes TBD)
+readonly REQUIRED_CMDS=(awk find basename python3)
+readonly HEDGES=(etc maybe probably somehow generally sometimes TBD)
+
+readonly RECIPE_PROSE_HEDGE='Replace hedges (etc, maybe, probably, somehow, generally, sometimes, TBD, ???) with direct phrasing or delete the hedge. Hedges propagate ambiguity into model behavior — agents read "generally" as "feel free to skip this." Commit to the directive; if a real exception exists, name it explicitly.'
+
+readonly RECIPE_ABSOLUTE_PATH='Convert absolute paths (/home/..., /Users/..., ~/..., C:\\..., backslash paths) to relative paths or environment variables. Absolute paths break the skill on relocation and embed the author'\''s machine layout. Use $HOME, ${PROJECT_ROOT}, or relative paths anchored to the skill or repo root.'
 
 usage() {
   cat <<'EOF'
@@ -41,17 +47,19 @@ Usage:
   check_prose.sh <path> [<path> ...]
 
 Checks:
-  Hedges             whole-word matches for etc., maybe, probably,
-                     somehow, generally, sometimes, TBD, ??? outside
-                     fenced code blocks
-  Absolute paths     /home/..., ~/..., C:\... drive-letter paths, or
-                     multi-component backslash paths outside code
+  prose-hedge       whole-word matches for etc, maybe, probably,
+                    somehow, generally, sometimes, TBD, ??? outside
+                    fenced code blocks (WARN)
+  absolute-path     /home/..., /Users/..., ~/..., C:\... drive-letter
+                    paths, or multi-component backslash paths outside
+                    code (WARN)
 
 Options:
   -h, --help   Show this help and exit.
 
 Exit codes:
-  0   always (WARN only; no FAILs emitted)
+  0   no FAIL findings
+  1   one or more FAIL findings (not produced by this script)
   64  usage error
   69  missing dependency
 EOF
@@ -59,8 +67,9 @@ EOF
 
 install_hint() {
   case "${1}" in
-    awk|find|basename) printf 'should be preinstalled on any POSIX system' ;;
-    *)                 printf 'see your package manager' ;;
+    awk | find | basename) printf 'should be preinstalled on any POSIX system' ;;
+    python3) printf 'install Python 3.9+' ;;
+    *) printf 'see your package manager' ;;
   esac
 }
 
@@ -72,7 +81,7 @@ preflight() {
       missing+=("${cmd}")
     fi
   done
-  if [ "${#missing[@]}" -gt 0 ]; then
+  if [[ "${#missing[@]}" -gt 0 ]]; then
     for cmd in "${missing[@]}"; do
       printf '%s: missing required command %q. Install: %s\n' \
         "${PROGNAME}" "${cmd}" "$(install_hint "${cmd}")" >&2
@@ -81,130 +90,81 @@ preflight() {
   fi
 }
 
-emit_warn() {
-  local path="$1" check="$2" detail="$3" rec="$4"
-  printf 'WARN  %s — %s: %s\n' "${path}" "${check}" "${detail}"
-  printf '  Recommendation: %s\n' "${rec}"
-}
-
-check_hedges() {
+# Emit findings as TSV: <rule_id>\t<file>\t<line>\t<context>
+scan_hedges() {
   local file="$1"
   local hedge_list
-  # Join with | for awk regex. Also include ??? literal (not a word).
   hedge_list="$(printf '%s|' "${HEDGES[@]}")"
   hedge_list="${hedge_list%|}"
-  local hits
-  hits="$(awk -v hedges="${hedge_list}" '
-    BEGIN {
-      IGNORECASE = 1
-      in_fence = 0
-    }
+  awk -v hedges="${hedge_list}" -v f="${file}" '
+    BEGIN { IGNORECASE = 1; in_fence = 0 }
     {
       if ($0 ~ /^[[:space:]]*```/ || $0 ~ /^[[:space:]]*~~~/) {
-        in_fence = !in_fence
-        next
+        in_fence = !in_fence; next
       }
-      if (in_fence) { next }
+      if (in_fence) next
       line = $0
-      # Strip inline code spans — words inside backticks are often
-      # documentation of the very patterns this script looks for.
       gsub(/`[^`]*`/, "", line)
-      # Literal ??? check (not a word; separate).
       if (index(line, "???") > 0) {
-        print NR "\t???"
+        printf "prose-hedge\t%s\t%d\thedge \"???\" at line %d\n", f, NR, NR
       }
-      # Whole-word hedge check. Split into tokens on non-letter boundaries.
       n = split(line, toks, /[^A-Za-z]+/)
       for (i = 1; i <= n; i++) {
         t = tolower(toks[i])
         if (t == "") continue
-        m = 1
         split(hedges, hl, "|")
         for (j in hl) {
           if (t == tolower(hl[j])) {
-            print NR "\t" hl[j]
+            printf "prose-hedge\t%s\t%d\thedge \"%s\" at line %d\n", f, NR, hl[j], NR
             break
           }
         }
       }
     }
-  ' "${file}")"
-  [ -n "${hits}" ] || return 0
-  local row line_no word
-  while IFS= read -r row; do
-    [ -n "${row}" ] || continue
-    line_no="${row%%$'\t'*}"
-    word="${row##*$'\t'}"
-    emit_warn "${file}" "Hedges" \
-      "line ${line_no} contains hedge '${word}'" \
-      "Replace with direct phrasing or delete the hedge"
-  done <<<"${hits}"
-  return 0
+  ' "${file}"
 }
 
-check_absolute_paths() {
+scan_abs_paths() {
   local file="$1"
-  local hits
-  hits="$(awk '
+  awk -v f="${file}" '
     BEGIN { in_fence = 0 }
     {
       if ($0 ~ /^[[:space:]]*```/ || $0 ~ /^[[:space:]]*~~~/) {
-        in_fence = !in_fence
-        next
+        in_fence = !in_fence; next
       }
-      if (in_fence) { next }
-      # Skip lines in inline-code-only form (bare backtick segments
-      # frequently contain relative paths; we only flag the prose).
-      # Strip inline code spans `...` before pattern matching.
+      if (in_fence) next
       line = $0
       gsub(/`[^`]*`/, "", line)
-
-      # /home/ or /Users/ (POSIX absolute path starting at a user dir)
       if (match(line, /(^|[^A-Za-z0-9_])\/home\//) || match(line, /(^|[^A-Za-z0-9_])\/Users\//)) {
-        print NR "\tPOSIX absolute path (/home/ or /Users/)"
+        printf "absolute-path\t%s\t%d\tPOSIX absolute path (/home/ or /Users/) at line %d\n", f, NR, NR
       }
-      # ~/ tilde home
       else if (match(line, /(^|[[:space:]])~\//)) {
-        print NR "\tTilde home path (~/)"
+        printf "absolute-path\t%s\t%d\ttilde home path (~/) at line %d\n", f, NR, NR
       }
-      # Windows drive letter: C:\ or C:/ style path
       else if (match(line, /(^|[^A-Za-z0-9_])[A-Za-z]:\\/) || match(line, /(^|[^A-Za-z0-9_])[A-Za-z]:\//)) {
-        print NR "\tWindows drive-letter path"
+        printf "absolute-path\t%s\t%d\tWindows drive-letter path at line %d\n", f, NR, NR
       }
-      # Multi-component backslash path: word\word\word (3+ components)
       else if (match(line, /[A-Za-z0-9_.-]+\\[A-Za-z0-9_.-]+\\[A-Za-z0-9_.-]+/)) {
-        print NR "\tBackslash path (3+ components)"
+        printf "absolute-path\t%s\t%d\tbackslash path (3+ components) at line %d\n", f, NR, NR
       }
     }
-  ' "${file}")"
-  [ -n "${hits}" ] || return 0
-  local row line_no detail
-  while IFS= read -r row; do
-    [ -n "${row}" ] || continue
-    line_no="${row%%$'\t'*}"
-    detail="${row##*$'\t'}"
-    emit_warn "${file}" "Absolute path" \
-      "line ${line_no}: ${detail}" \
-      "Convert to a relative path or an environment variable"
-  done <<<"${hits}"
-  return 0
+  ' "${file}"
 }
 
-check_file() {
+scan_file() {
   local file="$1"
-  check_hedges "${file}"
-  check_absolute_paths "${file}"
-  return 0
+  scan_hedges "${file}"
+  scan_abs_paths "${file}"
 }
 
-check_path() {
+scan_path() {
   local target="$1"
   local file
-  if [ -f "${target}" ]; then
-    check_file "${target}"
-  elif [ -d "${target}" ]; then
+  if [[ -f "${target}" ]]; then
+    scan_file "${target}"
+  elif [[ -d "${target}" ]]; then
     while IFS= read -r file; do
-      check_file "${file}"
+      scan_file "${file}"
     done < <(
       find "${target}" -type f -name 'SKILL.md' \
         -not -path '*/_shared/*' \
@@ -214,25 +174,83 @@ check_path() {
     printf '%s: path not found: %s\n' "${PROGNAME}" "${target}" >&2
     return 64
   fi
-  return 0
+}
+
+readonly EMIT_PY='
+import os
+import sys
+
+sys.path.insert(0, os.environ["CHECK_SKILL_SCRIPT_DIR"])
+from _common import emit_json_finding, emit_rule_envelope, print_envelope
+
+recipes = {
+    "prose-hedge": os.environ["CHECK_SKILL_RECIPE_PROSE_HEDGE"],
+    "absolute-path": os.environ["CHECK_SKILL_RECIPE_ABSOLUTE_PATH"],
+}
+
+per_rule = {"prose-hedge": [], "absolute-path": []}
+for line in sys.stdin:
+    line = line.rstrip("\n")
+    if not line:
+        continue
+    parts = line.split("\t", 3)
+    if len(parts) != 4:
+        continue
+    rule_id, path, lineno, context = parts
+    if rule_id not in per_rule:
+        continue
+    try:
+        line_int = int(lineno)
+    except ValueError:
+        line_int = 1
+    per_rule[rule_id].append(
+        emit_json_finding(
+            rule_id=rule_id,
+            status="warn",
+            location={"line": line_int, "context": f"{path}: {context}"},
+            reasoning=f"{path}: {context}.",
+            recommended_changes=recipes[rule_id],
+        )
+    )
+
+envelopes = [
+    emit_rule_envelope(rule_id="prose-hedge", findings=per_rule["prose-hedge"]),
+    emit_rule_envelope(rule_id="absolute-path", findings=per_rule["absolute-path"]),
+]
+print_envelope(envelopes)
+if any(e["overall_status"] == "fail" for e in envelopes):
+    sys.exit(1)
+'
+
+emit_envelopes() {
+  CHECK_SKILL_SCRIPT_DIR="${SCRIPT_DIR}" \
+    CHECK_SKILL_RECIPE_PROSE_HEDGE="${RECIPE_PROSE_HEDGE}" \
+    CHECK_SKILL_RECIPE_ABSOLUTE_PATH="${RECIPE_ABSOLUTE_PATH}" \
+    python3 -c "${EMIT_PY}"
 }
 
 main() {
-  if [ "$#" -eq 0 ]; then
+  if [[ "$#" -eq 0 ]]; then
     usage >&2
     exit 64
   fi
   case "${1:-}" in
-    -h|--help) usage; exit 0 ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
   esac
   preflight
   local target
-  for target in "$@"; do
-    check_path "${target}" || exit 64
-  done
-  exit 0
+  local rc=0
+  {
+    for target in "$@"; do
+      scan_path "${target}"
+    done
+  } | emit_envelopes || rc=$?
+  exit "${rc}"
 }
 
-if [ "${0}" = "${BASH_SOURCE[0]:-$0}" ]; then
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   main "$@"
 fi
