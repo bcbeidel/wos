@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 #
 # check_size.sh — Deterministic Tier-1 size checks for Claude Code
-# SKILL.md files: non-blank line count and maximum line length.
+# SKILL.md files. Emits a JSON ARRAY of two envelopes
+# (rule_id="body-length", rule_id="line-length") per scripts/_common.py.
 #
-# Line count:   non-blank line count is WARN at ≥300, FAIL at ≥400.
-# Line length:  any line (outside fenced code blocks and bare URLs)
-#               exceeding 120 chars emits a WARN.
+# Body length:  WARN at ≥300 non-blank lines; FAIL at ≥400 non-blank
+#               lines (single rule, conditional severity).
+# Line length:  WARN on any line outside fenced code blocks and bare
+#               URLs that exceeds 120 chars.
 #
 # Usage:
 #   check_size.sh <path> [<path> ...]
@@ -17,17 +19,25 @@
 #   69  missing dependency
 #
 # Dependencies:
-#   awk, find, basename
+#   awk, find, basename, python3
 
 set -Eeuo pipefail
 IFS=$'\n\t'
 
 PROGNAME="$(basename "${0}")"
+readonly PROGNAME
 
-REQUIRED_CMDS=(awk find basename)
-WARN_LINES=300
-FAIL_LINES=400
-MAX_LINE_LEN=120
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly SCRIPT_DIR
+
+readonly REQUIRED_CMDS=(awk find basename python3)
+readonly WARN_LINES=300
+readonly FAIL_LINES=400
+readonly MAX_LINE_LEN=120
+
+readonly RECIPE_BODY_LENGTH='Move reference material, long examples, or complex scripts into sibling files under `references/` and `scripts/`. Treat 300 non-blank lines as the soft cap (WARN) and 400 as the hard ceiling (FAIL). Past 400 lines a skill stops being a skill and becomes a document; the agent reads less of it reliably on each invocation. Every line is paid for in context tokens at invocation time.'
+
+readonly RECIPE_LINE_LENGTH='Wrap the line at a natural clause boundary; in prose, break before a conjunction or after a complete clause. The 120-char cap improves diff readability and matches toolkit-wide conventions. Fenced code blocks and bare-URL-only lines are excluded.'
 
 usage() {
   cat <<EOF
@@ -37,9 +47,9 @@ Usage:
   check_size.sh <path> [<path> ...]
 
 Checks:
-  Line count   WARN at ≥${WARN_LINES} non-blank lines, FAIL at ≥${FAIL_LINES}
-  Line length  WARN on any line > ${MAX_LINE_LEN} chars (fenced blocks and
-               bare URLs are excluded)
+  body-length   WARN at ≥${WARN_LINES} non-blank lines, FAIL at ≥${FAIL_LINES}
+  line-length   WARN on any line > ${MAX_LINE_LEN} chars (fenced blocks and
+                bare URLs are excluded)
 
 Options:
   -h, --help   Show this help and exit.
@@ -54,8 +64,9 @@ EOF
 
 install_hint() {
   case "${1}" in
-    awk|find|basename) printf 'should be preinstalled on any POSIX system' ;;
-    *)                 printf 'see your package manager' ;;
+    awk | find | basename) printf 'should be preinstalled on any POSIX system' ;;
+    python3) printf 'install Python 3.9+' ;;
+    *) printf 'see your package manager' ;;
   esac
 }
 
@@ -67,7 +78,7 @@ preflight() {
       missing+=("${cmd}")
     fi
   done
-  if [ "${#missing[@]}" -gt 0 ]; then
+  if [[ "${#missing[@]}" -gt 0 ]]; then
     for cmd in "${missing[@]}"; do
       printf '%s: missing required command %q. Install: %s\n' \
         "${PROGNAME}" "${cmd}" "$(install_hint "${cmd}")" >&2
@@ -76,86 +87,49 @@ preflight() {
   fi
 }
 
-emit_fail() {
-  local path="$1" check="$2" detail="$3" rec="$4"
-  printf 'FAIL  %s — %s: %s\n' "${path}" "${check}" "${detail}"
-  printf '  Recommendation: %s\n' "${rec}"
-}
-
-emit_warn() {
-  local path="$1" check="$2" detail="$3" rec="$4"
-  printf 'WARN  %s — %s: %s\n' "${path}" "${check}" "${detail}"
-  printf '  Recommendation: %s\n' "${rec}"
-}
-
 count_non_blank() {
   awk 'NF { n++ } END { print n + 0 }' "$1"
 }
 
-check_line_count() {
+# Emit findings as TSV: <rule_id>\t<status>\t<file>\t<line>\t<context>
+emit_raw() {
   local file="$1"
   local n
   n="$(count_non_blank "${file}")"
-  if [ "${n}" -ge "${FAIL_LINES}" ]; then
-    emit_fail "${file}" "Body length" \
-      "${n} non-blank lines exceeds hard ceiling of ${FAIL_LINES}" \
-      "Move reference material, long examples, or complex scripts into sibling files"
-    return 1
-  elif [ "${n}" -ge "${WARN_LINES}" ]; then
-    emit_warn "${file}" "Body length" \
-      "${n} non-blank lines exceeds guidance ${WARN_LINES}" \
-      "Consider moving long embedded content into sibling references/ or scripts/ files"
+  if [[ "${n}" -ge "${FAIL_LINES}" ]]; then
+    printf 'body-length\tfail\t%s\t1\t%s non-blank lines (hard ceiling %s)\n' \
+      "${file}" "${n}" "${FAIL_LINES}"
+  elif [[ "${n}" -ge "${WARN_LINES}" ]]; then
+    printf 'body-length\twarn\t%s\t1\t%s non-blank lines (soft cap %s)\n' \
+      "${file}" "${n}" "${WARN_LINES}"
   fi
-  return 0
-}
 
-check_line_length() {
-  local file="$1"
-  # Emit one WARN per overlong line, skipping fenced blocks and
-  # single-token lines that are bare URLs.
-  local lines
-  lines="$(awk -v max="${MAX_LINE_LEN}" '
+  while IFS=$'\t' read -r lineno length; do
+    [[ -z "${lineno}" ]] && continue
+    printf 'line-length\twarn\t%s\t%s\tline is %s chars (> %s)\n' \
+      "${file}" "${lineno}" "${length}" "${MAX_LINE_LEN}"
+  done < <(awk -v max="${MAX_LINE_LEN}" '
     BEGIN { in_fence = 0 }
     {
       if ($0 ~ /^[[:space:]]*```/) { in_fence = !in_fence; next }
       if ($0 ~ /^[[:space:]]*~~~/) { in_fence = !in_fence; next }
       if (in_fence) { next }
-      # Skip lines that are just a bare URL (one token, starts with http).
       if (NF == 1 && $1 ~ /^https?:\/\//) { next }
       if (length($0) > max) {
         printf "%d\t%d\n", NR, length($0)
       }
     }
-  ' "${file}")"
-  [ -n "${lines}" ] || return 0
-  local row line_no len
-  while IFS= read -r row; do
-    line_no="${row%%$'\t'*}"
-    len="${row##*$'\t'}"
-    emit_warn "${file}" "Line length" \
-      "line ${line_no} is ${len} chars (> ${MAX_LINE_LEN})" \
-      "Wrap the line at a natural clause boundary"
-  done <<<"${lines}"
-  return 0
+  ' "${file}")
 }
 
-check_file() {
-  local file="$1"
-  local fail=0
-  check_line_count  "${file}" || fail=1
-  check_line_length "${file}"  # WARN only
-  return "${fail}"
-}
-
-check_path() {
+scan_path() {
   local target="$1"
-  local any=0
   local file
-  if [ -f "${target}" ]; then
-    check_file "${target}" || any=1
-  elif [ -d "${target}" ]; then
+  if [[ -f "${target}" ]]; then
+    emit_raw "${target}"
+  elif [[ -d "${target}" ]]; then
     while IFS= read -r file; do
-      check_file "${file}" || any=1
+      emit_raw "${file}"
     done < <(
       find "${target}" -type f -name 'SKILL.md' \
         -not -path '*/_shared/*' \
@@ -165,25 +139,83 @@ check_path() {
     printf '%s: path not found: %s\n' "${PROGNAME}" "${target}" >&2
     return 64
   fi
-  return "${any}"
+}
+
+readonly EMIT_PY='
+import os
+import sys
+
+sys.path.insert(0, os.environ["CHECK_SKILL_SCRIPT_DIR"])
+from _common import emit_json_finding, emit_rule_envelope, print_envelope
+
+recipes = {
+    "body-length": os.environ["CHECK_SKILL_RECIPE_BODY_LENGTH"],
+    "line-length": os.environ["CHECK_SKILL_RECIPE_LINE_LENGTH"],
+}
+
+per_rule = {"body-length": [], "line-length": []}
+for line in sys.stdin:
+    line = line.rstrip("\n")
+    if not line:
+        continue
+    parts = line.split("\t", 4)
+    if len(parts) != 5:
+        continue
+    rule_id, status, path, lineno, context = parts
+    if rule_id not in per_rule:
+        continue
+    try:
+        line_int = int(lineno)
+    except ValueError:
+        line_int = 1
+    per_rule[rule_id].append(
+        emit_json_finding(
+            rule_id=rule_id,
+            status=status,
+            location={"line": line_int, "context": f"{path}: {context}"},
+            reasoning=f"{path} {context}.",
+            recommended_changes=recipes[rule_id],
+        )
+    )
+
+envelopes = [
+    emit_rule_envelope(rule_id="body-length", findings=per_rule["body-length"]),
+    emit_rule_envelope(rule_id="line-length", findings=per_rule["line-length"]),
+]
+print_envelope(envelopes)
+if any(e["overall_status"] == "fail" for e in envelopes):
+    sys.exit(1)
+'
+
+emit_envelopes() {
+  CHECK_SKILL_SCRIPT_DIR="${SCRIPT_DIR}" \
+    CHECK_SKILL_RECIPE_BODY_LENGTH="${RECIPE_BODY_LENGTH}" \
+    CHECK_SKILL_RECIPE_LINE_LENGTH="${RECIPE_LINE_LENGTH}" \
+    python3 -c "${EMIT_PY}"
 }
 
 main() {
-  if [ "$#" -eq 0 ]; then
+  if [[ "$#" -eq 0 ]]; then
     usage >&2
     exit 64
   fi
   case "${1:-}" in
-    -h|--help) usage; exit 0 ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
   esac
   preflight
-  local any=0 target
-  for target in "$@"; do
-    check_path "${target}" || any=1
-  done
-  exit "${any}"
+  local target
+  local rc=0
+  {
+    for target in "$@"; do
+      scan_path "${target}"
+    done
+  } | emit_envelopes || rc=$?
+  exit "${rc}"
 }
 
-if [ "${0}" = "${BASH_SOURCE[0]:-$0}" ]; then
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   main "$@"
 fi

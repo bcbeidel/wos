@@ -1,0 +1,13 @@
+{
+  "_comment": "Canonical output shape for a check-skill rule. Eight detection scripts emit JSON envelopes — check_frontmatter, check_identity, check_prose, check_size, check_structure, check_secret, check_dangerous_patterns, check_cisco. Each script emits a single envelope or JSON array of envelopes (multi-rule scripts). Schema: {rule_id, overall_status, findings[]}; per-finding: {status, location, reasoning, recommended_changes}. recommended_changes is REQUIRED — non-empty with concrete repair guidance from skill-best-practices.md.",
+  "rule_id": "name-slug",
+  "overall_status": "fail",
+  "findings": [
+    {
+      "status": "fail",
+      "location": {"line": 2, "context": "frontmatter name field"},
+      "reasoning": "Frontmatter `name: My Skill` does not match the required slug shape `^[a-z0-9]+(-[a-z0-9]+)*$`. The router uses `name` as the discoverable trigger; non-conforming slugs are unreachable via `/build:my-skill`-style invocations.",
+      "recommended_changes": "Set `name:` to a kebab-case slug (lowercase letters, digits, single hyphens; max 64 chars). Example: `my-skill`. Also rename the parent directory to match — `name` and the directory basename must agree (canonical Anthropic rule)."
+    }
+  ]
+}

@@ -1,21 +1,23 @@
 #!/usr/bin/env bash
 #
 # check_identity.sh — Deterministic Tier-1 identity checks for Claude
-# Code SKILL.md files: filename case, directory basename, name slug
-# format, reserved tokens, uniqueness across the audited set.
+# Code SKILL.md files. Emits a JSON ARRAY of five envelopes
+# (rule_id="filename", rule_id="directory-basename",
+# rule_id="name-slug", rule_id="reserved-names",
+# rule_id="name-uniqueness") per scripts/_common.py.
 #
-# Filename:         file must be named exactly SKILL.md (case-sensitive).
-# Directory match:  parent directory basename must equal frontmatter `name`.
-# Name slug:        `name` matches ^[a-z0-9]+(-[a-z0-9]+)*$, ≤64 chars.
-# Reserved tokens:  `name` must not contain `anthropic` or `claude`.
-# Uniqueness:       no two audited skills may share the same `name`.
+# filename (FAIL):           file must be named exactly SKILL.md.
+# directory-basename (FAIL): parent dir basename equals frontmatter
+#                            `name`.
+# name-slug (FAIL):          `name` matches ^[a-z0-9]+(-[a-z0-9]+)*$,
+#                            ≤64 chars.
+# reserved-names (FAIL):     `name` must not contain `anthropic` or
+#                            `claude`.
+# name-uniqueness (FAIL):    no two audited skills share the same
+#                            `name`.
 #
 # Usage:
 #   check_identity.sh <path> [<path> ...]
-#
-# Paths may be files (SKILL.md or variant) or directories (scanned
-# recursively for SKILL.md / Skill.md / skill.md — wrong-case variants
-# are picked up so the filename check can flag them).
 #
 # Exit codes:
 #   0   no FAIL findings
@@ -24,14 +26,28 @@
 #   69  missing dependency
 #
 # Dependencies:
-#   awk, find, basename, dirname
+#   awk, find, basename, dirname, sort, uniq, paste, mktemp, python3
 
 set -Eeuo pipefail
 IFS=$'\n\t'
 
 PROGNAME="$(basename "${0}")"
+readonly PROGNAME
 
-REQUIRED_CMDS=(awk find basename dirname)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly SCRIPT_DIR
+
+readonly REQUIRED_CMDS=(awk find basename dirname sort uniq paste mktemp python3)
+
+readonly RECIPE_FILENAME='Rename the file to `SKILL.md` (case-sensitive). Claude Code'\''s skill loader matches the filename exactly; lowercase or extension variants are invisible to the loader. FROM `skill.md` / `Skill.md`; TO `SKILL.md`.'
+
+readonly RECIPE_DIRECTORY_BASENAME='Either rename the directory to match the frontmatter `name`, or update `name` to match the directory. Prefer renaming the directory unless the skill is already published. The skill collection keys on `name` for routing — drift between directory and identifier breaks discovery.'
+
+readonly RECIPE_NAME_SLUG='Rewrite `name` as lowercase kebab-case matching ^[a-z0-9]+(-[a-z0-9]+)*$ and ≤64 chars. FROM `CSV_to_Parquet` / `convert-csv-to-apache-parquet-with-very-long-name`; TO `csv-to-parquet`. Other forms break tooling that parses skill names as identifiers; over-long names degrade routing match quality. Move detail to `description`.'
+
+readonly RECIPE_RESERVED_NAMES='Rename the skill without the reserved token (`anthropic` or `claude`). FROM `claude-helper`; TO `workflow-helper`. These tokens collide with platform-owned namespaces and are rejected at skill-load time.'
+
+readonly RECIPE_NAME_UNIQUENESS='Rename one of the colliding skills to a distinct, more specific name (or merge if the workflows are genuinely identical). FROM two skills both named `deploy`; TO `deploy-staging` and `deploy-production`. Name collisions force arbitrary selection; routing becomes nondeterministic.'
 
 usage() {
   cat <<'EOF'
@@ -41,11 +57,11 @@ Usage:
   check_identity.sh <path> [<path> ...]
 
 Checks:
-  Filename          must be exactly SKILL.md (case-sensitive)
-  Directory match   parent directory basename == frontmatter `name`
-  Name slug         ^[a-z0-9]+(-[a-z0-9]+)*$, ≤64 characters
-  Reserved tokens   `name` must not contain `anthropic` or `claude`
-  Uniqueness        no two audited skills share the same `name`
+  filename            must be exactly SKILL.md (case-sensitive)
+  directory-basename  parent dir basename == frontmatter `name`
+  name-slug           ^[a-z0-9]+(-[a-z0-9]+)*$, ≤64 chars
+  reserved-names      `name` must not contain `anthropic` or `claude`
+  name-uniqueness     no two audited skills share the same `name`
 
 Options:
   -h, --help   Show this help and exit.
@@ -60,8 +76,9 @@ EOF
 
 install_hint() {
   case "${1}" in
-    awk|find|basename|dirname) printf 'should be preinstalled on any POSIX system' ;;
-    *)                         printf 'see your package manager' ;;
+    awk | find | basename | dirname | sort | uniq | paste | mktemp) printf 'should be preinstalled on any POSIX system' ;;
+    python3) printf 'install Python 3.9+' ;;
+    *) printf 'see your package manager' ;;
   esac
 }
 
@@ -73,7 +90,7 @@ preflight() {
       missing+=("${cmd}")
     fi
   done
-  if [ "${#missing[@]}" -gt 0 ]; then
+  if [[ "${#missing[@]}" -gt 0 ]]; then
     for cmd in "${missing[@]}"; do
       printf '%s: missing required command %q. Install: %s\n' \
         "${PROGNAME}" "${cmd}" "$(install_hint "${cmd}")" >&2
@@ -82,16 +99,6 @@ preflight() {
   fi
 }
 
-emit_fail() {
-  local path="$1" check="$2" detail="$3" rec="$4"
-  printf 'FAIL  %s — %s: %s\n' "${path}" "${check}" "${detail}"
-  printf '  Recommendation: %s\n' "${rec}"
-}
-
-# Extract a scalar string value for the given top-level frontmatter key.
-# Echoes the value (without surrounding quotes) or nothing if absent.
-# Only handles single-line scalars — folded block scalars are the
-# description cap's concern, not identity.
 read_scalar() {
   local file="$1" key="$2"
   awk -v k="${key}" '
@@ -113,129 +120,76 @@ read_scalar() {
   ' "${file}" 2>/dev/null || true
 }
 
-check_filename() {
+# TSV: <rule_id>\t<file>\t<line>\t<context>
+emit_raw() {
   local file="$1"
-  local base
+  local base dir_base name len
   base="$(basename "${file}")"
-  if [ "${base}" = "SKILL.md" ]; then
+  if [[ "${base}" != "SKILL.md" ]]; then
+    printf 'filename\t%s\t1\tfile is named '\''%s'\'' (expected '\''SKILL.md'\'')\n' \
+      "${file}" "${base}"
+  fi
+
+  name="$(read_scalar "${file}" "name")"
+  if [[ -z "${name}" ]]; then
     return 0
   fi
-  emit_fail "${file}" "Filename" \
-    "file is named '${base}', expected 'SKILL.md' (case-sensitive)" \
-    "Rename to SKILL.md — Claude Code's skill loader matches the filename exactly"
-  return 1
-}
 
-check_directory_match() {
-  local file="$1" name="$2"
-  local dir_base
   dir_base="$(basename "$(dirname "${file}")")"
-  if [ "${dir_base}" = "${name}" ]; then
-    return 0
+  if [[ "${dir_base}" != "${name}" ]]; then
+    printf 'directory-basename\t%s\t1\tparent dir '\''%s'\'' does not match frontmatter name '\''%s'\''\n' \
+      "${file}" "${dir_base}" "${name}"
   fi
-  emit_fail "${file}" "Directory basename" \
-    "parent directory '${dir_base}' does not match frontmatter name '${name}'" \
-    "Rename the directory to '${name}/' or update the name field to '${dir_base}'"
-  return 1
-}
 
-check_name_slug() {
-  local file="$1" name="$2"
-  local fail=0
-  local len=${#name}
-  if [ "${len}" -gt 64 ]; then
-    emit_fail "${file}" "Name slug" \
-      "name '${name}' is ${len} chars, exceeds 64-char cap" \
-      "Shorten the name while preserving meaning; move detail to description"
-    fail=1
+  len=${#name}
+  if [[ "${len}" -gt 64 ]]; then
+    printf 'name-slug\t%s\t1\tname '\''%s'\'' is %s chars (cap 64)\n' \
+      "${file}" "${name}" "${len}"
   fi
-  # Kebab-case: ^[a-z0-9]+(-[a-z0-9]+)*$
-  case "${name}" in
-    ""|-*|*-) ;;
-    *) ;;
-  esac
   if ! printf '%s' "${name}" | awk '
     { if ($0 ~ /^[a-z0-9]+(-[a-z0-9]+)*$/) exit 0; else exit 1 }
   '; then
-    emit_fail "${file}" "Name slug" \
-      "name '${name}' is not lowercase kebab-case (^[a-z0-9]+(-[a-z0-9]+)*\$)" \
-      "Rewrite as lowercase kebab-case (e.g., my-skill-name)"
-    fail=1
+    printf 'name-slug\t%s\t1\tname '\''%s'\'' is not lowercase kebab-case\n' \
+      "${file}" "${name}"
   fi
-  return "${fail}"
-}
 
-check_reserved_tokens() {
-  local file="$1" name="$2"
   case "${name}" in
-    *anthropic*|*claude*)
-      emit_fail "${file}" "Reserved name token" \
-        "name '${name}' contains a platform-reserved token (anthropic / claude)" \
-        "Rename without the reserved token — these collide with platform namespaces"
-      return 1
+    *anthropic* | *claude*)
+      printf 'reserved-names\t%s\t1\tname '\''%s'\'' contains a platform-reserved token\n' \
+        "${file}" "${name}"
       ;;
   esac
-  return 0
-}
 
-check_file() {
-  local file="$1"
-  local fail=0
-
-  check_filename "${file}" || fail=1
-
-  local name
-  name="$(read_scalar "${file}" "name")"
-  if [ -z "${name}" ]; then
-    # Missing name is check_frontmatter.sh's concern; skip name-based
-    # checks to avoid duplicate findings.
-    return "${fail}"
-  fi
-
-  check_directory_match "${file}" "${name}"  || fail=1
-  check_name_slug       "${file}" "${name}"  || fail=1
-  check_reserved_tokens "${file}" "${name}"  || fail=1
-
-  # Record name for uniqueness check; caller aggregates.
   printf '%s\t%s\n' "${name}" "${file}" >>"${UNIQ_LOG}"
-
-  return "${fail}"
 }
 
-check_uniqueness() {
-  # Groups names appearing more than once and emits a FAIL per file.
-  if [ ! -s "${UNIQ_LOG}" ]; then
+emit_uniqueness() {
+  if [[ ! -s "${UNIQ_LOG}" ]]; then
     return 0
   fi
-  local dup_names
+  local dup_names name file others
   dup_names="$(awk -F'\t' '{print $1}' "${UNIQ_LOG}" | sort | uniq -d)"
-  if [ -z "${dup_names}" ]; then
+  if [[ -z "${dup_names}" ]]; then
     return 0
   fi
-  local any=0 name file others
   while IFS= read -r name; do
-    [ -n "${name}" ] || continue
+    [[ -n "${name}" ]] || continue
     others="$(awk -F'\t' -v n="${name}" '$1 == n { print $2 }' "${UNIQ_LOG}" | paste -sd ',' -)"
     while IFS= read -r file; do
-      emit_fail "${file}" "Name uniqueness" \
-        "name '${name}' collides with another audited skill (matches: ${others})" \
-        "Rename one of the colliding skills to a distinct, more specific name"
-      any=1
+      printf 'name-uniqueness\t%s\t1\tname '\''%s'\'' collides with: %s\n' \
+        "${file}" "${name}" "${others}"
     done < <(awk -F'\t' -v n="${name}" '$1 == n { print $2 }' "${UNIQ_LOG}")
   done <<<"${dup_names}"
-  return "${any}"
 }
 
-check_path() {
+scan_path() {
   local target="$1"
-  local any=0
   local file
-
-  if [ -f "${target}" ]; then
-    check_file "${target}" || any=1
-  elif [ -d "${target}" ]; then
+  if [[ -f "${target}" ]]; then
+    emit_raw "${target}"
+  elif [[ -d "${target}" ]]; then
     while IFS= read -r file; do
-      check_file "${file}" || any=1
+      emit_raw "${file}"
     done < <(
       find "${target}" -type f \
         \( -name 'SKILL.md' -o -name 'Skill.md' -o -name 'skill.md' \) \
@@ -246,41 +200,97 @@ check_path() {
     printf '%s: path not found: %s\n' "${PROGNAME}" "${target}" >&2
     return 64
   fi
-  return "${any}"
+}
+
+readonly EMIT_PY='
+import os
+import sys
+
+sys.path.insert(0, os.environ["CHECK_SKILL_SCRIPT_DIR"])
+from _common import emit_json_finding, emit_rule_envelope, print_envelope
+
+recipes = {
+    "filename": os.environ["CHECK_SKILL_RECIPE_FILENAME"],
+    "directory-basename": os.environ["CHECK_SKILL_RECIPE_DIRECTORY_BASENAME"],
+    "name-slug": os.environ["CHECK_SKILL_RECIPE_NAME_SLUG"],
+    "reserved-names": os.environ["CHECK_SKILL_RECIPE_RESERVED_NAMES"],
+    "name-uniqueness": os.environ["CHECK_SKILL_RECIPE_NAME_UNIQUENESS"],
+}
+order = ["filename", "directory-basename", "name-slug", "reserved-names", "name-uniqueness"]
+
+per_rule = {r: [] for r in order}
+for line in sys.stdin:
+    line = line.rstrip("\n")
+    if not line:
+        continue
+    parts = line.split("\t", 3)
+    if len(parts) != 4:
+        continue
+    rule_id, path, lineno, context = parts
+    if rule_id not in per_rule:
+        continue
+    try:
+        line_int = int(lineno)
+    except ValueError:
+        line_int = 1
+    per_rule[rule_id].append(
+        emit_json_finding(
+            rule_id=rule_id,
+            status="fail",
+            location={"line": line_int, "context": f"{path}: {context}"},
+            reasoning=f"{path}: {context}.",
+            recommended_changes=recipes[rule_id],
+        )
+    )
+
+envelopes = [emit_rule_envelope(rule_id=r, findings=per_rule[r]) for r in order]
+print_envelope(envelopes)
+if any(e["overall_status"] == "fail" for e in envelopes):
+    sys.exit(1)
+'
+
+emit_envelopes() {
+  CHECK_SKILL_SCRIPT_DIR="${SCRIPT_DIR}" \
+    CHECK_SKILL_RECIPE_FILENAME="${RECIPE_FILENAME}" \
+    CHECK_SKILL_RECIPE_DIRECTORY_BASENAME="${RECIPE_DIRECTORY_BASENAME}" \
+    CHECK_SKILL_RECIPE_NAME_SLUG="${RECIPE_NAME_SLUG}" \
+    CHECK_SKILL_RECIPE_RESERVED_NAMES="${RECIPE_RESERVED_NAMES}" \
+    CHECK_SKILL_RECIPE_NAME_UNIQUENESS="${RECIPE_NAME_UNIQUENESS}" \
+    python3 -c "${EMIT_PY}"
 }
 
 UNIQ_LOG=""
 
 cleanup() {
-  [ -n "${UNIQ_LOG}" ] && [ -f "${UNIQ_LOG}" ] && rm -f "${UNIQ_LOG}"
+  [[ -n "${UNIQ_LOG}" ]] && [[ -f "${UNIQ_LOG}" ]] && rm -f "${UNIQ_LOG}"
 }
 
 main() {
-  if [ "$#" -eq 0 ]; then
+  if [[ "$#" -eq 0 ]]; then
     usage >&2
     exit 64
   fi
-
   case "${1:-}" in
-    -h|--help) usage; exit 0 ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
   esac
-
   preflight
 
   UNIQ_LOG="$(mktemp -t check_identity.XXXXXX)"
   trap cleanup EXIT INT TERM
 
-  local any=0
-  local target
-  for target in "$@"; do
-    check_path "${target}" || any=1
-  done
-
-  check_uniqueness || any=1
-
-  exit "${any}"
+  local target rc=0
+  {
+    for target in "$@"; do
+      scan_path "${target}"
+    done
+    emit_uniqueness
+  } | emit_envelopes || rc=$?
+  exit "${rc}"
 }
 
-if [ "${0}" = "${BASH_SOURCE[0]:-$0}" ]; then
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   main "$@"
 fi

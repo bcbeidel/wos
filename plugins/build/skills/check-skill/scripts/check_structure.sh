@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
 #
 # check_structure.sh — Deterministic Tier-1 structure checks for
-# Claude Code SKILL.md files: required H2 sections, Steps as a
-# numbered ordered list, Examples containing a fenced code block.
+# Claude Code SKILL.md files. Emits a JSON ARRAY of three envelopes
+# (rule_id="required-sections", rule_id="steps-shape",
+# rule_id="examples-content") per scripts/_common.py.
 #
-# Required sections: `## When to use`, `## Prerequisites`, `## Steps`,
-#                    `## Failure modes`, `## Examples` — all five present.
-# Steps shape:       `## Steps` is a Markdown ordered list starting at
-#                    1 with sequential (1..N) increments.
-# Examples content:  `## Examples` contains at least one fenced code
-#                    block (``` or ~~~).
+# required-sections (FAIL):  `## When to use`, `## Prerequisites`,
+#                            `## Steps`, `## Failure modes`,
+#                            `## Examples` all present.
+# steps-shape:               `## Steps` is a Markdown ordered list
+#                            starting at 1. FAIL when not ordered or
+#                            doesn't start at 1; WARN on non-sequential
+#                            increments.
+# examples-content (WARN):   `## Examples` contains at least one fenced
+#                            code block.
 #
 # Usage:
 #   check_structure.sh <path> [<path> ...]
@@ -21,15 +25,25 @@
 #   69  missing dependency
 #
 # Dependencies:
-#   awk, find, basename, head
+#   awk, find, basename, head, python3
 
 set -Eeuo pipefail
 IFS=$'\n\t'
 
 PROGNAME="$(basename "${0}")"
+readonly PROGNAME
 
-REQUIRED_CMDS=(awk find basename head)
-REQUIRED_SECTIONS=("When to use" "Prerequisites" "Steps" "Failure modes" "Examples")
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly SCRIPT_DIR
+
+readonly REQUIRED_CMDS=(awk find basename head python3)
+readonly REQUIRED_SECTIONS=("When to use" "Prerequisites" "Steps" "Failure modes" "Examples")
+
+readonly RECIPE_REQUIRED_SECTIONS='Add the missing H2 section(s) — `## When to use`, `## Prerequisites`, `## Steps`, `## Failure modes`, `## Examples` — with real content (not placeholder headings). Silence on any of the five canonical sections is the structural anti-pattern: agents invent behavior where the skill is silent.'
+
+readonly RECIPE_STEPS_SHAPE='Write `## Steps` as a Markdown ordered list starting at 1, one atomic action per item, sequential 1..N increments. FROM prose ("First read X, then validate Y"); TO `1. Read $ARGUMENTS. 2. Validate the input. 3. Write the output.` Numbered ordered lists are followed more reliably than prose or bullets — the structure itself is instruction.'
+
+readonly RECIPE_EXAMPLES_CONTENT='Add at least one fenced code block (```) under `## Examples` showing the input, output, and any side effects. Concrete examples anchor the model better than abstract rules — models copy-paste better than they translate prose.'
 
 usage() {
   cat <<'EOF'
@@ -39,11 +53,11 @@ Usage:
   check_structure.sh <path> [<path> ...]
 
 Checks:
-  Required sections  `## When to use` / `## Prerequisites` / `## Steps`
-                     / `## Failure modes` / `## Examples` all present
-  Steps shape        Markdown ordered list starting at 1; sequential
-                     increments 1..N
-  Examples content   at least one fenced code block (``` or ~~~)
+  required-sections  `## When to use` / `## Prerequisites` / `## Steps`
+                     / `## Failure modes` / `## Examples` all present (FAIL)
+  steps-shape        Markdown ordered list starting at 1; FAIL on
+                     non-ordered or wrong start; WARN on gaps
+  examples-content   at least one fenced code block (WARN)
 
 Options:
   -h, --help   Show this help and exit.
@@ -58,8 +72,9 @@ EOF
 
 install_hint() {
   case "${1}" in
-    awk|find|basename|head) printf 'should be preinstalled on any POSIX system' ;;
-    *)                      printf 'see your package manager' ;;
+    awk | find | basename | head) printf 'should be preinstalled on any POSIX system' ;;
+    python3) printf 'install Python 3.9+' ;;
+    *) printf 'see your package manager' ;;
   esac
 }
 
@@ -71,7 +86,7 @@ preflight() {
       missing+=("${cmd}")
     fi
   done
-  if [ "${#missing[@]}" -gt 0 ]; then
+  if [[ "${#missing[@]}" -gt 0 ]]; then
     for cmd in "${missing[@]}"; do
       printf '%s: missing required command %q. Install: %s\n' \
         "${PROGNAME}" "${cmd}" "$(install_hint "${cmd}")" >&2
@@ -80,66 +95,44 @@ preflight() {
   fi
 }
 
-emit_fail() {
-  local path="$1" check="$2" detail="$3" rec="$4"
-  printf 'FAIL  %s — %s: %s\n' "${path}" "${check}" "${detail}"
-  printf '  Recommendation: %s\n' "${rec}"
-}
-
-emit_warn() {
-  local path="$1" check="$2" detail="$3" rec="$4"
-  printf 'WARN  %s — %s: %s\n' "${path}" "${check}" "${detail}"
-  printf '  Recommendation: %s\n' "${rec}"
-}
-
-# Strip frontmatter and print remaining body lines with line numbers
-# (body line numbers, starting at 1 after the closing ---).
-body_with_nums() {
-  local file="$1"
+# Strip frontmatter; print body lines only.
+body_lines() {
   awk '
-    BEGIN { in_fm = 0; past_fm = 0; body_nr = 0 }
+    BEGIN { in_fm = 0; past_fm = 0 }
     NR == 1 && /^---[[:space:]]*$/ { in_fm = 1; next }
     in_fm && /^---[[:space:]]*$/ { in_fm = 0; past_fm = 1; next }
     in_fm { next }
     !in_fm && !past_fm { past_fm = 1 }
-    { body_nr++; print body_nr "\t" $0 }
-  ' "${file}"
+    { print }
+  ' "$1"
 }
 
+# Emits TSV: <rule_id>\t<status>\t<file>\t<line>\t<context>
 check_required_sections() {
   local file="$1"
-  local body missing=""
-  local section
-  body="$(body_with_nums "${file}")"
+  local body missing="" section
+  body="$(body_lines "${file}")"
   for section in "${REQUIRED_SECTIONS[@]}"; do
-    # Match `## Section` at start of a body line, optional trailing spaces.
     if ! printf '%s\n' "${body}" | awk -v s="${section}" '
-      BEGIN { FS = "\t"; pat = "^## " s "[[:space:]]*$" }
-      $2 ~ pat { found = 1; exit 0 }
+      BEGIN { pat = "^## " s "[[:space:]]*$" }
+      $0 ~ pat { found = 1; exit 0 }
       END { exit found ? 0 : 1 }
     '; then
-      if [ -n "${missing}" ]; then
+      if [[ -n "${missing}" ]]; then
         missing="${missing}, ## ${section}"
       else
         missing="## ${section}"
       fi
     fi
   done
-  if [ -n "${missing}" ]; then
-    emit_fail "${file}" "Required sections" \
-      "missing section(s): ${missing}" \
-      "Add the missing H2 section(s) with real content (not placeholder headings)"
-    return 1
+  if [[ -n "${missing}" ]]; then
+    printf 'required-sections\tfail\t%s\t1\tmissing section(s): %s\n' \
+      "${file}" "${missing}"
   fi
-  return 0
 }
 
 check_steps_shape() {
   local file="$1"
-  # Extract the `## Steps` section (lines until the next `## ` heading
-  # or end of file). Then check that the first list-shaped line is an
-  # ordered list item starting at 1 and that subsequent ordered-list
-  # items increment sequentially.
   local section
   section="$(awk '
     BEGIN { in_sec = 0 }
@@ -150,75 +143,57 @@ check_steps_shape() {
     in_sec { print }
   ' "${file}" 2>/dev/null)"
 
-  if [ -z "${section}" ]; then
-    # Steps section missing — already flagged by check_required_sections.
+  if [[ -z "${section}" ]]; then
     return 0
   fi
 
-  # Find list items — lines matching /^[0-9]+\.\s/ or /^\s*[-*+]\s/.
-  # Ordered items appear first => ordered list. Unordered items first => not ordered.
   local first_list_line
   first_list_line="$(printf '%s\n' "${section}" | awk '
     /^[[:space:]]*[-*+][[:space:]]+/ { print "UL:" $0; exit }
     /^[0-9]+\.[[:space:]]+/ { print "OL:" $0; exit }
   ')"
 
-  if [ -z "${first_list_line}" ]; then
-    emit_fail "${file}" "Steps shape" \
-      "## Steps contains no Markdown list (ordered or unordered)" \
-      "Write Steps as a numbered ordered list, one atomic action per step, starting at 1"
-    return 1
+  if [[ -z "${first_list_line}" ]]; then
+    printf 'steps-shape\tfail\t%s\t1\t## Steps contains no Markdown list\n' "${file}"
+    return 0
   fi
 
   case "${first_list_line}" in
     UL:*)
-      emit_fail "${file}" "Steps shape" \
-        "## Steps begins with an unordered list; expected an ordered list (1. 2. 3. ...)" \
-        "Convert to a numbered ordered list starting at 1 with sequential increments"
-      return 1
-      ;;
-    OL:*)
+      printf 'steps-shape\tfail\t%s\t1\t## Steps begins with an unordered list (expected ordered)\n' "${file}"
+      return 0
       ;;
   esac
 
-  # Validate ordered-list numbering: first number must be 1; subsequent
-  # ordered-list top-level items must increment by 1.
-  local nums
+  local nums first_num
   nums="$(printf '%s\n' "${section}" | awk '
     /^[0-9]+\.[[:space:]]+/ {
       match($0, /^[0-9]+/)
       print substr($0, RSTART, RLENGTH)
     }
   ')"
-  local first_num
   first_num="$(printf '%s\n' "${nums}" | head -n 1)"
-  if [ "${first_num}" != "1" ]; then
-    emit_fail "${file}" "Steps shape" \
-      "## Steps ordered list starts at ${first_num}, not 1" \
-      "Renumber the ordered list to start at 1"
-    return 1
+  if [[ "${first_num}" != "1" ]]; then
+    printf 'steps-shape\tfail\t%s\t1\t## Steps ordered list starts at %s (expected 1)\n' \
+      "${file}" "${first_num}"
+    return 0
   fi
-  local expect=1 n
-  local non_seq=""
+  local expect=1 n non_seq=""
   while IFS= read -r n; do
-    [ -n "${n}" ] || continue
-    if [ "${n}" != "${expect}" ]; then
+    [[ -z "${n}" ]] && continue
+    if [[ "${n}" != "${expect}" ]]; then
       non_seq="${non_seq}${non_seq:+, }${n}"
     fi
     expect=$((n + 1))
   done <<<"${nums}"
-  if [ -n "${non_seq}" ]; then
-    emit_warn "${file}" "Steps shape" \
-      "## Steps ordered list has non-sequential numbering (unexpected: ${non_seq})" \
-      "Renumber sequentially 1..N"
-    # WARN does not flip the FAIL exit; swallow.
+  if [[ -n "${non_seq}" ]]; then
+    printf 'steps-shape\twarn\t%s\t1\t## Steps ordered list has non-sequential numbering (unexpected: %s)\n' \
+      "${file}" "${non_seq}"
   fi
-  return 0
 }
 
 check_examples_fenced() {
   local file="$1"
-  # Extract the Examples section body; then look for a fenced block marker.
   local section
   section="$(awk '
     BEGIN { in_sec = 0 }
@@ -229,8 +204,8 @@ check_examples_fenced() {
     in_sec { print }
   ' "${file}" 2>/dev/null)"
 
-  if [ -z "${section}" ]; then
-    return 0  # already flagged by check_required_sections
+  if [[ -z "${section}" ]]; then
+    return 0
   fi
 
   if printf '%s\n' "${section}" | awk '
@@ -241,30 +216,29 @@ check_examples_fenced() {
     return 0
   fi
 
-  emit_warn "${file}" "Examples content" \
-    "## Examples contains no fenced code block" \
-    "Add at least one fenced block (\`\`\`) showing inputs, outputs, and side effects"
-  return 0
+  printf 'examples-content\twarn\t%s\t1\t## Examples contains no fenced code block\n' "${file}"
 }
 
-check_file() {
+scan_file() {
   local file="$1"
-  local fail=0
-  check_required_sections "${file}" || fail=1
-  check_steps_shape       "${file}" || fail=1
-  check_examples_fenced   "${file}"  # WARN only
-  return "${fail}"
+  local first
+  first="$(head -n 1 "${file}" 2>/dev/null || true)"
+  # If no frontmatter, the body checks still run against whole file —
+  # required-sections will likely flag everything. That's the point.
+  : "${first}"
+  check_required_sections "${file}"
+  check_steps_shape "${file}"
+  check_examples_fenced "${file}"
 }
 
-check_path() {
+scan_path() {
   local target="$1"
-  local any=0
   local file
-  if [ -f "${target}" ]; then
-    check_file "${target}" || any=1
-  elif [ -d "${target}" ]; then
+  if [[ -f "${target}" ]]; then
+    scan_file "${target}"
+  elif [[ -d "${target}" ]]; then
     while IFS= read -r file; do
-      check_file "${file}" || any=1
+      scan_file "${file}"
     done < <(
       find "${target}" -type f -name 'SKILL.md' \
         -not -path '*/_shared/*' \
@@ -274,25 +248,83 @@ check_path() {
     printf '%s: path not found: %s\n' "${PROGNAME}" "${target}" >&2
     return 64
   fi
-  return "${any}"
+}
+
+readonly EMIT_PY='
+import os
+import sys
+
+sys.path.insert(0, os.environ["CHECK_SKILL_SCRIPT_DIR"])
+from _common import emit_json_finding, emit_rule_envelope, print_envelope
+
+recipes = {
+    "required-sections": os.environ["CHECK_SKILL_RECIPE_REQUIRED_SECTIONS"],
+    "steps-shape": os.environ["CHECK_SKILL_RECIPE_STEPS_SHAPE"],
+    "examples-content": os.environ["CHECK_SKILL_RECIPE_EXAMPLES_CONTENT"],
+}
+order = ["required-sections", "steps-shape", "examples-content"]
+
+per_rule = {r: [] for r in order}
+for line in sys.stdin:
+    line = line.rstrip("\n")
+    if not line:
+        continue
+    parts = line.split("\t", 4)
+    if len(parts) != 5:
+        continue
+    rule_id, status, path, lineno, context = parts
+    if rule_id not in per_rule:
+        continue
+    try:
+        line_int = int(lineno)
+    except ValueError:
+        line_int = 1
+    per_rule[rule_id].append(
+        emit_json_finding(
+            rule_id=rule_id,
+            status=status,
+            location={"line": line_int, "context": f"{path}: {context}"},
+            reasoning=f"{path}: {context}.",
+            recommended_changes=recipes[rule_id],
+        )
+    )
+
+envelopes = [emit_rule_envelope(rule_id=r, findings=per_rule[r]) for r in order]
+print_envelope(envelopes)
+if any(e["overall_status"] == "fail" for e in envelopes):
+    sys.exit(1)
+'
+
+emit_envelopes() {
+  CHECK_SKILL_SCRIPT_DIR="${SCRIPT_DIR}" \
+    CHECK_SKILL_RECIPE_REQUIRED_SECTIONS="${RECIPE_REQUIRED_SECTIONS}" \
+    CHECK_SKILL_RECIPE_STEPS_SHAPE="${RECIPE_STEPS_SHAPE}" \
+    CHECK_SKILL_RECIPE_EXAMPLES_CONTENT="${RECIPE_EXAMPLES_CONTENT}" \
+    python3 -c "${EMIT_PY}"
 }
 
 main() {
-  if [ "$#" -eq 0 ]; then
+  if [[ "$#" -eq 0 ]]; then
     usage >&2
     exit 64
   fi
   case "${1:-}" in
-    -h|--help) usage; exit 0 ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
   esac
   preflight
-  local any=0 target
-  for target in "$@"; do
-    check_path "${target}" || any=1
-  done
-  exit "${any}"
+  local target
+  local rc=0
+  {
+    for target in "$@"; do
+      scan_path "${target}"
+    done
+  } | emit_envelopes || rc=$?
+  exit "${rc}"
 }
 
-if [ "${0}" = "${BASH_SOURCE[0]:-$0}" ]; then
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   main "$@"
 fi
