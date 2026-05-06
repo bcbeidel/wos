@@ -382,8 +382,13 @@ def check_skill_md_references(skill_dir: Path) -> dict:
         )
         return envelope("pattern-skill-md-references", findings)
     listed = re.findall(r"-\s+(\S+)", m.group(1))
+    # Local rule files only — shared references (e.g., `../../_shared/...`)
+    # may also start with "check-" (check-skill-pattern.md is one) and are
+    # not rule artifacts of this skill.
     listed_check_md = sorted(
-        Path(p).name for p in listed if Path(p).name.startswith("check-")
+        Path(p).name
+        for p in listed
+        if p.startswith("references/") and Path(p).name.startswith("check-")
     )
     on_disk = sorted(p.name for p in (skill_dir / "references").glob("check-*.md"))
     if listed_check_md != on_disk:
