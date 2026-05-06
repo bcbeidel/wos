@@ -1,0 +1,16 @@
+{
+  "_comment": "Canonical output shape for a check-help-skill rule. The detection script (scripts/check_help_skill.py) emits a JSON array of envelopes — 17 Tier-1 rule_ids covering structural integrity, security patterns, the managed skill-index region, workflow curation, and trigger-shape. Schema: {rule_id: string, overall_status: 'pass'|'warn'|'fail'|'inapplicable', findings: [<finding>]}. Per-finding: {status: 'warn'|'fail', location: {line: int, context: string} | null, reasoning: string, recommended_changes: string}. recommended_changes is REQUIRED — non-empty with concrete repair guidance sourced from help-skill-best-practices.md.",
+  "rule_id": "slug-mismatch",
+  "overall_status": "fail",
+  "findings": [
+    {
+      "status": "fail",
+      "location": {
+        "line": 2,
+        "context": "frontmatter name field"
+      },
+      "reasoning": "Help-skill frontmatter `name` is `'help-skill-foo'` but must be the literal string `help`. The router cannot find the skill at the canonical `<plugin>:help` invocation when the slug doesn't match.",
+      "recommended_changes": "Set `name: help` in the frontmatter. The slug is fixed by convention — every help-skill across every plugin uses the literal name `help`, and the directory containing SKILL.md must be named `help` correspondingly."
+    }
+  ]
+}
