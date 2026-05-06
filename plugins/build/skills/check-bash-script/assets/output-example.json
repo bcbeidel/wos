@@ -1,0 +1,16 @@
+{
+  "_comment": "Canonical output shape for a check-bash-script rule. Each detection script (scripts/check_*.{py,sh}) emits either a single envelope (one rule) or a JSON array of envelopes (multi-rule scripts). Schema: {rule_id: string, overall_status: 'pass'|'warn'|'fail'|'inapplicable', findings: [<finding>]}. Per-finding: {status: 'warn'|'fail', location: {line: int, context: string} | null, reasoning: string, recommended_changes: string}. recommended_changes is REQUIRED — non-empty string with concrete repair guidance. Scripts must emit complete recipes; the orchestrator does not enrich.",
+  "rule_id": "shebang",
+  "overall_status": "fail",
+  "findings": [
+    {
+      "status": "fail",
+      "location": {
+        "line": 1,
+        "context": "#!/bin/sh"
+      },
+      "reasoning": "First line is `#!/bin/sh`, not bash. Bash-only constructs (arrays, `[[ ]]`, `local`) silently fail or behave differently under dash/BusyBox.",
+      "recommended_changes": "Replace the first line with `#!/usr/bin/env bash`. Use `#!/bin/bash` only in tightly controlled environments where /bin/bash is guaranteed at version 4.0+."
+    }
+  ]
+}

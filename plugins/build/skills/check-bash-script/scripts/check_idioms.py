@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Tier-1 bash idiom checker (WARN-only style findings).
+"""Tier-1 bash idiom checker — emits JSON ARRAY of three envelopes.
 
-Emits WARN findings for three bash style anti-patterns:
-  - bracket-test: `[ ... ]` tests where `[[ ... ]]` is preferred.
+Three rules, all WARN (style coaching):
+  - bracket-test:     `[ ... ]` tests where `[[ ... ]]` is preferred.
   - printf-over-echo: `echo -e`/`echo -n`/escape-laden echo (prefer printf).
-  - var-braces: unbraced `$var` of 3+ chars where `${var}` is clearer.
+  - var-braces:       unbraced `$var` of 3+ chars where `${var}` is clearer.
 
-Per-file emission is capped at 3 findings per sub-check. Only WARN findings
-are produced; exit 0 unless a usage error occurs.
+Per-rule emission is capped at 3 findings per file (noise control).
+Exit codes: 0 always (WARN-only), 64 on usage error.
 
 Example:
     ./check_idioms.py path/to/script.sh path/to/scripts/
@@ -20,6 +20,8 @@ import re
 import sys
 from pathlib import Path
 
+from _common import emit_json_finding, emit_rule_envelope, print_envelope
+
 EXIT_USAGE = 64
 EMIT_CAP = 3
 
@@ -30,6 +32,63 @@ _DOUBLE_BRACKET_RE = re.compile(r"\[\[")
 _SINGLE_BRACKET_RE = re.compile(r"(?:^|[\s;&|(])\[\s")
 _ECHO_ANTI_RE = re.compile(r"(?:^|[\s;&|(])echo\s+(?:-[en]+|\S*\\[ntr\\])")
 _UNBRACED_VAR_RE = re.compile(r"(?<!\$\{)(?<!\\)\$[a-zA-Z_][a-zA-Z0-9_]{2,}")
+
+_RECIPE_BRACKET_TEST = (
+    "Replace `[ ... ]` with `[[ ... ]]`. Double-bracket tests do not "
+    "word-split on the LHS, support pattern matching (`==` glob), and "
+    "support regex (`=~`).\n\n"
+    "Example:\n"
+    '    if [[ "$x" == "y" ]]; then ...\n'
+    '    if [[ "$file" == *.log ]]; then ...\n'
+    '    if [[ "$version" =~ ^[0-9]+\\.[0-9]+\\.[0-9]+$ ]]; then ...\n'
+)
+
+_RECIPE_PRINTF_OVER_ECHO = (
+    "Replace `echo -e`/`echo -n`/escape-bearing `echo` with `printf 'fmt\\n' "
+    '"$a" "$b"`. `printf` is portable across shells; `echo`\'s flag handling '
+    "varies (-e/-n behave differently on different platforms). `printf` does "
+    "not append a newline; supply `\\n` explicitly.\n\n"
+    "Example:\n"
+    "    printf 'name:\\t%s\\nvalue:\\t%s\\n' \"$name\" \"$value\"\n"
+)
+
+_RECIPE_VAR_BRACES = (
+    "Brace the expansion when it abuts identifier characters: `${var}foo` "
+    "rather than `$varfoo` (which expands `$varfoo`, an unset variable, to "
+    "empty). Other adjacent characters (`/`, `.`, `-`, space) do not require "
+    "braces.\n\n"
+    "Example:\n"
+    "    printf '%s\\n' \"${prefix}${timestamp}\"\n"
+    "    log_path=\"${dir}${name}_log\"\n"
+)
+
+_RULES = [
+    {
+        "rule_id": "bracket-test",
+        "pattern": _SINGLE_BRACKET_RE,
+        "skip_if": _DOUBLE_BRACKET_RE,
+        "reasoning_suffix": (
+            "uses `[ ... ]` (single-bracket); prefer `[[ ... ]]` in bash."
+        ),
+        "recipe": _RECIPE_BRACKET_TEST,
+    },
+    {
+        "rule_id": "printf-over-echo",
+        "pattern": _ECHO_ANTI_RE,
+        "skip_if": None,
+        "reasoning_suffix": "non-trivial echo (flags/escapes); prefer printf.",
+        "recipe": _RECIPE_PRINTF_OVER_ECHO,
+    },
+    {
+        "rule_id": "var-braces",
+        "pattern": _UNBRACED_VAR_RE,
+        "skip_if": None,
+        "reasoning_suffix": (
+            "bare-dollar expansion adjacent to identifier characters; brace it."
+        ),
+        "recipe": _RECIPE_VAR_BRACES,
+    },
+]
 
 
 class _UsageError(Exception):
@@ -64,70 +123,47 @@ def _collect_targets(paths: list[Path]) -> list[Path]:
     return files
 
 
-def _emit(
-    path: Path,
-    check: str,
-    lineno: int,
-    message: str,
-    recommendation: str,
-) -> None:
-    print(f"WARN  {path} — {check}: line {lineno} {message}")
-    print(f"  Recommendation: {recommendation}.")
-
-
-def _scan(
+def _scan_rule(
     path: Path,
     lines: list[str],
-    check: str,
-    pattern: re.Pattern[str],
-    message: str,
-    recommendation: str,
-    skip_if: re.Pattern[str] | None = None,
-) -> None:
+    rule: dict,
+) -> list[dict]:
+    findings: list[dict] = []
     emitted = 0
+    pattern = rule["pattern"]
+    skip_if = rule["skip_if"]
     for lineno, line in enumerate(lines, 1):
         if emitted >= EMIT_CAP:
-            return
+            break
         if line.lstrip().startswith("#"):
             continue
         if skip_if is not None and skip_if.search(line):
             continue
         if pattern.search(line):
-            _emit(path, check, lineno, message, recommendation)
+            findings.append(
+                emit_json_finding(
+                    rule_id=rule["rule_id"],
+                    status="warn",
+                    location={
+                        "line": lineno,
+                        "context": f"{path}: {line.strip()[:80]}",
+                    },
+                    reasoning=f"line {lineno} {rule['reasoning_suffix']}",
+                    recommended_changes=rule["recipe"],
+                )
+            )
             emitted += 1
+    return findings
 
 
-def _check_file(path: Path) -> None:
+def _scan_file(path: Path, per_rule: dict[str, list[dict]]) -> None:
     try:
         lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
     except OSError as err:
         print(f"check_idioms.py: cannot read {path}: {err}", file=sys.stderr)
         return
-    _scan(
-        path,
-        lines,
-        "bracket-test",
-        _SINGLE_BRACKET_RE,
-        "uses `[ ... ]`; prefer `[[ ... ]]` in bash",
-        "Use double-bracket tests (no word-splitting, pattern matching)",
-        skip_if=_DOUBLE_BRACKET_RE,
-    )
-    _scan(
-        path,
-        lines,
-        "printf-over-echo",
-        _ECHO_ANTI_RE,
-        "non-trivial output; prefer printf",
-        "Use printf for portable output with flags or escape sequences",
-    )
-    _scan(
-        path,
-        lines,
-        "var-braces",
-        _UNBRACED_VAR_RE,
-        "has bare-dollar expansion next to identifier chars",
-        "Brace the expansion when it abuts identifier characters",
-    )
+    for rule in _RULES:
+        per_rule[rule["rule_id"]].extend(_scan_rule(path, lines, rule))
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -149,12 +185,20 @@ def main(argv: list[str] | None = None) -> int:
     args = get_parser().parse_args(argv)
     try:
         files = _collect_targets(args.paths)
-        for f in files:
-            _check_file(f)
     except _UsageError:
         return EXIT_USAGE
     except KeyboardInterrupt:
         return 130
+
+    per_rule: dict[str, list[dict]] = {r["rule_id"]: [] for r in _RULES}
+    for f in files:
+        _scan_file(f, per_rule)
+
+    envelopes = [
+        emit_rule_envelope(rule_id=r["rule_id"], findings=per_rule[r["rule_id"]])
+        for r in _RULES
+    ]
+    print_envelope(envelopes)
     return 0
 
 

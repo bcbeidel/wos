@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
-"""Tier-1 bash safety checker.
+"""Tier-1 bash safety checker — emits JSON ARRAY of three envelopes.
 
-Emits findings for three safety violations:
-  - eval-call (FAIL): `eval` invocation without a justification comment on
-    the same or immediately preceding line.
-  - gnu-flags (WARN): GNU-only coreutils flags without a declared
-    `requires: gnu-coreutils` header.
+Three rules:
+  - eval (FAIL):       `eval` invocation without justification comment.
+  - gnu-flags (WARN):  GNU-only coreutils flags without a declared
+                       `requires: gnu-coreutils` header.
   - tmp-literal (FAIL): hardcoded `/tmp/` or `/var/tmp/` string literals.
+
+Exit codes:
+  0  — overall_status pass / warn for every emitted envelope
+  1  — overall_status=fail for any envelope (eval or tmp-literal hit)
+  64 — usage error
 
 Example:
     ./check_safety.py path/to/script.sh path/to/scripts/
@@ -18,6 +22,8 @@ import argparse
 import re
 import sys
 from pathlib import Path
+
+from _common import emit_json_finding, emit_rule_envelope, print_envelope
 
 EXIT_USAGE = 64
 EMIT_CAP = 3
@@ -41,6 +47,45 @@ _GNU_FLAG_SIMPLE = [
 _SED_I_RE = re.compile(r"(?:^|\s)sed\s+-i(?:\s+(?![\"'])|$)")
 
 _TMP_LITERAL_RE = re.compile(r"[\"'](/tmp|/var/tmp)/")  # noqa: S108
+
+_RECIPE_EVAL = (
+    "Replace `eval` with `case` for action dispatch, an array for command "
+    "construction (`cmd=(...); \"${cmd[@]}\"`), or parameter expansion. "
+    "If `eval` is genuinely required (rare, dynamically generated source), "
+    "document the rationale with `# shellcheck disable=SC2294 # <reason>` "
+    "or `# eval-justified: <reason>` on the same line or the line above.\n\n"
+    "Example (case dispatch):\n"
+    "    case \"$action\" in\n"
+    "      start) start_server ;;\n"
+    "      stop)  stop_server  ;;\n"
+    "      *)     die \"unknown action: $action\" ;;\n"
+    "    esac\n"
+)
+
+_RECIPE_GNU_FLAGS = (
+    "Either declare `# requires: gnu-coreutils` in the header (so a reader "
+    "knows the script targets Linux/Homebrew gnu-coreutils, not BSD/macOS "
+    "default `find`/`sed`/`stat`), or rewrite using a portable form. "
+    "Common rewrites:\n"
+    "  sed -i 's/X/Y/' file\n"
+    "    → sed 's/X/Y/' file > file.new && mv file.new file\n"
+    "  readlink -f path\n"
+    "    → cd \"$(dirname \"$path\")\" && pwd  (or a Python shim)\n"
+    "  date -d '<expr>'\n"
+    "    → date -j -f <fmt> '<input>'  on macOS; document both branches\n"
+    "  stat -c '%s' file\n"
+    "    → stat -c '%s' file 2>/dev/null || stat -f '%z' file\n"
+)
+
+_RECIPE_TMP_LITERAL = (
+    "Replace `/tmp/...` or `/var/tmp/...` literals with `\"$(mktemp)\"` "
+    "(file) or `\"$(mktemp -d)\"` (dir), and register a `trap` for cleanup "
+    "on the very next line. Hardcoded /tmp paths are racy "
+    "(symlink attacks, predictable names) and leak across runs.\n\n"
+    "Example:\n"
+    "    out=\"$(mktemp)\"\n"
+    "    trap 'rm -f \"$out\"' EXIT INT TERM\n"
+)
 
 
 class _UsageError(Exception):
@@ -75,20 +120,8 @@ def _collect_targets(paths: list[Path]) -> list[Path]:
     return files
 
 
-def _emit(
-    severity: str,
-    path: Path,
-    check: str,
-    lineno: int,
-    message: str,
-    recommendation: str,
-) -> None:
-    print(f"{severity}  {path} — {check}: line {lineno} {message}")
-    print(f"  Recommendation: {recommendation}.")
-
-
-def _check_eval(path: Path, lines: list[str]) -> bool:
-    any_fail = False
+def _scan_eval(path: Path, lines: list[str]) -> list[dict]:
+    findings: list[dict] = []
     for lineno, line in enumerate(lines, 1):
         if line.lstrip().startswith("#"):
             continue
@@ -97,27 +130,31 @@ def _check_eval(path: Path, lines: list[str]) -> bool:
         prev = lines[lineno - 2] if lineno >= 2 else ""
         if any(j in line or j in prev for j in _EVAL_JUSTIFICATIONS):
             continue
-        _emit(
-            "FAIL",
-            path,
-            "eval",
-            lineno,
-            "uses `eval` without justification comment",
-            "Replace with case dispatch, parameter expansion, or array call; "
-            "or add `# shellcheck disable=SC2294` or `# eval-justified: <reason>`",
+        findings.append(
+            emit_json_finding(
+                rule_id="eval",
+                status="fail",
+                location={"line": lineno, "context": f"{path}: {line.strip()[:80]}"},
+                reasoning=(
+                    f"line {lineno} uses `eval` without a justification comment. "
+                    "Eval re-parses its argument; if any value flows from input, "
+                    "it is a shell injection vector."
+                ),
+                recommended_changes=_RECIPE_EVAL,
+            )
         )
-        any_fail = True
-    return any_fail
+    return findings
 
 
-def _check_gnu_flags(path: Path, lines: list[str]) -> None:
+def _scan_gnu_flags(path: Path, lines: list[str]) -> list[dict]:
+    findings: list[dict] = []
     header = "\n".join(lines[:HEADER_SCAN_LINES])
     if _GNU_COREUTILS_HEADER_RE.search(header):
-        return
+        return findings
     emitted = 0
     for lineno, line in enumerate(lines, 1):
         if emitted >= EMIT_CAP:
-            return
+            break
         if line.lstrip().startswith("#"):
             continue
         label: str | None = None
@@ -130,47 +167,57 @@ def _check_gnu_flags(path: Path, lines: list[str]) -> None:
                     break
         if label is None:
             continue
-        _emit(
-            "WARN",
-            path,
-            "gnu-flags",
-            lineno,
-            f"uses GNU-only flag ({label})",
-            "Declare `# requires: gnu-coreutils` in the header, "
-            "or use a portable form (e.g., `sed -e ... > out && mv out file`)",
+        findings.append(
+            emit_json_finding(
+                rule_id="gnu-flags",
+                status="warn",
+                location={"line": lineno, "context": f"{path}: {label}"},
+                reasoning=(
+                    f"line {lineno} uses GNU-only flag ({label}) without a "
+                    "`# requires: gnu-coreutils` header declaring the platform "
+                    "contract. Silent macOS/Linux divergence."
+                ),
+                recommended_changes=_RECIPE_GNU_FLAGS,
+            )
         )
         emitted += 1
+    return findings
 
 
-def _check_tmp_literal(path: Path, lines: list[str]) -> bool:
-    any_fail = False
+def _scan_tmp_literal(path: Path, lines: list[str]) -> list[dict]:
+    findings: list[dict] = []
     for lineno, line in enumerate(lines, 1):
         if line.lstrip().startswith("#"):
             continue
         if _TMP_LITERAL_RE.search(line):
-            _emit(
-                "FAIL",
-                path,
-                "tmp-literal",
-                lineno,
-                "has hardcoded /tmp or /var/tmp literal",
-                "Use `mktemp` (or `mktemp -d`) and pair with `trap` cleanup",
+            findings.append(
+                emit_json_finding(
+                    rule_id="tmp-literal",
+                    status="fail",
+                    location={
+                        "line": lineno,
+                        "context": f"{path}: {line.strip()[:80]}",
+                    },
+                    reasoning=(
+                        f"line {lineno} contains a hardcoded /tmp or /var/tmp "
+                        "literal. Predictable temp paths are races and "
+                        "symlink attacks waiting to happen."
+                    ),
+                    recommended_changes=_RECIPE_TMP_LITERAL,
+                )
             )
-            any_fail = True
-    return any_fail
+    return findings
 
 
-def _check_file(path: Path) -> bool:
+def _scan_file(path: Path, per_rule: dict[str, list[dict]]) -> None:
     try:
         lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
     except OSError as err:
         print(f"check_safety.py: cannot read {path}: {err}", file=sys.stderr)
-        return False
-    any_fail = False
-    any_fail |= _check_eval(path, lines)
-    _check_gnu_flags(path, lines)
-    any_fail |= _check_tmp_literal(path, lines)
-    return any_fail
+        return
+    per_rule["eval"].extend(_scan_eval(path, lines))
+    per_rule["gnu-flags"].extend(_scan_gnu_flags(path, lines))
+    per_rule["tmp-literal"].extend(_scan_tmp_literal(path, lines))
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -188,18 +235,27 @@ def get_parser() -> argparse.ArgumentParser:
     return parser
 
 
+_RULE_ORDER = ["eval", "gnu-flags", "tmp-literal"]
+
+
 def main(argv: list[str] | None = None) -> int:
     args = get_parser().parse_args(argv)
-    any_fail = False
     try:
         files = _collect_targets(args.paths)
-        for f in files:
-            if _check_file(f):
-                any_fail = True
     except _UsageError:
         return EXIT_USAGE
     except KeyboardInterrupt:
         return 130
+
+    per_rule: dict[str, list[dict]] = {r: [] for r in _RULE_ORDER}
+    for f in files:
+        _scan_file(f, per_rule)
+
+    envelopes = [
+        emit_rule_envelope(rule_id=r, findings=per_rule[r]) for r in _RULE_ORDER
+    ]
+    print_envelope(envelopes)
+    any_fail = any(e["overall_status"] == "fail" for e in envelopes)
     return 1 if any_fail else 0
 
 

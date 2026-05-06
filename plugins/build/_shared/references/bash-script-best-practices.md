@@ -50,15 +50,17 @@ Load-bearing pieces: the explicit `bash` shebang, `set -euo pipefail` in the pro
 
 **Quote everything that expands.** `"$var"`, `"$(cmd)"`, `"${arr[@]}"`, `"$@"` — double-quote variable expansions and command substitutions unless splitting or globbing is *explicitly* intended. Unquoted expansion is the single largest source of real-world Bash bugs. Forward arguments with `"$@"`, never `$*` or unquoted `$@`.
 
-**Use modern Bash idioms.** `[[ ... ]]` over `[ ... ]` for conditionals (no word-splitting inside tests, supports pattern matching). `$(...)` over backticks for command substitution (nestable, readable). `printf` over `echo` for anything beyond a literal string (`echo`'s flag handling varies). Iterate files with `while IFS= read -r line; do ...; done < file` — never `for line in $(cat file)`, which word-splits and globs.
+**Use modern Bash idioms.** `[[ ... ]]` over `[ ... ]` for conditionals (no word-splitting inside tests, supports pattern matching). `$(...)` over backticks for command substitution (nestable, readable). `printf` over `echo` for anything beyond a literal string (`echo`'s flag handling varies). Iterate files with `while IFS= read -r line; do ...; done < file` — never `for line in $(cat file)`, which word-splits and globs. The `-r` to `read` disables backslash-escape interpretation so input lines are read verbatim. Pipe directly from a file (`cmd file` or `< file cmd`) over `cat file | cmd` — one less fork and the lint signal stays clean.
+
+**Iterate filenames safely.** Use bash globs (`for f in *.ext`) or `find ... -print0 | xargs -0` (or `find ... -exec cmd {} +`); never iterate `$(ls)` or pipe `ls | grep PATTERN`. `ls`'s output is for humans — it word-splits and globs and breaks on filenames containing whitespace or newlines. For programmatic file metadata, use `stat -c`/`stat -f` (single file) or `find -printf` (recursive); `ls -l | awk` parsing is brittle across distributions.
 
 **Make scripts sourceable.** Wrap execution in a `main` function and call it from a sourceable guard at the bottom: `[[ "${BASH_SOURCE[0]}" == "$0" ]] && main "$@"`. Sourcing the file then loads the functions for testing with `bats` or `shunit2` without running `main`. A flat top-level script cannot be tested.
 
-**Scope variables locally.** Function-scoped variables get `local`. Global variables leak across function calls and produce cross-call state bugs that are nearly impossible to track down later. Top-level configuration goes at the top as `readonly` constants — readers should not hunt for magic values, and `readonly` makes accidental reassignment a hard error.
+**Scope variables locally.** Function-scoped variables get `local`. Global variables leak across function calls and produce cross-call state bugs that are nearly impossible to track down later. Top-level configuration goes at the top as `readonly` constants — readers should not hunt for magic values, and `readonly` makes accidental reassignment a hard error. When a `local` is initialized from a command substitution, split it: `local var; var="$(cmd)"` — combining them into `local var="$(cmd)"` masks the substitution's exit status under `set -e`.
 
 **Treat I/O as a contract.** Primary data goes to stdout; logs, errors, and prompts go to stderr. Define a `die` (or `error`) helper that prints to stderr and exits non-zero, and use it instead of bare `exit 1`. Errors without messages are useless in CI logs. Exit codes communicate intent to callers — `0` for success, non-zero for failure, with a documented meaning per code if more than two are used.
 
-**Validate inputs early; fail before damage.** Use `${var:?message}` to assert a required input is set; `${var:-default}` for optional inputs. Validate arguments before performing any destructive work. For deletes, overwrites, and irreversible network calls, gate the destructive branch on a `--dry-run` or confirmation flag and *actually consult it* before executing.
+**Validate inputs early; fail before damage.** Use `${var:?message}` to assert a required input is set; `${var:-default}` for optional inputs. When a variable has no visible assignment, name the intent — `${var:?msg}` for required, `${var:-default}` for optional — rather than relying on silent emptiness. Validate arguments before performing any destructive work. For deletes, overwrites, and irreversible network calls, gate the destructive branch on a `--dry-run` or confirmation flag and *actually consult it* before executing.
 
 **Set up cleanup before you create temp state.** Use `mktemp` (never `/tmp/foo_$$` or other predictable names — they invite races and symlink attacks). Register cleanup with `trap 'rm -rf "$tmpdir"' EXIT INT TERM` immediately after `mktemp`, so the cleanup runs on any exit path including signals.
 
@@ -71,6 +73,8 @@ Load-bearing pieces: the explicit `bash` shebang, `set -euo pipefail` in the pro
 **Keep functions small and single-purpose.** A function does one coherent thing at one level of abstraction. `main()` reads as a sequence of named operations — fetch, transform, validate, write — not a wall of inline pipelines. When a function name needs conjunctions (`parse_and_validate`), it is two functions pretending to be one.
 
 **Document intent at the top.** A header comment at the top names the script's purpose, its usage signature, and any non-obvious dependencies. Comments inside the body explain *why* a non-obvious choice was made, not what the code does — code shows what; comments earn their place when they capture a constraint, a workaround, or a hidden invariant.
+
+**Hold the formatter's contract.** Run `shfmt -w -i 2 -ci -bn` so the formatter owns the layout — 2-space indent, indented `case` patterns, binary operators on the next line. Keep lines under 100 characters; break with `\` continuations or extract complex pipelines into named helpers. Lint and format mechanically, not by eye.
 
 ## Patterns That Work
 
@@ -104,7 +108,7 @@ These are the positive shapes durable Bash scripts tend to take. Each correspond
 
 Bash scripts run with the invoker's privileges and reach the filesystem, the network, and arbitrary subprocesses. The safety rules are non-negotiable.
 
-- **No `eval` on untrusted input.** Shell injection, full stop.
+- **No `eval` on untrusted input.** Shell injection, full stop. Never `eval "${cmd[@]}"` — the second parsing pass discards the array form's argument-boundary protection. Just run `"${cmd[@]}"`.
 - **`mktemp` for temporary paths; pair with `trap ... EXIT`.** No `$$` or other predictable names.
 - **Validate inputs before destructive work.** A `--dry-run` flag for anything that deletes or overwrites is cheap insurance. Never `rm -rf $var` unquoted or unvalidated.
 - **No secrets in argv.** Environment variables or files; `ps` shows command lines to other users.
@@ -116,7 +120,7 @@ Bash scripts run with the invoker's privileges and reach the filesystem, the net
 
 ## Review and Decay
 
-Bash scripts rot. The platform `bash` moves (especially across macOS-Homebrew and Linux versions), the external CLI tools change flags, the `find`/`xargs`/`grep` flavors diverge between distributions. Retire a script when its automation is no longer invoked, when its logic has migrated into a real tool, or when its exit contract can no longer be trusted. **Convert to a real language when the script grows past a few hundred lines, acquires data structures Bash cannot express, or accumulates control flow Bash cannot debug** — `primitive-routing.md` covers the shell-vs-Python decision. A neglected script is worse than a missing one — callers trust the exit code they have stopped reading.
+Bash scripts rot. The platform `bash` moves (especially across macOS-Homebrew and Linux versions), the external CLI tools change flags, the `find`/`xargs`/`grep` flavors diverge between distributions. Retire a script when its automation is no longer invoked, when its logic has migrated into a real tool, or when its exit contract can no longer be trusted. **Convert to a real language when the script grows past ~300 non-blank lines, acquires data structures Bash cannot express, or accumulates control flow Bash cannot debug** — `primitive-routing.md` covers the shell-vs-Python decision. A neglected script is worse than a missing one — callers trust the exit code they have stopped reading.
 
 ---
 

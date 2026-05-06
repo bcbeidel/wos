@@ -11,10 +11,21 @@ A rule is path-scoped behavioral guidance that Claude reads when editing files m
 
 Primitive selection — rule vs. hook vs. skill vs. CLAUDE.md — is covered in `primitive-routing.md`. This document assumes a rule is the right tool and focuses on making it a *good* rule.
 
+## Consumers
+
+Rules are read by two consumers:
+
+- **Claude (ambient editing)** — loads automatically when an open file matches `paths:`. The rule shapes what Claude writes preemptively.
+- **Audit dispatcher subagent (on-demand)** — when a check-* skill audits an artifact, the subagent reads the same rule body to either judge compliance (for judgment-based rules) or generate a localized repair recipe (for rules whose deterministic enforcement lives in a script).
+
+Both consumers read the same file with the same frontmatter and the same body. There is one rule shape, regardless of which consumers a given rule serves.
+
 ## Anatomy
 
 ```markdown
 ---
+name: <Human-Readable Title>
+description: <One-sentence summary suitable as a TOC entry>
 paths:
   - "path/glob/**/*.ext"
 ---
@@ -27,7 +38,9 @@ paths:
 <Optional: one concrete example showing the compliant pattern. When the rule requires judgment and the boundary is non-obvious, show a contrasting non-compliant example alongside.>
 ```
 
-Three load-bearing elements: the `paths:` scope, the rule itself, the reasoning. A rule that needs more structure is usually two rules in one file.
+Three frontmatter fields: `name` and `description` are required (and validate via `wiki/document.py`); `paths` is optional — present when the rule should auto-load on file matches, omitted for rules that load only on-demand by audit subagents or by explicit reference.
+
+Three load-bearing body elements: the rule itself, the reasoning, the path scope. A rule that needs more structure is usually two rules in one file. The body shape is identical for both consumers — the dispatcher subagent reads the same prose Claude does.
 
 ## Authoring Principles
 
@@ -49,7 +62,7 @@ Three load-bearing elements: the `paths:` scope, the rule itself, the reasoning.
 
 **Prefer structural fixes over behavioral guardrails.** A rule that says "remember to update the config in both places" is a signal that the config should live in one place. Reach for the fix before the rule.
 
-**Reserve rules for judgment.** Deterministic checks belong in linters or hooks. Rules earn their place on conventions a grep-equivalent can't express.
+**Deterministic checks belong in scripts or hooks; the rule body documents the convention.** When a check is shell-expressible — a script can detect it, a hook can block it — the script does the enforcement. A rule body still earns its place when (a) Claude should write compliant code preemptively, and (b) when the script fires a finding, the audit subagent needs a coherent recipe to recommend changes. The rule body's value is no longer "Claude detects this" but "Claude writes compliant code preemptively, and the audit subagent has a coherent recipe when the script fires." A rule body without a deterministic enforcement counterpart is judgment-only and follows the same authoring principles.
 
 ## Patterns That Work
 
