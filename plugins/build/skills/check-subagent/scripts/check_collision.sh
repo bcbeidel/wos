@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
 # check_collision.sh — Tier-3 description-collision check for subagent
-# definitions.
+# definitions. Emits a JSON ARRAY containing a single envelope
+# (rule_id="description-collision") per scripts/_common.py.
 #
 # Computes pairwise token-set Jaccard similarity across every .md file
 # in the audit scope. Flags any pair with similarity >=0.6 as a WARN —
@@ -9,7 +10,8 @@
 # the main agent has no basis to pick between two agents claiming the
 # same trigger surface.
 #
-# Single-file scope is a no-op (nothing to compare against).
+# Single-file scope is a no-op (no pairs to compare → empty findings,
+# overall_status=pass).
 #
 # Usage:
 #   check_collision.sh <path> [<path> ...]
@@ -19,6 +21,9 @@
 #   1   one or more FAIL findings (not produced by this script)
 #   64  usage error
 #   69  missing dependency
+#
+# Dependencies:
+#   awk, basename, find, tr, mktemp, python3
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -26,9 +31,14 @@ IFS=$'\n\t'
 PROGNAME="$(basename "${0}")"
 readonly PROGNAME
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly SCRIPT_DIR
+
 readonly THRESHOLD=60 # Jaccard * 100; >=60 => flag
 
-readonly REQUIRED_CMDS=(awk basename find tr)
+readonly REQUIRED_CMDS=(awk basename find tr mktemp python3)
+
+readonly RECIPE_DESCRIPTION_COLLISION='Pick one of: (1) **Merge** the two subagents into one if their capabilities are genuinely the same; (2) **Differentiate** — each description names a distinct trigger surface, distinct exclusions, distinct return artifacts; (3) **Retire** one and redirect via a deprecation note. Overlapping descriptions produce coin-flip routing — the main agent has no basis to pick between two agents claiming the same surface. Distinct vocabulary makes the routing contract deterministic.'
 
 usage() {
   cat <<'EOF'
@@ -36,7 +46,24 @@ check_collision.sh — Flag subagent pairs with colliding descriptions.
 
 Usage:
   check_collision.sh <path> [<path> ...]
+
+Options:
+  -h, --help   Show this help and exit.
+
+Exit codes:
+  0   no FAIL findings
+  1   one or more FAIL findings (not produced)
+  64  usage error
+  69  missing dependency
 EOF
+}
+
+install_hint() {
+  case "${1}" in
+    awk | basename | find | tr | mktemp) printf 'should be preinstalled on any POSIX system' ;;
+    python3) printf 'install Python 3.9+' ;;
+    *) printf 'see your package manager' ;;
+  esac
 }
 
 preflight() {
@@ -49,14 +76,13 @@ preflight() {
   done
   if [[ "${#missing[@]}" -gt 0 ]]; then
     for cmd in "${missing[@]}"; do
-      printf '%s: missing required command %q\n' "${PROGNAME}" "${cmd}" >&2
+      printf '%s: missing required command %q. Install: %s\n' \
+        "${PROGNAME}" "${cmd}" "$(install_hint "${cmd}")" >&2
     done
     exit 69
   fi
 }
 
-# Emit the description value for a single .md file, or empty string if
-# no description is present / parseable.
 extract_description() {
   awk '
     BEGIN { in_fm = 0; folded = 0; literal = 0; val = "" }
@@ -85,9 +111,6 @@ extract_description() {
   ' "$1"
 }
 
-# Tokenize a string: lowercase, split on non-alphanumeric, drop stopwords
-# and very short tokens. Print one token per line (deduplicated via sort/uniq
-# is handled by awk dedupe below).
 tokenize() {
   printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | awk '
     BEGIN {
@@ -108,8 +131,6 @@ tokenize() {
   '
 }
 
-# Compute Jaccard similarity * 100 (integer) between two token sets.
-# Inputs: two files, each with one token per line, already deduplicated.
 jaccard_pct() {
   local a="$1" b="$2"
   awk '
@@ -127,14 +148,6 @@ jaccard_pct() {
   ' "$a" "$b"
 }
 
-emit_warn() {
-  printf 'WARN  %s — description-collision: %s (similarity %s%%)\n' "$1" "$2" "$3"
-  printf '  Recommendation: Differentiate the descriptions (each'
-  printf ' naming a distinct trigger surface + exclusion + return),'
-  printf ' or merge into one subagent.\n'
-}
-
-# Collect all target files into an array.
 gather_files() {
   local target file
   for target in "$@"; do
@@ -148,37 +161,15 @@ gather_files() {
   done
 }
 
-main() {
-  if [[ "$#" -eq 0 ]]; then
-    usage >&2
-    exit 64
-  fi
-
-  case "${1:-}" in
-    -h | --help)
-      usage
-      exit 0
-      ;;
-  esac
-
-  preflight
-
-  # Collect files
-  local files=()
-  while IFS= read -r f; do
-    [[ -n "${f}" ]] && files+=("${f}")
-  done < <(gather_files "$@")
-
+# TSV: <file_a>\t<file_b>\t<pct>
+collect_collisions() {
+  local files=("$@")
   if [[ "${#files[@]}" -lt 2 ]]; then
-    # Nothing to compare; Tier-3 is a no-op.
-    exit 0
+    return 0
   fi
 
-  # Tokenize each file's description into a temp file (paired arrays).
-  # Register the trap before the temp-dir creation so a signal between
-  # the two calls cannot leak state.
   local tmpdir=""
-  trap '[[ -n "${tmpdir}" ]] && rm -rf "${tmpdir}"' EXIT INT TERM
+  trap '[[ -n "${tmpdir}" ]] && rm -rf "${tmpdir}"' RETURN
   tmpdir="$(mktemp -d)"
 
   local i tok_file desc
@@ -192,23 +183,92 @@ main() {
     fi
   done
 
-  # Pairwise comparison
   local j pct
   for i in "${!files[@]}"; do
     for j in "${!files[@]}"; do
       if [[ "${j}" -le "${i}" ]]; then continue; fi
-      # Skip pairs where either description is missing
       if [[ ! -s "${tmpdir}/tok.${i}" ]] || [[ ! -s "${tmpdir}/tok.${j}" ]]; then
         continue
       fi
       pct="$(jaccard_pct "${tmpdir}/tok.${i}" "${tmpdir}/tok.${j}")"
       if [[ "${pct}" -ge "${THRESHOLD}" ]]; then
-        emit_warn "${files[$i]}" "collides with $(basename "${files[$j]}")" "${pct}"
+        printf '%s\t%s\t%s\n' "${files[$i]}" "${files[$j]}" "${pct}"
       fi
     done
   done
+}
 
-  exit 0
+readonly EMIT_PY='
+import os
+import sys
+
+sys.path.insert(0, os.environ["CHECK_SUBAGENT_SCRIPT_DIR"])
+from _common import emit_json_finding, emit_rule_envelope, print_envelope
+
+recipe = os.environ["CHECK_SUBAGENT_RECIPE_DESCRIPTION_COLLISION"]
+
+findings = []
+for line in sys.stdin:
+    line = line.rstrip("\n")
+    if not line:
+        continue
+    parts = line.split("\t", 2)
+    if len(parts) != 3:
+        continue
+    file_a, file_b, pct = parts
+    findings.append(
+        emit_json_finding(
+            rule_id="description-collision",
+            status="warn",
+            location={"line": 1, "context": f"{file_a} <-> {file_b}: similarity {pct}%"},
+            reasoning=(
+                f"{file_a} and {file_b} have description Jaccard "
+                f"similarity {pct}% (threshold 60%). Overlapping "
+                "descriptions force non-deterministic routing — the "
+                "main agent has no basis to pick between two agents "
+                "claiming the same trigger surface."
+            ),
+            recommended_changes=recipe,
+        )
+    )
+
+envelope = emit_rule_envelope(rule_id="description-collision", findings=findings)
+print_envelope([envelope])
+if envelope["overall_status"] == "fail":
+    sys.exit(1)
+'
+
+emit_envelopes() {
+  CHECK_SUBAGENT_SCRIPT_DIR="${SCRIPT_DIR}" \
+    CHECK_SUBAGENT_RECIPE_DESCRIPTION_COLLISION="${RECIPE_DESCRIPTION_COLLISION}" \
+    python3 -c "${EMIT_PY}"
+}
+
+main() {
+  if [[ "$#" -eq 0 ]]; then
+    usage >&2
+    exit 64
+  fi
+  case "${1:-}" in
+    -h | --help)
+      usage
+      exit 0
+      ;;
+  esac
+  preflight
+
+  local files=()
+  while IFS= read -r f; do
+    [[ -n "${f}" ]] && files+=("${f}")
+  done < <(gather_files "$@")
+
+  local rc=0
+  if [[ "${#files[@]}" -lt 2 ]]; then
+    : | emit_envelopes || rc=$?
+  else
+    collect_collisions "${files[@]}" | emit_envelopes || rc=$?
+  fi
+  exit "${rc}"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

@@ -1,16 +1,28 @@
 #!/usr/bin/env bash
 #
 # check_tools.sh — Deterministic Tier-1 tool-allowlist checks for
-# subagent definitions.
+# subagent definitions. Emits a JSON ARRAY of four envelopes
+# (rule_id="tools-omitted", "tools-wildcard", "agent-listed",
+# "parallel-write-risk") per scripts/_common.py.
 #
 # Checks:
-#   tools-omitted         tools key absent — spec defaults to full grant (WARN)
-#   tools-wildcard        tools contains *, all, or all_tools (FAIL)
-#   agent-listed          Agent listed in tools for a subagent-scope definition (WARN)
-#   parallel-write-risk   background: true + Write/Edit without isolation: worktree (WARN)
+#   tools-omitted        tools key absent — spec defaults to full grant (WARN)
+#   tools-wildcard       tools contains *, all, or all_tools (FAIL)
+#   agent-listed         Agent listed in tools for a subagent-scope file (WARN)
+#   parallel-write-risk  background: true + Write/Edit without
+#                        isolation: worktree (WARN)
 #
 # Usage:
 #   check_tools.sh <path> [<path> ...]
+#
+# Exit codes:
+#   0   no FAIL findings
+#   1   one or more FAIL findings
+#   64  usage error
+#   69  missing dependency
+#
+# Dependencies:
+#   awk, basename, find, python3
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -18,7 +30,18 @@ IFS=$'\n\t'
 PROGNAME="$(basename "${0}")"
 readonly PROGNAME
 
-readonly REQUIRED_CMDS=(awk basename find)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly SCRIPT_DIR
+
+readonly REQUIRED_CMDS=(awk basename find python3)
+
+readonly RECIPE_TOOLS_OMITTED='Add a `tools` list declaring the minimum set the workflow requires. Omitting `tools` grants the full tool set by default; explicit declaration is the primary least-privilege mechanism. If the workflow genuinely needs all tools, state the justification in a `## Rationale` section. FROM no `tools:`; TO `tools:\n  - Read\n  - Grep\n  - Glob`.'
+
+readonly RECIPE_TOOLS_WILDCARD='Replace the wildcard with an enumerated list of the tools the workflow uses. Wildcards (`*`, `all`, `all_tools`) are equivalent to omitting `tools`: both grant the full set; enumeration is the only least-privilege surface. FROM `tools: ["*"]`; TO `tools: [Read, Grep, Glob]`.'
+
+readonly RECIPE_AGENT_LISTED='Remove `Agent` from the `tools` list. The Agent tool is filtered at the platform level for subagents; listing it has no effect and misleads readers. (If the definition runs as main thread via `claude --agent <name>`, move it out of `.claude/agents/`.) FROM `tools: [Read, Agent]`; TO `tools: [Read]`.'
+
+readonly RECIPE_PARALLEL_WRITE_RISK='Add `isolation: worktree` to the frontmatter, or drop `background: true` if parallelism is not actually needed. Parallel subagents writing shared files conflict without worktree isolation; `isolation: worktree` gives each subagent a clean working copy. FROM `tools: [Write]\nbackground: true`; TO `tools: [Write]\nbackground: true\nisolation: worktree`.'
 
 usage() {
   cat <<'EOF'
@@ -26,7 +49,24 @@ check_tools.sh — Audit subagent tools allowlist hygiene.
 
 Usage:
   check_tools.sh <path> [<path> ...]
+
+Options:
+  -h, --help   Show this help and exit.
+
+Exit codes:
+  0   no FAIL findings
+  1   one or more FAIL findings
+  64  usage error
+  69  missing dependency
 EOF
+}
+
+install_hint() {
+  case "${1}" in
+    awk | basename | find) printf 'should be preinstalled on any POSIX system' ;;
+    python3) printf 'install Python 3.9+' ;;
+    *) printf 'see your package manager' ;;
+  esac
 }
 
 preflight() {
@@ -39,23 +79,11 @@ preflight() {
   done
   if [[ "${#missing[@]}" -gt 0 ]]; then
     for cmd in "${missing[@]}"; do
-      printf '%s: missing required command %q\n' "${PROGNAME}" "${cmd}" >&2
+      printf '%s: missing required command %q. Install: %s\n' \
+        "${PROGNAME}" "${cmd}" "$(install_hint "${cmd}")" >&2
     done
     exit 69
   fi
-}
-
-fail_count=0
-
-emit_fail() {
-  fail_count=$((fail_count + 1))
-  printf 'FAIL  %s — %s: %s\n' "$1" "$2" "$3"
-  printf '  Recommendation: %s\n' "$4"
-}
-
-emit_warn() {
-  printf 'WARN  %s — %s: %s\n' "$1" "$2" "$3"
-  printf '  Recommendation: %s\n' "$4"
 }
 
 extract_frontmatter() {
@@ -68,7 +96,6 @@ extract_frontmatter() {
   ' "$1"
 }
 
-# Emit tool-list items one per line. Handles block-list and flow-list forms.
 tools_list() {
   printf '%s\n' "$1" | awk '
     /^tools:/ {
@@ -105,9 +132,6 @@ has_key() {
   '
 }
 
-# Top-level scalar value; empty if missing. Simpler than get_scalar in
-# check_frontmatter.sh — tools.sh only needs scalar truthiness for
-# background / isolation.
 get_scalar_value() {
   printf '%s\n' "$1" | awk -v k="$2" '
     $0 ~ "^" k ":[[:space:]]*" {
@@ -121,7 +145,8 @@ get_scalar_value() {
   '
 }
 
-check_file() {
+# TSV: <rule_id>\t<status>\t<file>\t<line>\t<context>
+emit_raw() {
   local file="$1"
   case "${file}" in
     *.md) ;;
@@ -132,47 +157,33 @@ check_file() {
   fm="$(extract_frontmatter "${file}")"
   [[ -z "${fm}" ]] && return
 
-  # tools-omitted
   if ! has_key "${fm}" "tools"; then
-    emit_warn "${file}" "tools-omitted" \
-      "tools key absent — Claude Code grants the full tool set by default" \
-      "Add an explicit tools list declaring the minimum set the workflow needs."
+    printf 'tools-omitted\twarn\t%s\t1\ttools key absent — Claude Code grants the full tool set by default\n' \
+      "${file}"
     return
   fi
 
   local tools
   tools="$(tools_list "${fm}")"
 
-  # tools-wildcard
   local item
   while IFS= read -r item; do
     [[ -z "${item}" ]] && continue
     case "${item}" in
       '*' | all | all_tools | ALL)
-        emit_fail "${file}" "tools-wildcard" \
-          "tools contains wildcard entry '${item}'" \
-          "Replace wildcard with an enumerated list of the tools the workflow actually uses."
+        printf 'tools-wildcard\tfail\t%s\t1\ttools contains wildcard entry '\''%s'\''\n' \
+          "${file}" "${item}"
         ;;
     esac
   done <<<"${tools}"
 
-  # agent-listed — flag for all subagent-scope definitions. The
-  # platform filters Agent out at invocation; listing it is a no-op.
-  # The caveat about main-thread `claude --agent <name>` runs is noted
-  # in the recommendation text but cannot be detected from the file
-  # alone.
   while IFS= read -r item; do
     if [[ "${item}" = "Agent" ]]; then
-      local msg="Agent listed in tools — filtered at platform"
-      msg+=" level for subagents, has no effect"
-      local rec="Remove Agent from tools. (If this definition"
-      rec+=" runs as main thread via 'claude --agent', move it"
-      rec+=" out of agents/.)"
-      emit_warn "${file}" "agent-listed" "${msg}" "${rec}"
+      printf 'agent-listed\twarn\t%s\t1\tAgent listed in tools — filtered at platform level for subagents, no effect\n' \
+        "${file}"
     fi
   done <<<"${tools}"
 
-  # parallel-write-risk
   local background isolation
   background="$(get_scalar_value "${fm}" "background")"
   isolation="$(get_scalar_value "${fm}" "isolation")"
@@ -184,22 +195,20 @@ check_file() {
       esac
     done <<<"${tools}"
     if [[ "${has_write}" -eq 1 ]] && [[ "${isolation}" != "worktree" ]]; then
-      emit_warn "${file}" "parallel-write-risk" \
-        "background: true with Write/Edit granted but isolation: worktree absent" \
-        "Add 'isolation: worktree' — parallel writes on shared files conflict without it."
+      printf 'parallel-write-risk\twarn\t%s\t1\tbackground: true with Write/Edit granted but isolation: worktree absent\n' \
+        "${file}"
     fi
   fi
 }
 
-check_path() {
+scan_path() {
   local target="$1"
   local file
-
   if [[ -f "${target}" ]]; then
-    check_file "${target}"
+    emit_raw "${target}"
   elif [[ -d "${target}" ]]; then
     while IFS= read -r file; do
-      check_file "${file}"
+      emit_raw "${file}"
     done < <(find "${target}" -maxdepth 1 -type f -name '*.md' 2>/dev/null)
   else
     printf '%s: path not found: %s\n' "${PROGNAME}" "${target}" >&2
@@ -207,27 +216,80 @@ check_path() {
   fi
 }
 
+readonly EMIT_PY='
+import os
+import sys
+
+sys.path.insert(0, os.environ["CHECK_SUBAGENT_SCRIPT_DIR"])
+from _common import emit_json_finding, emit_rule_envelope, print_envelope
+
+recipes = {
+    "tools-omitted": os.environ["CHECK_SUBAGENT_RECIPE_TOOLS_OMITTED"],
+    "tools-wildcard": os.environ["CHECK_SUBAGENT_RECIPE_TOOLS_WILDCARD"],
+    "agent-listed": os.environ["CHECK_SUBAGENT_RECIPE_AGENT_LISTED"],
+    "parallel-write-risk": os.environ["CHECK_SUBAGENT_RECIPE_PARALLEL_WRITE_RISK"],
+}
+order = ["tools-omitted", "tools-wildcard", "agent-listed", "parallel-write-risk"]
+
+per_rule = {r: [] for r in order}
+for line in sys.stdin:
+    line = line.rstrip("\n")
+    if not line:
+        continue
+    parts = line.split("\t", 4)
+    if len(parts) != 5:
+        continue
+    rule_id, status, path, lineno, context = parts
+    if rule_id not in per_rule:
+        continue
+    try:
+        line_int = int(lineno)
+    except ValueError:
+        line_int = 1
+    per_rule[rule_id].append(
+        emit_json_finding(
+            rule_id=rule_id,
+            status=status,
+            location={"line": line_int, "context": f"{path}: {context}"},
+            reasoning=f"{path}: {context}.",
+            recommended_changes=recipes[rule_id],
+        )
+    )
+
+envelopes = [emit_rule_envelope(rule_id=r, findings=per_rule[r]) for r in order]
+print_envelope(envelopes)
+if any(e["overall_status"] == "fail" for e in envelopes):
+    sys.exit(1)
+'
+
+emit_envelopes() {
+  CHECK_SUBAGENT_SCRIPT_DIR="${SCRIPT_DIR}" \
+    CHECK_SUBAGENT_RECIPE_TOOLS_OMITTED="${RECIPE_TOOLS_OMITTED}" \
+    CHECK_SUBAGENT_RECIPE_TOOLS_WILDCARD="${RECIPE_TOOLS_WILDCARD}" \
+    CHECK_SUBAGENT_RECIPE_AGENT_LISTED="${RECIPE_AGENT_LISTED}" \
+    CHECK_SUBAGENT_RECIPE_PARALLEL_WRITE_RISK="${RECIPE_PARALLEL_WRITE_RISK}" \
+    python3 -c "${EMIT_PY}"
+}
+
 main() {
   if [[ "$#" -eq 0 ]]; then
     usage >&2
     exit 64
   fi
-
   case "${1:-}" in
     -h | --help)
       usage
       exit 0
       ;;
   esac
-
   preflight
-
-  local target
-  for target in "$@"; do
-    check_path "${target}" || exit "$?"
-  done
-
-  [[ "${fail_count}" -eq 0 ]] && exit 0 || exit 1
+  local target rc=0
+  {
+    for target in "$@"; do
+      scan_path "${target}"
+    done
+  } | emit_envelopes || rc=$?
+  exit "${rc}"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
