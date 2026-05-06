@@ -1,0 +1,13 @@
+{
+  "_comment": "Canonical output shape for a check-rule rule. Five detection scripts emit JSON envelopes — check_structure.py (3 rules), check_paths_glob.py (1), check_size.sh (1), check_prose.py (3), scan_secrets.py (1). Each script emits a single envelope or JSON array of envelopes. Schema: {rule_id, overall_status, findings[]} with each finding carrying status/location/reasoning/recommended_changes. recommended_changes is REQUIRED — non-empty with concrete repair guidance sourced from rule-best-practices.md.",
+  "rule_id": "location",
+  "overall_status": "fail",
+  "findings": [
+    {
+      "status": "fail",
+      "location": {"line": 0, "context": "docs/rules/legacy.md"},
+      "reasoning": "Rule file lives outside the canonical .claude/rules/ tree. Claude Code only picks up rule files under .claude/rules/ (project) or ~/.claude/rules/ (user) — files at other paths sit invisible.",
+      "recommended_changes": "Move the file to .claude/rules/<name>.md (project-scoped) or ~/.claude/rules/<name>.md (user-scoped). The two locations are the only canonical paths Claude Code scans for rule files."
+    }
+  ]
+}

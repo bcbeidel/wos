@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
-"""Scan Claude Code rule files for committed-secret patterns.
+"""Tier-1 secrets scanner for Claude Code rule files.
 
-Tier-1 "Secrets Safety" check. Scans rule-file bodies (frontmatter
-skipped) for six well-known API-key shapes and for credential-shaped
-variable assignments. Obvious placeholder values (``your-``,
-``example``, ``placeholder``, ``todo``, ``foo``/``bar``/``baz``, etc.)
-are excluded from the generic credential match.
+Emits a JSON envelope per `_common.py` for one rule:
+
+- `secret` (FAIL): scans rule-file bodies (frontmatter skipped) for six
+  well-known API-key shapes and for credential-shaped variable
+  assignments. Obvious placeholder values (`your-`, `example`,
+  `placeholder`, `todo`, `foo`/`bar`/`baz`, etc.) are excluded from the
+  generic credential match.
+
+Exit codes:
+  0  — overall_status pass / inapplicable
+  1  — overall_status=fail
+  64 — usage error
 
 Example:
     ./scan_secrets.py .claude/rules/
@@ -18,8 +25,12 @@ import re
 import sys
 from pathlib import Path
 
-EXIT_USAGE = 2
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _common import emit_json_finding, emit_rule_envelope, print_envelope  # noqa: E402
+
+EXIT_USAGE = 64
 EXIT_INTERRUPTED = 130
+RULE_ID = "secret"
 
 KNOWN_PATTERNS: dict[str, re.Pattern[str]] = {
     "AWS access key": re.compile(r"AKIA[0-9A-Z]{16}"),
@@ -46,12 +57,33 @@ PLACEHOLDER_VALUE_RE = re.compile(
 )
 PLACEHOLDER_PREFIX_CHARS = ("$", "{", "<")
 
+_RECIPE_SECRET = (
+    "Remove the secret from the rule file, rotate the credential "
+    "(assume the value in source is already compromised), and reference "
+    "it by env var name or vault path instead. Rule files are committed "
+    "to git and loaded automatically by Claude — a secret here has the "
+    "same exposure as a secret in any committed config.\n\n"
+    "Example:\n"
+    "    Use the staging API key `sk-ant-abc123def456...` when testing.\n"
+    "      -> Use the staging API key stored in\n"
+    "         `$ANTHROPIC_API_KEY_STAGING` (see `.env.staging.example`\n"
+    "         for the variable name).\n"
+)
 
-def emit_finding(path: Path, name: str, line_no: int) -> None:
-    print(f"FAIL  {path} — Secrets Safety: {name} at line {line_no}")
-    print(
-        "  Recommendation: Remove the secret, rotate the credential, "
-        "and reference it via env var name instead."
+
+def _make_finding(path: Path, name: str, line_no: int) -> dict:
+    return emit_json_finding(
+        rule_id=RULE_ID,
+        status="fail",
+        location={"line": line_no, "context": f"{path}: {name}"},
+        reasoning=(
+            f"Detected {name} pattern at line {line_no} of {path}. "
+            "Committed credentials leak via git history, build logs, "
+            "and shoulder-surfed terminals. Rule files are loaded "
+            "automatically by Claude — same exposure as any committed "
+            "config."
+        ),
+        recommended_changes=_RECIPE_SECRET,
     )
 
 
@@ -73,30 +105,28 @@ def looks_like_placeholder(value: str) -> bool:
     return bool(PLACEHOLDER_VALUE_RE.match(value))
 
 
-def scan_file(path: Path) -> bool:
+def scan_file(path: Path, findings: list[dict]) -> None:
     try:
         text = path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as err:
         print(f"warn: cannot read {path}: {err}", file=sys.stderr)
-        return True
+        return
 
     lines = text.splitlines()
     fm_end = frontmatter_end_line(lines)
 
-    found_any = False
     for idx, line in enumerate(lines, start=1):
         if idx <= fm_end:
             continue
         for name, pattern in KNOWN_PATTERNS.items():
             if pattern.search(line):
-                emit_finding(path, name, idx)
-                found_any = True
+                findings.append(_make_finding(path, name, idx))
         for match in CRED_VAR_RE.finditer(line):
             if looks_like_placeholder(match.group("value")):
                 continue
-            emit_finding(path, "credential variable assignment", idx)
-            found_any = True
-    return not found_any
+            findings.append(
+                _make_finding(path, "credential variable assignment", idx)
+            )
 
 
 def iter_targets(targets: list[Path]) -> list[Path]:
@@ -129,11 +159,12 @@ def get_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = get_parser().parse_args(argv)
     try:
-        all_clean = True
+        findings: list[dict] = []
         for file_path in iter_targets(args.paths):
-            if not scan_file(file_path):
-                all_clean = False
-        return 0 if all_clean else 1
+            scan_file(file_path, findings)
+        envelope = emit_rule_envelope(rule_id=RULE_ID, findings=findings)
+        print_envelope([envelope])
+        return 1 if envelope["overall_status"] == "fail" else 0
     except KeyboardInterrupt:
         return EXIT_INTERRUPTED
 

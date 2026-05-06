@@ -1,20 +1,25 @@
 #!/usr/bin/env python3
-"""Deterministic Tier-1 prose pre-check for Claude Code rule files.
+"""Tier-1 prose pre-check for Claude Code rule files.
 
-Flags high-confidence candidates for three Tier-2 dimensions:
+Emits a JSON ARRAY of three envelopes per `_common.py`. All findings emit
+at WARN severity — these are heuristics with legitimate exceptions (e.g.,
+"Never log PII" is a valid prohibition-only rule). Tier-2 remains the
+judgment layer; WARN does not exit non-zero.
 
-- Specificity — hedged phrasing (``prefer``, ``generally``, ``usually``,
-  ``consider``, ``where appropriate``, ``as appropriate``,
-  ``where it makes sense``).
-- Framing — prohibition-only openers (``Don't`` / ``Never`` / ``Avoid``
-  at the start of the rule statement).
-- Example Realism — synthetic placeholders inside fenced code blocks
-  (``foo``+``bar`` pair, ``myFunction``/``myClass``/...,
-  ``Widget``/``SomeClass``, ``placeholder``, ``example_*``).
+- `hedge` (WARN): hedged phrasing (`prefer`, `generally`, `usually`,
+  `consider`, `where appropriate`, `as appropriate`,
+  `where it makes sense`).
+- `prohibition-opener` (WARN): rule statement opens with `Don't` /
+  `Never` / `Avoid` (heuristic — keep the WARN as-is when the negation
+  is load-bearing).
+- `synthetic-placeholder` (WARN): synthetic identifiers inside fenced
+  code blocks (`foo`+`bar`, `myFunction`/`myClass`/...,
+  `Widget`/`SomeClass`, `placeholder`, `example_*`).
 
-All findings emit at WARN severity. WARN does not exit non-zero —
-these are heuristics with legitimate exceptions (e.g., "Never log PII"
-is a valid prohibition-only rule). Tier-2 remains the judgment layer.
+Exit codes:
+  0  — overall_status pass / warn / inapplicable for every envelope
+  1  — overall_status=fail (not produced by this script)
+  64 — usage error
 
 Example:
     ./check_prose.py .claude/rules/
@@ -27,7 +32,10 @@ import re
 import sys
 from pathlib import Path
 
-EXIT_USAGE = 2
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _common import emit_json_finding, emit_rule_envelope, print_envelope  # noqa: E402
+
+EXIT_USAGE = 64
 EXIT_INTERRUPTED = 130
 
 HEDGE_WORD_RE = re.compile(r"\b(prefer|generally|usually|consider)\b", re.IGNORECASE)
@@ -50,15 +58,63 @@ PLACEHOLDER_RE = re.compile(
     r"(?<![A-Za-z_])(placeholder|example_[A-Za-z_]+)(?![A-Za-z_])"
 )
 
-SYNTHETIC_RECOMMENDATION = (
-    "Replace with real code from the codebase "
-    "(actual table names, function names, module paths)"
+_RULE_ORDER: list[str] = ["hedge", "prohibition-opener", "synthetic-placeholder"]
+
+_RECIPE_HEDGE = (
+    "Commit to the directive; move the hedge into a named exception if "
+    "one exists. Hedged rules push judgment back onto Claude at every "
+    "invocation, defeating the point of writing the rule down.\n\n"
+    "Example:\n"
+    "    Generally prefer composition over inheritance.\n"
+    "      -> Use composition over inheritance. Exception: when extending\n"
+    "         a framework base class that requires inheritance (e.g.,\n"
+    "         `React.Component` in legacy code).\n"
 )
 
+_RECIPE_PROHIBITION_OPENER = (
+    "Restate as a positive action, or pair the prohibition with its "
+    "positive alternative. Negations are fragile — a dropped or "
+    "misattributed `not`/`don't`/`never` inverts the rule. If the "
+    "negation is load-bearing (no clean positive counterpart, e.g., "
+    '"Never log PII"), the WARN is a false positive and the rule can '
+    "stay as-is.\n\n"
+    "Example:\n"
+    "    Don't use global state.\n"
+    "      -> Thread dependencies through constructors; never reach for\n"
+    "         module-level globals.\n"
+)
 
-def emit_warn(path: Path, detail: str, recommendation: str) -> None:
-    print(f"WARN  {path} — prose: {detail}")
-    print(f"  Recommendation: {recommendation}")
+_RECIPE_SYNTHETIC_PLACEHOLDER = (
+    "Replace synthetic identifiers (`foo`, `bar`, `myFunction`, `Widget`, "
+    "`placeholder`, `example_*`) with real code from the codebase — actual "
+    "table names, function names, module paths. Domain-specific identifiers "
+    "anchor the rule more strongly; a file-path comment (optional) "
+    "strengthens provenance.\n\n"
+    "Example:\n"
+    "    function foo(x) { return bar(x); }\n"
+    "      -> // src/api/handlers/users.ts\n"
+    "         async function getUser(userId: string) {\n"
+    "           return db.users.findById(userId);\n"
+    "         }\n"
+)
+
+_RECIPES: dict[str, str] = {
+    "hedge": _RECIPE_HEDGE,
+    "prohibition-opener": _RECIPE_PROHIBITION_OPENER,
+    "synthetic-placeholder": _RECIPE_SYNTHETIC_PLACEHOLDER,
+}
+
+
+def _make_finding(
+    rule_id: str, path: Path, line_no: int, context: str, reasoning: str
+) -> dict:
+    return emit_json_finding(
+        rule_id=rule_id,
+        status="warn",
+        location={"line": line_no, "context": f"{path}: {context}"},
+        reasoning=reasoning,
+        recommended_changes=_RECIPES[rule_id],
+    )
 
 
 def frontmatter_bounds(lines: list[str]) -> tuple[int, int]:
@@ -71,62 +127,102 @@ def frontmatter_bounds(lines: list[str]) -> tuple[int, int]:
     return (0, 0)
 
 
-def scan_code_line(path: Path, line_no: int, line: str) -> None:
+def scan_code_line(
+    path: Path, line_no: int, line: str, per_rule: dict[str, list[dict]]
+) -> None:
     if FOO_RE.search(line) and BAR_RE.search(line):
-        emit_warn(
-            path,
-            f"synthetic identifier (foo/bar) in code example at line {line_no}",
-            SYNTHETIC_RECOMMENDATION,
+        per_rule["synthetic-placeholder"].append(
+            _make_finding(
+                "synthetic-placeholder",
+                path,
+                line_no,
+                "synthetic identifier (foo/bar) in code example",
+                f"line {line_no} uses `foo`/`bar` placeholders in a code "
+                "example. Synthetic identifiers weaken example anchoring.",
+            )
         )
     if MY_IDENT_RE.search(line):
-        emit_warn(
-            path,
-            f"placeholder identifier (my*) in code example at line {line_no}",
-            SYNTHETIC_RECOMMENDATION,
+        per_rule["synthetic-placeholder"].append(
+            _make_finding(
+                "synthetic-placeholder",
+                path,
+                line_no,
+                "placeholder identifier (my*) in code example",
+                f"line {line_no} uses a `my*` placeholder in a code "
+                "example. Replace with a real identifier from the codebase.",
+            )
         )
     if GENERIC_CLASS_RE.search(line):
-        emit_warn(
-            path,
-            f"placeholder class (Widget/SomeClass) in code example at line {line_no}",
-            SYNTHETIC_RECOMMENDATION,
+        per_rule["synthetic-placeholder"].append(
+            _make_finding(
+                "synthetic-placeholder",
+                path,
+                line_no,
+                "placeholder class (Widget/SomeClass) in code example",
+                f"line {line_no} uses a generic class placeholder "
+                "(Widget/SomeClass). Replace with a real class.",
+            )
         )
     if PLACEHOLDER_RE.search(line):
-        emit_warn(
-            path,
-            f"placeholder token in code example at line {line_no}",
-            SYNTHETIC_RECOMMENDATION,
+        per_rule["synthetic-placeholder"].append(
+            _make_finding(
+                "synthetic-placeholder",
+                path,
+                line_no,
+                "placeholder token in code example",
+                f"line {line_no} contains a `placeholder`/`example_*` "
+                "token. Replace with a real identifier.",
+            )
         )
 
 
-def scan_prose_line(path: Path, line_no: int, line: str) -> None:
+def scan_prose_line(
+    path: Path, line_no: int, line: str, per_rule: dict[str, list[dict]]
+) -> None:
     hedge = HEDGE_WORD_RE.search(line)
     if hedge:
-        emit_warn(
-            path,
-            f'hedged phrasing "{hedge.group(1).lower()}" at line {line_no}',
-            "State the rule directly; if there are exceptions, "
-            "list them in a **Exception:** line",
+        word = hedge.group(1).lower()
+        per_rule["hedge"].append(
+            _make_finding(
+                "hedge",
+                path,
+                line_no,
+                f'hedged word "{word}"',
+                f'line {line_no} uses hedged phrasing "{word}". Hedges '
+                "push judgment back onto Claude at every invocation.",
+            )
         )
     if HEDGE_PHRASE_RE.search(line):
-        emit_warn(
-            path,
-            f"hedged phrase at line {line_no}",
-            "Replace with a specific condition or remove the hedge",
+        per_rule["hedge"].append(
+            _make_finding(
+                "hedge",
+                path,
+                line_no,
+                "hedged phrase",
+                f"line {line_no} uses a hedged phrase "
+                "(`where appropriate` / `as appropriate` / "
+                "`where it makes sense`). Replace with a specific "
+                "condition or remove the hedge.",
+            )
         )
 
     stripped = MARKDOWN_PREFIX_RE.sub("", line)
     opener = PROHIBITION_RE.match(stripped)
     if opener:
         word = opener.group(1)
-        emit_warn(
-            path,
-            f'prohibition-only opener "{word}" at line {line_no}',
-            'Restate as a positive action ("Use X") unless '
-            "no clean positive counterpart exists",
+        per_rule["prohibition-opener"].append(
+            _make_finding(
+                "prohibition-opener",
+                path,
+                line_no,
+                f'prohibition opener "{word}"',
+                f'line {line_no} opens with "{word}". Negations are '
+                "fragile; a dropped `not`/`don't`/`never` inverts the rule.",
+            )
         )
 
 
-def scan_file(path: Path) -> None:
+def scan_file(path: Path, per_rule: dict[str, list[dict]]) -> None:
     try:
         text = path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as err:
@@ -144,9 +240,9 @@ def scan_file(path: Path) -> None:
             in_code = not in_code
             continue
         if in_code:
-            scan_code_line(path, idx, line)
+            scan_code_line(path, idx, line, per_rule)
         else:
-            scan_prose_line(path, idx, line)
+            scan_prose_line(path, idx, line, per_rule)
 
 
 def iter_targets(targets: list[Path]) -> list[Path]:
@@ -179,9 +275,15 @@ def get_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = get_parser().parse_args(argv)
     try:
+        per_rule: dict[str, list[dict]] = {r: [] for r in _RULE_ORDER}
         for file_path in iter_targets(args.paths):
-            scan_file(file_path)
-        return 0
+            scan_file(file_path, per_rule)
+        envelopes = [
+            emit_rule_envelope(rule_id=r, findings=per_rule[r]) for r in _RULE_ORDER
+        ]
+        print_envelope(envelopes)
+        any_fail = any(e["overall_status"] == "fail" for e in envelopes)
+        return 1 if any_fail else 0
     except KeyboardInterrupt:
         return EXIT_INTERRUPTED
 
