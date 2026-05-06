@@ -1,0 +1,13 @@
+{
+  "_comment": "Canonical output shape for a check-python-script rule. Six detection scripts emit JSON envelopes — check_secrets, check_structure, check_argparse, check_deps, check_ruff, check_size. (_ast_checks.py is a helper, not a top-level detection script.) Each emits a single envelope or JSON array of envelopes (multi-rule scripts). Schema: {rule_id, overall_status, findings[]}; per-finding: {status, location, reasoning, recommended_changes}. recommended_changes is REQUIRED — non-empty with concrete repair guidance from python-script-best-practices.md.",
+  "rule_id": "shebang",
+  "overall_status": "fail",
+  "findings": [
+    {
+      "status": "fail",
+      "location": {"line": 1, "context": "script.py"},
+      "reasoning": "First line is `#!/usr/bin/env python` (Python 2-compatible). Standalone Python scripts must declare the interpreter explicitly as `#!/usr/bin/env python3` so they run on systems where `python` resolves to a Python 2 binary.",
+      "recommended_changes": "Replace the shebang with `#!/usr/bin/env python3` as the first line. The /usr/bin/env form is portable across macOS (Homebrew) and Linux package layouts; bare `#!/usr/bin/python3` ties the script to a specific install."
+    }
+  ]
+}
