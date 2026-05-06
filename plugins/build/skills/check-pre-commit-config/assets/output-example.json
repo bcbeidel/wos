@@ -1,0 +1,13 @@
+{
+  "_comment": "Canonical output shape for a check-pre-commit-config rule. Six detection scripts emit JSON envelopes — check_yaml_shape, check_rev_pinning, check_hook_scope, check_safety, check_script_strictness, check_hygiene. Each emits a single envelope or JSON array of envelopes. Schema: {rule_id, overall_status, findings[]}; per-finding: {status, location, reasoning, recommended_changes}. recommended_changes is REQUIRED — non-empty with concrete repair guidance from pre-commit-config-best-practices.md.",
+  "rule_id": "floating-rev",
+  "overall_status": "fail",
+  "findings": [
+    {
+      "status": "fail",
+      "location": {"line": 12, "context": ".pre-commit-config.yaml"},
+      "reasoning": "Hook entry uses `rev: main` — a moving target. The pinned rev is the only thing standing between today's CI and tomorrow's broken CI when the upstream repo's main branch advances.",
+      "recommended_changes": "Replace `rev: main` (or master/HEAD/develop/latest/stable) with an immutable pin: a semver tag (`v1.2.3`) or a full 40-char commit SHA. Use `pre-commit autoupdate` to refresh; never leave a floating ref."
+    }
+  ]
+}

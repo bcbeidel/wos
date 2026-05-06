@@ -1,16 +1,24 @@
 #!/usr/bin/env python3
 """Tier-1 deterministic check: hygiene patterns for .pre-commit-config.yaml.
 
-Checks:
-  - minimum_pre_commit_version present (WARN)
-  - language-specific hooks pin language_version or have default_language_version (WARN)
-  - every hook has a non-empty `id:` (FAIL)
-  - every `repo: local` hook has a human-readable `name:` (WARN)
-  - file-mutating hooks declare `require_serial: true` (WARN)
-  - no local hook reimplements a built-in `pre-commit-hooks` check (WARN)
+Emits a JSON ARRAY of six envelopes per `_common.py`:
 
-Exit codes: 0 clean/WARN, 1 one or more FAIL, 2 usage error, 69 missing
-PyYAML, 130 interrupted.
+  - min-version (WARN): top-level `minimum_pre_commit_version` declared.
+  - lang-version-pin (WARN): every language-specific local hook pins
+    `language_version` or has a top-level `default_language_version`.
+  - hook-id (FAIL): every hook entry has a non-empty string `id:`.
+  - local-hook-name (WARN): every `repo: local` hook declares `name:`.
+  - require-serial (WARN): file-mutating hooks declare
+    `require_serial: true`.
+  - builtin-duplication (WARN): no local hook reimplements a built-in
+    `pre-commit-hooks` check.
+
+Exit codes:
+  0   — all envelopes pass / warn / inapplicable
+  1   — any envelope overall_status=fail
+  64  — usage error
+  69  — missing required dependency (PyYAML)
+  130 — interrupted
 
 Example:
     ./check_hygiene.py .pre-commit-config.yaml
@@ -29,7 +37,10 @@ import argparse
 import sys
 from pathlib import Path
 
-EXIT_FAIL = 1
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _common import emit_json_finding, emit_rule_envelope, print_envelope  # noqa: E402
+
+EXIT_USAGE = 64
 EXIT_MISSING_DEP = 69
 EXIT_INTERRUPTED = 130
 
@@ -88,15 +99,96 @@ BUILTIN_HOOK_IDS = frozenset(
     }
 )
 
+_RULE_ORDER: list[str] = [
+    "min-version",
+    "lang-version-pin",
+    "hook-id",
+    "local-hook-name",
+    "require-serial",
+    "builtin-duplication",
+]
 
-def emit(
-    severity: str, path: Path, check: str, detail: str, recommendation: str
-) -> None:
-    print(f"{severity}  {path} — {check}: {detail}")
-    print(f"  Recommendation: {recommendation}")
+_RECIPE_MIN_VERSION = (
+    "Add `minimum_pre_commit_version` matching the version CI tests.\n\n"
+    "Example:\n"
+    "    minimum_pre_commit_version: \"3.7.0\"\n\n"
+    "    repos:\n"
+    "      ...\n\n"
+    "Incompatible runner versions produce cryptic errors; declaring "
+    "the minimum surfaces the mismatch immediately.\n"
+)
+
+_RECIPE_LANG_VERSION_PIN = (
+    "Add `default_language_version` at the top, or pin per hook with "
+    "`language_version:`.\n\n"
+    "Example:\n"
+    "    default_language_version:\n"
+    "      python: python3.11\n\n"
+    "Without the pin, the hook runs against whatever interpreter is "
+    "first in `$PATH` — Python 3.9 vs 3.12 can produce different "
+    "lint outputs.\n"
+)
+
+_RECIPE_HOOK_ID = (
+    "Add a kebab-case `id:` naming what the hook does. `pre-commit` "
+    "requires `id` for every hook; missing-id entries are silently "
+    "skipped in some framework versions.\n"
+)
+
+_RECIPE_LOCAL_HOOK_NAME = (
+    "Add a `name:` that reads well in failure output.\n\n"
+    "Example:\n"
+    "    - id: validate-schema\n"
+    "      + name: validate jsonschema contract\n"
+    "        entry: scripts/hooks/validate_schema.py\n\n"
+    "When this hook fails, the developer sees `name:`. A missing "
+    "name falls back to `id:`, which is usually terser than useful.\n"
+)
+
+_RECIPE_REQUIRE_SERIAL = (
+    "Add `require_serial: true` to any hook known to mutate files. "
+    "Parallel file-mutating hooks race on shared files — intermittent "
+    "corruption that only surfaces under load.\n\n"
+    "Example:\n"
+    "    - id: black\n"
+    "      args: [--safe]\n"
+    "      + require_serial: true\n"
+)
+
+_RECIPE_BUILTIN_DUPLICATION = (
+    "Remove the local hook; use the upstream "
+    "`pre-commit/pre-commit-hooks` equivalent. Local reimplementations "
+    "drift, miss edge cases the upstream handles, and waste "
+    "maintenance effort.\n"
+)
+
+_RECIPES: dict[str, str] = {
+    "min-version": _RECIPE_MIN_VERSION,
+    "lang-version-pin": _RECIPE_LANG_VERSION_PIN,
+    "hook-id": _RECIPE_HOOK_ID,
+    "local-hook-name": _RECIPE_LOCAL_HOOK_NAME,
+    "require-serial": _RECIPE_REQUIRE_SERIAL,
+    "builtin-duplication": _RECIPE_BUILTIN_DUPLICATION,
+}
 
 
-def looks_like_mutator(hook: dict) -> bool:
+def _make_finding(
+    rule_id: str,
+    severity: str,
+    location_context: str,
+    reasoning: str,
+    line: int = 0,
+) -> dict:
+    return emit_json_finding(
+        rule_id=rule_id,
+        status=severity,
+        location={"line": line, "context": location_context},
+        reasoning=reasoning,
+        recommended_changes=_RECIPES[rule_id],
+    )
+
+
+def _looks_like_mutator(hook: dict) -> bool:
     hook_id = hook.get("id", "")
     if isinstance(hook_id, str) and hook_id in MUTATOR_IDS:
         return True
@@ -108,24 +200,25 @@ def looks_like_mutator(hook: dict) -> bool:
     return False
 
 
-def check_config(path: Path, yaml_mod) -> int:
+def _check_config(
+    path: Path, yaml_mod, per_rule: dict[str, list[dict]]
+) -> None:
     try:
         data = yaml_mod.safe_load(path.read_text(encoding="utf-8"))
     except (OSError, yaml_mod.YAMLError):
-        return 0
+        return
 
     if not isinstance(data, dict):
-        return 0
-
-    fails = 0
+        return
 
     if "minimum_pre_commit_version" not in data:
-        emit(
-            "WARN",
-            path,
-            "min-version",
-            "top-level `minimum_pre_commit_version` missing",
-            'Add `minimum_pre_commit_version: "<version>"` matching the version CI tests.',  # noqa: E501
+        per_rule["min-version"].append(
+            _make_finding(
+                "min-version",
+                "warn",
+                f"{path}: top-level `minimum_pre_commit_version` missing",
+                f"Top-level `minimum_pre_commit_version` is missing in {path}.",
+            )
         )
 
     default_lang = data.get("default_language_version")
@@ -135,7 +228,7 @@ def check_config(path: Path, yaml_mod) -> int:
 
     repos = data.get("repos")
     if not isinstance(repos, list):
-        return fails
+        return
 
     for ri, repo in enumerate(repos):
         if not isinstance(repo, dict):
@@ -150,25 +243,28 @@ def check_config(path: Path, yaml_mod) -> int:
 
             hook_id = hook.get("id")
             if not isinstance(hook_id, str) or not hook_id.strip():
-                emit(
-                    "FAIL",
-                    path,
-                    "hook-id",
-                    f"repos[{ri}].hooks[{hi}] missing `id:`",
-                    "Add a kebab-case `id:` naming what the hook does.",
+                per_rule["hook-id"].append(
+                    _make_finding(
+                        "hook-id",
+                        "fail",
+                        f"{path}: repos[{ri}].hooks[{hi}] missing `id:`",
+                        f"repos[{ri}].hooks[{hi}] in {path} is missing "
+                        "a non-empty string `id:`.",
+                    )
                 )
-                fails += 1
                 continue
 
             if is_local:
                 name = hook.get("name")
                 if not isinstance(name, str) or not name.strip():
-                    emit(
-                        "WARN",
-                        path,
-                        "local-hook-name",
-                        f"`repo: local` hook {hook_id!r} missing human-readable `name:`",  # noqa: E501
-                        "Add a `name:` that reads well in failure output.",
+                    per_rule["local-hook-name"].append(
+                        _make_finding(
+                            "local-hook-name",
+                            "warn",
+                            f"{path}: local hook {hook_id!r} missing `name:`",
+                            f"`repo: local` hook {hook_id!r} in {path} "
+                            "has no human-readable `name:`.",
+                        )
                     )
 
                 lang = hook.get("language")
@@ -176,40 +272,46 @@ def check_config(path: Path, yaml_mod) -> int:
                     has_hook_pin = "language_version" in hook
                     has_default = lang in covered_languages
                     if not (has_hook_pin or has_default):
-                        emit(
-                            "WARN",
-                            path,
-                            "lang-version-pin",
-                            f"hook {hook_id!r} uses language: {lang!r} without `language_version` pin",  # noqa: E501
-                            f"Add `language_version:` to the hook or `default_language_version.{lang}:` at the top level.",  # noqa: E501
+                        per_rule["lang-version-pin"].append(
+                            _make_finding(
+                                "lang-version-pin",
+                                "warn",
+                                f"{path}: hook {hook_id!r} language: {lang!r} unpinned",  # noqa: E501
+                                f"Hook {hook_id!r} in {path} uses "
+                                f"language: {lang!r} without a "
+                                "`language_version` pin.",
+                            )
                         )
 
                 if hook_id in BUILTIN_HOOK_IDS:
-                    emit(
-                        "WARN",
-                        path,
-                        "builtin-duplication",
-                        f"local hook {hook_id!r} reimplements a built-in `pre-commit-hooks` check",  # noqa: E501
-                        f"Remove the local hook; use the upstream `{hook_id}` from pre-commit/pre-commit-hooks.",  # noqa: E501
+                    per_rule["builtin-duplication"].append(
+                        _make_finding(
+                            "builtin-duplication",
+                            "warn",
+                            f"{path}: local hook {hook_id!r} duplicates built-in",
+                            f"Local hook {hook_id!r} in {path} "
+                            "reimplements a built-in `pre-commit-hooks` "
+                            "check.",
+                        )
                     )
 
-            if looks_like_mutator(hook):
+            if _looks_like_mutator(hook):
                 if not hook.get("require_serial"):
-                    emit(
-                        "WARN",
-                        path,
-                        "require-serial",
-                        f"file-mutating hook {hook_id!r} missing `require_serial: true`",  # noqa: E501
-                        "Add `require_serial: true` to prevent race conditions on shared files.",  # noqa: E501
+                    per_rule["require-serial"].append(
+                        _make_finding(
+                            "require-serial",
+                            "warn",
+                            f"{path}: mutator {hook_id!r} missing `require_serial: true`",  # noqa: E501
+                            f"File-mutating hook {hook_id!r} in {path} "
+                            "is missing `require_serial: true`.",
+                        )
                     )
-
-    return fails
 
 
 def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Audit pre-commit hygiene patterns (Tier-1 deterministic check).",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        prog="check_hygiene.py",
+        description="Audit pre-commit hygiene patterns (Tier-1 deterministic check).",  # noqa: E501
     )
     parser.add_argument(
         "paths",
@@ -233,11 +335,18 @@ def main(argv: list[str] | None = None) -> int:
         return EXIT_MISSING_DEP
 
     try:
-        total = sum(check_config(p, yaml) for p in args.paths)
+        per_rule: dict[str, list[dict]] = {r: [] for r in _RULE_ORDER}
+        for p in args.paths:
+            _check_config(p, yaml, per_rule)
+        envelopes = [
+            emit_rule_envelope(rule_id=r, findings=per_rule[r])
+            for r in _RULE_ORDER
+        ]
+        print_envelope(envelopes)
+        any_fail = any(e["overall_status"] == "fail" for e in envelopes)
+        return 1 if any_fail else 0
     except KeyboardInterrupt:
         return EXIT_INTERRUPTED
-
-    return EXIT_FAIL if total else 0
 
 
 if __name__ == "__main__":

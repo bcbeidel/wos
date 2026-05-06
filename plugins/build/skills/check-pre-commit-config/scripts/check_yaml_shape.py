@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 """Tier-1 deterministic check: validate .pre-commit-config.yaml shape.
 
-Verifies the file exists, parses as YAML, has a non-empty top-level
-`repos:` list, and every hook entry is a mapping with a string `id:`.
+Emits a JSON ARRAY of four envelopes per `_common.py`:
 
-Emits findings in the standard lint format:
-    SEVERITY  <path> — <check>: <detail>
-    Recommendation: <change>
+  - config-missing (FAIL): file exists at the supplied path.
+  - yaml-parse (FAIL): file parses as YAML and the top level is a mapping.
+  - repos-key (FAIL): top-level `repos:` is a non-empty list.
+  - hook-shape (FAIL): every repo / hook entry is a mapping with a string `id:`.
 
 Exit codes:
-    0    clean
-    1    one or more FAIL findings
-    2    usage error (argparse)
-    69   missing required dependency (PyYAML)
-    130  interrupted
+  0   — all envelopes pass / warn / inapplicable
+  1   — any envelope overall_status=fail
+  64  — usage error
+  69  — missing required dependency (PyYAML)
+  130 — interrupted
 
 Example:
     ./check_yaml_shape.py .pre-commit-config.yaml
@@ -32,128 +32,199 @@ import argparse
 import sys
 from pathlib import Path
 
-EXIT_FAIL = 1
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _common import emit_json_finding, emit_rule_envelope, print_envelope  # noqa: E402
+
+EXIT_USAGE = 64
 EXIT_MISSING_DEP = 69
 EXIT_INTERRUPTED = 130
 
+_RULE_ORDER: list[str] = [
+    "config-missing",
+    "yaml-parse",
+    "repos-key",
+    "hook-shape",
+]
 
-def emit(
-    severity: str, path: Path, check: str, detail: str, recommendation: str
-) -> None:
-    print(f"{severity}  {path} — {check}: {detail}")
-    print(f"  Recommendation: {recommendation}")
+_RECIPE_CONFIG_MISSING = (
+    "Run `/build:build-pre-commit-config` to scaffold a fresh config. "
+    "An empty or hand-stubbed file obscures the real decision about "
+    "which hooks belong in this repo.\n"
+)
+
+_RECIPE_YAML_PARSE = (
+    "Fix the YAML syntax error named by the parser. Common culprits: "
+    "mixed tabs and spaces, unquoted values starting with `*` / `&` / `!`, "
+    "unbalanced brackets. An unparseable config means `pre-commit` runs "
+    "nothing; every commit silently passes the hook stage.\n"
+)
+
+_RECIPE_REPOS_KEY = (
+    "Add a `repos:` list at the top level; populate with at least the "
+    "`pre-commit-hooks` baseline.\n\n"
+    "Example:\n"
+    "    repos:\n"
+    "      - repo: https://github.com/pre-commit/pre-commit-hooks\n"
+    "        rev: v4.6.0\n"
+    "        hooks:\n"
+    "          - id: trailing-whitespace\n"
+    "          - id: end-of-file-fixer\n"
+)
+
+_RECIPE_HOOK_SHAPE = (
+    "Reformat the entry as a YAML mapping with `repo:` / `hooks:` (for "
+    "repo blocks) or a string `id:` (for hook entries). `pre-commit` "
+    "rejects malformed entries; depending on version the whole repos "
+    "block may be silently skipped.\n"
+)
+
+_RECIPES: dict[str, str] = {
+    "config-missing": _RECIPE_CONFIG_MISSING,
+    "yaml-parse": _RECIPE_YAML_PARSE,
+    "repos-key": _RECIPE_REPOS_KEY,
+    "hook-shape": _RECIPE_HOOK_SHAPE,
+}
 
 
-def check_config(path: Path, yaml_mod) -> int:
-    """Run all shape checks on one config path. Return count of FAIL findings."""
+def _make_finding(
+    rule_id: str,
+    severity: str,
+    location_context: str,
+    reasoning: str,
+    line: int = 0,
+) -> dict:
+    return emit_json_finding(
+        rule_id=rule_id,
+        status=severity,
+        location={"line": line, "context": location_context},
+        reasoning=reasoning,
+        recommended_changes=_RECIPES[rule_id],
+    )
+
+
+def _check_config(
+    path: Path, yaml_mod, per_rule: dict[str, list[dict]]
+) -> bool:
+    """Run shape checks against a single config path; return True if a
+    structural FAIL means subsequent rules cannot meaningfully run."""
     if not path.exists():
-        emit(
-            "FAIL",
-            path,
-            "config-missing",
-            f".pre-commit-config.yaml not found at {path}",
-            "Run `/build:build-pre-commit-config` to scaffold a config.",
+        per_rule["config-missing"].append(
+            _make_finding(
+                "config-missing",
+                "fail",
+                f"{path}: config not found",
+                f".pre-commit-config.yaml not found at {path}.",
+            )
         )
-        return 1
+        return True
 
     try:
         raw = path.read_text(encoding="utf-8")
+    except OSError as err:
+        per_rule["config-missing"].append(
+            _make_finding(
+                "config-missing",
+                "fail",
+                f"{path}: cannot read config ({err})",
+                f"Cannot read {path}: {err}.",
+            )
+        )
+        return True
+
+    try:
         data = yaml_mod.safe_load(raw)
     except yaml_mod.YAMLError as err:
-        emit(
-            "FAIL",
-            path,
-            "yaml-parse",
-            f"YAML parse error: {err}",
-            "Fix the syntax error; check for mixed tabs/spaces, unquoted leading *, unbalanced brackets.",  # noqa: E501
+        per_rule["yaml-parse"].append(
+            _make_finding(
+                "yaml-parse",
+                "fail",
+                f"{path}: YAML parse error: {err}",
+                f"YAML parse error in {path}: {err}.",
+            )
         )
-        return 1
-    except OSError as err:
-        emit(
-            "FAIL",
-            path,
-            "config-missing",
-            f"cannot read config: {err}",
-            "Verify the file exists and is readable.",
-        )
-        return 1
-
-    fails = 0
+        return True
 
     if not isinstance(data, dict):
-        emit(
-            "FAIL",
-            path,
-            "yaml-parse",
-            "top-level YAML is not a mapping",
-            "The config must be a YAML mapping with at least a `repos:` key.",
+        per_rule["yaml-parse"].append(
+            _make_finding(
+                "yaml-parse",
+                "fail",
+                f"{path}: top-level YAML is not a mapping",
+                f"Top-level YAML in {path} is not a mapping; the config "
+                "must be a mapping with at least a `repos:` key.",
+            )
         )
-        return 1
+        return True
 
     repos = data.get("repos")
     if not isinstance(repos, list) or not repos:
-        emit(
-            "FAIL",
-            path,
-            "repos-key",
-            "top-level `repos:` key missing or empty",
-            "Add a `repos:` list with at least one repo block.",
+        per_rule["repos-key"].append(
+            _make_finding(
+                "repos-key",
+                "fail",
+                f"{path}: top-level `repos:` missing or empty",
+                f"Top-level `repos:` key missing or empty in {path}.",
+            )
         )
-        return 1
+        return False
 
     for ri, repo in enumerate(repos):
         if not isinstance(repo, dict):
-            emit(
-                "FAIL",
-                path,
-                "hook-shape",
-                f"repos[{ri}] is not a mapping",
-                "Each repo entry must be a YAML mapping with `repo:` and `hooks:` keys.",  # noqa: E501
+            per_rule["hook-shape"].append(
+                _make_finding(
+                    "hook-shape",
+                    "fail",
+                    f"{path}: repos[{ri}] is not a mapping",
+                    f"repos[{ri}] in {path} is not a mapping; each repo "
+                    "entry must be a YAML mapping with `repo:` and `hooks:`.",
+                )
             )
-            fails += 1
             continue
 
         hooks = repo.get("hooks")
         if not isinstance(hooks, list):
-            emit(
-                "FAIL",
-                path,
-                "hook-shape",
-                f"repos[{ri}] has no `hooks:` list",
-                "Add a `hooks:` list to this repo block.",
+            per_rule["hook-shape"].append(
+                _make_finding(
+                    "hook-shape",
+                    "fail",
+                    f"{path}: repos[{ri}] has no `hooks:` list",
+                    f"repos[{ri}] in {path} has no `hooks:` list.",
+                )
             )
-            fails += 1
             continue
 
         for hi, hook in enumerate(hooks):
             if not isinstance(hook, dict):
-                emit(
-                    "FAIL",
-                    path,
-                    "hook-shape",
-                    f"repos[{ri}].hooks[{hi}] is not a mapping",
-                    "Each hook entry must be a YAML mapping with at least an `id:` key.",  # noqa: E501
+                per_rule["hook-shape"].append(
+                    _make_finding(
+                        "hook-shape",
+                        "fail",
+                        f"{path}: repos[{ri}].hooks[{hi}] is not a mapping",
+                        f"repos[{ri}].hooks[{hi}] in {path} is not a "
+                        "mapping; each hook entry must be a YAML mapping "
+                        "with at least an `id:` key.",
+                    )
                 )
-                fails += 1
                 continue
             hook_id = hook.get("id")
             if not isinstance(hook_id, str) or not hook_id.strip():
-                emit(
-                    "FAIL",
-                    path,
-                    "hook-shape",
-                    f"repos[{ri}].hooks[{hi}] missing string `id:`",
-                    "Add a kebab-case `id:` naming what the hook does.",
+                per_rule["hook-shape"].append(
+                    _make_finding(
+                        "hook-shape",
+                        "fail",
+                        f"{path}: repos[{ri}].hooks[{hi}] missing string `id:`",
+                        f"repos[{ri}].hooks[{hi}] in {path} is missing a "
+                        "non-empty string `id:`.",
+                    )
                 )
-                fails += 1
 
-    return fails
+    return False
 
 
 def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
+        prog="check_yaml_shape.py",
         description="Validate .pre-commit-config.yaml shape (Tier-1 deterministic check).",  # noqa: E501
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "paths",
@@ -177,11 +248,18 @@ def main(argv: list[str] | None = None) -> int:
         return EXIT_MISSING_DEP
 
     try:
-        total = sum(check_config(p, yaml) for p in args.paths)
+        per_rule: dict[str, list[dict]] = {r: [] for r in _RULE_ORDER}
+        for p in args.paths:
+            _check_config(p, yaml, per_rule)
+        envelopes = [
+            emit_rule_envelope(rule_id=r, findings=per_rule[r])
+            for r in _RULE_ORDER
+        ]
+        print_envelope(envelopes)
+        any_fail = any(e["overall_status"] == "fail" for e in envelopes)
+        return 1 if any_fail else 0
     except KeyboardInterrupt:
         return EXIT_INTERRUPTED
-
-    return EXIT_FAIL if total else 0
 
 
 if __name__ == "__main__":

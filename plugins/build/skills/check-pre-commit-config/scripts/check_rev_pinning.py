@@ -1,12 +1,19 @@
 #!/usr/bin/env python3
 """Tier-1 deterministic check: verify .pre-commit-config.yaml `rev:` pinning.
 
-For every non-`local` repo, asserts:
-  - `rev:` is not a floating branch name (main/master/HEAD/develop/latest/stable) — FAIL
-  - `rev:` shape matches a semver tag (e.g. v1.2.3) or 40-char SHA — WARN otherwise
+Emits a JSON ARRAY of two envelopes per `_common.py`:
 
-Emits findings in the standard lint format. Exit codes: 0 clean/WARN,
-1 one or more FAIL, 2 usage error, 69 missing PyYAML, 130 interrupted.
+  - floating-rev (FAIL): `rev:` is a floating ref
+    (main / master / HEAD / develop / latest / stable).
+  - rev-shape (WARN): `rev:` is neither a semver tag (vX.Y.Z) nor a
+    40-char SHA.
+
+Exit codes:
+  0   — all envelopes pass / warn / inapplicable
+  1   — any envelope overall_status=fail
+  64  — usage error
+  69  — missing required dependency (PyYAML)
+  130 — interrupted
 
 Example:
     ./check_rev_pinning.py .pre-commit-config.yaml
@@ -26,7 +33,10 @@ import re
 import sys
 from pathlib import Path
 
-EXIT_FAIL = 1
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _common import emit_json_finding, emit_rule_envelope, print_envelope  # noqa: E402
+
+EXIT_USAGE = 64
 EXIT_MISSING_DEP = 69
 EXIT_INTERRUPTED = 130
 
@@ -34,29 +44,66 @@ FLOATING_REFS = frozenset({"main", "master", "HEAD", "develop", "latest", "stabl
 SEMVER_TAG = re.compile(r"^v?\d+\.\d+(\.\d+)?([-.].+)?$")
 SHA_40 = re.compile(r"^[0-9a-f]{40}$")
 
+_RULE_ORDER: list[str] = ["floating-rev", "rev-shape"]
 
-def emit(
-    severity: str, path: Path, check: str, detail: str, recommendation: str
+_RECIPE_FLOATING_REV = (
+    "Replace the floating ref with an immutable tag or 40-char SHA. "
+    "Easiest path: run `pre-commit autoupdate` to pin to the current "
+    "stable tag.\n\n"
+    "Example:\n"
+    "    rev: main\n"
+    "      -> rev: v0.6.9\n\n"
+    "Floating refs produce different hook versions on different "
+    "machines and at different times — the config stops being "
+    "reproducible.\n"
+)
+
+_RECIPE_REV_SHAPE = (
+    "Resolve to a versioned tag (`vX.Y.Z`) or a 40-char commit SHA. "
+    "Date tags and short SHAs are immutable but lose intent (release "
+    "boundary vs exact commit).\n\n"
+    "Example:\n"
+    "    rev: \"2024-01-15\"\n"
+    "      -> rev: v4.6.0\n"
+)
+
+_RECIPES: dict[str, str] = {
+    "floating-rev": _RECIPE_FLOATING_REV,
+    "rev-shape": _RECIPE_REV_SHAPE,
+}
+
+
+def _make_finding(
+    rule_id: str,
+    severity: str,
+    location_context: str,
+    reasoning: str,
+    line: int = 0,
+) -> dict:
+    return emit_json_finding(
+        rule_id=rule_id,
+        status=severity,
+        location={"line": line, "context": location_context},
+        reasoning=reasoning,
+        recommended_changes=_RECIPES[rule_id],
+    )
+
+
+def _check_config(
+    path: Path, yaml_mod, per_rule: dict[str, list[dict]]
 ) -> None:
-    print(f"{severity}  {path} — {check}: {detail}")
-    print(f"  Recommendation: {recommendation}")
-
-
-def check_config(path: Path, yaml_mod) -> int:
-    """Return count of FAIL findings for this config."""
     try:
         data = yaml_mod.safe_load(path.read_text(encoding="utf-8"))
     except (OSError, yaml_mod.YAMLError):
         # check_yaml_shape.py owns these FAILs; stay silent here.
-        return 0
+        return
 
     if not isinstance(data, dict):
-        return 0
+        return
     repos = data.get("repos")
     if not isinstance(repos, list):
-        return 0
+        return
 
-    fails = 0
     for ri, repo in enumerate(repos):
         if not isinstance(repo, dict):
             continue
@@ -64,35 +111,36 @@ def check_config(path: Path, yaml_mod) -> int:
             continue
         rev = repo.get("rev")
         if not isinstance(rev, str):
-            continue  # missing/non-string rev — check_yaml_shape / pre-commit itself will flag  # noqa: E501
+            continue
 
         if rev in FLOATING_REFS:
-            emit(
-                "FAIL",
-                path,
-                "floating-rev",
-                f"repos[{ri}] rev: {rev!r} is a floating ref",
-                "Pin to an immutable tag or 40-char SHA. `pre-commit autoupdate` pins the current stable tag.",  # noqa: E501
+            per_rule["floating-rev"].append(
+                _make_finding(
+                    "floating-rev",
+                    "fail",
+                    f"{path}: repos[{ri}] rev: {rev!r}",
+                    f"repos[{ri}] in {path} pins rev: {rev!r}, a "
+                    "floating ref. Floating refs break reproducibility.",
+                )
             )
-            fails += 1
             continue
 
         if not (SEMVER_TAG.match(rev) or SHA_40.match(rev)):
-            emit(
-                "WARN",
-                path,
-                "rev-shape",
-                f"repos[{ri}] rev: {rev!r} is neither semver tag nor 40-char SHA",
-                "Resolve to a versioned tag (vX.Y.Z) or a full 40-char commit SHA for stronger immutability.",  # noqa: E501
+            per_rule["rev-shape"].append(
+                _make_finding(
+                    "rev-shape",
+                    "warn",
+                    f"{path}: repos[{ri}] rev: {rev!r}",
+                    f"repos[{ri}] in {path} pins rev: {rev!r}, neither "
+                    "a semver tag nor a 40-char SHA.",
+                )
             )
-
-    return fails
 
 
 def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
+        prog="check_rev_pinning.py",
         description="Audit .pre-commit-config.yaml `rev:` pins (Tier-1 deterministic check).",  # noqa: E501
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "paths",
@@ -116,11 +164,18 @@ def main(argv: list[str] | None = None) -> int:
         return EXIT_MISSING_DEP
 
     try:
-        total = sum(check_config(p, yaml) for p in args.paths)
+        per_rule: dict[str, list[dict]] = {r: [] for r in _RULE_ORDER}
+        for p in args.paths:
+            _check_config(p, yaml, per_rule)
+        envelopes = [
+            emit_rule_envelope(rule_id=r, findings=per_rule[r])
+            for r in _RULE_ORDER
+        ]
+        print_envelope(envelopes)
+        any_fail = any(e["overall_status"] == "fail" for e in envelopes)
+        return 1 if any_fail else 0
     except KeyboardInterrupt:
         return EXIT_INTERRUPTED
-
-    return EXIT_FAIL if total else 0
 
 
 if __name__ == "__main__":
