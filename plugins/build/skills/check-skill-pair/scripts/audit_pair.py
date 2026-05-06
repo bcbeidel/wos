@@ -122,9 +122,7 @@ _RECIPE_CHECK_RULE_FILES = (
     "emitting JSON envelopes via `_common.py` with embedded "
     "`recommended_changes` recipes.\n\n"
     "Most check halves want a mix. See `check-skill-pattern.md` "
-    "§\"The Single-Artifact-Per-Rule Principle\" and "
-    "`check-skill-migration-template.md` for the rule-classification "
-    "matrix workflow."
+    "§\"The Single-Artifact-Per-Rule Principle\"."
 )
 
 _RECIPE_ROUTING = (
