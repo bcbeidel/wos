@@ -1,21 +1,26 @@
 #!/usr/bin/env python3
-"""Tier-1 Makefile safety checker.
+"""Tier-1 Makefile safety checker — emits JSON ARRAY of five envelopes.
 
-Scans recipe lines (tab-indented) plus the first recipe command of
-destructive-named targets for five classes of issue:
-
-  - unguarded-rm (FAIL): `rm -rf $(VAR)` lacking a non-empty guard,
-    a scoped path (BUILD_DIR, BUILD_ROOT, OUT_DIR, DIST_DIR), or `--`.
-  - sudo (FAIL): `sudo` invocation in a recipe.
+Five rules:
+  - unguarded-rm   (FAIL): `rm -rf $(VAR)` lacking a non-empty guard,
+                           a scoped path (BUILD_DIR, BUILD_ROOT, OUT_DIR,
+                           DIST_DIR, TARGET_DIR), or `--`.
+  - sudo           (FAIL): `sudo` invocation in a recipe.
   - global-install (FAIL): `npm install -g`, unscoped `pip install`,
-    `gem install` without `--user-install`.
-  - curl-pipe (FAIL): pipe-to-shell pattern (curl piped into sh or bash).
-  - destructive-guard (WARN): targets named `deploy`, `publish`,
-    `release`, or `prod-*` must begin their recipe with a
-    confirmation-variable guard (e.g., `CONFIRM`, `CONFIRMED`, `YES`).
+                           `gem install` without `--user-install`.
+  - curl-pipe      (FAIL): pipe-to-shell pattern (curl piped into sh/bash).
+  - destructive-guard (WARN): targets named `deploy`, `publish`, `release`,
+                              or `prod-*` must begin their recipe with a
+                              confirmation-variable guard (CONFIRM /
+                              CONFIRMED / YES / I_REALLY_MEAN_IT).
+
+Exit codes:
+  0  — overall_status pass / warn for every emitted envelope
+  1  — overall_status=fail for any envelope
+  64 — usage error
 
 Example:
-    ./check_safety.py path/to/Makefile
+    ./check_safety.py path/to/Makefile path/to/mk/
 """
 
 from __future__ import annotations
@@ -24,6 +29,8 @@ import argparse
 import re
 import sys
 from pathlib import Path
+
+from _common import emit_json_finding, emit_rule_envelope, print_envelope
 
 EXIT_USAGE = 64
 PROG = "check_safety.py"
@@ -42,6 +49,69 @@ _CURL_PIPE_RE = re.compile(r"\bcurl\b[^\n]*\|\s*(?:sudo\s+)?(?:sh|bash)\b")
 _SAFE_PATH_HINTS = ("BUILD_DIR", "BUILD_ROOT", "OUT_DIR", "DIST_DIR", "TARGET_DIR")
 _DESTRUCTIVE_NAMES = ("deploy", "publish", "release")
 _CONFIRM_VARS_RE = re.compile(r"\b(CONFIRM|CONFIRMED|YES|I_REALLY_MEAN_IT)\b")
+
+_RECIPE_UNGUARDED_RM = (
+    "Guard `rm -rf $(VAR)` with a non-empty check, scope it to a known "
+    "build directory (`$(BUILD_DIR)`, `$(OUT_DIR)`, `$(DIST_DIR)`), or "
+    "include `--` before the argument so an empty/unset VAR cannot expand "
+    "into `rm -rf /`.\n\n"
+    "Example:\n"
+    "    clean: ## Remove build artifacts.\n"
+    "    \t@[[ -n \"$(BUILD_DIR)\" && \"$(BUILD_DIR)\" != \"/\" ]] || "
+    "{ echo \"BUILD_DIR misconfigured\" >&2; exit 1; }\n"
+    "    \trm -rf -- \"$(BUILD_DIR)\"\n"
+)
+
+_RECIPE_SUDO = (
+    "Remove `sudo` from the recipe. Dev workflows must not mutate the "
+    "user's machine — install into user-local paths instead "
+    "(`pip install --user`, `npm install --save-dev`, a `.venv/`, "
+    "`./node_modules/`).\n\n"
+    "Example:\n"
+    "    install:\n"
+    "    \tpip install --user -e .   # or use .venv/bin/pip\n"
+)
+
+_RECIPE_GLOBAL_INSTALL = (
+    "Install into a project-local location, not a global prefix.\n"
+    "  - npm: `npm install --save-dev <pkg>` (writes to ./node_modules)\n"
+    "  - pip: `pip install --user <pkg>` or use a venv "
+    "(`.venv/bin/pip install -e .`)\n"
+    "  - gem: `gem install --user-install <pkg>` or pin to a Gemfile.\n\n"
+    "Global installs drift between developer machines and CI, producing "
+    "'works on my laptop' bugs."
+)
+
+_RECIPE_CURL_PIPE = (
+    "Replace `curl ... | sh|bash` with a versioned, checksummed install: "
+    "download to a fixed path, verify with `sha256sum -c -`, then execute.\n\n"
+    "Example:\n"
+    "    setup:\n"
+    "    \t@curl -fsSL -o /tmp/install.sh https://example.com/install-v1.2.3.sh\n"
+    "    \t@echo \"abc123...  /tmp/install.sh\" | sha256sum -c -\n"
+    "    \t@bash /tmp/install.sh\n\n"
+    "Piped-remote-install is the classic supply-chain footgun — "
+    "whoever controls the URL today controls your dev machine tomorrow."
+)
+
+_RECIPE_DESTRUCTIVE_GUARD = (
+    "Make the first recipe command a `CONFIRM=1` guard so an accidental "
+    "`make deploy` is a no-op rather than a production incident.\n\n"
+    "Example:\n"
+    "    deploy: ## Deploy to production (set CONFIRM=1).\n"
+    "    \t@[[ \"$${CONFIRM:-0}\" = \"1\" ]] || "
+    "{ echo \"set CONFIRM=1 to deploy\" >&2; exit 1; }\n"
+    "    \t./scripts/deploy.sh production\n"
+)
+
+
+_RULE_ORDER = [
+    "unguarded-rm",
+    "sudo",
+    "global-install",
+    "curl-pipe",
+    "destructive-guard",
+]
 
 
 class _UsageError(Exception):
@@ -103,83 +173,118 @@ def _recipe_first_line(lines: list[str], target_idx: int) -> str | None:
     return None
 
 
-def _scan_file(path: Path) -> bool:
+def _scan_file(path: Path, per_rule: dict[str, list[dict]]) -> None:
     try:
         lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
     except OSError as err:
         print(f"{PROG}: cannot read {path}: {err}", file=sys.stderr)
-        return False
+        return
 
-    any_fail = False
-
-    # Recipe-line scans
+    # Recipe-line scans (tab-indented).
     for idx, line in enumerate(lines):
         if not line.startswith("\t"):
             continue
         lineno = idx + 1
+        ctx = f"{path}: {line.strip()[:80]}"
 
         rm_match = _RM_RF_RE.search(line)
         if rm_match and not _rm_is_guarded(lines, idx, rm_match.group(1)):
-            print(
-                f"FAIL  {path} — unguarded-rm: `rm -rf` without guard on line {lineno}"
+            per_rule["unguarded-rm"].append(
+                emit_json_finding(
+                    rule_id="unguarded-rm",
+                    status="fail",
+                    location={"line": lineno, "context": ctx},
+                    reasoning=(
+                        f"line {lineno} runs `rm -rf` without a non-empty "
+                        "guard, a scoped build-directory variable, or `--`. "
+                        "If the variable expands empty, `rm -rf` becomes "
+                        "`rm -rf /` — one typo from disaster."
+                    ),
+                    recommended_changes=_RECIPE_UNGUARDED_RM,
+                )
             )
-            print(
-                "  Recommendation: Add a non-empty guard "
-                '(`[[ -n "$(VAR)" ]] || exit 1`), scope the path to '
-                "`$(BUILD_DIR)`, or include `--` before the argument."
-            )
-            any_fail = True
 
         if _SUDO_RE.search(line):
-            print(f"FAIL  {path} — sudo: `sudo` in recipe on line {lineno}")
-            print(
-                "  Recommendation: Remove `sudo`. Dev workflows install "
-                "into user-local paths (`--user`, `.venv/`, "
-                "`node_modules/`), not system-level."
+            per_rule["sudo"].append(
+                emit_json_finding(
+                    rule_id="sudo",
+                    status="fail",
+                    location={"line": lineno, "context": ctx},
+                    reasoning=(
+                        f"line {lineno} invokes `sudo`. Dev workflows must "
+                        "not mutate the user's machine; install into "
+                        "user-local paths instead."
+                    ),
+                    recommended_changes=_RECIPE_SUDO,
+                )
             )
-            any_fail = True
 
         if _NPM_G_RE.search(line):
-            print(f"FAIL  {path} — global-install: `npm install -g` on line {lineno}")
-            print(
-                "  Recommendation: Install into project-local "
-                "`node_modules/` (`npm install --save-dev`) instead of "
-                "the global prefix."
+            per_rule["global-install"].append(
+                emit_json_finding(
+                    rule_id="global-install",
+                    status="fail",
+                    location={"line": lineno, "context": f"{path}: npm install -g"},
+                    reasoning=(
+                        f"line {lineno} runs `npm install -g`. Global "
+                        "installs drift between machines; install into "
+                        "`./node_modules/` instead."
+                    ),
+                    recommended_changes=_RECIPE_GLOBAL_INSTALL,
+                )
             )
-            any_fail = True
 
         if _PIP_GLOBAL_RE.search(line):
-            print(
-                f"FAIL  {path} — global-install: unscoped "
-                f"`pip install` on line {lineno}"
+            per_rule["global-install"].append(
+                emit_json_finding(
+                    rule_id="global-install",
+                    status="fail",
+                    location={
+                        "line": lineno,
+                        "context": f"{path}: unscoped pip install",
+                    },
+                    reasoning=(
+                        f"line {lineno} runs `pip install` without `--user`, "
+                        "`--target`, `--prefix`, or `-e .`. Without a venv "
+                        "or scoped install, this writes to the system Python."
+                    ),
+                    recommended_changes=_RECIPE_GLOBAL_INSTALL,
+                )
             )
-            print(
-                "  Recommendation: Use `pip install --user`, a venv "
-                "(`.venv/bin/pip`), or editable install in a venv "
-                "(`pip install -e .`)."
-            )
-            any_fail = True
 
         if _GEM_GLOBAL_RE.search(line):
-            print(
-                f"FAIL  {path} — global-install: `gem install` "
-                f"without `--user-install` on line {lineno}"
+            per_rule["global-install"].append(
+                emit_json_finding(
+                    rule_id="global-install",
+                    status="fail",
+                    location={
+                        "line": lineno,
+                        "context": f"{path}: gem install (no --user-install)",
+                    },
+                    reasoning=(
+                        f"line {lineno} runs `gem install` without "
+                        "`--user-install`. Global gems drift across machines."
+                    ),
+                    recommended_changes=_RECIPE_GLOBAL_INSTALL,
+                )
             )
-            print("  Recommendation: Add `--user-install` or pin to a bundled Gemfile.")
-            any_fail = True
 
         if _CURL_PIPE_RE.search(line):
-            print(
-                f"FAIL  {path} — curl-pipe: pipe-to-shell pattern on line {lineno}"
+            per_rule["curl-pipe"].append(
+                emit_json_finding(
+                    rule_id="curl-pipe",
+                    status="fail",
+                    location={"line": lineno, "context": ctx},
+                    reasoning=(
+                        f"line {lineno} pipes `curl` output into a shell. "
+                        "Whoever controls that URL today controls your dev "
+                        "machine tomorrow."
+                    ),
+                    recommended_changes=_RECIPE_CURL_PIPE,
+                )
             )
-            print(
-                "  Recommendation: Pin a specific version, verify a "
-                "checksum, then install — never pipe arbitrary remote "
-                "output into a shell."
-            )
-            any_fail = True
 
-    # Destructive-guard scan
+    # Destructive-guard scan (target-line scope).
     for idx, line in enumerate(lines):
         if line.startswith("\t"):
             continue
@@ -191,20 +296,32 @@ def _scan_file(path: Path) -> bool:
             continue
         first = _recipe_first_line(lines, idx)
         if not first or not _CONFIRM_VARS_RE.search(first):
-            print(
-                f"WARN  {path} — destructive-guard: `{name}` lacks a confirmation guard"
+            per_rule["destructive-guard"].append(
+                emit_json_finding(
+                    rule_id="destructive-guard",
+                    status="warn",
+                    location={
+                        "line": idx + 1,
+                        "context": f"{path}: target `{name}` lacks confirmation guard",
+                    },
+                    reasoning=(
+                        f"target `{name}` at line {idx + 1} is destructive "
+                        "by name (deploy/publish/release/prod-*) but its "
+                        "first recipe command is not a CONFIRM/YES guard. "
+                        "Accidental `make {name}` runs the command."
+                    ).replace("{name}", name),
+                    recommended_changes=_RECIPE_DESTRUCTIVE_GUARD,
+                )
             )
-            print(
-                "  Recommendation: Make the first recipe command an "
-                'explicit check: `@[[ "$${CONFIRM:-0}" = "1" ]] || '
-                '{ echo "set CONFIRM=1" >&2; exit 1; }`.'
-            )
-    return any_fail
 
 
 def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog=PROG, description="Tier-1 Makefile safety checker."
+        prog=PROG,
+        description=(
+            "Tier-1 Makefile safety checker (unguarded rm, sudo, "
+            "global install, curl-pipe, destructive-guard)."
+        ),
     )
     parser.add_argument(
         "paths",
@@ -218,15 +335,22 @@ def get_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = get_parser().parse_args(argv)
-    any_fail = False
     try:
-        for f in _collect_targets(args.paths):
-            if _scan_file(f):
-                any_fail = True
+        files = _collect_targets(args.paths)
     except _UsageError:
         return EXIT_USAGE
     except KeyboardInterrupt:
         return 130
+
+    per_rule: dict[str, list[dict]] = {r: [] for r in _RULE_ORDER}
+    for f in files:
+        _scan_file(f, per_rule)
+
+    envelopes = [
+        emit_rule_envelope(rule_id=r, findings=per_rule[r]) for r in _RULE_ORDER
+    ]
+    print_envelope(envelopes)
+    any_fail = any(e["overall_status"] == "fail" for e in envelopes)
     return 1 if any_fail else 0
 
 

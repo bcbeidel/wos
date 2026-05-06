@@ -1,12 +1,20 @@
 #!/usr/bin/env python3
-"""Tier-1 Makefile naming checker.
+"""Tier-1 Makefile naming checker — emits JSON ARRAY of two envelopes.
 
-Two sub-checks:
-  - target-name (WARN): public target names (those with a `##`
-    description on the definition line) match `^[a-z][a-z0-9-]*$`.
-  - helper-prefix (INFO): targets without a `##` description and
-    without a `_` prefix and without file indicators (`/`, `.`, `%`,
-    `$(`) — likely helpers that should start with `_`.
+Two rules:
+  - target-name (WARN):    public target names (those with a `##`
+                           description) match `^[a-z][a-z0-9-]*$`.
+  - helper-prefix (WARN):  targets without a `##` description, without
+                           a `_` prefix, and without file indicators
+                           (`/`, `.`, `%`, `$(`, `${`) — likely
+                           helpers that should start with `_`.
+
+Severity floor: WARN. (helper-prefix was previously INFO.)
+
+Exit codes:
+  0  — overall_status pass / warn for every emitted envelope
+  1  — overall_status=fail (none in this script)
+  64 — usage error
 
 Example:
     ./check_naming.py path/to/Makefile
@@ -19,6 +27,8 @@ import re
 import sys
 from pathlib import Path
 
+from _common import emit_json_finding, emit_rule_envelope, print_envelope
+
 EXIT_USAGE = 64
 PROG = "check_naming.py"
 
@@ -26,6 +36,31 @@ _TARGET_RE = re.compile(r"^([A-Za-z0-9_./$()%-]+)\s*:(?!=)")
 _DESC_RE = re.compile(r"^[A-Za-z0-9_./$()%-]+\s*:.*##\s+\S")
 _PUBLIC_NAME_RE = re.compile(r"^[a-z][a-z0-9-]*$")
 _FILE_INDICATORS = ("/", ".", "$(", "${", "%")
+
+_RECIPE_TARGET_NAME = (
+    "Rename to lowercase-hyphenated shape `^[a-z][a-z0-9-]*$` (e.g., "
+    "`run-tests`, not `runTheTests`; `build-prod`, not `build_prod`; "
+    "`deploy`, not `Deploy`). Muscle memory for `make test` / `make "
+    "build` works across repos only when names follow the shell-command "
+    "convention.\n\n"
+    "Example:\n"
+    "    run-tests: ## Run the test suite.\n"
+    "    build-prod: ## Build the production artifact.\n"
+)
+
+_RECIPE_HELPER_PREFIX = (
+    "Rename the helper target to `_<name>` and omit the `##`. The "
+    "underscore prefix signals 'not part of the public API' to both "
+    "readers and the `help` parser; it keeps `make help` clean.\n\n"
+    "Example:\n"
+    "    _check-deps:\n"
+    "    \t@command -v jq >/dev/null || { echo 'jq required' >&2; exit 1; }\n"
+    "    \n"
+    "    test: _check-deps ## Run the test suite.\n"
+    "    \t$(PYTHON) -m pytest\n"
+)
+
+_RULE_ORDER = ["target-name", "helper-prefix"]
 
 
 class _UsageError(Exception):
@@ -52,18 +87,16 @@ def _collect_targets(paths: list[Path]) -> list[Path]:
     return files
 
 
-def _scan_file(path: Path) -> bool:
+def _scan_file(path: Path, per_rule: dict[str, list[dict]]) -> None:
     try:
         lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
     except OSError as err:
         print(f"{PROG}: cannot read {path}: {err}", file=sys.stderr)
-        return False
+        return
 
-    bad_public: list[str] = []
-    unprefixed_helpers: list[str] = []
     seen: set[str] = set()
 
-    for line in lines:
+    for lineno, line in enumerate(lines, 1):
         if line.startswith("\t"):
             continue
         match = _TARGET_RE.match(line)
@@ -78,40 +111,47 @@ def _scan_file(path: Path) -> bool:
 
         if has_desc:
             if not _PUBLIC_NAME_RE.match(name):
-                bad_public.append(name)
+                per_rule["target-name"].append(
+                    emit_json_finding(
+                        rule_id="target-name",
+                        status="warn",
+                        location={
+                            "line": lineno,
+                            "context": f"{path}: target {name!r}",
+                        },
+                        reasoning=(
+                            f"public target {name!r} does not match "
+                            "`^[a-z][a-z0-9-]*$`. PascalCase / snake_case / "
+                            "camelCase break the muscle-memory convention "
+                            "for `make <verb>`."
+                        ),
+                        recommended_changes=_RECIPE_TARGET_NAME,
+                    )
+                )
         else:
             if not has_file_indicator and not name.startswith("_"):
-                unprefixed_helpers.append(name)
-
-    if bad_public:
-        names = ", ".join(bad_public)
-        print(
-            f"WARN  {path} — target-name: public target(s) not "
-            f"lowercase-hyphenated: {names}"
-        )
-        print(
-            "  Recommendation: Rename to `^[a-z][a-z0-9-]*$` shape "
-            "(e.g., `run-tests`, not `runTheTests`). Muscle memory for "
-            "`make test` depends on the convention."
-        )
-
-    if unprefixed_helpers:
-        names = ", ".join(unprefixed_helpers)
-        print(
-            f"INFO  {path} — helper-prefix: internal helper(s) not "
-            f"prefixed with `_`: {names}"
-        )
-        print(
-            "  Recommendation: Rename to `_<name>` so the target is "
-            "hidden from `make help` and readers recognize it as "
-            "not-part-of-the-public-API."
-        )
-    return False
+                per_rule["helper-prefix"].append(
+                    emit_json_finding(
+                        rule_id="helper-prefix",
+                        status="warn",
+                        location={
+                            "line": lineno,
+                            "context": f"{path}: target {name!r}",
+                        },
+                        reasoning=(
+                            f"target {name!r} has no `##` description and is "
+                            "not prefixed with `_`. If it is an internal "
+                            "helper, the `_` prefix hides it from `make "
+                            "help`; if it is public, it needs a `##`."
+                        ),
+                        recommended_changes=_RECIPE_HELPER_PREFIX,
+                    )
+                )
 
 
 def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog=PROG, description="Tier-1 Makefile naming checker."
+        prog=PROG, description="Tier-1 Makefile naming checker (2 rules)."
     )
     parser.add_argument(
         "paths",
@@ -125,15 +165,22 @@ def get_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = get_parser().parse_args(argv)
-    any_fail = False
     try:
-        for f in _collect_targets(args.paths):
-            if _scan_file(f):
-                any_fail = True
+        files = _collect_targets(args.paths)
     except _UsageError:
         return EXIT_USAGE
     except KeyboardInterrupt:
         return 130
+
+    per_rule: dict[str, list[dict]] = {r: [] for r in _RULE_ORDER}
+    for f in files:
+        _scan_file(f, per_rule)
+
+    envelopes = [
+        emit_rule_envelope(rule_id=r, findings=per_rule[r]) for r in _RULE_ORDER
+    ]
+    print_envelope(envelopes)
+    any_fail = any(e["overall_status"] == "fail" for e in envelopes)
     return 1 if any_fail else 0
 
 
