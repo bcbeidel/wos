@@ -1,0 +1,13 @@
+{
+  "_comment": "Canonical output shape for a check-github-workflow rule. Nine detection scripts emit JSON envelopes — check_secrets, check_structure, check_pinning, check_safety, check_actionlint, check_zizmor, check_yamllint, check_shellcheck, check_size. Each emits a single envelope or JSON array of envelopes. Schema: {rule_id, overall_status, findings[]}; per-finding: {status, location, reasoning, recommended_changes}. recommended_changes is REQUIRED — non-empty with concrete repair guidance from github-workflow-best-practices.md.",
+  "rule_id": "no-floating-ref",
+  "overall_status": "fail",
+  "findings": [
+    {
+      "status": "fail",
+      "location": {"line": 24, "context": ".github/workflows/ci.yml"},
+      "reasoning": "Step uses `actions/checkout@main` — a floating ref. Tomorrow's main can change behavior in ways today's CI doesn't catch; supply-chain attacks have used this exact vector to inject malicious code into pinned-by-name actions.",
+      "recommended_changes": "Replace `@main` / `@master` / floating refs with a 40-char commit SHA pin. Example: `actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1`. Use Dependabot or `pin-github-action` to keep SHAs current; the comment trailing the SHA names the human-readable version."
+    }
+  ]
+}
