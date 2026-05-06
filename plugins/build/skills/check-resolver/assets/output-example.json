@@ -1,0 +1,16 @@
+{
+  "_comment": "Canonical output shape for a check-resolver rule. Three detection scripts emit JSON envelopes — check_pointer.py (2 rules), check_resolver.py (7 rules), check_evals.py (2 rules). Each script emits a single envelope (one rule) or JSON array of envelopes. Schema: {rule_id: string, overall_status: 'pass'|'warn'|'fail'|'inapplicable', findings: [<finding>]}. Per-finding: {status: 'warn'|'fail', location: {line: int, context: string} | null, reasoning: string, recommended_changes: string}. recommended_changes is REQUIRED — non-empty with concrete repair guidance sourced from resolver-best-practices.md.",
+  "rule_id": "pointer-present",
+  "overall_status": "fail",
+  "findings": [
+    {
+      "status": "fail",
+      "location": {
+        "line": 0,
+        "context": "AGENTS.md"
+      },
+      "reasoning": "AGENTS.md does not reference RESOLVER.md. The pointer in AGENTS.md is what directs Claude to consult the resolver before filing new content; without it, RESOLVER.md sits invisible.",
+      "recommended_changes": "Add a one-line pointer to AGENTS.md directing Claude to consult RESOLVER.md before filing new content. Example: `See RESOLVER.md for the routing table when filing new artifacts.` Place the pointer near the top of AGENTS.md so it's read in the first context load."
+    }
+  ]
+}
