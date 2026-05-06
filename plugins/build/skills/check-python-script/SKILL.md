@@ -1,254 +1,148 @@
 ---
 name: check-python-script
 description: >
-  Audits a standalone Python 3 script against 22 deterministic checks
+  Audits a standalone Python 3 script against 25 deterministic checks
   (shebang, `__main__` guard, argparse shape, declared dependencies,
   ruff-backed AST lints, line count, secret patterns) plus nine
   judgment dimensions (output discipline, input validation, dependency
   posture, performance intent, naming, function design, module-scope
-  discipline, literal intent, commenting intent). Use when the user
-  wants to "audit a python script", "check my python script",
-  "review this script", "lint a python script", "is this script
-  safe", "what's wrong with my script", or "why is my script
-  failing". Not for general-purpose shell scripts — route to
-  `/build:check-bash-script`.
+  discipline, literal intent, commenting intent) and a Tier-3
+  cross-script collision check. Use when the user wants to "audit a
+  python script", "check my python script", "review this script",
+  "lint a python script", "is this script safe", "what's wrong with
+  my script", or "why is my script failing". Not for general-purpose
+  shell scripts — route to `/build:check-bash-script`.
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[path]"
 user-invocable: true
 references:
   - ../../_shared/references/python-script-best-practices.md
-  - references/audit-dimensions.md
-  - references/repair-playbook.md
+  - references/check-collision.md
+  - references/check-commenting-intent.md
+  - references/check-dependency-posture.md
+  - references/check-function-design.md
+  - references/check-input-validation.md
+  - references/check-literal-intent.md
+  - references/check-module-scope-discipline.md
+  - references/check-naming.md
+  - references/check-output-discipline.md
+  - references/check-performance-intent.md
 license: MIT
 ---
 
 # Check Python Script
 
-Audit a standalone Python 3 script for structural soundness, safety,
-and adherence to the project's Python-script conventions. The rubric
-— what makes a script load-bearing, the anatomy template, patterns
-that work — lives in
-[python-script-best-practices.md](../../_shared/references/python-script-best-practices.md).
-This skill is the audit workflow; the principles doc is what it
-audits against.
+Audit a standalone Python 3 script for structural soundness, dependency posture, ruff-backed lint cleanliness, and adherence to the project's Python conventions. The rubric — what makes a Python script load-bearing, the anatomy template, the patterns that work — lives in [python-script-best-practices.md](../../_shared/references/python-script-best-practices.md).
 
-The audit runs in three tiers. **Tier-1** is deterministic — six shell
-scripts run per target and emit fixed-format findings. **Tier-2** is a
-single locked-rubric LLM call per target evaluating all nine
-[audit dimensions](references/audit-dimensions.md) at once; dimensions
-that don't apply return PASS silently, so every target gets the full
-pass. **Tier-3** is cross-entity collision detection — when the scope
-holds multiple scripts in the same directory, check for duplicated
-logic the maintainer could consolidate.
+This skill follows the [check-skill pattern](../../_shared/references/check-skill-pattern.md). Tier-1 detection is in 6 scripts emitting JSON envelopes via `_common.py` (25 rule_ids total, including 13 from `check_ruff.sh` wrapping ruff). Tier-2 has 9 judgment dimensions read inline by the primary agent. Tier-3 is `collision` (cross-script duplication).
 
 ## Workflow
 
-1. Scope → 2. Tier-1 Deterministic Checks → 3. Tier-2 Judgment
-Checks → 4. Tier-3 Cross-Entity Collision → 5. Report → 6. Opt-In
-Repair Loop.
-
 ### 1. Scope
 
-Read `$ARGUMENTS`:
-
-- **Single path to a `.py` file** — audit that file.
-- **Directory path** — walk the directory, audit every `.py` at the
-  top level; do not recurse into sub-packages (scripts are flat by
-  definition).
-- **Empty** — refuse and explain: this skill operates on a target,
-  not a configuration.
-
-Confirm the scope aloud before proceeding (one line: "Auditing
-<path> (N scripts found)"). Miscounted scope is one of the most
-common report-confusion signals.
+Read `$ARGUMENTS`. Resolve to a `.py` file or directory walking top-level for Python scripts. Confirm scope aloud.
 
 ### 2. Tier-1 Deterministic Checks
 
-Run six scripts in sequence against each target. Each exits `0`
-on clean / WARN / INFO and `1` on one or more FAIL; do not stop on
-any script's FAIL exit — all six contribute findings to the merge.
+Invoke 6 detection scripts:
 
 ```bash
-SCRIPTS="${SKILL_DIR}/scripts"   # resolved by Claude at invocation
+SCRIPTS="${SKILL_DIR}/scripts"
 TARGETS="$ARGUMENTS"
 
-bash "$SCRIPTS/check_secrets.sh"   $TARGETS   # FAIL: any secret pattern — excludes file from Tier-2
-bash "$SCRIPTS/check_structure.sh" $TARGETS   # FAIL: shebang / guard-missing / guard-shape; WARN: main-returns, KeyboardInterrupt; INFO: exec bit
-bash "$SCRIPTS/check_argparse.sh"  $TARGETS   # WARN: argparse-when-argv, add-argument help=, subprocess check=True
-bash "$SCRIPTS/check_deps.sh"      $TARGETS   # WARN: non-stdlib import without declared-deps mechanism
-bash "$SCRIPTS/check_ruff.sh"      $TARGETS   # FAIL: E722/F403/S108/S307/S602; WARN: others; INFO if ruff absent
-bash "$SCRIPTS/check_size.sh"      $TARGETS   # WARN: line count over 500
+bash "$SCRIPTS/check_secrets.sh"   $TARGETS   # 1 rule:  secret (FAIL)
+bash "$SCRIPTS/check_structure.sh" $TARGETS   # 6 rules: shebang, guard-missing, guard-shape, syntax (FAIL); main-returns, keyboard-interrupt (WARN)
+bash "$SCRIPTS/check_argparse.sh"  $TARGETS   # 3 rules: argparse-when-argv, add-argument-help, subprocess-check (WARN)
+bash "$SCRIPTS/check_deps.sh"      $TARGETS   # 1 rule:  declared-deps (WARN)
+bash "$SCRIPTS/check_ruff.sh"      $TARGETS   # 13 rules wrapping ruff codes; inapplicable when ruff missing
+bash "$SCRIPTS/check_size.sh"      $TARGETS   # 1 rule:  size (WARN)
 ```
 
-The scripts and their helper `_ast_checks.py` live next to `SKILL.md`
-under `scripts/` and are executable. Claude resolves `${SKILL_DIR}`
-from the skill's own directory at invocation time — hooks use
-`$CLAUDE_PLUGIN_ROOT`, but skills do not.
+Each script emits a JSON array of envelopes. `recommended_changes` is canonical — copy through verbatim.
 
-**Script-to-check map** (what each script covers, from
-Section 5 of the ensemble synthesis):
+**Script-to-rules map** (25 Tier-1 rule_ids):
 
-| Script | Checks |
-|---|---|
-| `check_secrets.sh` | API keys, tokens, private URLs (toolkit convention) |
-| `check_structure.sh` | shebang, `__main__` guard invokes `sys.exit(main())`, `main()` returns int, `except KeyboardInterrupt`, exec bit |
-| `check_argparse.sh` | `argparse` imported when `sys.argv` used past `[0]`, every `add_argument` has non-empty `help=`, `subprocess.run(..., check=True)` or result inspected |
-| `check_deps.sh` | declared dependencies (requirements.txt, PEP 723 block, or top-of-file comment) when non-stdlib import present |
-| `check_ruff.sh` | wraps `ruff check` for D100, E722, SIM115, PLW1514, PTH, S602/S604, S307, F401, ANN, UP031/UP032, F403, S108, plus `ruff format --check`; emits INFO + exits 0 if ruff absent |
-| `check_size.sh` | script length ≤ 500 non-blank lines |
+| Script | rule_ids | Severity |
+|---|---|---|
+| `check_secrets.sh` | `secret` | fail |
+| `check_structure.sh` | `shebang`, `guard-missing`, `guard-shape`, `syntax` | fail |
+| `check_structure.sh` | `main-returns`, `keyboard-interrupt` | warn |
+| `check_argparse.sh` | `argparse-when-argv`, `add-argument-help`, `subprocess-check` | warn |
+| `check_deps.sh` | `declared-deps` | warn |
+| `check_ruff.sh` | `ruff-D100`, `ruff-SIM115`, `ruff-PLW1514`, `ruff-PTH`, `ruff-F401`, `ruff-ANN`, `ruff-format`, `ruff-fstring-modernize` | warn |
+| `check_ruff.sh` | `ruff-E722`, `ruff-shell-true`, `ruff-S307`, `ruff-F403`, `ruff-S108` | fail |
+| `check_size.sh` | `size` | warn |
 
-**Exit-code contract every script honors:** `0` on clean / WARN /
-INFO / HINT-only; `1` on one or more FAIL; `64` on argument error;
-`69` on missing required dependency (not ruff — ruff is optional).
+The previously-INFO `exec-bit` rule is dropped (the pattern has no INFO; the executable-bit check still runs in `_ast_checks.py` for parity but emits no finding).
 
-**FAIL findings that exclude the file from Tier-2** (evaluation is
-not useful until these are resolved):
+`ruff-S602` and `ruff-S604` consolidate into single rule_id `ruff-shell-true` (both about `shell=True` in subprocess). `ruff-UP031` and `ruff-UP032` consolidate into `ruff-fstring-modernize` (both about printf-style → f-string).
 
-- Any finding from `check_secrets.sh` (secrets present)
-- Python `SyntaxError` surfaced by any AST-parsing script
-- `check_ruff.sh` FAILs on `S307` (eval/exec), `S602` (shell=True),
-  `S108` (`/tmp/` literal), `E722` (bare except), `F403` (wildcard
-  import)
+**Tier-2 exclusion list.** Any FAIL in `secret`, `shebang`, `guard-missing`, `guard-shape`, `syntax`, `ruff-E722`, `ruff-shell-true`, `ruff-S307`, `ruff-F403`, or `ruff-S108` excludes the script from Tier-2.
 
-**FAIL findings that do NOT exclude from Tier-2:** shebang malformed,
-`__main__` guard missing or mis-shaped. These leave a parseable
-script that Tier-2 can still evaluate productively.
+**Missing-tool degradation.** `check_ruff.sh` emits all 13 envelopes with `overall_status: inapplicable` and exits 0 when `ruff` is absent. Other scripts continue.
 
-**WARN / INFO / HINT findings never exclude.** They surface in the
-report alongside Tier-2 findings. HINT lines (if a pre-filter is ever
-added — Phase 9 of the synthesis-to-skill-pair workflow) feed into
-the Tier-2 prompt as pre-evaluation context so the judge does not
-rediscover the same signal; they are not themselves repair targets.
+### 3. Tier-2 Judgment Dimensions
 
-### 3. Tier-2 Judgment Checks
+For each script that passed the Tier-2 exclusion gate, evaluate against the **9 judgment rules** at `references/check-*.md`:
 
-For each file that passed the Tier-2-exclusion filter, make a single
-LLM call against the audit rubric in
-[audit-dimensions.md](references/audit-dimensions.md). All nine
-dimensions run together — no trigger gating. A dimension that doesn't
-apply (e.g., Performance intent on a script that never reads a file)
-returns PASS silently.
+| File | Dimension | Severity |
+|---|---|---|
+| [check-output-discipline.md](references/check-output-discipline.md) | D1 — data to stdout, chatter to stderr | warn |
+| [check-input-validation.md](references/check-input-validation.md) | D2 — argparse types narrow input early | warn |
+| [check-dependency-posture.md](references/check-dependency-posture.md) | D3 — stdlib first; declared deps for the rest | warn |
+| [check-performance-intent.md](references/check-performance-intent.md) | D4 — generators / context managers / file streaming | warn |
+| [check-naming.md](references/check-naming.md) | D5 — snake_case, intent-naming | warn |
+| [check-function-design.md](references/check-function-design.md) | D6 — small functions; main() orchestrator | warn |
+| [check-module-scope-discipline.md](references/check-module-scope-discipline.md) | D7 — import + constant + main; no top-level work | warn |
+| [check-literal-intent.md](references/check-literal-intent.md) | D8 — magic numbers / strings named via constants | warn |
+| [check-commenting-intent.md](references/check-commenting-intent.md) | D9 — docstring + why-comments, no what-comments | warn |
 
-The nine dimensions:
+#### Evaluator policy
 
-| Dimension | What it judges |
-|---|---|
-| D1 Output Discipline | Does data go to stdout and chatter to stderr; do error paths actually exit non-zero; is `logging` used for operational messages? |
-| D2 Input Validation | Are inputs validated before destructive work; do deletes/overwrites gate on `--dry-run` or confirmation; are credentials externalized? |
-| D3 Dependency Posture | When a third-party dep is imported, is it justified, or would stdlib suffice? |
-| D4 Performance Intent | Does the script `.read()` a whole file it only iterates, or materialize lists it only iterates? |
-| D5 Naming | Do names state intent; are single-letter names confined to loop counters and math? |
-| D6 Function Design | Does each function do one thing at one level of abstraction; are near-identical blocks extracted to helpers? |
-| D7 Module-Scope Discipline | Does module scope hold only imports, constants, defs, and the guard — no side-effecting calls or mutable state? |
-| D8 Literal Intent | Do numeric/string literals carrying meaning have named-constant homes? |
-| D9 Commenting Intent | Do comments explain why rather than restate what; are TODOs owned? |
+- **Single locked-rubric pass per script.** Read all 9 rule files first, then evaluate the script in one LLM call.
+- **Default-closed when borderline.** When evidence is ambiguous, return `warn`.
+- **Severity floor: WARN.**
+- **One finding per dimension maximum.**
 
-Feed the file contents plus any Tier-1 HINT lines (if added later as
-pre-filters) into the prompt. Parse the model's response into the
-fixed lint format (one finding per dimension at most; dimensions that
-PASS produce no finding).
+### 4. Tier-3 Cross-Script Collision
 
-### 4. Tier-3 Cross-Entity Collision
-
-When the scope holds multiple scripts (directory walk, step 1), check
-for structural duplication the maintainer could consolidate:
-
-- Two or more scripts sharing the same module docstring or example
-  invocation line (likely copy-paste drift)
-- Identical or near-identical `get_parser()` functions across scripts
-  (candidate for a shared helper module)
-- Identical or near-identical error-handling patterns that should live
-  in a shared `utils.py`
-
-Report collisions as INFO findings — they are maintainer guidance,
-not failures. Single-script scope skips this tier.
+Evaluate against [check-collision.md](references/check-collision.md). Surface duplicate logic across scripts (e.g., copy-pasted helper functions, duplicated argparse setups) as `warn`. Single-script scope returns `inapplicable`.
 
 ### 5. Report
 
-Emit a unified findings table sorted by severity (FAIL > WARN > INFO
-> HINT), then by file path. Deduplicate exact-match findings at merge
-time — a Python `SyntaxError` surfaces from every AST-parsing script
-(structure, argparse, deps), which is expected but noisy unless
-reduced to one row.
-
-```
-SEVERITY  <path> — <check>: <detail>
-  Recommendation: <specific change>
-```
-
-Summary line at top and bottom: `N fail, N warn, N info across N
-scripts`. If any file was excluded from Tier-2, name it and the
-exclusion-trigger finding.
+Merge findings from all 3 tiers. Sort `fail` before `warn` before `inapplicable`; Tier-1 before Tier-2 before Tier-3. Each `Recommendation:` line copies through `recommended_changes` verbatim.
 
 ### 6. Opt-In Repair Loop
 
-After presenting findings, ask:
+Ask once: "Apply fixes? Enter y (all), n (skip), or comma-separated numbers."
 
-> "Apply fixes? Enter `y` (all), `n` (skip), or comma-separated
-> finding numbers."
+For each selected finding:
+- **Direct edit** — shebang, `__main__` guard, argparse help text, `pathlib.Path` over `os.path`, etc. Show diff; write on confirmation.
+- **Routed to another skill** — substantial rewrites → `/build:build-python-script`.
+- **Tier-2/3 judgment** — ask the user; rewrite the section; show diff.
 
-For each selected finding, follow the recipe in
-[repair-playbook.md](references/repair-playbook.md):
-
-1. Read the relevant section of the target file.
-2. Propose a minimal specific edit — fix the finding without
-   restructuring surrounding code.
-3. Show the diff.
-4. Write the change only on explicit user confirmation.
-5. Re-run the Tier-1 script that produced the finding; confirm it
-   passes.
-
-Per-change confirmation is non-negotiable. Bulk application removes
-the user's ability to review individual edits.
+After each fix, re-run the relevant Tier-1 script.
 
 ## Anti-Pattern Guards
 
-1. **Running Tier-2 before Tier-1** — deterministic checks are cheap
-   and authoritative; running them first avoids spending LLM calls on
-   files that should have been excluded.
-2. **Trigger-gating Tier-2 dimensions** — all nine dimensions run on
-   every file. A dimension that doesn't apply returns PASS silently.
-   Conditional dimensions produce inconsistent rubrics across runs
-   and make findings non-comparable.
-3. **Applying all repair fixes in one batch** — per-finding
-   confirmation is required. The user loses the ability to review
-   individual edits in a bulk apply.
-4. **Auditing a directory recursively** — scripts are single-file by
-   definition; recursing into sub-packages pulls in library code that
-   the script rubric doesn't model. Top-level `.py` only.
-5. **Skipping the re-run after a fix** — Step 5 of the repair loop
-   re-runs the script that produced the finding. A fix that produces
-   a new finding elsewhere is more common than it sounds.
+1. **Per-dimension LLM call.** Collapse into one locked-rubric call per script.
+2. **LLM-evaluating format compliance.** Shebang, guard, argparse shape — handle deterministically.
+3. **Ambiguous compliance reported as PASS.** Surface as WARN.
+4. **Bulk-applying fixes.** Per-finding confirmation required.
+5. **Re-evaluating scripted rules in Tier-2.** Trust the `pass` envelope.
+6. **Suppressing the inapplicable envelope.** When ruff is absent, the 13 ruff envelopes emit `inapplicable` — surface them.
+7. **Embellishing scripts' `recommended_changes`.** Copy through; do not paraphrase.
 
 ## Key Instructions
 
-- Tier-1 scripts run first and always. Tier-2 runs only on files that
-  passed the Tier-2-exclusion filter.
-- All nine Tier-2 dimensions are evaluated on every non-excluded file.
-  A dimension that does not apply returns PASS silently.
-- Repairs require per-finding confirmation — each change writes
-  individually and waits for explicit approval before the next.
-- When a Tier-1 script reports missing dependencies (exit 69), surface
-  the dependency name and install hint to the user; do not silently
-  skip.
-- When `ruff` is absent, `check_ruff.sh` emits an INFO line naming the
-  reduced coverage and exits 0. Continue with the other scripts.
-- Won't modify files without per-change confirmation — the audit is
-  read-only by default; repair fixes opt in one at a time.
-- Won't audit paths outside `$ARGUMENTS` — the scope the user named is
-  the only scope.
-- Recovery if a repair edit produces a worse state: the edit is a
-  single file change; revert with `git checkout -- <path>` or the
-  editor's undo.
+- Run Tier-1 first; gate LLM evaluation on structural validity.
+- `check_ruff.sh` consolidates 15 ruff codes into 13 rule_ids (`ruff-shell-true` covers S602+S604; `ruff-fstring-modernize` covers UP031+UP032).
+- Recovery: read-only outside the Repair Loop.
 
 ## Handoff
 
-**Receives:** Path to a single `.py` file or a directory holding `.py`
-scripts at the top level.
-**Produces:** Structured findings table in the lint format
-(`SEVERITY  <path> — <check>: <detail>` with a `Recommendation:`
-follow-up line); optionally, targeted edits applied to the audited
-script(s) after per-finding confirmation.
-**Chainable to:** `/build:build-python-script` (rebuild from scratch
-after flagged repairs if the repair loop surfaces structural issues
-bigger than point fixes).
+**Receives:** Path to a `.py` file or directory containing Python scripts.
+
+**Produces:** A unified findings table merging the 25 Tier-1 envelopes (script JSON), 9 Tier-2 judgment findings per script, and Tier-3 cross-script collision findings (multi-script scope only). Each row: tier, rule_id, location, status, reasoning + `recommended_changes` excerpt.
+
+**Chainable to:** `/build:build-python-script` (rebuild non-compliant scripts from scratch).
