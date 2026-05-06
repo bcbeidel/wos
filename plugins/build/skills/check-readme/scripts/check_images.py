@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 """Tier-1 README image checker.
 
-Three orthogonal sub-checks against inline images:
+Emits a JSON ARRAY of three envelopes per `_common.py`:
+
   - alt-text (WARN): every image has non-empty, non-placeholder alt
-    text. Placeholder alts rejected: image, img, logo, badge, icon,
-    or the filename itself.
-  - image-size (WARN): local image files ≤ 500 KB each; total local
-    image bytes ≤ 2 MB. HTTP image sizes are not inspected.
-  - badge-overload (WARN): ≤ 5 badge-shaped images in the prelude
-    (between H1 and the first non-image block). Badge detection:
-    alt text or URL mentions `badge`, `shield`, or host matches
-    `shields.io` / `img.shields.io` / `badge.fury.io`.
+    text.
+  - image-size (WARN): local image files <= 500 KB each; total local
+    image bytes <= 2 MB.
+  - badge-overload (WARN): <= 5 badge-shaped images in the prelude
+    (between H1 and the first non-image block).
+
+Exit codes:
+  0  — all envelopes pass / warn / inapplicable
+  1  — any envelope overall_status=fail (this script does not produce fails)
+  64 — usage error
 
 Example:
     ./check_images.py README.md path/to/docs/
@@ -24,7 +27,11 @@ import sys
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _common import emit_json_finding, emit_rule_envelope, print_envelope  # noqa: E402
+
 EXIT_USAGE = 64
+EXIT_INTERRUPTED = 130
 
 _MD_EXTENSIONS = (".md", ".markdown")
 _FRONTMATTER_FENCE = "---"
@@ -59,6 +66,36 @@ _BADGE_HOSTS = (
     "circleci.com",
 )
 
+_RULE_ORDER: list[str] = ["alt-text", "image-size", "badge-overload"]
+
+_RECIPE_ALT_TEXT = (
+    "Replace empty / placeholder alt with descriptive text naming what "
+    "the image conveys. Screen readers and failing-image fallbacks "
+    "depend on alt text; `image` and the bare filename are worse than "
+    "nothing.\n\n"
+    "Example:\n"
+    "    ![image](screenshot.png)\n"
+    "      -> ![dashboard showing three active workers](screenshot.png)\n"
+)
+
+_RECIPE_IMAGE_SIZE = (
+    "Convert to SVG or asciicast, recompress as WebP, or move the demo "
+    "to an external host. Repo page load matters on mobile and "
+    "low-bandwidth connections.\n"
+)
+
+_RECIPE_BADGE_OVERLOAD = (
+    "Trim to the badges a reader would actually check: CI, version, "
+    "license, coverage. Move the rest to a dedicated section or drop. "
+    "More than ~5 badges is scan-noise; readers stop reading them.\n"
+)
+
+_RECIPES: dict[str, str] = {
+    "alt-text": _RECIPE_ALT_TEXT,
+    "image-size": _RECIPE_IMAGE_SIZE,
+    "badge-overload": _RECIPE_BADGE_OVERLOAD,
+}
+
 
 class _UsageError(Exception):
     pass
@@ -84,15 +121,20 @@ def _collect_targets(paths: list[Path]) -> list[Path]:
     return files
 
 
-def _emit(
+def _make_finding(
+    rule_id: str,
     severity: str,
-    path: Path,
-    check: str,
-    message: str,
-    recommendation: str,
-) -> None:
-    print(f"{severity}  {path} — {check}: {message}")
-    print(f"  Recommendation: {recommendation}.")
+    location_context: str,
+    reasoning: str,
+    line: int = 0,
+) -> dict:
+    return emit_json_finding(
+        rule_id=rule_id,
+        status=severity,
+        location={"line": line, "context": location_context},
+        reasoning=reasoning,
+        recommended_changes=_RECIPES[rule_id],
+    )
 
 
 def _strip_frontmatter(lines: list[str]) -> list[str]:
@@ -141,8 +183,6 @@ def _local_image_size(path: Path, url: str) -> int | None:
 def _parse_blocks_until_first_non_image(
     lines: list[str], start: int
 ) -> tuple[int, int]:
-    """Count badge-shaped images in the prelude between the H1 line and the
-    first non-image, non-blank, non-fence-delimited content block."""
     badge_count = 0
     for idx in range(start, len(lines)):
         line = lines[idx].strip()
@@ -173,7 +213,7 @@ def _find_h1_lineno(lines: list[str]) -> int | None:
     return None
 
 
-def _check_file(path: Path) -> None:
+def _check_file(path: Path, per_rule: dict[str, list[dict]]) -> None:
     try:
         raw = path.read_text(encoding="utf-8", errors="replace").splitlines()
     except OSError as err:
@@ -202,52 +242,62 @@ def _check_file(path: Path) -> None:
         for m in _IMAGE_RE.finditer(line):
             alt, url = m.group(1), m.group(2)
             if not alt_warn_emitted and _is_placeholder_alt(alt, url):
-                _emit(
-                    "WARN",
-                    path,
-                    "alt-text",
-                    f"line {lineno}: image `{url}` has empty or placeholder "
-                    f"alt text ({alt!r})",
-                    "Describe what the image conveys — screen readers and "
-                    "failing-image fallbacks depend on it",
+                per_rule["alt-text"].append(
+                    _make_finding(
+                        "alt-text",
+                        "warn",
+                        f"{path}: line {lineno}: image `{url}` placeholder alt",
+                        f"Line {lineno} of {path}: image `{url}` has empty "
+                        f"or placeholder alt text ({alt!r}). Screen readers "
+                        "and failing-image fallbacks depend on alt text.",
+                        line=lineno,
+                    )
                 )
                 alt_warn_emitted = True
             size = _local_image_size(path, url)
             if size is not None:
                 total_bytes += size
                 if size > MAX_IMAGE_BYTES and not size_warn_emitted:
-                    _emit(
-                        "WARN",
-                        path,
-                        "image-size",
-                        f"line {lineno}: local image `{url}` is "
-                        f"{size // 1024} KB (> {MAX_IMAGE_BYTES // 1024} KB)",
-                        "Convert to SVG or asciicast, recompress as WebP, or "
-                        "move the asset off-repo",
+                    per_rule["image-size"].append(
+                        _make_finding(
+                            "image-size",
+                            "warn",
+                            f"{path}: line {lineno}: local image `{url}` is "
+                            f"{size // 1024} KB",
+                            f"Line {lineno} of {path}: local image `{url}` is "
+                            f"{size // 1024} KB (> {MAX_IMAGE_BYTES // 1024} "
+                            "KB). Repo page load matters on mobile.",
+                            line=lineno,
+                        )
                     )
                     size_warn_emitted = True
 
     if total_bytes > MAX_TOTAL_BYTES and not size_warn_emitted:
-        _emit(
-            "WARN",
-            path,
-            "image-size",
-            f"total local image bytes {total_bytes // 1024} KB "
-            f"(> {MAX_TOTAL_BYTES // 1024} KB)",
-            "Trim oversized assets or move them off-repo",
+        per_rule["image-size"].append(
+            _make_finding(
+                "image-size",
+                "warn",
+                f"{path}: total image bytes {total_bytes // 1024} KB",
+                f"In {path}, total local image bytes {total_bytes // 1024} "
+                f"KB (> {MAX_TOTAL_BYTES // 1024} KB). Trim oversized assets "
+                "or move them off-repo.",
+                line=0,
+            )
         )
 
     h1_idx = _find_h1_lineno(lines)
     if h1_idx is not None:
         badge_count, _ = _parse_blocks_until_first_non_image(lines, h1_idx + 1)
         if badge_count > MAX_BADGES:
-            _emit(
-                "WARN",
-                path,
-                "badge-overload",
-                f"{badge_count} badges in the prelude (> {MAX_BADGES})",
-                "Trim to the badges a reader would actually check: CI, "
-                "version, license, coverage",
+            per_rule["badge-overload"].append(
+                _make_finding(
+                    "badge-overload",
+                    "warn",
+                    f"{path}: {badge_count} badges in prelude",
+                    f"In {path}, {badge_count} badges appear in the prelude "
+                    f"(> {MAX_BADGES}). Readers stop reading badges past ~5.",
+                    line=h1_idx + 1,
+                )
             )
 
 
@@ -269,14 +319,20 @@ def get_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = get_parser().parse_args(argv)
     try:
+        per_rule: dict[str, list[dict]] = {r: [] for r in _RULE_ORDER}
         files = _collect_targets(args.paths)
         for f in files:
-            _check_file(f)
+            _check_file(f, per_rule)
+        envelopes = [
+            emit_rule_envelope(rule_id=r, findings=per_rule[r]) for r in _RULE_ORDER
+        ]
+        print_envelope(envelopes)
+        any_fail = any(e["overall_status"] == "fail" for e in envelopes)
+        return 1 if any_fail else 0
     except _UsageError:
         return EXIT_USAGE
     except KeyboardInterrupt:
-        return 130
-    return 0
+        return EXIT_INTERRUPTED
 
 
 if __name__ == "__main__":

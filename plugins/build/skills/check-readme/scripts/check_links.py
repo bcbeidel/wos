@@ -1,17 +1,24 @@
 #!/usr/bin/env python3
 """Tier-1 README link checker.
 
-Three orthogonal sub-checks:
+Emits a JSON ARRAY of three envelopes per `_common.py`:
+
   - broken-relative (FAIL): every relative link resolves to an
     existing file on disk.
   - broken-anchor (WARN): every fragment link (`#section`) matches
     an existing heading slug in the target file.
   - broken-external (WARN): when `lychee` or `markdown-link-check`
-    is on PATH, external URLs return 2xx/3xx. Emits `tool-missing`
-    INFO and skips external URLs when neither tool is available.
+    is on PATH, external URLs return 2xx/3xx. External URL
+    verification is skipped if neither tool is available (no
+    finding emitted).
 
 Heading slug generation uses GitHub's rule: lowercase, drop
 punctuation that is not `-` or `_`, collapse whitespace to `-`.
+
+Exit codes:
+  0  — all envelopes pass / warn / inapplicable
+  1  — any envelope overall_status=fail
+  64 — usage error
 
 Example:
     ./check_links.py README.md path/to/docs/
@@ -27,7 +34,11 @@ import sys
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _common import emit_json_finding, emit_rule_envelope, print_envelope  # noqa: E402
+
 EXIT_USAGE = 64
+EXIT_INTERRUPTED = 130
 
 _MD_EXTENSIONS = (".md", ".markdown")
 _FRONTMATTER_FENCE = "---"
@@ -38,6 +49,38 @@ _HEADING_RE = re.compile(r"^(#{1,6})\s+(.*?)\s*#*\s*$")
 
 _SLUG_STRIP_RE = re.compile(r"[^\w\s-]")
 _SLUG_WHITESPACE_RE = re.compile(r"\s+")
+
+_RULE_ORDER: list[str] = ["broken-relative", "broken-anchor", "broken-external"]
+
+_RECIPE_BROKEN_RELATIVE = (
+    "Create the target file, correct the path, or remove the link. Broken "
+    "links erode trust and signal neglect — readers infer the rest of the "
+    "doc is equally stale.\n\n"
+    "Example:\n"
+    "    [contributing](CONTRIBUTING.md)  (no such file)\n"
+    "      -> add CONTRIBUTING.md, or drop the link from the README.\n"
+)
+
+_RECIPE_BROKEN_ANCHOR = (
+    "Update the fragment to match the target heading's rendered slug. "
+    "Anchor slugs are derived from heading text; drift between them "
+    "silently breaks navigation.\n\n"
+    "Example:\n"
+    "    [see below](#setup-steps)  when heading is `## Setup`\n"
+    "      -> [see below](#setup)\n"
+)
+
+_RECIPE_BROKEN_EXTERNAL = (
+    "Update the URL, swap to a canonical source, or remove if the resource "
+    "is gone. External URL rot is common; stale links point readers at "
+    "error pages and undermine trust in the rest of the doc.\n"
+)
+
+_RECIPES: dict[str, str] = {
+    "broken-relative": _RECIPE_BROKEN_RELATIVE,
+    "broken-anchor": _RECIPE_BROKEN_ANCHOR,
+    "broken-external": _RECIPE_BROKEN_EXTERNAL,
+}
 
 
 class _UsageError(Exception):
@@ -64,15 +107,20 @@ def _collect_targets(paths: list[Path]) -> list[Path]:
     return files
 
 
-def _emit(
+def _make_finding(
+    rule_id: str,
     severity: str,
-    path: Path,
-    check: str,
-    message: str,
-    recommendation: str,
-) -> None:
-    print(f"{severity}  {path} — {check}: {message}")
-    print(f"  Recommendation: {recommendation}.")
+    location_context: str,
+    reasoning: str,
+    line: int = 0,
+) -> dict:
+    return emit_json_finding(
+        rule_id=rule_id,
+        status=severity,
+        location={"line": line, "context": location_context},
+        reasoning=reasoning,
+        recommended_changes=_RECIPES[rule_id],
+    )
 
 
 def _strip_frontmatter(lines: list[str]) -> list[str]:
@@ -116,7 +164,6 @@ def _extract_headings(lines: list[str]) -> set[str]:
 def _extract_links(
     lines: list[str],
 ) -> list[tuple[int, str]]:
-    """Return (lineno, url) pairs for inline links outside fenced blocks."""
     found: list[tuple[int, str]] = []
     in_fence = False
     fence_marker: str | None = None
@@ -141,56 +188,6 @@ def _is_external(url: str) -> bool:
     return urlparse(url).scheme in ("http", "https", "mailto", "ftp")
 
 
-def _check_relative(
-    path: Path, lineno: int, url: str, heading_cache: dict[Path, set[str]]
-) -> bool:
-    if url.startswith("#"):
-        anchor = _slugify(unquote(url[1:]))
-        if not anchor:
-            return False
-        slugs = heading_cache.setdefault(path, _extract_headings_from_path(path))
-        if anchor not in slugs:
-            _emit(
-                "WARN",
-                path,
-                "broken-anchor",
-                f"line {lineno}: fragment `#{url[1:]}` has no matching heading slug",
-                "Update the fragment to match the target heading's rendered slug",
-            )
-        return False
-
-    parsed = urlparse(url)
-    if parsed.scheme:
-        return False
-
-    url_path, _, fragment = url.partition("#")
-    target_path = (path.parent / unquote(url_path)).resolve()
-    if not target_path.exists():
-        _emit(
-            "FAIL",
-            path,
-            "broken-relative",
-            f"line {lineno}: relative link `{url}` points to non-existent "
-            f"file {target_path}",
-            "Create the target file, correct the path, or drop the link",
-        )
-        return True
-    if fragment and target_path.suffix.lower() in _MD_EXTENSIONS:
-        slugs = heading_cache.setdefault(
-            target_path, _extract_headings_from_path(target_path)
-        )
-        anchor = _slugify(unquote(fragment))
-        if anchor and anchor not in slugs:
-            _emit(
-                "WARN",
-                path,
-                "broken-anchor",
-                f"line {lineno}: fragment `#{fragment}` missing in {target_path}",
-                "Update the fragment to match a heading slug in the target",
-            )
-    return False
-
-
 def _extract_headings_from_path(target: Path) -> set[str]:
     try:
         raw = target.read_text(encoding="utf-8", errors="replace").splitlines()
@@ -199,17 +196,71 @@ def _extract_headings_from_path(target: Path) -> set[str]:
     return _extract_headings(_strip_frontmatter(raw))
 
 
-def _run_external_checker(path: Path) -> None:
+def _check_relative(
+    path: Path,
+    lineno: int,
+    url: str,
+    heading_cache: dict[Path, set[str]],
+    per_rule: dict[str, list[dict]],
+) -> None:
+    if url.startswith("#"):
+        anchor = _slugify(unquote(url[1:]))
+        if not anchor:
+            return
+        slugs = heading_cache.setdefault(path, _extract_headings_from_path(path))
+        if anchor not in slugs:
+            per_rule["broken-anchor"].append(
+                _make_finding(
+                    "broken-anchor",
+                    "warn",
+                    f"{path}: line {lineno}: fragment `#{url[1:]}` not found",
+                    f"Line {lineno} of {path} links to fragment `#{url[1:]}` "
+                    "but no heading in the file slugifies to that anchor.",
+                    line=lineno,
+                )
+            )
+        return
+
+    parsed = urlparse(url)
+    if parsed.scheme:
+        return
+
+    url_path, _, fragment = url.partition("#")
+    target_path = (path.parent / unquote(url_path)).resolve()
+    if not target_path.exists():
+        per_rule["broken-relative"].append(
+            _make_finding(
+                "broken-relative",
+                "fail",
+                f"{path}: line {lineno}: relative link `{url}` missing",
+                f"Line {lineno} of {path} contains relative link `{url}` "
+                f"which resolves to {target_path}, but no such file exists.",
+                line=lineno,
+            )
+        )
+        return
+    if fragment and target_path.suffix.lower() in _MD_EXTENSIONS:
+        slugs = heading_cache.setdefault(
+            target_path, _extract_headings_from_path(target_path)
+        )
+        anchor = _slugify(unquote(fragment))
+        if anchor and anchor not in slugs:
+            per_rule["broken-anchor"].append(
+                _make_finding(
+                    "broken-anchor",
+                    "warn",
+                    f"{path}: line {lineno}: fragment `#{fragment}` missing in target",
+                    f"Line {lineno} of {path} links to `{url}` but the "
+                    f"fragment `#{fragment}` does not match any heading "
+                    f"slug in {target_path}.",
+                    line=lineno,
+                )
+            )
+
+
+def _run_external_checker(path: Path, per_rule: dict[str, list[dict]]) -> None:
     tool = shutil.which("lychee") or shutil.which("markdown-link-check")
     if not tool:
-        print(
-            f"INFO  {path} — tool-missing: no lychee/markdown-link-check on "
-            "PATH — external URL verification skipped"
-        )
-        print(
-            "  Recommendation: Install `lychee` (cargo install lychee) or "
-            "`markdown-link-check` (npm i -g) to enable external link checks."
-        )
         return
     cmd: list[str]
     if tool.endswith("lychee"):
@@ -224,41 +275,42 @@ def _run_external_checker(path: Path) -> None:
             check=False,
             timeout=60,
         )
-    except (subprocess.TimeoutExpired, OSError) as err:
-        print(f"INFO  {path} — tool-error: {Path(tool).name} failed: {err}")
-        print("  Recommendation: Re-run when network is available or skip.")
+    except (subprocess.TimeoutExpired, OSError):
         return
     if result.returncode != 0:
         summary = (result.stdout or result.stderr).strip().splitlines()
         tail = summary[-5:] if summary else ["(no output)"]
-        _emit(
-            "WARN",
-            path,
-            "broken-external",
-            f"{Path(tool).name} reported errors: {' | '.join(tail)}",
-            "Re-run the external checker to see per-URL results; update or "
-            "remove broken URLs",
+        per_rule["broken-external"].append(
+            _make_finding(
+                "broken-external",
+                "warn",
+                f"{path}: external link checker reported errors",
+                f"{Path(tool).name} reported errors on {path}: "
+                f"{' | '.join(tail)}",
+                line=0,
+            )
         )
 
 
-def _check_file(path: Path, heading_cache: dict[Path, set[str]]) -> bool:
+def _check_file(
+    path: Path,
+    heading_cache: dict[Path, set[str]],
+    per_rule: dict[str, list[dict]],
+) -> None:
     try:
         raw = path.read_text(encoding="utf-8", errors="replace").splitlines()
     except OSError as err:
         print(f"check_links.py: cannot read {path}: {err}", file=sys.stderr)
-        return False
+        return
     lines = _strip_frontmatter(raw)
-    any_fail = False
     has_external = False
     for lineno, url in _extract_links(lines):
         if _is_external(url):
             has_external = True
             continue
-        if _check_relative(path, lineno, url, heading_cache):
-            any_fail = True
+        _check_relative(path, lineno, url, heading_cache, per_rule)
     if has_external:
-        _run_external_checker(path)
-    return any_fail
+        _run_external_checker(path, per_rule)
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -278,18 +330,22 @@ def get_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = get_parser().parse_args(argv)
-    any_fail = False
-    heading_cache: dict[Path, set[str]] = {}
     try:
+        per_rule: dict[str, list[dict]] = {r: [] for r in _RULE_ORDER}
+        heading_cache: dict[Path, set[str]] = {}
         files = _collect_targets(args.paths)
         for f in files:
-            if _check_file(f, heading_cache):
-                any_fail = True
+            _check_file(f, heading_cache, per_rule)
+        envelopes = [
+            emit_rule_envelope(rule_id=r, findings=per_rule[r]) for r in _RULE_ORDER
+        ]
+        print_envelope(envelopes)
+        any_fail = any(e["overall_status"] == "fail" for e in envelopes)
+        return 1 if any_fail else 0
     except _UsageError:
         return EXIT_USAGE
     except KeyboardInterrupt:
-        return 130
-    return 1 if any_fail else 0
+        return EXIT_INTERRUPTED
 
 
 if __name__ == "__main__":

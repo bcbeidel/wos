@@ -1,16 +1,22 @@
 #!/usr/bin/env python3
 """Tier-1 README code-block checker.
 
-Four orthogonal sub-checks across fenced code blocks:
+Emits a JSON ARRAY of four envelopes per `_common.py`:
+
   - fence-language (WARN): every fenced block carries a non-empty
     language info-string.
-  - shell-prompt (WARN): no `$`, `>`, or `#` prompt prefix at the
-    start of lines in shell-tagged blocks. The `#` prefix on a line
-    that is wholly a bash comment (starts with `# ` and contains no
-    shell syntax) is accepted.
+  - shell-prompt (WARN): no `$`, `>`, or `#` prompt prefix on lines
+    in shell-tagged blocks. The `#` prefix on a line that is wholly
+    a bash comment (starts with `# ` and has no shell syntax) is
+    accepted.
   - smart-quotes (WARN): no smart quotes, em/en-dashes, or ellipsis
     inside fenced blocks.
-  - code-line-length (WARN): fenced code lines ≤ 80 characters.
+  - code-line-length (WARN): fenced code lines <= 80 characters.
+
+Exit codes:
+  0  — all envelopes pass / warn / inapplicable
+  1  — any envelope overall_status=fail (this script does not produce fails)
+  64 — usage error
 
 Example:
     ./check_codeblocks.py README.md path/to/docs/
@@ -23,7 +29,11 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _common import emit_json_finding, emit_rule_envelope, print_envelope  # noqa: E402
+
 EXIT_USAGE = 64
+EXIT_INTERRUPTED = 130
 
 _MD_EXTENSIONS = (".md", ".markdown")
 _FRONTMATTER_FENCE = "---"
@@ -42,6 +52,62 @@ _SMART_CHARS = {
     "–": "U+2013 EN DASH",
     "—": "U+2014 EM DASH",
     "…": "U+2026 HORIZONTAL ELLIPSIS",
+}
+
+_RULE_ORDER: list[str] = [
+    "fence-language",
+    "shell-prompt",
+    "smart-quotes",
+    "code-line-length",
+]
+
+_RECIPE_FENCE_LANGUAGE = (
+    "Add the appropriate language identifier after the opening fence. "
+    "Syntax highlighting, copy buttons, and tool extraction all key off "
+    "the language tag.\n\n"
+    "Example:\n"
+    "    ```\n"
+    "    npm install\n"
+    "    ```\n"
+    "      -> ```bash\n"
+    "         npm install\n"
+    "         ```\n"
+)
+
+_RECIPE_SHELL_PROMPT = (
+    "Strip `$`, `>`, or `#` prefixes from command lines. If output needs "
+    "showing, split into an input block and a separate output block. "
+    "Prompt characters break copy-paste.\n\n"
+    "Example:\n"
+    "    $ npm install\n"
+    "    $ npm start\n"
+    "      -> npm install\n"
+    "         npm start\n"
+)
+
+_RECIPE_SMART_QUOTES = (
+    "Replace curly quotes, em-dashes, en-dashes, and ellipsis with ASCII "
+    "equivalents inside the code block. Shells interpret ASCII quotes; "
+    "smart quotes fail unpredictably at runtime.\n\n"
+    "Example:\n"
+    '    curl “https://api.example.com”\n'
+    '      -> curl "https://api.example.com"\n'
+)
+
+_RECIPE_CODE_LINE_LENGTH = (
+    "Break the command with line continuations (`\\`) or pull flag values "
+    "into env vars set earlier. Terminal soft-wrap inside code blocks "
+    "breaks copy-paste.\n\n"
+    "Example:\n"
+    "    one 180-char `curl` invocation\n"
+    "      -> `curl ... \\` continuation, or `API=...; curl \"$API/...\"`\n"
+)
+
+_RECIPES: dict[str, str] = {
+    "fence-language": _RECIPE_FENCE_LANGUAGE,
+    "shell-prompt": _RECIPE_SHELL_PROMPT,
+    "smart-quotes": _RECIPE_SMART_QUOTES,
+    "code-line-length": _RECIPE_CODE_LINE_LENGTH,
 }
 
 
@@ -69,15 +135,20 @@ def _collect_targets(paths: list[Path]) -> list[Path]:
     return files
 
 
-def _emit(
+def _make_finding(
+    rule_id: str,
     severity: str,
-    path: Path,
-    check: str,
-    message: str,
-    recommendation: str,
-) -> None:
-    print(f"{severity}  {path} — {check}: {message}")
-    print(f"  Recommendation: {recommendation}.")
+    location_context: str,
+    reasoning: str,
+    line: int = 0,
+) -> dict:
+    return emit_json_finding(
+        rule_id=rule_id,
+        status=severity,
+        location={"line": line, "context": location_context},
+        reasoning=reasoning,
+        recommended_changes=_RECIPES[rule_id],
+    )
 
 
 def _strip_frontmatter(lines: list[str]) -> list[str]:
@@ -99,7 +170,7 @@ def _is_bash_comment_line(line: str) -> bool:
     return not rest or rest[0] == " "
 
 
-def _check_file(path: Path) -> None:
+def _check_file(path: Path, per_rule: dict[str, list[dict]]) -> None:
     try:
         raw = path.read_text(encoding="utf-8", errors="replace").splitlines()
     except OSError as err:
@@ -122,12 +193,17 @@ def _check_file(path: Path) -> None:
                 fence_lang = match.group("lang").lower()
                 fence_start = lineno
                 if not fence_lang and ("fence-language", fence_start) not in emitted:
-                    _emit(
-                        "WARN",
-                        path,
-                        "fence-language",
-                        f"fence at line {fence_start} has no language info-string",
-                        "Add a language tag (bash, python, yaml, console, text)",
+                    per_rule["fence-language"].append(
+                        _make_finding(
+                            "fence-language",
+                            "warn",
+                            f"{path}: fence at line {fence_start} has no "
+                            "language info-string",
+                            f"Fence at line {fence_start} of {path} has no "
+                            "language tag (MD040). Syntax highlighting and "
+                            "tool extraction depend on the language tag.",
+                            line=fence_start,
+                        )
                     )
                     emitted.add(("fence-language", fence_start))
                 continue
@@ -145,14 +221,17 @@ def _check_file(path: Path) -> None:
         ):
             key = ("shell-prompt", fence_start)
             if key not in emitted:
-                _emit(
-                    "WARN",
-                    path,
-                    "shell-prompt",
-                    f"line {lineno} in {fence_lang} block starts with a "
-                    "prompt prefix ($/>/#)",
-                    "Strip prompt prefixes from command lines; show output "
-                    "in a separate block",
+                per_rule["shell-prompt"].append(
+                    _make_finding(
+                        "shell-prompt",
+                        "warn",
+                        f"{path}: line {lineno} has prompt prefix in "
+                        f"{fence_lang} block",
+                        f"Line {lineno} of {path} in a {fence_lang} block "
+                        "starts with a prompt prefix ($/>/#). Prompt "
+                        "characters break copy-paste.",
+                        line=lineno,
+                    )
                 )
                 emitted.add(key)
 
@@ -160,13 +239,16 @@ def _check_file(path: Path) -> None:
             if ch in line:
                 key = ("smart-quotes", fence_start)
                 if key not in emitted:
-                    _emit(
-                        "WARN",
-                        path,
-                        "smart-quotes",
-                        f"line {lineno} inside fenced block contains {desc}",
-                        "Replace smart quotes and long dashes with ASCII "
-                        "equivalents inside code blocks",
+                    per_rule["smart-quotes"].append(
+                        _make_finding(
+                            "smart-quotes",
+                            "warn",
+                            f"{path}: line {lineno} contains {desc}",
+                            f"Line {lineno} of {path} inside a fenced block "
+                            f"contains {desc}. Shells interpret ASCII quotes; "
+                            "smart quotes fail at runtime.",
+                            line=lineno,
+                        )
                     )
                     emitted.add(key)
                 break
@@ -174,14 +256,16 @@ def _check_file(path: Path) -> None:
         if len(line) > MAX_CODE_LINE:
             key = ("code-line-length", fence_start)
             if key not in emitted:
-                _emit(
-                    "WARN",
-                    path,
-                    "code-line-length",
-                    f"line {lineno} inside fenced block is {len(line)} "
-                    f"chars (> {MAX_CODE_LINE})",
-                    "Break long commands with `\\` continuations or pull "
-                    "values into env vars",
+                per_rule["code-line-length"].append(
+                    _make_finding(
+                        "code-line-length",
+                        "warn",
+                        f"{path}: line {lineno} is {len(line)} chars in code",
+                        f"Line {lineno} of {path} inside a fenced block is "
+                        f"{len(line)} chars (> {MAX_CODE_LINE}). Terminal "
+                        "soft-wrap inside code blocks breaks copy-paste.",
+                        line=lineno,
+                    )
                 )
                 emitted.add(key)
 
@@ -204,14 +288,20 @@ def get_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = get_parser().parse_args(argv)
     try:
+        per_rule: dict[str, list[dict]] = {r: [] for r in _RULE_ORDER}
         files = _collect_targets(args.paths)
         for f in files:
-            _check_file(f)
+            _check_file(f, per_rule)
+        envelopes = [
+            emit_rule_envelope(rule_id=r, findings=per_rule[r]) for r in _RULE_ORDER
+        ]
+        print_envelope(envelopes)
+        any_fail = any(e["overall_status"] == "fail" for e in envelopes)
+        return 1 if any_fail else 0
     except _UsageError:
         return EXIT_USAGE
     except KeyboardInterrupt:
-        return 130
-    return 0
+        return EXIT_INTERRUPTED
 
 
 if __name__ == "__main__":

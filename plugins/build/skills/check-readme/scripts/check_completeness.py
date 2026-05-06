@@ -1,17 +1,22 @@
 #!/usr/bin/env python3
 """Tier-1 README completeness checker.
 
-Five orthogonal sub-checks:
-  - license-file (FAIL): a LICENSE file exists alongside the README
-    (LICENSE, LICENSE.md, LICENSE.txt, COPYING).
-  - license-link (WARN): the README has a heading matching
-    /license/i and a link to the LICENSE file.
+Emits a JSON ARRAY of five envelopes per `_common.py`:
+
+  - license-file (FAIL): a LICENSE file exists alongside the README.
+  - license-link (WARN): the README has a heading matching /license/i
+    and a link to the LICENSE file.
   - contributing-link (WARN): the README has a Contributing heading
     or a link to CONTRIBUTING.md.
-  - todo-markers (WARN): no TODO / FIXME / XXX markers outside
-    fenced code blocks.
+  - todo-markers (WARN): no TODO / FIXME / XXX markers outside fenced
+    code blocks.
   - readme-gitignored (WARN): the README path is not excluded by a
     `.gitignore` in the same directory or any parent up to $PWD.
+
+Exit codes:
+  0  — all envelopes pass / warn / inapplicable
+  1  — any envelope overall_status=fail
+  64 — usage error
 
 Example:
     ./check_completeness.py README.md path/to/docs/
@@ -24,7 +29,11 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _common import emit_json_finding, emit_rule_envelope, print_envelope  # noqa: E402
+
 EXIT_USAGE = 64
+EXIT_INTERRUPTED = 130
 
 _MD_EXTENSIONS = (".md", ".markdown")
 _FRONTMATTER_FENCE = "---"
@@ -53,6 +62,62 @@ _CONTRIBUTING_LINK_RE = re.compile(
 )
 _MARKER_RE = re.compile(r"\b(TODO|FIXME|XXX)\b")
 
+_RULE_ORDER: list[str] = [
+    "license-file",
+    "license-link",
+    "contributing-link",
+    "todo-markers",
+    "readme-gitignored",
+]
+
+_RECIPE_LICENSE_FILE = (
+    "Add a `LICENSE` file at the repository root containing the full "
+    "license text (use the chooser at choosealicense.com if unsure). "
+    "Without a license file, the project is `all rights reserved` by "
+    "default — unusable by anyone who reads the README.\n"
+)
+
+_RECIPE_LICENSE_LINK = (
+    "Add a `## License` H2 section with the SPDX identifier and a link "
+    "to the LICENSE file. Readers need both the human-readable name and "
+    "the canonical text; the section is the pointer.\n\n"
+    "Example:\n"
+    "    ## License\n"
+    "    MIT — see [LICENSE](LICENSE).\n"
+)
+
+_RECIPE_CONTRIBUTING_LINK = (
+    "Add a one-line Contributing section linking to `CONTRIBUTING.md` "
+    "(create the file separately if absent). Silence signals "
+    "`not accepting contributions`; even a one-liner beats silence.\n\n"
+    "Example:\n"
+    "    ## Contributing\n"
+    "    See [CONTRIBUTING.md](CONTRIBUTING.md).\n"
+)
+
+_RECIPE_TODO_MARKERS = (
+    "Convert to a tracked issue; remove from the README. Markers signal "
+    "incompleteness to every reader; issues are where work tracks.\n\n"
+    "Example:\n"
+    "    TODO: add Windows instructions\n"
+    "      -> Open issue #N, remove the line. Optionally link from a\n"
+    "         Roadmap section.\n"
+)
+
+_RECIPE_README_GITIGNORED = (
+    "Remove the `README.md` entry from `.gitignore` and commit the README. "
+    "A README not in version control is not a README; it is a local "
+    "note.\n"
+)
+
+_RECIPES: dict[str, str] = {
+    "license-file": _RECIPE_LICENSE_FILE,
+    "license-link": _RECIPE_LICENSE_LINK,
+    "contributing-link": _RECIPE_CONTRIBUTING_LINK,
+    "todo-markers": _RECIPE_TODO_MARKERS,
+    "readme-gitignored": _RECIPE_README_GITIGNORED,
+}
+
 
 class _UsageError(Exception):
     pass
@@ -78,15 +143,20 @@ def _collect_targets(paths: list[Path]) -> list[Path]:
     return files
 
 
-def _emit(
+def _make_finding(
+    rule_id: str,
     severity: str,
-    path: Path,
-    check: str,
-    message: str,
-    recommendation: str,
-) -> None:
-    print(f"{severity}  {path} — {check}: {message}")
-    print(f"  Recommendation: {recommendation}.")
+    location_context: str,
+    reasoning: str,
+    line: int = 0,
+) -> dict:
+    return emit_json_finding(
+        rule_id=rule_id,
+        status=severity,
+        location={"line": line, "context": location_context},
+        reasoning=reasoning,
+        recommended_changes=_RECIPES[rule_id],
+    )
 
 
 def _strip_frontmatter(lines: list[str]) -> list[str]:
@@ -127,7 +197,9 @@ def _parse_headings(lines: list[str]) -> list[str]:
     return headings
 
 
-def _check_license_link(path: Path, lines: list[str], body: str) -> None:
+def _check_license_link(
+    path: Path, lines: list[str], body: str, per_rule: dict[str, list[dict]]
+) -> None:
     headings = _parse_headings(lines)
     has_heading = any(_LICENSE_HEADING_RE.match(h) for h in headings)
     has_link = bool(_LICENSE_LINK_RE.search(body))
@@ -137,30 +209,41 @@ def _check_license_link(path: Path, lines: list[str], body: str) -> None:
             parts.append("no `## License` heading")
         if not has_link:
             parts.append("no link to LICENSE file")
-        _emit(
-            "WARN",
-            path,
-            "license-link",
-            "; ".join(parts),
-            "Add a `## License` H2 with an SPDX identifier and a link to `LICENSE`",
+        per_rule["license-link"].append(
+            _make_finding(
+                "license-link",
+                "warn",
+                f"{path}: {'; '.join(parts)}",
+                f"In {path}: {'; '.join(parts)}. Readers need both a "
+                "License section and a link to the LICENSE file.",
+                line=0,
+            )
         )
 
 
-def _check_contributing_link(path: Path, lines: list[str], body: str) -> None:
+def _check_contributing_link(
+    path: Path, lines: list[str], body: str, per_rule: dict[str, list[dict]]
+) -> None:
     headings = _parse_headings(lines)
     has_heading = any(_CONTRIBUTING_HEADING_RE.match(h) for h in headings)
     has_link = bool(_CONTRIBUTING_LINK_RE.search(body))
     if not has_heading and not has_link:
-        _emit(
-            "WARN",
-            path,
-            "contributing-link",
-            "no Contributing heading and no link to CONTRIBUTING.md",
-            "Add a `## Contributing` H2 linking to `CONTRIBUTING.md`",
+        per_rule["contributing-link"].append(
+            _make_finding(
+                "contributing-link",
+                "warn",
+                f"{path}: no Contributing heading or CONTRIBUTING link",
+                f"{path} has no Contributing heading and no link to "
+                "CONTRIBUTING.md. Silence signals `not accepting "
+                "contributions`.",
+                line=0,
+            )
         )
 
 
-def _check_todo_markers(path: Path, lines: list[str]) -> None:
+def _check_todo_markers(
+    path: Path, lines: list[str], per_rule: dict[str, list[dict]]
+) -> None:
     in_fence = False
     fence_marker: str | None = None
     for lineno, line in enumerate(lines, 1):
@@ -177,19 +260,20 @@ def _check_todo_markers(path: Path, lines: list[str]) -> None:
             continue
         marker = _MARKER_RE.search(line)
         if marker:
-            _emit(
-                "WARN",
-                path,
-                "todo-markers",
-                f"line {lineno}: `{marker.group(1)}` in published README",
-                "Convert to a tracked issue and remove the marker from the README",
+            per_rule["todo-markers"].append(
+                _make_finding(
+                    "todo-markers",
+                    "warn",
+                    f"{path}: line {lineno}: {marker.group(1)} marker",
+                    f"Line {lineno} of {path}: `{marker.group(1)}` in "
+                    "published README. Convert to a tracked issue.",
+                    line=lineno,
+                )
             )
             return
 
 
 def _gitignore_patterns(dir_path: Path, stop_at: Path) -> list[tuple[Path, str]]:
-    """Yield (dir, pattern) pairs from .gitignore files walking up from
-    dir_path to stop_at (inclusive)."""
     patterns: list[tuple[Path, str]] = []
     current = dir_path.resolve()
     boundary = stop_at.resolve()
@@ -216,7 +300,7 @@ def _gitignore_patterns(dir_path: Path, stop_at: Path) -> list[tuple[Path, str]]
     return patterns
 
 
-def _check_readme_gitignored(path: Path) -> None:
+def _check_readme_gitignored(path: Path, per_rule: dict[str, list[dict]]) -> None:
     stop = Path.cwd().resolve()
     patterns = _gitignore_patterns(path.parent, stop)
     for base, pat in patterns:
@@ -227,18 +311,21 @@ def _check_readme_gitignored(path: Path) -> None:
         candidates = {path.name, str(rel), str(rel).lstrip("/")}
         stripped = pat.lstrip("/")
         if stripped in candidates or stripped == path.name:
-            _emit(
-                "WARN",
-                path,
-                "readme-gitignored",
-                f"`{pat}` in {base / '.gitignore'} matches the README",
-                "Remove the README entry from `.gitignore`; the README must "
-                "be version-controlled",
+            per_rule["readme-gitignored"].append(
+                _make_finding(
+                    "readme-gitignored",
+                    "warn",
+                    f"{path}: matched by `{pat}` in {base / '.gitignore'}",
+                    f"{path} is matched by pattern `{pat}` in "
+                    f"{base / '.gitignore'}. The README must be "
+                    "version-controlled.",
+                    line=0,
+                )
             )
             return
 
 
-def _check_file(path: Path) -> bool:
+def _check_file(path: Path, per_rule: dict[str, list[dict]]) -> None:
     try:
         raw = path.read_text(encoding="utf-8", errors="replace").splitlines()
     except OSError as err:
@@ -246,25 +333,25 @@ def _check_file(path: Path) -> bool:
             f"check_completeness.py: cannot read {path}: {err}",
             file=sys.stderr,
         )
-        return False
+        return
     lines = _strip_frontmatter(raw)
     body = "\n".join(lines)
-    any_fail = False
     if not _has_license_file(path):
-        _emit(
-            "FAIL",
-            path,
-            "license-file",
-            "no LICENSE / LICENSE.md / LICENSE.txt / COPYING next to README",
-            "Add a LICENSE file with the full license text; see "
-            "https://choosealicense.com",
+        per_rule["license-file"].append(
+            _make_finding(
+                "license-file",
+                "fail",
+                f"{path}: no LICENSE file alongside README",
+                f"No LICENSE / LICENSE.md / LICENSE.txt / COPYING file "
+                f"found next to {path}. Without a license, the project "
+                "is `all rights reserved` by default.",
+                line=0,
+            )
         )
-        any_fail = True
-    _check_license_link(path, lines, body)
-    _check_contributing_link(path, lines, body)
-    _check_todo_markers(path, lines)
-    _check_readme_gitignored(path)
-    return any_fail
+    _check_license_link(path, lines, body, per_rule)
+    _check_contributing_link(path, lines, body, per_rule)
+    _check_todo_markers(path, lines, per_rule)
+    _check_readme_gitignored(path, per_rule)
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -284,17 +371,21 @@ def get_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = get_parser().parse_args(argv)
-    any_fail = False
     try:
+        per_rule: dict[str, list[dict]] = {r: [] for r in _RULE_ORDER}
         files = _collect_targets(args.paths)
         for f in files:
-            if _check_file(f):
-                any_fail = True
+            _check_file(f, per_rule)
+        envelopes = [
+            emit_rule_envelope(rule_id=r, findings=per_rule[r]) for r in _RULE_ORDER
+        ]
+        print_envelope(envelopes)
+        any_fail = any(e["overall_status"] == "fail" for e in envelopes)
+        return 1 if any_fail else 0
     except _UsageError:
         return EXIT_USAGE
     except KeyboardInterrupt:
-        return 130
-    return 1 if any_fail else 0
+        return EXIT_INTERRUPTED
 
 
 if __name__ == "__main__":

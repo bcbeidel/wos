@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Tier-1 README structural checker.
 
-Seven orthogonal structural sub-checks against each target:
+Emits a JSON ARRAY of seven envelopes per `_common.py`:
+
   - h1-present (FAIL): exactly one H1 on the first non-frontmatter
     content line.
   - heading-hierarchy (WARN): no skipped heading levels (MD001).
@@ -11,9 +12,14 @@ Seven orthogonal structural sub-checks against each target:
     sections are present.
   - toc-threshold (WARN): TOC heading present when document exceeds
     400 rendered lines.
-  - size (WARN): document length ≤ 500 non-blank lines.
-  - prose-line-length (WARN): source lines ≤ 120 characters,
+  - size (WARN): document length <= 500 non-blank lines.
+  - prose-line-length (WARN): source lines <= 120 characters,
     excluding fenced code blocks, tables, and bare-URL lines.
+
+Exit codes:
+  0  — all envelopes pass / warn / inapplicable
+  1  — any envelope overall_status=fail
+  64 — usage error
 
 Example:
     ./check_structure.py README.md path/to/docs/
@@ -26,7 +32,11 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _common import emit_json_finding, emit_rule_envelope, print_envelope  # noqa: E402
+
 EXIT_USAGE = 64
+EXIT_INTERRUPTED = 130
 
 _MD_EXTENSIONS = (".md", ".markdown")
 _FRONTMATTER_FENCE = "---"
@@ -39,8 +49,6 @@ _HEADING_RE = re.compile(r"^(#{1,6})\s+(.*?)\s*#*\s*$")
 _FENCE_RE = re.compile(r"^(?P<fence>`{3,}|~{3,})")
 _BARE_URL_RE = re.compile(r"^\s*https?://\S+\s*$")
 
-# Canonical section order. Entries are tuples of (canonical name,
-# regex-escaped patterns that match the heading text case-insensitively).
 _CANONICAL_SECTIONS: list[tuple[str, re.Pattern[str]]] = [
     ("Prerequisites", re.compile(r"^(prerequisites|requirements)$", re.I)),
     ("Installation", re.compile(r"^(installation|install|setup)$", re.I)),
@@ -60,6 +68,93 @@ _TOC_HEADING_RE = re.compile(
     r"^(table\s+of\s+contents|contents|toc)$",
     re.I,
 )
+
+_RULE_ORDER: list[str] = [
+    "h1-present",
+    "heading-hierarchy",
+    "section-coverage",
+    "section-order",
+    "toc-threshold",
+    "size",
+    "prose-line-length",
+]
+
+_RECIPE_H1_PRESENT = (
+    "Ensure exactly one `# Title` line as the first non-frontmatter content "
+    "of the file; demote or remove any other H1.\n\n"
+    "Example:\n"
+    "    ## Project\n"
+    "    This is a thing.\n"
+    "    # My Project\n"
+    "      -> # My Project\n"
+    "         This is a thing.\n"
+)
+
+_RECIPE_HEADING_HIERARCHY = (
+    "Promote the skipped heading to match the sequence, or insert the "
+    "missing intermediate level. Accessibility tools and auto-TOCs rely "
+    "on sequential heading levels.\n\n"
+    "Example:\n"
+    "    ## Installation\n"
+    "    #### Linux\n"
+    "      -> ## Installation\n"
+    "         ### Linux\n"
+)
+
+_RECIPE_SECTION_COVERAGE = (
+    "Add the missing H2 section (Installation, Usage, or License) in "
+    "reader-intent order. These three are the minimum sections a project "
+    "README owes its readers.\n\n"
+    "Example:\n"
+    "    (no License section)\n"
+    "      -> ## License\n"
+    "         MIT — see [LICENSE](LICENSE).\n"
+)
+
+_RECIPE_SECTION_ORDER = (
+    "Reorder H2 sections to match the path readers actually take through "
+    "the document: Prerequisites -> Installation -> Usage -> "
+    "Configuration -> Troubleshooting -> Contributing -> License.\n\n"
+    "Example:\n"
+    "    ## License (before ## Installation)\n"
+    "      -> Move License last; keep Installation early.\n"
+)
+
+_RECIPE_TOC_THRESHOLD = (
+    "Add a hand-maintained Table of Contents under the opening paragraph. "
+    "Long READMEs on npm / PyPI / fork views have no auto-TOC sidebar; a "
+    "hand TOC is the only navigation.\n\n"
+    "Example:\n"
+    "    ## Table of Contents\n"
+    "    - [Prerequisites](#prerequisites)\n"
+    "    - [Installation](#installation)\n"
+    "    - [Usage](#usage)\n"
+)
+
+_RECIPE_SIZE = (
+    "Move detailed sections into `/docs/` and link in. Keep the README as "
+    "an orientation layer — the README orients a stranger; docs explain "
+    "the domain. Two roles, two files.\n\n"
+    "Example:\n"
+    "    800-line README with full API reference inline\n"
+    "      -> README links to `docs/api.md`; deep content moves out.\n"
+)
+
+_RECIPE_PROSE_LINE_LENGTH = (
+    "Hard-wrap prose to 120 columns; do not touch fenced code blocks, "
+    "tables, or bare-URL lines. Reviewers read diffs, not rendered HTML; "
+    "long lines produce bad diffs.\n"
+)
+
+_RECIPES: dict[str, str] = {
+    "h1-present": _RECIPE_H1_PRESENT,
+    "heading-hierarchy": _RECIPE_HEADING_HIERARCHY,
+    "section-coverage": _RECIPE_SECTION_COVERAGE,
+    "section-order": _RECIPE_SECTION_ORDER,
+    "toc-threshold": _RECIPE_TOC_THRESHOLD,
+    "size": _RECIPE_SIZE,
+    "prose-line-length": _RECIPE_PROSE_LINE_LENGTH,
+}
 
 
 class _UsageError(Exception):
@@ -86,15 +181,20 @@ def _collect_targets(paths: list[Path]) -> list[Path]:
     return files
 
 
-def _emit(
+def _make_finding(
+    rule_id: str,
     severity: str,
-    path: Path,
-    check: str,
-    message: str,
-    recommendation: str,
-) -> None:
-    print(f"{severity}  {path} — {check}: {message}")
-    print(f"  Recommendation: {recommendation}.")
+    location_context: str,
+    reasoning: str,
+    line: int = 0,
+) -> dict:
+    return emit_json_finding(
+        rule_id=rule_id,
+        status=severity,
+        location={"line": line, "context": location_context},
+        reasoning=reasoning,
+        recommended_changes=_RECIPES[rule_id],
+    )
 
 
 def _strip_frontmatter(lines: list[str]) -> tuple[list[str], int]:
@@ -114,8 +214,6 @@ def _first_content_lineno(lines: list[str]) -> int | None:
 
 
 def _parse_headings(lines: list[str], offset: int) -> list[tuple[int, int, str]]:
-    """Return (lineno, level, text) triples. lineno is 1-indexed in the
-    original (pre-strip) file."""
     headings: list[tuple[int, int, str]] = []
     in_fence = False
     fence_marker: str | None = None
@@ -146,60 +244,82 @@ def _classify_section(text: str) -> str | None:
     return None
 
 
-def _check_h1(path: Path, stripped: list[str], offset: int) -> bool:
+def _check_h1(
+    path: Path,
+    stripped: list[str],
+    offset: int,
+    headings: list[tuple[int, int, str]],
+    per_rule: dict[str, list[dict]],
+) -> None:
     first = _first_content_lineno(stripped)
     if first is None:
-        _emit(
-            "FAIL",
-            path,
-            "h1-present",
-            "file has no content after frontmatter",
-            "Add `# <project-name>` as the first content line",
+        per_rule["h1-present"].append(
+            _make_finding(
+                "h1-present",
+                "fail",
+                f"{path}: no content after frontmatter",
+                f"{path} has no content after frontmatter; cannot have an H1.",
+                line=offset + 1,
+            )
         )
-        return True
+        return
     first_line = stripped[first]
     is_h1 = first_line.startswith("# ") and not first_line.startswith("## ")
-    h1_count = sum(1 for _, level, _ in _parse_headings(stripped, offset) if level == 1)
+    h1_count = sum(1 for _, level, _ in headings if level == 1)
     if not is_h1:
-        _emit(
-            "FAIL",
-            path,
-            "h1-present",
-            f"first content line at {first + offset + 1} is not an H1",
-            "Place a single `# <project-name>` H1 on the first content line "
-            "(after any frontmatter)",
+        per_rule["h1-present"].append(
+            _make_finding(
+                "h1-present",
+                "fail",
+                f"{path}: first content line is not an H1",
+                f"First content line at {first + offset + 1} of {path} is "
+                "not an H1. README must open with a single `# <project>` "
+                "title to anchor the document for readers and tooling.",
+                line=first + offset + 1,
+            )
         )
-        return True
+        return
     if h1_count != 1:
-        _emit(
-            "FAIL",
-            path,
-            "h1-present",
-            f"{h1_count} H1 headings found, expected exactly 1",
-            "Keep exactly one H1 (the project title); demote the others to H2",
+        per_rule["h1-present"].append(
+            _make_finding(
+                "h1-present",
+                "fail",
+                f"{path}: {h1_count} H1 headings found",
+                f"Found {h1_count} H1 headings in {path}; expected exactly 1. "
+                "Multiple H1s break document outlining and TOC tooling.",
+                line=first + offset + 1,
+            )
         )
-        return True
-    return False
 
 
-def _check_hierarchy(path: Path, headings: list[tuple[int, int, str]]) -> None:
+def _check_hierarchy(
+    path: Path,
+    headings: list[tuple[int, int, str]],
+    per_rule: dict[str, list[dict]],
+) -> None:
     prev_level = 0
     for lineno, level, text in headings:
         if prev_level and level > prev_level + 1:
-            _emit(
-                "WARN",
-                path,
-                "heading-hierarchy",
-                f"line {lineno}: heading level jumps from H{prev_level} to "
-                f"H{level} ({text!r})",
-                "Keep headings sequential (H1 → H2 → H3); insert the "
-                "intermediate level or demote this heading",
+            per_rule["heading-hierarchy"].append(
+                _make_finding(
+                    "heading-hierarchy",
+                    "warn",
+                    f"{path}: line {lineno} jumps H{prev_level} -> H{level}",
+                    f"Heading at line {lineno} of {path} jumps from "
+                    f"H{prev_level} to H{level} ({text!r}). Heading levels "
+                    "must be sequential (MD001).",
+                    line=lineno,
+                )
             )
             return
         prev_level = level
 
 
-def _check_sections(path: Path, headings: list[tuple[int, int, str]]) -> None:
+def _check_sections(
+    path: Path,
+    headings: list[tuple[int, int, str]],
+    per_rule: dict[str, list[dict]],
+) -> None:
     h2s = [(lineno, text) for lineno, level, text in headings if level == 2]
     seen: dict[str, int] = {}
     for lineno, text in h2s:
@@ -208,29 +328,39 @@ def _check_sections(path: Path, headings: list[tuple[int, int, str]]) -> None:
             seen[canonical] = lineno
     missing = sorted(_REQUIRED_SECTIONS - set(seen))
     if missing:
-        _emit(
-            "WARN",
-            path,
-            "section-coverage",
-            f"missing required H2 section(s): {', '.join(missing)}",
-            "Add an H2 for each missing section in reader-intent order",
+        per_rule["section-coverage"].append(
+            _make_finding(
+                "section-coverage",
+                "warn",
+                f"{path}: missing required H2 section(s): {', '.join(missing)}",
+                f"{path} is missing required H2 section(s): "
+                f"{', '.join(missing)}. Installation, Usage, and License "
+                "are the minimum sections a README owes its readers.",
+                line=0,
+            )
         )
     order = [name for name, _ in _CANONICAL_SECTIONS]
     observed = sorted(seen.keys(), key=lambda n: seen[n])
     expected = [n for n in order if n in seen]
     if observed != expected:
-        _emit(
-            "WARN",
-            path,
-            "section-order",
-            f"H2 sequence {observed!r} does not match canonical order {expected!r}",
-            "Reorder H2 sections: Prerequisites → Installation → Usage → "
-            "Configuration → Troubleshooting → Contributing → License",
+        per_rule["section-order"].append(
+            _make_finding(
+                "section-order",
+                "warn",
+                f"{path}: H2 sequence differs from canonical order",
+                f"In {path}, H2 sequence {observed!r} does not match "
+                f"canonical order {expected!r}. The order matches the path "
+                "readers actually take through the document.",
+                line=0,
+            )
         )
 
 
 def _check_toc_and_size(
-    path: Path, lines: list[str], headings: list[tuple[int, int, str]]
+    path: Path,
+    lines: list[str],
+    headings: list[tuple[int, int, str]],
+    per_rule: dict[str, list[dict]],
 ) -> None:
     nonblank = sum(1 for ln in lines if ln.strip())
     rendered_lines = len(lines)
@@ -239,25 +369,33 @@ def _check_toc_and_size(
         for _, level, text in headings
     )
     if rendered_lines > TOC_THRESHOLD_LINES and not has_toc:
-        _emit(
-            "WARN",
-            path,
-            "toc-threshold",
-            f"document is {rendered_lines} lines (> {TOC_THRESHOLD_LINES}) "
-            "with no Table of Contents",
-            "Add a `## Table of Contents` with links to each H2",
+        per_rule["toc-threshold"].append(
+            _make_finding(
+                "toc-threshold",
+                "warn",
+                f"{path}: {rendered_lines}-line document with no TOC",
+                f"{path} is {rendered_lines} lines (> {TOC_THRESHOLD_LINES}) "
+                "with no Table of Contents. Long READMEs on npm/PyPI/fork "
+                "views have no auto-TOC sidebar.",
+                line=0,
+            )
         )
     if nonblank > SIZE_WARN_LINES:
-        _emit(
-            "WARN",
-            path,
-            "size",
-            f"README is {nonblank} non-blank lines (> {SIZE_WARN_LINES})",
-            "Move detailed material into `/docs/` and link from the README",
+        per_rule["size"].append(
+            _make_finding(
+                "size",
+                "warn",
+                f"{path}: {nonblank} non-blank lines",
+                f"{path} is {nonblank} non-blank lines (> {SIZE_WARN_LINES}). "
+                "Move detailed material into `/docs/` and link from the README.",
+                line=0,
+            )
         )
 
 
-def _check_line_length(path: Path, lines: list[str]) -> None:
+def _check_line_length(
+    path: Path, lines: list[str], per_rule: dict[str, list[dict]]
+) -> None:
     in_fence = False
     fence_marker: str | None = None
     for lineno, line in enumerate(lines, 1):
@@ -277,30 +415,32 @@ def _check_line_length(path: Path, lines: list[str]) -> None:
         if _BARE_URL_RE.match(line):
             continue
         if len(line) > MAX_PROSE_LINE:
-            _emit(
-                "WARN",
-                path,
-                "prose-line-length",
-                f"line {lineno} is {len(line)} chars (> {MAX_PROSE_LINE})",
-                f"Hard-wrap the prose to {MAX_PROSE_LINE} columns",
+            per_rule["prose-line-length"].append(
+                _make_finding(
+                    "prose-line-length",
+                    "warn",
+                    f"{path}: line {lineno} is {len(line)} chars",
+                    f"Line {lineno} of {path} is {len(line)} chars (> "
+                    f"{MAX_PROSE_LINE}). Long lines produce bad diffs.",
+                    line=lineno,
+                )
             )
             return
 
 
-def _check_file(path: Path) -> bool:
+def _check_file(path: Path, per_rule: dict[str, list[dict]]) -> None:
     try:
         raw = path.read_text(encoding="utf-8", errors="replace").splitlines()
     except OSError as err:
         print(f"check_structure.py: cannot read {path}: {err}", file=sys.stderr)
-        return False
+        return
     stripped, offset = _strip_frontmatter(raw)
     headings = _parse_headings(stripped, offset)
-    any_fail = _check_h1(path, stripped, offset)
-    _check_hierarchy(path, headings)
-    _check_sections(path, headings)
-    _check_toc_and_size(path, raw, headings)
-    _check_line_length(path, raw)
-    return any_fail
+    _check_h1(path, stripped, offset, headings, per_rule)
+    _check_hierarchy(path, headings, per_rule)
+    _check_sections(path, headings, per_rule)
+    _check_toc_and_size(path, raw, headings, per_rule)
+    _check_line_length(path, raw, per_rule)
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -320,17 +460,21 @@ def get_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = get_parser().parse_args(argv)
-    any_fail = False
     try:
+        per_rule: dict[str, list[dict]] = {r: [] for r in _RULE_ORDER}
         files = _collect_targets(args.paths)
         for f in files:
-            if _check_file(f):
-                any_fail = True
+            _check_file(f, per_rule)
+        envelopes = [
+            emit_rule_envelope(rule_id=r, findings=per_rule[r]) for r in _RULE_ORDER
+        ]
+        print_envelope(envelopes)
+        any_fail = any(e["overall_status"] == "fail" for e in envelopes)
+        return 1 if any_fail else 0
     except _UsageError:
         return EXIT_USAGE
     except KeyboardInterrupt:
-        return 130
-    return 1 if any_fail else 0
+        return EXIT_INTERRUPTED
 
 
 if __name__ == "__main__":
