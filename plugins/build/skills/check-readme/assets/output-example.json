@@ -1,0 +1,13 @@
+{
+  "_comment": "Canonical output shape for a check-readme rule. Seven detection scripts emit JSON envelopes — check_secrets, check_structure, check_codeblocks, check_links, check_images, check_safety, check_completeness. Each script emits a single envelope or JSON array of envelopes (multi-rule scripts). Schema: {rule_id, overall_status, findings[]}; per-finding: {status, location, reasoning, recommended_changes}. recommended_changes is REQUIRED — non-empty with concrete repair guidance from readme-best-practices.md.",
+  "rule_id": "h1-present",
+  "overall_status": "fail",
+  "findings": [
+    {
+      "status": "fail",
+      "location": {"line": 1, "context": "README.md"},
+      "reasoning": "README.md does not begin with a single H1 heading on the first non-frontmatter content line. Without an H1, GitHub renders the README as a heading-less page; the document's identity is implicit instead of asserted.",
+      "recommended_changes": "Add a single H1 heading as the first non-frontmatter line, naming the project. Example: `# my-project`. Exactly one H1 per README — additional H1s should be H2s or below."
+    }
+  ]
+}

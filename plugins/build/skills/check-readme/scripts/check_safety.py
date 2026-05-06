@@ -1,21 +1,23 @@
 #!/usr/bin/env python3
 """Tier-1 README safety checker.
 
-Five orthogonal sub-checks:
+Emits a JSON ARRAY of five envelopes per `_common.py`:
+
   - destructive (FAIL): rm -rf, dd if=, mkfs, DROP DATABASE, --force
     inside a fenced block without a blockquote/bold warning in the
     three lines preceding the fence.
-  - pipe-to-shell (FAIL): pipe-to-shell installer patterns (curl/wget
-    piped into sh/bash/zsh, or PowerShell `iex (iwr ...)`) without a
-    manual-alternative marker in the same H2 section (a second fenced
-    block, or prose containing "inspect", "download", "manual", or
-    "alternatively").
+  - pipe-to-shell (FAIL): pipe-to-shell installer patterns without
+    a manual-alternative marker in the same H2 section.
   - tls-disable (FAIL): instructions to disable TLS / SELinux /
     firewall / certificate verification.
   - non-reserved-hosts (FAIL): hostnames outside reserved TLDs or
-    IPs outside reserved ranges, found inside fenced blocks or URL
-    contexts.
+    IPs outside reserved ranges, found inside fenced blocks.
   - emoji-headings (WARN): emoji code points inside heading text.
+
+Exit codes:
+  0  — all envelopes pass / warn / inapplicable
+  1  — any envelope overall_status=fail
+  64 — usage error
 
 Example:
     ./check_safety.py README.md path/to/docs/
@@ -29,7 +31,11 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _common import emit_json_finding, emit_rule_envelope, print_envelope  # noqa: E402
+
 EXIT_USAGE = 64
+EXIT_INTERRUPTED = 130
 
 _MD_EXTENSIONS = (".md", ".markdown")
 _FRONTMATTER_FENCE = "---"
@@ -106,6 +112,73 @@ _EMOJI_RANGES = (
     (0x1FA70, 0x1FAFF),
 )
 
+_RULE_ORDER: list[str] = [
+    "destructive",
+    "pipe-to-shell",
+    "tls-disable",
+    "non-reserved-hosts",
+    "emoji-headings",
+]
+
+_RECIPE_DESTRUCTIVE = (
+    "Add a blockquote or bold warning immediately before the fenced block; "
+    "name the consequence. Accidental destruction is unrecoverable; "
+    "warnings must be visually prominent.\n\n"
+    "Example:\n"
+    "    ```bash\n"
+    "    rm -rf /var/lib/project\n"
+    "    ```\n"
+    "      -> > **Warning:** this deletes all local project data.\n"
+    "         ```bash\n"
+    "         rm -rf /var/lib/project\n"
+    "         ```\n"
+)
+
+_RECIPE_PIPE_TO_SHELL = (
+    "Add a manual alternative in the same section (download + inspect + "
+    "run) and an explicit warning on the piped form. Pipe-to-shell is a "
+    "security posture the reader should opt into.\n\n"
+    "Example:\n"
+    "    curl https://install.example.com | sh\n"
+    "      -> # Recommended: inspect before running\n"
+    "         curl -O https://install.example.com/install.sh\n"
+    "         less install.sh\n"
+    "         bash install.sh\n"
+)
+
+_RECIPE_TLS_DISABLE = (
+    "Remove the workaround; document the real fix or file a tracking "
+    "issue. Security-weakening guidance outlives the problem that "
+    "prompted it; it spreads.\n"
+)
+
+_RECIPE_NON_RESERVED_HOSTS = (
+    "Swap for RFC-reserved values: `example.com`, `*.test`, `*.local`, "
+    "`127.0.0.1`, `192.0.2.0/24` (RFC 5737). Real hostnames and IPs "
+    "invite accidental traffic to production systems the reader does "
+    "not own.\n\n"
+    "Example:\n"
+    "    curl https://api.acme.com/v1\n"
+    "      -> curl https://api.example.com/v1\n"
+)
+
+_RECIPE_EMOJI_HEADINGS = (
+    "Remove the emoji from the heading; if you want a visual marker, use "
+    "it in body prose, not heading text. Emoji break grep, anchor slug "
+    "generation, and screen readers.\n\n"
+    "Example:\n"
+    "    ## Getting Started (with rocket emoji)\n"
+    "      -> ## Getting Started\n"
+)
+
+_RECIPES: dict[str, str] = {
+    "destructive": _RECIPE_DESTRUCTIVE,
+    "pipe-to-shell": _RECIPE_PIPE_TO_SHELL,
+    "tls-disable": _RECIPE_TLS_DISABLE,
+    "non-reserved-hosts": _RECIPE_NON_RESERVED_HOSTS,
+    "emoji-headings": _RECIPE_EMOJI_HEADINGS,
+}
+
 
 class _UsageError(Exception):
     pass
@@ -131,15 +204,20 @@ def _collect_targets(paths: list[Path]) -> list[Path]:
     return files
 
 
-def _emit(
+def _make_finding(
+    rule_id: str,
     severity: str,
-    path: Path,
-    check: str,
-    message: str,
-    recommendation: str,
-) -> None:
-    print(f"{severity}  {path} — {check}: {message}")
-    print(f"  Recommendation: {recommendation}.")
+    location_context: str,
+    reasoning: str,
+    line: int = 0,
+) -> dict:
+    return emit_json_finding(
+        rule_id=rule_id,
+        status=severity,
+        location={"line": line, "context": location_context},
+        reasoning=reasoning,
+        recommended_changes=_RECIPES[rule_id],
+    )
 
 
 def _strip_frontmatter(lines: list[str]) -> list[str]:
@@ -152,9 +230,6 @@ def _strip_frontmatter(lines: list[str]) -> list[str]:
 
 
 def _parse_blocks(lines: list[str]) -> list[dict]:
-    """Return a list of dicts, one per fenced block: lineno, end,
-    language, content, section_lines (lines inside the same H2
-    section the block belongs to)."""
     blocks: list[dict] = []
     fences: list[dict] = []
     in_fence = False
@@ -186,8 +261,6 @@ def _parse_blocks(lines: list[str]) -> list[dict]:
 
 
 def _section_bounds(lines: list[str], lineno: int) -> tuple[int, int]:
-    """Return (start, end) line numbers (1-indexed) of the H2 section
-    containing `lineno`."""
     start = 1
     end = len(lines)
     for idx, line in enumerate(lines, 1):
@@ -216,32 +289,37 @@ def _has_warning_callout(lines: list[str], fence_start: int) -> bool:
     return False
 
 
-def _check_destructive(path: Path, lines: list[str], blocks: list[dict]) -> bool:
-    any_fail = False
+def _check_destructive(
+    path: Path,
+    lines: list[str],
+    blocks: list[dict],
+    per_rule: dict[str, list[dict]],
+) -> None:
     for block in blocks:
-        flagged = False
         for lineno, line in block["content"]:
             if _DESTRUCTIVE_RE.search(line):
                 if not _has_warning_callout(lines, block["start"]):
-                    _emit(
-                        "FAIL",
-                        path,
-                        "destructive",
-                        f"destructive command at line {lineno} in fence "
-                        f"starting {block['start']} has no preceding warning",
-                        "Add a `> ⚠ **Warning:** ...` blockquote or bold "
-                        "callout immediately before the fence",
+                    per_rule["destructive"].append(
+                        _make_finding(
+                            "destructive",
+                            "fail",
+                            f"{path}: line {lineno}: destructive command "
+                            "without warning",
+                            f"Destructive command at line {lineno} of {path} "
+                            f"in fence starting {block['start']} has no "
+                            "preceding warning callout.",
+                            line=lineno,
+                        )
                     )
-                    any_fail = True
-                    flagged = True
                     break
-        if flagged:
-            continue
-    return any_fail
 
 
-def _check_pipe_to_shell(path: Path, lines: list[str], blocks: list[dict]) -> bool:
-    any_fail = False
+def _check_pipe_to_shell(
+    path: Path,
+    lines: list[str],
+    blocks: list[dict],
+    per_rule: dict[str, list[dict]],
+) -> None:
     for block in blocks:
         matched_line: int | None = None
         for lineno, line in block["content"]:
@@ -259,36 +337,36 @@ def _check_pipe_to_shell(path: Path, lines: list[str], blocks: list[dict]) -> bo
             sum(1 for b in blocks if sec_start <= b["start"] <= sec_end) > 1
         )
         if not has_alt and not has_second_fence:
-            _emit(
-                "FAIL",
-                path,
-                "pipe-to-shell",
-                f"line {matched_line}: pipe-to-shell installer with no manual "
-                "alternative in the same section",
-                "Add a second fenced block showing `download → inspect → run` "
-                "or prose naming the manual path",
+            per_rule["pipe-to-shell"].append(
+                _make_finding(
+                    "pipe-to-shell",
+                    "fail",
+                    f"{path}: line {matched_line}: pipe-to-shell with no alt",
+                    f"Line {matched_line} of {path}: pipe-to-shell installer "
+                    "with no manual alternative in the same H2 section.",
+                    line=matched_line,
+                )
             )
-            any_fail = True
-    return any_fail
 
 
-def _check_tls_disable(path: Path, lines: list[str]) -> bool:
-    any_fail = False
+def _check_tls_disable(
+    path: Path, lines: list[str], per_rule: dict[str, list[dict]]
+) -> None:
     for lineno, line in enumerate(lines, 1):
         for pattern in _TLS_DISABLE_RES:
             if pattern.search(line):
-                _emit(
-                    "FAIL",
-                    path,
-                    "tls-disable",
-                    f"line {lineno}: instruction weakens TLS / SELinux / "
-                    "firewall posture",
-                    "Remove the workaround and document the real fix, or file "
-                    "a tracking issue",
+                per_rule["tls-disable"].append(
+                    _make_finding(
+                        "tls-disable",
+                        "fail",
+                        f"{path}: line {lineno}: TLS/security weakening",
+                        f"Line {lineno} of {path}: instruction weakens "
+                        "TLS / SELinux / firewall posture. Security-"
+                        "weakening guidance spreads.",
+                        line=lineno,
+                    )
                 )
-                any_fail = True
                 break
-    return any_fail
 
 
 def _is_reserved_host(host: str) -> bool:
@@ -306,8 +384,9 @@ def _is_reserved_ipv4(addr: str) -> bool:
     return any(ip in net for net in _RESERVED_V4_NETS)
 
 
-def _check_non_reserved_hosts(path: Path, blocks: list[dict]) -> bool:
-    any_fail = False
+def _check_non_reserved_hosts(
+    path: Path, blocks: list[dict], per_rule: dict[str, list[dict]]
+) -> None:
     emitted: set[str] = set()
     for block in blocks:
         for lineno, line in block["content"]:
@@ -315,43 +394,49 @@ def _check_non_reserved_hosts(path: Path, blocks: list[dict]) -> bool:
                 host = m.group("host")
                 if _IPV4_RE.fullmatch(host):
                     if not _is_reserved_ipv4(host) and host not in emitted:
-                        _emit(
-                            "FAIL",
-                            path,
-                            "non-reserved-hosts",
-                            f"line {lineno}: non-reserved IPv4 `{host}` in example",
-                            "Swap for a reserved IP: 127.0.0.1, 192.0.2.x, "
-                            "198.51.100.x, or 203.0.113.x",
+                        per_rule["non-reserved-hosts"].append(
+                            _make_finding(
+                                "non-reserved-hosts",
+                                "fail",
+                                f"{path}: line {lineno}: non-reserved IPv4 "
+                                f"`{host}`",
+                                f"Line {lineno} of {path}: non-reserved IPv4 "
+                                f"`{host}` in example. Real IPs invite "
+                                "accidental traffic to others' systems.",
+                                line=lineno,
+                            )
                         )
                         emitted.add(host)
-                        any_fail = True
                     continue
                 if not _is_reserved_host(host) and host not in emitted:
-                    _emit(
-                        "FAIL",
-                        path,
-                        "non-reserved-hosts",
-                        f"line {lineno}: non-reserved hostname `{host}` in example",
-                        "Swap for a reserved host: example.com, *.test, "
-                        "*.local, or *.example",
+                    per_rule["non-reserved-hosts"].append(
+                        _make_finding(
+                            "non-reserved-hosts",
+                            "fail",
+                            f"{path}: line {lineno}: non-reserved host "
+                            f"`{host}`",
+                            f"Line {lineno} of {path}: non-reserved hostname "
+                            f"`{host}` in example. Use RFC-reserved hosts.",
+                            line=lineno,
+                        )
                     )
                     emitted.add(host)
-                    any_fail = True
             for host in _IPV4_RE.findall(line):
                 if host in emitted:
                     continue
                 if not _is_reserved_ipv4(host):
-                    _emit(
-                        "FAIL",
-                        path,
-                        "non-reserved-hosts",
-                        f"line {lineno}: non-reserved IPv4 `{host}` in example",
-                        "Swap for a reserved IP: 127.0.0.1, 192.0.2.x, "
-                        "198.51.100.x, or 203.0.113.x",
+                    per_rule["non-reserved-hosts"].append(
+                        _make_finding(
+                            "non-reserved-hosts",
+                            "fail",
+                            f"{path}: line {lineno}: non-reserved IPv4 "
+                            f"`{host}`",
+                            f"Line {lineno} of {path}: non-reserved IPv4 "
+                            f"`{host}` in example.",
+                            line=lineno,
+                        )
                     )
                     emitted.add(host)
-                    any_fail = True
-    return any_fail
 
 
 def _has_emoji(text: str) -> bool:
@@ -360,7 +445,9 @@ def _has_emoji(text: str) -> bool:
     )
 
 
-def _check_emoji_headings(path: Path, lines: list[str]) -> None:
+def _check_emoji_headings(
+    path: Path, lines: list[str], per_rule: dict[str, list[dict]]
+) -> None:
     in_fence = False
     fence_marker: str | None = None
     for lineno, line in enumerate(lines, 1):
@@ -377,32 +464,33 @@ def _check_emoji_headings(path: Path, lines: list[str]) -> None:
             continue
         h = _HEADING_RE.match(line)
         if h and _has_emoji(h.group(2)):
-            _emit(
-                "WARN",
-                path,
-                "emoji-headings",
-                f"line {lineno}: heading `{h.group(2)}` contains emoji",
-                "Remove emoji from headings; anchor slugs and screen readers "
-                "rely on plain text",
+            per_rule["emoji-headings"].append(
+                _make_finding(
+                    "emoji-headings",
+                    "warn",
+                    f"{path}: line {lineno}: emoji in heading",
+                    f"Line {lineno} of {path}: heading `{h.group(2)}` "
+                    "contains emoji. Emoji break grep, slug generation, "
+                    "and screen readers.",
+                    line=lineno,
+                )
             )
             return
 
 
-def _check_file(path: Path) -> bool:
+def _check_file(path: Path, per_rule: dict[str, list[dict]]) -> None:
     try:
         raw = path.read_text(encoding="utf-8", errors="replace").splitlines()
     except OSError as err:
         print(f"check_safety.py: cannot read {path}: {err}", file=sys.stderr)
-        return False
+        return
     lines = _strip_frontmatter(raw)
     blocks = _parse_blocks(lines)
-    any_fail = False
-    any_fail |= _check_destructive(path, lines, blocks)
-    any_fail |= _check_pipe_to_shell(path, lines, blocks)
-    any_fail |= _check_tls_disable(path, lines)
-    any_fail |= _check_non_reserved_hosts(path, blocks)
-    _check_emoji_headings(path, lines)
-    return any_fail
+    _check_destructive(path, lines, blocks, per_rule)
+    _check_pipe_to_shell(path, lines, blocks, per_rule)
+    _check_tls_disable(path, lines, per_rule)
+    _check_non_reserved_hosts(path, blocks, per_rule)
+    _check_emoji_headings(path, lines, per_rule)
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -422,17 +510,21 @@ def get_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = get_parser().parse_args(argv)
-    any_fail = False
     try:
+        per_rule: dict[str, list[dict]] = {r: [] for r in _RULE_ORDER}
         files = _collect_targets(args.paths)
         for f in files:
-            if _check_file(f):
-                any_fail = True
+            _check_file(f, per_rule)
+        envelopes = [
+            emit_rule_envelope(rule_id=r, findings=per_rule[r]) for r in _RULE_ORDER
+        ]
+        print_envelope(envelopes)
+        any_fail = any(e["overall_status"] == "fail" for e in envelopes)
+        return 1 if any_fail else 0
     except _UsageError:
         return EXIT_USAGE
     except KeyboardInterrupt:
-        return 130
-    return 1 if any_fail else 0
+        return EXIT_INTERRUPTED
 
 
 if __name__ == "__main__":

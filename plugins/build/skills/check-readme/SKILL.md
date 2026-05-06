@@ -1,254 +1,168 @@
 ---
 name: check-readme
 description: >
-  Audits a project's top-level README.md against ~28 deterministic
+  Audits a project's top-level README.md against 28 deterministic
   checks across seven scripts (secret scanning, H1 uniqueness &
   position, heading-hierarchy skips, section presence & order, TOC
   threshold, line count & length, code-block language tags,
   shell-prompt prefixes, smart quotes in code, relative-link
   resolution, fragment-anchor resolution, image alt text,
   badge/image byte size, destructive-command flagging, pipe-to-shell
-  patterns, TLS-disable instructions, non-reserved
-  hostnames/IPs, emoji in headings, LICENSE file presence & link,
-  CONTRIBUTING link, TODO/FIXME/XXX markers, README gitignore
-  status) plus seven judgment dimensions. Use when the user wants
-  to "audit a README", "check this README", "review my README",
-  "lint a README", "is this README any good", "what's wrong with
-  the README", or "run linters on README.md". Not for sub-package
-  READMEs (different rubric) or docs-site pages (different
-  toolchain).
+  patterns, TLS-disable instructions, non-reserved hostnames/IPs,
+  emoji in headings, LICENSE file presence & link, CONTRIBUTING
+  link, TODO/FIXME/XXX markers, README gitignore status) plus
+  seven judgment dimensions and a Tier-3 cross-README collision
+  check. Use when the user wants to "audit a README", "check this
+  README", "review my README", "lint a README", "is this README any
+  good", "what's wrong with the README", or "run linters on
+  README.md". Not for sub-package READMEs (different rubric) or
+  docs-site pages (different toolchain).
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[path]"
 user-invocable: true
 references:
   - ../../_shared/references/readme-best-practices.md
-  - references/audit-dimensions.md
-  - references/repair-playbook.md
+  - references/check-collision.md
+  - references/check-installation-correctness.md
+  - references/check-maintenance-posture.md
+  - references/check-opening-clarity.md
+  - references/check-placeholder-discipline.md
+  - references/check-quickstart-effectiveness.md
+  - references/check-style-and-voice.md
+  - references/check-warning-prominence.md
 license: MIT
 ---
 
 # Check README
 
-Audit a project's top-level `README.md` for structural soundness,
-safety, completeness, and adherence to the rubric. The rubric — what a
-good README does, the anatomy, the patterns that work — lives in
-[readme-best-practices.md](../../_shared/references/readme-best-practices.md).
-This skill is the audit workflow; the principles doc is what it
-audits against.
+Audit a project's top-level README.md for structural soundness, safety, prose quality, and freshness. The rubric — what makes a README load-bearing in the top 30 seconds — lives in [readme-best-practices.md](../../_shared/references/readme-best-practices.md).
 
-The audit runs in three tiers. **Tier-1** is deterministic — seven
-scripts run per target and emit fixed-format findings, wrapping
-`markdownlint` / `lychee` / `gitleaks` where available and degrading
-gracefully when absent. **Tier-2** is a single locked-rubric LLM call
-per target evaluating all seven [audit
-dimensions](references/audit-dimensions.md) at once; dimensions that
-don't apply return PASS silently. **Tier-3** is cross-entity collision
-detection — when the scope holds multiple READMEs (unusual but
-possible in a monorepo scan), flag content-overlap the maintainer
-could consolidate upstream.
-
-Read-only by default. The opt-in repair loop applies fixes only after
-per-finding confirmation.
+This skill follows the [check-skill pattern](../../_shared/references/check-skill-pattern.md). Tier-1 detection is in 7 scripts emitting JSON envelopes via `_common.py` (28 rule_ids total). Tier-2 has 7 judgment dimensions read inline by the primary agent. Tier-3 is `collision` (cross-README duplication, judgment-driven).
 
 ## Workflow
-
-1. Scope → 2. Tier-1 Deterministic Checks → 3. Tier-2 Judgment
-Checks → 4. Tier-3 Cross-Entity Collision → 5. Report → 6. Opt-In
-Repair Loop.
 
 ### 1. Scope
 
 Read `$ARGUMENTS`:
 
-- **Single path to a `README.md` file** — audit that file.
-- **Directory path** — resolve to `<dir>/README.md` and audit that.
-  Do not recurse — sub-package READMEs are out of scope and carry a
-  different rubric.
-- **Empty** — default to `./README.md` at the current working
-  directory; refuse if it is absent.
+- **Single path to a README.md** — audit that file.
+- **Directory path** — find the top-level README.md (case-insensitive: README.md, Readme.md).
+- **Empty** — refuse and explain.
 
-Confirm the scope aloud before proceeding ("Auditing
-`<path>` (1 README)").
+Refuse on sub-package READMEs (under `packages/*/README.md`) — different rubric. Confirm scope aloud.
 
 ### 2. Tier-1 Deterministic Checks
 
-Run seven scripts in sequence against the target. Each exits `0` on
-clean / WARN / INFO and `1` on one or more FAIL; do not stop on any
-script's FAIL exit — all seven contribute findings to the merge.
+Invoke 7 detection scripts:
 
 ```bash
 SCRIPTS="${SKILL_DIR}/scripts"
-TARGET="$ARGUMENTS"
+TARGETS="$ARGUMENTS"
 
-"$SCRIPTS/check_secrets.py"      "$TARGET"   # FAIL: secret patterns — excludes from Tier-2
-"$SCRIPTS/check_structure.py"    "$TARGET"   # FAIL: missing/multiple H1; WARN: hierarchy, section coverage, section order, TOC threshold, size
-"$SCRIPTS/check_codeblocks.py"   "$TARGET"   # WARN: missing language tag, shell prompts, smart quotes, line length
-"$SCRIPTS/check_links.py"        "$TARGET"   # FAIL: broken relative links; WARN: broken anchors, external URL 4xx/5xx
-"$SCRIPTS/check_images.py"       "$TARGET"   # WARN: missing/placeholder alt text, oversized images, badge overload
-"$SCRIPTS/check_safety.py"       "$TARGET"   # FAIL: destructive-without-warning, pipe-to-shell unguarded, TLS-disable, non-reserved hosts/IPs; WARN: emoji in headings
-"$SCRIPTS/check_completeness.py" "$TARGET"   # FAIL: no LICENSE file + link; WARN: no CONTRIBUTING link, TODO/FIXME/XXX markers, README gitignored
+python3 "$SCRIPTS/check_secrets.py"      $TARGETS   # 1 rule:  secret (FAIL)
+python3 "$SCRIPTS/check_structure.py"    $TARGETS   # 7 rules: h1-present (FAIL), heading-hierarchy, section-coverage, section-order, toc-threshold, size, prose-line-length
+python3 "$SCRIPTS/check_codeblocks.py"   $TARGETS   # 4 rules: fence-language, shell-prompt, smart-quotes, code-line-length (all WARN)
+python3 "$SCRIPTS/check_links.py"        $TARGETS   # 3 rules: broken-relative (FAIL), broken-anchor, broken-external
+python3 "$SCRIPTS/check_images.py"       $TARGETS   # 3 rules: alt-text, image-size, badge-overload (all WARN)
+python3 "$SCRIPTS/check_safety.py"       $TARGETS   # 5 rules: destructive (FAIL), pipe-to-shell (FAIL), tls-disable (FAIL), non-reserved-hosts (FAIL), emoji-headings
+python3 "$SCRIPTS/check_completeness.py" $TARGETS   # 5 rules: license-file (FAIL), license-link, contributing-link, todo-markers, readme-gitignored
 ```
 
-The scripts live next to `SKILL.md` under `scripts/` and are
-authored separately via `/build:build-python-script` per the
-Language Selection section of `primitive-routing.md` (all seven
-parse Markdown AST and return structured findings — Python wins on
-interpretability over bash for this workload).
+Each script emits a JSON array of envelopes. `recommended_changes` is canonical — copy through verbatim.
 
-**Script-to-check map** (full check list per script):
+**Script-to-rules map** (28 Tier-1 rule_ids):
 
-| Script | Checks |
-|---|---|
-| `check_secrets.py` | API keys, tokens, private URLs via regex pattern list; optional `gitleaks`/`detect-secrets` wrapper |
-| `check_structure.py` | Single H1 on first content line (after frontmatter); no skipped heading levels (MD001); standard H2 sections present (Installation, Usage, License minimum); H2 sequence matches reader-intent order; TOC present when rendered document > 400 lines; total line count; prose line length ≤ 120 |
-| `check_codeblocks.py` | Every fenced block carries a non-empty language info-string (MD040); no shell-prompt prefixes (`$`, `>`, `#`) in `bash`/`sh`/`console` blocks; no smart quotes or em/en-dash inside code blocks; code-block line length ≤ 80 |
-| `check_links.py` | Every relative link resolves to an existing file; every fragment link matches a heading slug; optional wrapper for `lychee` / `markdown-link-check` to verify external URLs |
-| `check_images.py` | Every image has non-empty, non-placeholder alt text (MD045); embedded images < 500 KB each, total < 2 MB; ≤ 5 badges in the prelude |
-| `check_safety.py` | Destructive commands (`rm -rf`, `dd if=`, `mkfs`, `DROP DATABASE`, `--force`) in fenced blocks without an adjacent warning; `curl ... \| sh` / `wget ... \| bash` / `iex (iwr ...)` patterns without a manual alternative; instructions to disable TLS / SELinux / firewall; hostnames/IPs outside reserved ranges (`example.com`, `*.test`, `*.local`, `127.0.0.1`, RFC 5737); emoji code points in heading text |
-| `check_completeness.py` | A `LICENSE` file exists in the repo root; README contains a link to `LICENSE` and a heading matching `/license/i`; README contains a Contributing section or link to `CONTRIBUTING.md`; no `TODO`/`FIXME`/`XXX` markers in the published document; README.md not listed in `.gitignore` |
+| Script | rule_ids | Severity |
+|---|---|---|
+| `check_secrets.py` | `secret` | fail |
+| `check_structure.py` | `h1-present` | fail |
+| `check_structure.py` | `heading-hierarchy`, `section-coverage`, `section-order`, `toc-threshold`, `size`, `prose-line-length` | warn |
+| `check_codeblocks.py` | `fence-language`, `shell-prompt`, `smart-quotes`, `code-line-length` | warn |
+| `check_links.py` | `broken-relative` | fail |
+| `check_links.py` | `broken-anchor`, `broken-external` | warn |
+| `check_images.py` | `alt-text`, `image-size`, `badge-overload` | warn |
+| `check_safety.py` | `destructive`, `pipe-to-shell`, `tls-disable`, `non-reserved-hosts` | fail |
+| `check_safety.py` | `emoji-headings` | warn |
+| `check_completeness.py` | `license-file` | fail |
+| `check_completeness.py` | `license-link`, `contributing-link`, `todo-markers`, `readme-gitignored` | warn |
 
-**Exit-code contract every script honors:** `0` on clean / WARN /
-INFO / HINT-only; `1` on one or more FAIL; `64` on argument error;
-`69` on missing required dependency (optional tools like `gitleaks`,
-`lychee`, `markdownlint` degrade gracefully — they emit a
-`tool-missing` INFO and exit 0).
+**Tier-2 exclusion list.** Any FAIL in `secret`, `h1-present`, `broken-relative`, `destructive`, `pipe-to-shell`, `tls-disable`, `non-reserved-hosts`, or `license-file` excludes the README from Tier-2.
 
-**FAIL findings that exclude the file from Tier-2** (evaluation is
-not useful until these are resolved):
+**Missing-tool degradation.** `check_links.py` requires `lychee` or `markdown-link-check` for the `broken-external` rule; when neither is installed, that envelope emits `overall_status: inapplicable` (other rule_ids continue).
 
-- Any finding from `check_secrets.py` (secrets present).
-- `check_structure.py` FAILs on missing or multiple H1 — the
-  document has no anchor; judgment dimensions lose their fix point.
-- `check_safety.py` FAILs on destructive-without-warning,
-  unguarded pipe-to-shell, TLS-disable instructions, or
-  non-reserved hosts/IPs — these are safety bugs that bias every
-  judgment dimension toward false negatives.
-- `check_completeness.py` FAIL on missing LICENSE file — the
-  project is structurally incomplete; re-run after license is
-  added.
+### 3. Tier-2 Judgment Dimensions
 
-**FAIL findings that do NOT exclude from Tier-2:** broken relative
-links leave a parseable document that judgment can still evaluate
-productively; they surface in the report alongside Tier-2 findings.
+For each README that passed the Tier-2 exclusion gate, evaluate against the **7 judgment rules** at `references/check-*.md`:
 
-**WARN / INFO / HINT findings never exclude.**
+| File | Dimension | Severity |
+|---|---|---|
+| [check-opening-clarity.md](references/check-opening-clarity.md) | D1 — H1 + one-sentence problem statement orient in 5 seconds | warn |
+| [check-installation-correctness.md](references/check-installation-correctness.md) | D2 — install steps are copy-pasteable and complete | warn |
+| [check-quickstart-effectiveness.md](references/check-quickstart-effectiveness.md) | D3 — quickstart produces a runnable artifact in <10 minutes | warn |
+| [check-placeholder-discipline.md](references/check-placeholder-discipline.md) | D4 — every `<placeholder>` is justified, not copy-paste padding | warn |
+| [check-warning-prominence.md](references/check-warning-prominence.md) | D5 — destructive ops carry visible warnings | warn |
+| [check-maintenance-posture.md](references/check-maintenance-posture.md) | D6 — README freshness signals (last-updated, contributor links) | warn |
+| [check-style-and-voice.md](references/check-style-and-voice.md) | D7 — direct, plain English; no marketing prose | warn |
 
-### 3. Tier-2 Judgment Checks
+#### Evaluator policy
 
-For each file that passed the Tier-2-exclusion filter, make a single
-LLM call against the audit rubric in
-[audit-dimensions.md](references/audit-dimensions.md). All seven
-dimensions run together — no trigger gating. A dimension that does
-not apply returns PASS silently.
+- **Single locked-rubric pass per README.** Read all 7 rule files first, then evaluate the README in one LLM call. Don't re-decompose into sub-checks (RULERS, Hong et al. 2026).
+- **Default-closed when borderline.** When evidence is ambiguous, return `warn`, not `pass`.
+- **Severity floor: WARN.** All 7 Tier-2 dimensions are coaching, not blocking.
+- **One finding per dimension maximum.** Surface the highest-signal location.
 
-The seven dimensions:
+### 4. Tier-3 Cross-README Collision
 
-| Dimension | What it judges |
-|---|---|
-| D1 Opening Clarity | Does the H1 + one-sentence description + problem statement answer "what is this and should I care" in the top 30 seconds for a stranger? |
-| D2 Installation Correctness | Prerequisites list is complete and versioned; install commands would actually succeed on a clean machine; platform coverage matches stated support |
-| D3 Quickstart Effectiveness | Is the minimal example genuinely minimal and genuinely runnable? Does it produce visible output? Is expected output shown? |
-| D4 Placeholder Discipline | Are `<PLACEHOLDER>` tokens clearly marked, defined once, consistently used, and distinct from real values? No undefined placeholders; no real values masquerading as placeholders |
-| D5 Warning Prominence | Are destructive-op, pipe-to-shell, and security-weakening warnings prominent (callouts / blockquotes / bold) rather than buried prose? |
-| D6 Maintenance Posture | Staleness indicators: commands that probably no longer work, hand-maintained `--help` duplicates, version numbers that look out-of-date, duplicated content from `CONTRIBUTING.md` / `ARCHITECTURE.md`, "coming soon" links |
-| D7 Style & Voice | Imperative mood and second person for instructions; clear direct language; jargon defined on first use; no emoji in headings; prose lines ≤ 120 chars |
-
-Feed the file contents plus any Tier-1 HINT lines (e.g., repo-name
-context, distribution channel if detectable) into the prompt. Parse
-the model's response into the fixed lint format (one finding per
-dimension at most; PASS produces no finding).
-
-### 4. Tier-3 Cross-Entity Collision
-
-When the scope holds multiple READMEs (monorepo scan, multi-project
-audit), check for content overlap that should be consolidated:
-
-- Identical or near-identical install / usage sections across top-level
-  READMEs in related projects (candidate for a shared docs page).
-- Identical license / contributing boilerplate (candidate for an org-level
-  default).
-
-Report collisions as INFO findings — maintainer guidance, not
-failures. Single-README scope skips this tier.
+Evaluate against [check-collision.md](references/check-collision.md). For multi-README scope (org-wide audits, monorepos), surface duplicate Installation / Contributing / License prose across sibling READMEs as `warn`. Single-README scope returns `inapplicable`.
 
 ### 5. Report
 
-Emit a unified findings table sorted by severity (FAIL > WARN > INFO
-> HINT), then by file path. Deduplicate exact-match findings at merge
-time — `markdownlint` may emit the same rule code from multiple lines,
-informative the first time and noise after.
+Merge Tier-1 (script JSON) + Tier-2 (judgment) + Tier-3 (collision) findings into a unified table:
 
 ```
-SEVERITY  <path> — <check>: <detail>
-  Recommendation: <specific change>
+| Tier | rule_id | Location | Status | Reasoning |
+|------|---------|----------|--------|-----------|
 ```
 
-Summary line at top and bottom: `N fail, N warn, N info across N
-READMEs`. If any file was excluded from Tier-2, name it and the
-exclusion-trigger finding.
+Sort: `fail` before `warn` before `inapplicable`; Tier-1 before Tier-2 before Tier-3 within severity. Each `Recommendation:` line copies through `recommended_changes` verbatim.
 
 ### 6. Opt-In Repair Loop
 
-After presenting findings, ask:
+Ask exactly once:
 
-> "Apply fixes? Enter `y` (all), `n` (skip), or comma-separated
-> finding numbers."
+> "Apply fixes? Enter y (all), n (skip), or comma-separated numbers."
 
-For each selected finding, follow the recipe in
-[repair-playbook.md](references/repair-playbook.md):
+For each selected finding:
 
-1. Read the relevant section of the target file.
-2. Propose a minimal specific edit — fix the finding without
-   restructuring surrounding code.
-3. Show the diff.
-4. Write the change only on explicit user confirmation.
-5. Re-run the Tier-1 script that produced the finding; confirm it
-   passes.
+- **Direct edit** — H1 insertion, missing-section addition, code fence language tag, anchor correction. Show diff; write on confirmation.
+- **Routed to another skill** — substantial rewrites → `/build:build-readme`.
+- **Tier-2/3 judgment** — ask the user; rewrite the section; show diff; write on confirmation.
 
-Per-change confirmation is non-negotiable. Bulk application removes
-the user's ability to review individual edits.
+After each applied fix, re-run the relevant Tier-1 script. Terminate when the user enters `n` or exhausts findings.
 
 ## Anti-Pattern Guards
 
-1. **Running Tier-2 before Tier-1** — deterministic checks are cheap
-   and authoritative.
-2. **Trigger-gating Tier-2 dimensions** — all seven run always. A
-   dimension that doesn't apply returns PASS silently.
-3. **Applying all repair fixes in one batch** — per-finding
-   confirmation is required.
-4. **Recursing into sub-package READMEs** — out of scope; different
-   rubric. Top-level only.
-5. **Skipping the re-run after a fix** — a fix that introduces a new
-   finding elsewhere is more common than it sounds.
-6. **Suppressing missing-tool INFOs** — when `markdownlint` / `lychee`
-   / `gitleaks` are absent, the INFO line is the user's signal that
-   coverage is reduced.
+1. **Per-dimension LLM call.** Collapse into one locked-rubric call per README.
+2. **LLM-evaluating format compliance.** Frontmatter shape, link resolution, line length — handle deterministically in Tier-1.
+3. **Ambiguous compliance reported as PASS.** Surface as WARN (default-closed).
+4. **Vague finding text.** Cite the specific README and exact phrasing.
+5. **Bulk-applying fixes.** Per-finding confirmation required.
+6. **Re-evaluating scripted rules in Tier-2.** Scripts are authoritative for the 28 Tier-1 rules.
+7. **Suppressing the inapplicable envelope.** When `lychee`/`markdown-link-check` is absent, the `broken-external` envelope emits `inapplicable` — surface it.
+8. **Embellishing scripts' `recommended_changes`.** Each rule's recipe constant is canonical guidance from `readme-best-practices.md`.
 
 ## Key Instructions
 
-- Tier-1 scripts run first and always. Tier-2 runs only on files that
-  passed the Tier-2-exclusion filter.
-- All seven Tier-2 dimensions evaluate on every non-excluded file.
-- Repairs require per-finding confirmation.
-- When `markdownlint` / `lychee` / `gitleaks` are absent, the wrapper
-  emits an INFO line naming reduced coverage and exits 0.
-- Won't modify files without per-change confirmation — read-only by
-  default.
-- Won't audit paths outside `$ARGUMENTS`.
-- Won't audit sub-package READMEs — out of scope.
-- Recovery if a repair edit produces a worse state: single-file
-  change; revert with `git checkout -- <path>`.
+- Run Tier-1 deterministic checks first; gate LLM evaluation on structural validity.
+- Present all 7 Tier-2 dimensions as a single locked-rubric call per README.
+- Include the full README verbatim in every LLM evaluation.
+- Tier-3 collision only fires on multi-README scope; single-README scope returns `inapplicable`.
+- Recovery: read-only outside the Repair Loop.
 
 ## Handoff
 
-**Receives:** Path to a single `README.md` at a repository root (or
-a directory resolving to one).
+**Receives:** Path to a README.md or a directory containing one (top-level only).
 
-**Produces:** Structured findings table in the lint format
-(`SEVERITY  <path> — <check>: <detail>` with a `Recommendation:`
-follow-up line); optionally, targeted edits applied after per-finding
-confirmation.
+**Produces:** A unified findings table merging the 28 Tier-1 envelopes (script JSON), 7 Tier-2 judgment findings per README, and the Tier-3 cross-README collision findings (multi-scope only). Each row: tier, rule_id, location, status, reasoning + `recommended_changes` excerpt. Optionally — per user confirmation in the Repair Loop — targeted edits to README.md.
 
-**Chainable to:** `/build:build-readme` (rebuild from scratch after
-flagged repairs if the repair loop surfaces structural issues bigger
-than point fixes).
+**Chainable to:** `/build:build-readme` (rebuild non-compliant README from scratch).
