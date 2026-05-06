@@ -1,0 +1,13 @@
+{
+  "_comment": "Canonical output shape for a check-subagent rule. Eight detection scripts emit JSON envelopes — check_secrets, check_location, check_frontmatter, check_naming, check_tools, check_size, check_structure, check_collision. Each script emits a single envelope or JSON array of envelopes (multi-rule scripts). Schema: {rule_id, overall_status, findings[]}; per-finding: {status, location, reasoning, recommended_changes}. recommended_changes is REQUIRED — non-empty with concrete repair guidance from subagent-best-practices.md.",
+  "rule_id": "tools-wildcard",
+  "overall_status": "fail",
+  "findings": [
+    {
+      "status": "fail",
+      "location": {"line": 5, "context": "frontmatter tools field"},
+      "reasoning": "Subagent definition's `tools: ['*']` grants every tool. Scope-dangerous-tools principle requires explicit allowlist; wildcard makes it impossible to reason about what the subagent can do at runtime.",
+      "recommended_changes": "Replace `tools: ['*']` with a concrete allowlist: enumerate exactly the tools the subagent needs. Example: `tools: ['Read', 'Grep', 'Glob']` for a research-only subagent. The router cannot reason about scope from a wildcard."
+    }
+  ]
+}
