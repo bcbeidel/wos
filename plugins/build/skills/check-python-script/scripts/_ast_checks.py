@@ -96,10 +96,27 @@ except AttributeError:
     }
 
 
-def emit(severity: str, path: Path, check: str, detail: str, rec: str) -> None:
-    """Write one finding in the canonical Tier-1 lint format."""
-    print(f"{severity}  {path} — {check}: {detail}")
-    print(f"  Recommendation: {rec}")
+def emit(
+    severity: str,
+    path: Path,
+    check: str,
+    detail: str,
+    rec: str,
+    line: int = 1,
+) -> None:
+    """Write one TSV finding row.
+
+    Format: <rule_id>\t<status>\t<path>\t<line>\t<context>
+    The `rec` argument is unused here — recipes live in the wrapper bash
+    scripts and are looked up by rule_id at envelope-emit time. It is
+    accepted for caller-call-site readability.
+    """
+    del rec  # recipes are owned by the wrapper scripts
+    status = severity.lower()
+    if status == "info":
+        # INFO is not part of the unified envelope pattern; drop.
+        return
+    print(f"{check}\t{status}\t{path}\t{line}\t{detail}")
 
 
 def parse_or_fail(path: Path) -> ast.Module | None:
@@ -114,6 +131,7 @@ def parse_or_fail(path: Path) -> ast.Module | None:
             "syntax",
             f"SyntaxError at line {err.lineno}: {err.msg}",
             "Fix the syntax error — the file cannot be evaluated until it parses.",
+            line=err.lineno or 1,
         )
         return None
     except OSError as err:
@@ -140,18 +158,16 @@ def check_shebang(path: Path, source: str) -> bool:
 
 
 def check_exec_bit(path: Path, has_shebang: bool) -> None:
-    """Executable bit should be set when a shebang is present."""
+    """Executable bit should be set when a shebang is present.
+
+    Advisory only — INFO severity is not part of the unified envelope
+    pattern, so we drop the emission. The check still runs (no-op) for
+    parity with prior behavior; reinstate as `warn` if needed.
+    """
     if not has_shebang:
         return
     mode = path.stat().st_mode
-    if not mode & stat.S_IXUSR:
-        emit(
-            "INFO",
-            path,
-            "exec-bit",
-            "shebang present but executable bit not set",
-            f"Run: chmod +x {path}",
-        )
+    _ = mode & stat.S_IXUSR  # intentionally not emitted
 
 
 def find_main_def(tree: ast.Module) -> ast.FunctionDef | None:
@@ -403,6 +419,7 @@ def check_argparse(path: Path) -> int:
                 "add-argument-help",
                 f"add_argument() at line {call.lineno} missing non-empty help=",
                 "Add a help='...' string; it is what the user sees on --help.",
+                line=call.lineno,
             )
 
     # subprocess check=True or result inspected
@@ -426,6 +443,7 @@ def check_argparse(path: Path) -> int:
                     "neither sets check=True nor inspects the return"
                 ),
                 "Add check=True, or assign the result and inspect returncode.",
+                line=call.lineno,
             )
 
     return EXIT_CLEAN
