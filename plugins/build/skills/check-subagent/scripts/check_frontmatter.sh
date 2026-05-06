@@ -1,24 +1,32 @@
 #!/usr/bin/env bash
 #
 # check_frontmatter.sh — Deterministic Tier-1 frontmatter checks for
-# Claude Code subagent definitions.
+# Claude Code subagent definitions. Emits a JSON ARRAY of six envelopes
+# (rule_id="fm-delimiter", "fm-name", "fm-description",
+# "fm-description-length", "plugin-noop", "memory-expansion") per
+# scripts/_common.py.
 #
 # Checks:
-#   fm-delimiter         file begins with a ---...--- YAML block
-#   fm-name              `name` key present and non-empty
-#   fm-description       `description` key present and non-empty
-#   fm-description-length  `description` ≤1,024 characters
-#   plugin-noop          plugin-scoped files do not set permissionMode / hooks / mcpServers
-#   memory-expansion     memory: set alongside narrow tools omitting Read/Write/Edit
+#   fm-delimiter            file begins with a ---...--- YAML block (FAIL)
+#   fm-name                 `name` key present and non-empty (FAIL)
+#   fm-description          `description` key present and non-empty (FAIL)
+#   fm-description-length   `description` <=1,024 characters (FAIL)
+#   plugin-noop             plugin-scoped files do not set
+#                           permissionMode/hooks/mcpServers (WARN)
+#   memory-expansion        memory: set alongside narrow tools omitting
+#                           Read/Write/Edit (WARN)
 #
 # Usage:
 #   check_frontmatter.sh <path> [<path> ...]
 #
 # Exit codes:
-#   0   no FAIL findings (WARN ok)
+#   0   no FAIL findings
 #   1   one or more FAIL findings
 #   64  usage error
 #   69  missing dependency
+#
+# Dependencies:
+#   awk, basename, find, python3
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -26,7 +34,22 @@ IFS=$'\n\t'
 PROGNAME="$(basename "${0}")"
 readonly PROGNAME
 
-readonly REQUIRED_CMDS=(awk basename find)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly SCRIPT_DIR
+
+readonly REQUIRED_CMDS=(awk basename find python3)
+
+readonly RECIPE_FM_DELIMITER='Add a `---`-delimited YAML block as the first lines of the file. Frontmatter is the machine-parseable metadata surface Claude Code reads to register the subagent — without it, the file is ignored. Minimum: `name`, `description`, `tools`. FROM bare `# My Agent` start; TO `---\nname: my-agent\ndescription: ...\ntools:\n  - Read\n---`.'
+
+readonly RECIPE_FM_NAME='Add a `name` field matching the filename stem. `name` is the agent identifier the routing agent addresses when delegating; missing or empty values make the subagent unroutable. FROM `description: ...` only; TO `name: linter\ndescription: ...`.'
+
+readonly RECIPE_FM_DESCRIPTION='Add a routing-rule description: verb-phrase capability + trigger conditions + at least one exclusion + returned output. The description is the router classification prompt — empty means Claude has no basis to delegate. FROM no `description:`; TO `description: Lints staged TypeScript. Use after editing .ts/.tsx. Not for .js. Returns JSON.`.'
+
+readonly RECIPE_FM_DESCRIPTION_LENGTH='Shorten the description to <=1,024 characters. Move overflow detail into body sections (`## When to invoke`, `## Scope`). Claude Code silently truncates over 1,024 chars without warning, stripping trailing exclusions or triggers and changing routing behavior. FROM 1,500-char inline workflow detail; TO 400-char routing contract + body.'
+
+readonly RECIPE_PLUGIN_NOOP='Remove the field. For plugin-scoped subagents, the runtime silently strips `permissionMode`, `hooks`, and `mcpServers` at load time (security-scoped plugin restriction); leaving them implies behavior the runtime will not produce. FROM `permissionMode: acceptEdits` in plugin frontmatter; TO field removed.'
+
+readonly RECIPE_MEMORY_EXPANSION='Either remove `memory:` (if memory is not genuinely needed), or expand the `tools` allowlist to include Read, Write, and Edit to match runtime behavior. When `memory:` is set, the runtime auto-enables those tools so the subagent can manage its memory files; a narrower list misleads readers about the agent capability surface. FROM `tools: [Grep]` + `memory: project`; TO `tools: [Grep, Read, Write, Edit]` + `memory: project`.'
 
 usage() {
   cat <<'EOF'
@@ -34,7 +57,24 @@ check_frontmatter.sh — Audit subagent frontmatter shape.
 
 Usage:
   check_frontmatter.sh <path> [<path> ...]
+
+Options:
+  -h, --help   Show this help and exit.
+
+Exit codes:
+  0   no FAIL findings
+  1   one or more FAIL findings
+  64  usage error
+  69  missing dependency
 EOF
+}
+
+install_hint() {
+  case "${1}" in
+    awk | basename | find) printf 'should be preinstalled on any POSIX system' ;;
+    python3) printf 'install Python 3.9+' ;;
+    *) printf 'see your package manager' ;;
+  esac
 }
 
 preflight() {
@@ -47,27 +87,13 @@ preflight() {
   done
   if [[ "${#missing[@]}" -gt 0 ]]; then
     for cmd in "${missing[@]}"; do
-      printf '%s: missing required command %q\n' "${PROGNAME}" "${cmd}" >&2
+      printf '%s: missing required command %q. Install: %s\n' \
+        "${PROGNAME}" "${cmd}" "$(install_hint "${cmd}")" >&2
     done
     exit 69
   fi
 }
 
-fail_count=0
-
-emit_fail() {
-  fail_count=$((fail_count + 1))
-  printf 'FAIL  %s — %s: %s\n' "$1" "$2" "$3"
-  printf '  Recommendation: %s\n' "$4"
-}
-
-emit_warn() {
-  printf 'WARN  %s — %s: %s\n' "$1" "$2" "$3"
-  printf '  Recommendation: %s\n' "$4"
-}
-
-# Extract the frontmatter block (between the first pair of --- lines).
-# Emits nothing if no block found.
 extract_frontmatter() {
   awk '
     /^---[[:space:]]*$/ {
@@ -78,35 +104,23 @@ extract_frontmatter() {
   ' "$1"
 }
 
-# Get a top-level scalar value for `key`. Handles:
-#   key: value
-#   key: "value"
-#   key: 'value'
-#   key: >           (folded scalar, next indented lines concatenated with spaces)
-#     continuation
-#   key: |           (literal scalar, next indented lines kept as-is)
-# Returns empty string if key missing.
 get_scalar() {
   local fm="$1"
   local key="$2"
   printf '%s\n' "${fm}" | awk -v k="${key}" '
     BEGIN { val = ""; folded = 0; literal = 0 }
-    # Stop folded/literal collection on a non-indented line
     (folded || literal) && /^[^ \t]/ { folded = 0; literal = 0 }
-    # Continuation line for folded/literal
     (folded || literal) && /^[[:space:]]+/ {
       line = $0
       sub(/^[[:space:]]+/, "", line)
       if (val == "") { val = line } else { val = val (folded ? " " : "\n") line }
       next
     }
-    # Match `key:` at column 0
     $0 ~ "^" k ":[[:space:]]*" {
       rest = $0
       sub("^" k ":[[:space:]]*", "", rest)
       if (rest == ">" || rest == ">-") { folded = 1; next }
       if (rest == "|" || rest == "|-") { literal = 1; next }
-      # Strip surrounding quotes if present
       if (rest ~ /^".*"$/) { rest = substr(rest, 2, length(rest) - 2) }
       else if (rest ~ /^'\''.*'\''$/) { rest = substr(rest, 2, length(rest) - 2) }
       val = rest
@@ -115,8 +129,6 @@ get_scalar() {
   '
 }
 
-# Check whether a top-level scalar/block key is present in the frontmatter
-# (even if its value is empty). Used for plugin-noop and memory detection.
 has_key() {
   local fm="$1"
   local key="$2"
@@ -126,15 +138,12 @@ has_key() {
   '
 }
 
-# Return 0 if tools: list contains the given tool name, 1 otherwise.
-# Supports block-list (- Tool) and flow-list ([Tool, Tool]) forms.
 tools_contains() {
   local fm="$1"
   local needle="$2"
   printf '%s\n' "${fm}" | awk -v needle="${needle}" '
     BEGIN { in_tools = 0; hit = 0 }
     /^tools:/ {
-      # Flow form on same line: tools: [A, B]
       if ($0 ~ /\[/) {
         line = $0
         sub(/^tools:[[:space:]]*\[/, "", line)
@@ -163,7 +172,6 @@ tools_contains() {
   '
 }
 
-# Is this path plugin-scoped (under plugins/<plugin>/agents/)?
 is_plugin_path() {
   case "$1" in
     *plugins/*/agents/*) return 0 ;;
@@ -171,10 +179,9 @@ is_plugin_path() {
   return 1
 }
 
-check_file() {
+# TSV: <rule_id>\t<status>\t<file>\t<line>\t<context>
+emit_raw() {
   local file="$1"
-
-  # Must be an .md file to have frontmatter
   case "${file}" in
     *.md) ;;
     *) return ;;
@@ -184,10 +191,7 @@ check_file() {
   fm="$(extract_frontmatter "${file}")"
 
   if [[ -z "${fm}" ]]; then
-    local rec="Add a frontmatter block as the first lines of the"
-    rec+=" file (see subagent-best-practices.md Anatomy)."
-    emit_fail "${file}" "fm-delimiter" \
-      "no ---delimited YAML frontmatter block at file head" "${rec}"
+    printf 'fm-delimiter\tfail\t%s\t1\tno ---delimited YAML frontmatter block at file head\n' "${file}"
     return
   fi
 
@@ -195,41 +199,30 @@ check_file() {
   name="$(get_scalar "${fm}" "name")"
   description="$(get_scalar "${fm}" "description")"
 
-  # fm-name
   if [[ -z "${name}" ]]; then
-    emit_fail "${file}" "fm-name" \
-      "name key missing or empty" \
-      "Add 'name: <kebab-case-slug>' to the frontmatter, matching the filename stem."
+    printf 'fm-name\tfail\t%s\t1\tname key missing or empty\n' "${file}"
   fi
 
-  # fm-description
   if [[ -z "${description}" ]]; then
-    emit_fail "${file}" "fm-description" \
-      "description key missing or empty" \
-      "Add a routing-rule description: verb-phrase + trigger conditions + exclusion + returns."
+    printf 'fm-description\tfail\t%s\t1\tdescription key missing or empty\n' "${file}"
   else
-    # fm-description-length
     local dlen="${#description}"
     if [[ "${dlen}" -gt 1024 ]]; then
-      emit_fail "${file}" "fm-description-length" \
-        "description is ${dlen} characters (>1,024 — Claude Code silently truncates)" \
-        "Shorten to <=1,024 chars; move overflow detail into body sections (Scope, Workflow)."
+      printf 'fm-description-length\tfail\t%s\t1\tdescription is %s characters (>1024 — Claude Code silently truncates)\n' \
+        "${file}" "${dlen}"
     fi
   fi
 
-  # plugin-noop: plugin-scoped files setting fields the runtime ignores
   if is_plugin_path "${file}"; then
     local noop_key
     for noop_key in permissionMode hooks mcpServers; do
       if has_key "${fm}" "${noop_key}"; then
-        emit_warn "${file}" "plugin-noop" \
-          "${noop_key} set in a plugin-scoped definition — silently ignored by Claude Code" \
-          "Remove ${noop_key}; plugin subagents have this field stripped at load time."
+        printf 'plugin-noop\twarn\t%s\t1\t%s set in plugin-scoped definition — silently ignored at load\n' \
+          "${file}" "${noop_key}"
       fi
     done
   fi
 
-  # memory-expansion: memory: set + tools: set + tools omits any of Read/Write/Edit
   if has_key "${fm}" "memory" && has_key "${fm}" "tools"; then
     local missing=()
     local t
@@ -239,24 +232,20 @@ check_file() {
       fi
     done
     if [[ "${#missing[@]}" -gt 0 ]]; then
-      local msg="memory: enabled — runtime auto-grants"
-      msg+=" Read/Write/Edit; tools list is missing: ${missing[*]}"
-      local rec="Either remove memory: (if not needed), or add"
-      rec+=" Read/Write/Edit to tools to match runtime behavior."
-      emit_warn "${file}" "memory-expansion" "${msg}" "${rec}"
+      printf 'memory-expansion\twarn\t%s\t1\tmemory: enabled — runtime auto-grants Read/Write/Edit; tools list is missing: %s\n' \
+        "${file}" "${missing[*]}"
     fi
   fi
 }
 
-check_path() {
+scan_path() {
   local target="$1"
   local file
-
   if [[ -f "${target}" ]]; then
-    check_file "${target}"
+    emit_raw "${target}"
   elif [[ -d "${target}" ]]; then
     while IFS= read -r file; do
-      check_file "${file}"
+      emit_raw "${file}"
     done < <(find "${target}" -maxdepth 1 -type f -name '*.md' 2>/dev/null)
   else
     printf '%s: path not found: %s\n' "${PROGNAME}" "${target}" >&2
@@ -264,27 +253,85 @@ check_path() {
   fi
 }
 
+readonly EMIT_PY='
+import os
+import sys
+
+sys.path.insert(0, os.environ["CHECK_SUBAGENT_SCRIPT_DIR"])
+from _common import emit_json_finding, emit_rule_envelope, print_envelope
+
+recipes = {
+    "fm-delimiter": os.environ["CHECK_SUBAGENT_RECIPE_FM_DELIMITER"],
+    "fm-name": os.environ["CHECK_SUBAGENT_RECIPE_FM_NAME"],
+    "fm-description": os.environ["CHECK_SUBAGENT_RECIPE_FM_DESCRIPTION"],
+    "fm-description-length": os.environ["CHECK_SUBAGENT_RECIPE_FM_DESCRIPTION_LENGTH"],
+    "plugin-noop": os.environ["CHECK_SUBAGENT_RECIPE_PLUGIN_NOOP"],
+    "memory-expansion": os.environ["CHECK_SUBAGENT_RECIPE_MEMORY_EXPANSION"],
+}
+order = ["fm-delimiter", "fm-name", "fm-description",
+         "fm-description-length", "plugin-noop", "memory-expansion"]
+
+per_rule = {r: [] for r in order}
+for line in sys.stdin:
+    line = line.rstrip("\n")
+    if not line:
+        continue
+    parts = line.split("\t", 4)
+    if len(parts) != 5:
+        continue
+    rule_id, status, path, lineno, context = parts
+    if rule_id not in per_rule:
+        continue
+    try:
+        line_int = int(lineno)
+    except ValueError:
+        line_int = 1
+    per_rule[rule_id].append(
+        emit_json_finding(
+            rule_id=rule_id,
+            status=status,
+            location={"line": line_int, "context": f"{path}: {context}"},
+            reasoning=f"{path}: {context}.",
+            recommended_changes=recipes[rule_id],
+        )
+    )
+
+envelopes = [emit_rule_envelope(rule_id=r, findings=per_rule[r]) for r in order]
+print_envelope(envelopes)
+if any(e["overall_status"] == "fail" for e in envelopes):
+    sys.exit(1)
+'
+
+emit_envelopes() {
+  CHECK_SUBAGENT_SCRIPT_DIR="${SCRIPT_DIR}" \
+    CHECK_SUBAGENT_RECIPE_FM_DELIMITER="${RECIPE_FM_DELIMITER}" \
+    CHECK_SUBAGENT_RECIPE_FM_NAME="${RECIPE_FM_NAME}" \
+    CHECK_SUBAGENT_RECIPE_FM_DESCRIPTION="${RECIPE_FM_DESCRIPTION}" \
+    CHECK_SUBAGENT_RECIPE_FM_DESCRIPTION_LENGTH="${RECIPE_FM_DESCRIPTION_LENGTH}" \
+    CHECK_SUBAGENT_RECIPE_PLUGIN_NOOP="${RECIPE_PLUGIN_NOOP}" \
+    CHECK_SUBAGENT_RECIPE_MEMORY_EXPANSION="${RECIPE_MEMORY_EXPANSION}" \
+    python3 -c "${EMIT_PY}"
+}
+
 main() {
   if [[ "$#" -eq 0 ]]; then
     usage >&2
     exit 64
   fi
-
   case "${1:-}" in
     -h | --help)
       usage
       exit 0
       ;;
   esac
-
   preflight
-
-  local target
-  for target in "$@"; do
-    check_path "${target}" || exit "$?"
-  done
-
-  [[ "${fail_count}" -eq 0 ]] && exit 0 || exit 1
+  local target rc=0
+  {
+    for target in "$@"; do
+      scan_path "${target}"
+    done
+  } | emit_envelopes || rc=$?
+  exit "${rc}"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
