@@ -1,35 +1,37 @@
 #!/usr/bin/env python3
-"""Deterministic Tier-1 checks for the RESOLVER.md managed region.
+"""Tier-1 RESOLVER.md managed-region checks — emits JSON ARRAY of seven envelopes.
 
 Given a target directory, walks up to the nearest ``RESOLVER.md`` and
 audits that resolver. The discovered ancestor becomes the resolver
 root, and all checks scope to its subtree (not the filesystem repo).
 
-Seven checks per resolver root:
+Seven rules per resolver root:
 
-- **markers-present** — both ``<!-- resolver:begin -->`` and
-  ``<!-- resolver:end -->`` appear exactly once. FAIL otherwise.
-- **filing-paths-resolve** — every Location column value in the filing
-  table resolves to a directory on disk. FAIL on miss.
-- **context-paths-resolve** — every doc path in the context table's
-  "Load first" column resolves to a file or directory on disk. FAIL
-  on miss. Directories are valid context entries — the convention
-  is to Glob the directory's naming pattern and read frontmatter
-  ``description`` to identify the right file.
-- **filing-rows-unique** — the filing table's first column (content
-  type) has no duplicates. FAIL on duplicate.
-- **context-rows-unique** — the context table's first column (task)
-  has no duplicates. FAIL on duplicate.
-- **dark-capability** — every depth 1–2 directory under the resolver
-  root is classified by filing table, context table, out-of-scope
-  list, the ambient default set, or a nested ``RESOLVER.md``
-  (delegation — that subtree belongs to the nested resolver). WARN
-  on any unclassified directory.
-- **mtime-stale** — RESOLVER.md mtime older than 90 days. WARN.
+- **markers-present** (FAIL) — both ``<!-- resolver:begin -->`` and
+  ``<!-- resolver:end -->`` appear exactly once.
+- **filing-paths-resolve** (FAIL) — every Location column value in the
+  filing table resolves to a directory on disk.
+- **context-paths-resolve** (FAIL) — every doc path in the context table's
+  "Load first" column resolves to a file or directory on disk.
+- **filing-rows-unique** (FAIL) — the filing table's first column
+  (content-type) has no duplicates.
+- **context-rows-unique** (FAIL) — the context table's first column (task)
+  has no duplicates.
+- **dark-capability** (WARN) — every depth 1–2 directory under the resolver
+  root is classified by filing table, context table, out-of-scope list,
+  the ambient default set, or a nested ``RESOLVER.md`` (delegation).
+- **mtime-stale** (WARN) — RESOLVER.md mtime older than 90 days.
 
 Paths containing template placeholders (``<...>``, ``*``) are skipped
-by the resolver checks — they are documented templates, not concrete
-paths.
+by the resolver checks — they are documented templates, not concrete paths.
+
+Multi-target invocation: each target is one repo root; findings accumulate
+across targets, then one envelope per rule_id is emitted.
+
+Exit codes:
+  0  — overall_status pass / warn / inapplicable for every emitted envelope
+  1  — overall_status=fail for any envelope
+  64 — usage error
 
 Example:
     ./check_resolver.py .
@@ -44,7 +46,10 @@ import sys
 import time
 from pathlib import Path
 
-EXIT_USAGE = 2
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _common import emit_json_finding, emit_rule_envelope, print_envelope  # noqa: E402
+
+EXIT_USAGE = 64
 EXIT_INTERRUPTED = 130
 
 RESOLVER_FILENAME = "RESOLVER.md"
@@ -78,15 +83,91 @@ PLACEHOLDER_RE = re.compile(r"[<>*]")
 OOS_BULLET_LINE_RE = re.compile(r"^\s*[-*]\s+")
 OOS_PATH_RE = re.compile(r"`([^`]+)`")
 
+_RULE_ORDER: list[str] = [
+    "markers-present",
+    "filing-paths-resolve",
+    "context-paths-resolve",
+    "filing-rows-unique",
+    "context-rows-unique",
+    "dark-capability",
+    "mtime-stale",
+]
 
-def emit_fail(path: Path, check: str, detail: str, recommendation: str) -> None:
-    print(f"FAIL  {path} — {check}: {detail}")
-    print(f"  Recommendation: {recommendation}")
+_RECIPES: dict[str, str] = {
+    "markers-present": (
+        "Restore `<!-- resolver:begin -->` and `<!-- resolver:end -->` "
+        "around the filing/context/out-of-scope section, then regenerate "
+        "via `/build:build-resolver --regenerate`. Each marker must appear "
+        "exactly once. Without markers, regeneration stomps human prose "
+        "and the auditor cannot distinguish disk-derived content from "
+        "hand edits."
+    ),
+    "filing-paths-resolve": (
+        "Either remove the row (if the directory was intentionally deleted) "
+        "or restore the directory (if it should exist). Example: a filing "
+        "row `| design | .designs/ | … |` with no `.designs/` on disk → "
+        "either delete the row or `mkdir .designs/` and seed it with a "
+        "file matching the row's naming pattern. A filing row that doesn't "
+        "resolve routes new content into nothing."
+    ),
+    "context-paths-resolve": (
+        "Update the path to its current location (file or directory), or "
+        "remove the entry from the bundle. Example: a bundle that lists "
+        "`_shared/references/hook-best-practices.md` at a path no longer "
+        "present → correct to `plugins/build/_shared/references/"
+        "hook-best-practices.md`. A directory entry like `.research/` is "
+        "also valid — the agent uses Glob on the directory's naming "
+        "pattern and reads frontmatter to find the right file. Broken "
+        "context loads train Claude to skip the resolver."
+    ),
+    "filing-rows-unique": (
+        "Merge the duplicates, keeping the more specific location. "
+        "Example: two filing rows both using content-type `research`, one "
+        "pointing at `.research/` and one at `.docs/research/` → one row. "
+        "If both locations are real, promote to a glob pattern or rename "
+        "one content-type to disambiguate. Two rows routing the same "
+        "content-type produce inconsistent filing decisions."
+    ),
+    "context-rows-unique": (
+        "Merge the duplicates, keeping the broader or more recent bundle. "
+        "Example: two context rows both for task `authoring a hook`, with "
+        "overlapping but non-identical doc lists → one row listing the "
+        "union (capped at 1–4 entries per Dimension 2). Two rows for the "
+        "same task produce inconsistent context loads."
+    ),
+    "dark-capability": (
+        "Classify the directory explicitly — add it as a filing row, a "
+        "context-load target, or an out-of-scope entry; or place a nested "
+        "`RESOLVER.md` inside it to delegate. Example: `.inbox/` present "
+        "with 10 files but no classification → either "
+        "`| inbox note | .inbox/ | <slug>.md |` in the filing table, or "
+        "`- .inbox/ — transient ingress` in out-of-scope. Regenerate via "
+        "`/build:build-resolver --regenerate`. Unclassified directories "
+        "are capabilities Claude can't reach; silence is ambiguous."
+    ),
+    "mtime-stale": (
+        "Run `/build:build-resolver --regenerate` to refresh the managed "
+        "region against current disk state. Long-stale resolvers drift "
+        "from the directories they claim to route — new directories are "
+        "unclassified, deleted ones still appear in the table."
+    ),
+}
 
 
-def emit_warn(path: Path, check: str, detail: str, recommendation: str) -> None:
-    print(f"WARN  {path} — {check}: {detail}")
-    print(f"  Recommendation: {recommendation}")
+def _make_finding(
+    rule_id: str,
+    severity: str,
+    location_context: str,
+    reasoning: str,
+    line: int = 0,
+) -> dict:
+    return emit_json_finding(
+        rule_id=rule_id,
+        status="fail" if severity == "FAIL" else "warn",
+        location={"line": line, "context": location_context},
+        reasoning=reasoning,
+        recommended_changes=_RECIPES[rule_id],
+    )
 
 
 def extract_managed_region(text: str) -> str | None:
@@ -110,11 +191,7 @@ def parse_table_cells(row_line: str) -> list[str]:
 
 
 def find_section_table(region: str, section_prefix: str) -> list[list[str]]:
-    """Return data rows from the first markdown table inside the named H2 section.
-
-    Matches H2 headings whose text starts with ``section_prefix`` (case-insensitive).
-    Returns an empty list when the section or table is absent.
-    """
+    """Return data rows from the first markdown table inside the named H2 section."""
     lines = region.splitlines()
     in_section = False
     table_started = False
@@ -153,13 +230,7 @@ def strip_backticks(value: str) -> str:
 
 
 def extract_paths_from_load_cell(cell: str) -> list[str]:
-    """Parse one context-table "Load first" cell into a list of doc paths.
-
-    Accepts three shapes:
-      - single backticked path:        `foo/bar.md`
-      - backticked comma-separated:    `foo.md`, `bar.md`
-      - bracketed comma-separated:     [foo.md, bar.md]
-    """
+    """Parse one context-table "Load first" cell into a list of doc paths."""
     inner = cell.strip()
     if inner.startswith("[") and inner.endswith("]"):
         inner = inner[1:-1]
@@ -167,25 +238,34 @@ def extract_paths_from_load_cell(cell: str) -> list[str]:
     return [p for p in parts if p]
 
 
-def check_markers(resolver_path: Path, text: str) -> bool:
+def check_markers(
+    resolver_path: Path, text: str, per_rule: dict[str, list[dict]]
+) -> bool:
     begin_count = text.count(MARKER_BEGIN)
     end_count = text.count(MARKER_END)
     if begin_count == 1 and end_count == 1:
         return True
-    emit_fail(
-        resolver_path,
-        "markers-present",
-        f"expected exactly one {MARKER_BEGIN} and one {MARKER_END}; "
-        f"found {begin_count} begin, {end_count} end",
-        "Restore the managed-region markers and regenerate via "
-        "/build:build-resolver --regenerate",
+    per_rule["markers-present"].append(
+        _make_finding(
+            "markers-present",
+            "FAIL",
+            f"{resolver_path}: expected exactly one {MARKER_BEGIN} "
+            f"and one {MARKER_END}; found {begin_count} begin, {end_count} end",
+            f"Managed-region markers are unbalanced ({begin_count} begin, "
+            f"{end_count} end); regeneration would stomp human prose and "
+            "auditing cannot distinguish disk-derived content from hand edits.",
+        )
     )
     return False
 
 
-def check_filing_table(resolver_path: Path, resolver_root: Path, region: str) -> bool:
+def check_filing_table(
+    resolver_path: Path,
+    resolver_root: Path,
+    region: str,
+    per_rule: dict[str, list[dict]],
+) -> None:
     rows = find_section_table(region, "Filing")
-    ok = True
     seen_keys: dict[str, int] = {}
     for idx, cells in enumerate(rows, start=1):
         if len(cells) < 2:
@@ -195,34 +275,44 @@ def check_filing_table(resolver_path: Path, resolver_root: Path, region: str) ->
         if not content_type or not location:
             continue
         if content_type in seen_keys:
-            emit_fail(
-                resolver_path,
-                "filing-rows-unique",
-                f"duplicate content-type '{content_type}' "
-                f"(rows {seen_keys[content_type]} and {idx})",
-                "Merge the duplicates into one row, or rename one content-type",
+            per_rule["filing-rows-unique"].append(
+                _make_finding(
+                    "filing-rows-unique",
+                    "FAIL",
+                    f"{resolver_path}: duplicate content-type '{content_type}' "
+                    f"(rows {seen_keys[content_type]} and {idx})",
+                    f"Two filing rows share content-type '{content_type}' "
+                    f"(rows {seen_keys[content_type]} and {idx}); routing "
+                    "decisions become inconsistent.",
+                )
             )
-            ok = False
         else:
             seen_keys[content_type] = idx
         if PLACEHOLDER_RE.search(location):
             continue
         resolved = (resolver_root / location).resolve()
         if not resolved.is_dir():
-            emit_fail(
-                resolver_path,
-                "filing-paths-resolve",
-                f"filing location '{location}' "
-                f"(content-type '{content_type}') does not resolve to a directory",
-                "Create the directory, correct the path, or remove the row",
+            per_rule["filing-paths-resolve"].append(
+                _make_finding(
+                    "filing-paths-resolve",
+                    "FAIL",
+                    f"{resolver_path}: filing location '{location}' "
+                    f"(content-type '{content_type}') does not resolve "
+                    "to a directory",
+                    f"Filing row '{content_type}' points at '{location}' "
+                    "but no such directory exists; new content of this type "
+                    "would be routed into nothing.",
+                )
             )
-            ok = False
-    return ok
 
 
-def check_context_table(resolver_path: Path, resolver_root: Path, region: str) -> bool:
+def check_context_table(
+    resolver_path: Path,
+    resolver_root: Path,
+    region: str,
+    per_rule: dict[str, list[dict]],
+) -> None:
     rows = find_section_table(region, "Context")
-    ok = True
     seen_tasks: dict[str, int] = {}
     for idx, cells in enumerate(rows, start=1):
         if len(cells) < 2:
@@ -232,13 +322,17 @@ def check_context_table(resolver_path: Path, resolver_root: Path, region: str) -
         if not task or not load_cell.strip():
             continue
         if task in seen_tasks:
-            emit_fail(
-                resolver_path,
-                "context-rows-unique",
-                f"duplicate task '{task}' (rows {seen_tasks[task]} and {idx})",
-                "Merge the duplicates into one row with a unioned doc list",
+            per_rule["context-rows-unique"].append(
+                _make_finding(
+                    "context-rows-unique",
+                    "FAIL",
+                    f"{resolver_path}: duplicate task '{task}' "
+                    f"(rows {seen_tasks[task]} and {idx})",
+                    f"Two context rows share task '{task}' (rows "
+                    f"{seen_tasks[task]} and {idx}); context loads become "
+                    "inconsistent depending on which row Claude reads.",
+                )
             )
-            ok = False
         else:
             seen_tasks[task] = idx
         for doc_path in extract_paths_from_load_cell(load_cell):
@@ -246,15 +340,17 @@ def check_context_table(resolver_path: Path, resolver_root: Path, region: str) -
                 continue
             resolved = (resolver_root / doc_path).resolve()
             if not resolved.exists():
-                emit_fail(
-                    resolver_path,
-                    "context-paths-resolve",
-                    f"context doc '{doc_path}' (task '{task}') "
-                    "does not resolve to a file or directory",
-                    "Correct the path, or remove the entry from the bundle",
+                per_rule["context-paths-resolve"].append(
+                    _make_finding(
+                        "context-paths-resolve",
+                        "FAIL",
+                        f"{resolver_path}: context doc '{doc_path}' "
+                        f"(task '{task}') does not resolve to a file or directory",
+                        f"Context row for task '{task}' lists '{doc_path}' "
+                        "but the path does not exist; broken context loads "
+                        "train Claude to skip the resolver.",
+                    )
                 )
-                ok = False
-    return ok
 
 
 def parse_out_of_scope(region: str) -> set[str]:
@@ -281,18 +377,7 @@ def parse_out_of_scope(region: str) -> set[str]:
 
 
 def collect_classified(region: str) -> tuple[set[str], set[str], set[str]]:
-    """Return (filing_dirs, recursive_dirs, oos_dirs) drawn from the managed region.
-
-    - **filing_dirs**: filing-table locations. Only the directory itself is
-      classified — subdirectories beneath a filing dir are *dark* unless
-      separately classified, since the filing rule names files directly
-      inside.
-    - **recursive_dirs**: context-table paths plus the out-of-scope list.
-      Descendants are classified — the agent descends into context dirs on
-      need and out-of-scope dirs are pruned entirely.
-    - **oos_dirs**: out-of-scope subset of recursive_dirs, used to skip
-      descent during the depth-2 walk.
-    """
+    """Return (filing_dirs, recursive_dirs, oos_dirs) drawn from the managed region."""
     filing_dirs: set[str] = set()
     for cells in find_section_table(region, "Filing"):
         if len(cells) < 2:
@@ -326,14 +411,19 @@ def is_under_oos(rel: str, oos: set[str]) -> bool:
     return rel in oos or any(rel.startswith(prefix + "/") for prefix in oos)
 
 
-def emit_dark(resolver_path: Path, rel: str) -> None:
-    emit_warn(
-        resolver_path,
-        "dark-capability",
-        f"directory '{rel}/' not in filing table, context table, or out of scope",
-        "Add a filing row, mark out-of-scope, or place a nested "
-        "RESOLVER.md inside it; regenerate via "
-        "/build:build-resolver --regenerate",
+def emit_dark(
+    resolver_path: Path, rel: str, per_rule: dict[str, list[dict]]
+) -> None:
+    per_rule["dark-capability"].append(
+        _make_finding(
+            "dark-capability",
+            "WARN",
+            f"{resolver_path}: directory '{rel}/' not in filing table, "
+            "context table, or out of scope",
+            f"Directory '{rel}/' exists on disk but is unclassified — "
+            "the resolver cannot route filing or context decisions through "
+            "it; capability is dark.",
+        )
     )
 
 
@@ -343,13 +433,13 @@ def scan_subdir(
     rel: str,
     filing_dirs: set[str],
     recursive_dirs: set[str],
-) -> bool:
-    """Scan one depth-1 directory's children. Returns True if all clean."""
-    ok = True
+    per_rule: dict[str, list[dict]],
+) -> None:
+    """Scan one depth-1 directory's children."""
     try:
         children = sorted(entry.iterdir())
     except (OSError, PermissionError):
-        return ok
+        return
     for sub in children:
         if not sub.is_dir():
             continue
@@ -360,30 +450,25 @@ def scan_subdir(
         sub_rel = f"{rel}/{sub.name}"
         if is_classified(sub_rel, filing_dirs, recursive_dirs):
             continue
-        emit_dark(resolver_path, sub_rel)
-        ok = False
-    return ok
+        emit_dark(resolver_path, sub_rel, per_rule)
 
 
 def check_dark_capabilities(
-    resolver_path: Path, resolver_root: Path, region: str
-) -> bool:
-    """Walk depth 1–2 directories and warn on any unclassified entry.
-
-    A directory is classified when it appears in the filing table, the
-    context table, the out-of-scope list, the ambient basename set, or
-    contains a nested ``RESOLVER.md`` (delegation seed for future
-    nested-resolver work). Subdirectories of a filing dir are *not*
-    auto-classified — the filing rule covers files inside the dir, not
-    nested directories.
-    """
+    resolver_path: Path,
+    resolver_root: Path,
+    region: str,
+    per_rule: dict[str, list[dict]],
+) -> None:
+    """Walk depth 1–2 directories and warn on any unclassified entry."""
     filing_dirs, recursive_dirs, oos_dirs = collect_classified(region)
-    ok = True
     try:
         depth1 = sorted(resolver_root.iterdir())
     except (OSError, PermissionError) as err:
-        print(f"error: cannot list {resolver_root}: {err}", file=sys.stderr)
-        return False
+        print(
+            f"check_resolver.py: cannot list {resolver_root}: {err}",
+            file=sys.stderr,
+        )
+        return
     for entry in depth1:
         if not entry.is_dir():
             continue
@@ -394,26 +479,29 @@ def check_dark_capabilities(
             continue
         rel = name
         if not is_classified(rel, filing_dirs, recursive_dirs):
-            emit_dark(resolver_path, rel)
-            ok = False
+            emit_dark(resolver_path, rel, per_rule)
             continue
         if is_under_oos(rel, oos_dirs):
             continue
-        if not scan_subdir(resolver_path, entry, rel, filing_dirs, recursive_dirs):
-            ok = False
-    return ok
+        scan_subdir(
+            resolver_path, entry, rel, filing_dirs, recursive_dirs, per_rule
+        )
 
 
-def check_mtime(resolver_path: Path) -> None:
+def check_mtime(resolver_path: Path, per_rule: dict[str, list[dict]]) -> None:
     age_seconds = time.time() - resolver_path.stat().st_mtime
     if age_seconds > STALE_SECONDS:
         days = int(age_seconds / SECONDS_PER_DAY)
-        emit_warn(
-            resolver_path,
-            "mtime-stale",
-            f"RESOLVER.md mtime is {days} days old (threshold {STALE_DAYS})",
-            "Run /build:build-resolver --regenerate to refresh "
-            "against current disk state",
+        per_rule["mtime-stale"].append(
+            _make_finding(
+                "mtime-stale",
+                "WARN",
+                f"{resolver_path}: RESOLVER.md mtime is {days} days old "
+                f"(threshold {STALE_DAYS})",
+                f"RESOLVER.md has not been touched in {days} days, beyond "
+                f"the {STALE_DAYS}-day staleness threshold; routing tables "
+                "may have drifted from current disk state.",
+            )
         )
 
 
@@ -429,45 +517,57 @@ def find_resolver_root(target: Path) -> Path | None:
     return None
 
 
-def check_target(target: Path) -> bool:
+def check_target(target: Path, per_rule: dict[str, list[dict]]) -> None:
     if not target.is_dir():
-        print(f"error: not a directory: {target}", file=sys.stderr)
-        raise SystemExit(EXIT_USAGE)
+        print(f"check_resolver.py: not a directory: {target}", file=sys.stderr)
+        raise _UsageError
     resolver_root = find_resolver_root(target)
     if resolver_root is None:
-        emit_fail(
-            target / RESOLVER_FILENAME,
-            "markers-present",
-            f"no {RESOLVER_FILENAME} found walking up from {target}",
-            "Create RESOLVER.md via /build:build-resolver",
+        per_rule["markers-present"].append(
+            _make_finding(
+                "markers-present",
+                "FAIL",
+                f"{target / RESOLVER_FILENAME}: no {RESOLVER_FILENAME} "
+                f"found walking up from {target}",
+                f"No {RESOLVER_FILENAME} exists at or above the target; "
+                "there is no resolver to audit.",
+            )
         )
-        return False
+        return
     resolver_path = resolver_root / RESOLVER_FILENAME
     try:
         text = resolver_path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as err:
-        print(f"error: cannot read {resolver_path}: {err}", file=sys.stderr)
-        return False
-    ok = True
-    if not check_markers(resolver_path, text):
-        check_mtime(resolver_path)
-        return False
+        print(
+            f"check_resolver.py: cannot read {resolver_path}: {err}",
+            file=sys.stderr,
+        )
+        return
+    markers_ok = check_markers(resolver_path, text, per_rule)
+    # mtime check runs regardless of marker outcome (preserves prior behaviour)
+    if not markers_ok:
+        check_mtime(resolver_path, per_rule)
+        return
     region = extract_managed_region(text)
     if region is None:
-        return False
-    if not check_filing_table(resolver_path, resolver_root, region):
-        ok = False
-    if not check_context_table(resolver_path, resolver_root, region):
-        ok = False
-    if not check_dark_capabilities(resolver_path, resolver_root, region):
-        ok = False
-    check_mtime(resolver_path)
-    return ok
+        return
+    check_filing_table(resolver_path, resolver_root, region, per_rule)
+    check_context_table(resolver_path, resolver_root, region, per_rule)
+    check_dark_capabilities(resolver_path, resolver_root, region, per_rule)
+    check_mtime(resolver_path, per_rule)
+
+
+class _UsageError(Exception):
+    pass
 
 
 def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Tier-1 deterministic checks for the RESOLVER.md managed region.",
+        prog="check_resolver.py",
+        description=(
+            "Tier-1 deterministic checks for the RESOLVER.md managed "
+            "region (JSON envelope output)."
+        ),
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
@@ -484,14 +584,21 @@ def get_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = get_parser().parse_args(argv)
+    per_rule: dict[str, list[dict]] = {r: [] for r in _RULE_ORDER}
     try:
-        all_ok = True
         for target in args.paths:
-            if not check_target(target):
-                all_ok = False
-        return 0 if all_ok else 1
+            check_target(target, per_rule)
+    except _UsageError:
+        return EXIT_USAGE
     except KeyboardInterrupt:
         return EXIT_INTERRUPTED
+
+    envelopes = [
+        emit_rule_envelope(rule_id=rid, findings=per_rule[rid]) for rid in _RULE_ORDER
+    ]
+    print_envelope(envelopes)
+    any_fail = any(env["overall_status"] == "fail" for env in envelopes)
+    return 1 if any_fail else 0
 
 
 if __name__ == "__main__":
