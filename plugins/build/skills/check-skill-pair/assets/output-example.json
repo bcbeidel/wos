@@ -1,0 +1,16 @@
+{
+  "_comment": "Canonical output shape for a check-skill-pair rule. Each detection script (scripts/audit_pair.py is the only one for this skill) emits a JSON array of envelopes — one per rule_id (T1 existence, T2 content, T3 cross-reference). Schema: {rule_id: string, overall_status: 'pass'|'warn'|'fail'|'inapplicable', findings: [<finding>]}. Per-finding: {status: 'warn'|'fail', location: {line: int, context: string} | null, reasoning: string, recommended_changes: string}. recommended_changes is REQUIRED — non-empty string with concrete repair guidance sourced from skill-pair-best-practices.md. Scripts emit complete recipes; the orchestrator does not enrich.",
+  "rule_id": "principles-doc-presence",
+  "overall_status": "fail",
+  "findings": [
+    {
+      "status": "fail",
+      "location": {
+        "line": 0,
+        "context": "plugins/build/_shared/references/foo-best-practices.md"
+      },
+      "reasoning": "Principles doc for primitive `foo` is missing. The pair has no canonical authority for what makes a `foo` load-bearing — every dimension downstream loses its anchor.",
+      "recommended_changes": "Run `/build:build-skill-pair foo` to scaffold the missing principles doc from input material. The skill-pair builder distills the principles into the canonical `<primitive>-best-practices.md` shape (What a Good X Does, Anatomy, Authoring Principles, Patterns That Work, Safety, Review and Decay). Manual creation: copy the Anatomy from `plugins/build/_shared/references/skill-pair-best-practices.md` and fill each section against the primitive's domain conventions."
+    }
+  ]
+}
