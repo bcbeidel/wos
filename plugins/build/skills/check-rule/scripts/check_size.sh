@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 #
-# check_size.sh — Deterministic Tier-1 file-size check for Claude Code
-# rule files. Counts non-blank lines; emits WARN at >200 and FAIL at >500.
+# check_size.sh — Tier-1 file-size check for Claude Code rule files.
+# Emits a JSON ARRAY with one envelope (rule_id="size") per
+# scripts/_common.py.
 #
+# Counts non-blank lines per file; emits WARN at >200 and FAIL at >500.
 # A "non-blank" line contains at least one non-whitespace character.
 # Blank lines are excluded so formatting padding doesn't push a file
 # past threshold.
@@ -13,13 +15,13 @@
 # Paths may be files or directories (recursively scanned for *.md).
 #
 # Exit codes:
-#   0   no FAIL findings (WARN-only runs return 0)
+#   0   no FAIL findings (overall_status pass / warn / inapplicable)
 #   1   one or more FAIL findings
 #   64  usage error
 #   69  missing dependency
 #
 # Dependencies:
-#   awk, find, basename
+#   awk, find, basename, python3
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -27,10 +29,15 @@ IFS=$'\n\t'
 PROGNAME="$(basename "${0}")"
 readonly PROGNAME
 
-readonly REQUIRED_CMDS=(awk find basename)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly SCRIPT_DIR
+
+readonly REQUIRED_CMDS=(awk find basename python3)
 
 readonly WARN_THRESHOLD=200
 readonly FAIL_THRESHOLD=500
+
+readonly RECIPE_SIZE='Split the rule by topic and move long-form rationale out of `.claude/rules/`. Soft cap (>200 lines): split into topic-specific files (e.g., api-conventions.md + test-conventions.md). Hard cap (>500 lines): the file is a document, not a rule — split into rules AND move long-form explanation to `.context/<name>.md` or a CLAUDE.md section. Larger rules consume context and reduce adherence; splitting also improves the on-demand load path for path-scoped rules.'
 
 usage() {
   cat <<'EOF'
@@ -57,6 +64,7 @@ EOF
 install_hint() {
   case "${1}" in
     awk | find | basename) printf 'should be preinstalled on any POSIX system' ;;
+    python3) printf 'install Python 3.9+' ;;
     *) printf 'see your package manager' ;;
   esac
 }
@@ -78,57 +86,84 @@ preflight() {
   fi
 }
 
-emit_fail() {
-  local path="$1" check="$2" detail="$3" rec="$4"
-  printf 'FAIL  %s — %s: %s\n' "${path}" "${check}" "${detail}"
-  printf '  Recommendation: %s\n' "${rec}"
-}
-
-emit_warn() {
-  local path="$1" check="$2" detail="$3" rec="$4"
-  printf 'WARN  %s — %s: %s\n' "${path}" "${check}" "${detail}"
-  printf '  Recommendation: %s\n' "${rec}"
-}
-
 count_nonblank() {
   local file="$1"
   awk 'NF > 0 { n++ } END { print n+0 }' "${file}" 2>/dev/null || printf '0'
 }
 
-check_file() {
+# Emit findings as TSV: <status>\t<file>\t<count>\t<threshold>
+emit_raw() {
   local file="$1"
   local count
   count="$(count_nonblank "${file}")"
 
   if [[ "${count}" -gt "${FAIL_THRESHOLD}" ]]; then
-    emit_fail "${file}" "file size" \
-      "${count} non-blank lines exceeds ${FAIL_THRESHOLD}-line hard cap" \
-      "Split into rules and move long-form rationale to .context/<name>.md or a CLAUDE.md section"
-    return 1
+    printf 'fail\t%s\t%s\t%s\n' "${file}" "${count}" "${FAIL_THRESHOLD}"
   elif [[ "${count}" -gt "${WARN_THRESHOLD}" ]]; then
-    emit_warn "${file}" "file size" \
-      "${count} non-blank lines exceeds ${WARN_THRESHOLD}-line soft cap" \
-      "Split into topic files (e.g., testing-unit.md + testing-integration.md)"
+    printf 'warn\t%s\t%s\t%s\n' "${file}" "${count}" "${WARN_THRESHOLD}"
   fi
-  return 0
 }
 
-check_path() {
+scan_path() {
   local target="$1"
-  local any=0
   local file
 
   if [[ -f "${target}" ]]; then
-    check_file "${target}" || any=1
+    emit_raw "${target}"
   elif [[ -d "${target}" ]]; then
     while IFS= read -r file; do
-      check_file "${file}" || any=1
+      emit_raw "${file}"
     done < <(find "${target}" -type f -name '*.md' 2>/dev/null)
   else
     printf '%s: path not found: %s\n' "${PROGNAME}" "${target}" >&2
     return 64
   fi
-  return "${any}"
+}
+
+readonly EMIT_PY='
+import os
+import sys
+
+sys.path.insert(0, os.environ["CHECK_RULE_SCRIPT_DIR"])
+from _common import emit_json_finding, emit_rule_envelope, print_envelope
+
+recipe = os.environ["CHECK_RULE_RECIPE_SIZE"]
+
+findings = []
+for line in sys.stdin:
+    line = line.rstrip("\n")
+    if not line:
+        continue
+    parts = line.split("\t", 3)
+    if len(parts) != 4:
+        continue
+    status, path, count, threshold = parts
+    findings.append(
+        emit_json_finding(
+            rule_id="size",
+            status=status,
+            location={"line": 1, "context": f"{path}: {count} non-blank lines"},
+            reasoning=(
+                f"{path} has {count} non-blank lines, exceeding the "
+                f"{threshold}-line threshold. Larger rules consume "
+                "context and reduce adherence; at the hard cap the file "
+                "is a document, not a rule."
+            ),
+            recommended_changes=recipe,
+        )
+    )
+
+envelope = emit_rule_envelope(rule_id="size", findings=findings)
+print_envelope([envelope])
+
+if envelope["overall_status"] == "fail":
+    sys.exit(1)
+'
+
+emit_envelopes() {
+  CHECK_RULE_SCRIPT_DIR="${SCRIPT_DIR}" \
+    CHECK_RULE_RECIPE_SIZE="${RECIPE_SIZE}" \
+    python3 -c "${EMIT_PY}"
 }
 
 main() {
@@ -146,13 +181,14 @@ main() {
 
   preflight
 
-  local any=0
   local target
-  for target in "$@"; do
-    check_path "${target}" || any=1
-  done
-
-  exit "${any}"
+  local rc=0
+  {
+    for target in "$@"; do
+      scan_path "${target}"
+    done
+  } | emit_envelopes || rc=$?
+  exit "${rc}"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
