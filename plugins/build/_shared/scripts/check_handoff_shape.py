@@ -16,7 +16,8 @@ single `SKILL.md` file. With no paths, walks the current working
 directory.
 
 Output: JSON array of violations to stdout (or human-readable lines
-with --human). Exit 0 if clean, 1 if any violations, 2 on read error.
+with --human, or check-skill envelopes with --envelope). Exit 0 if
+clean, 1 if any violations, 2 on read error.
 """
 
 from __future__ import annotations
@@ -79,7 +80,42 @@ def get_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Emit human-readable lines instead of JSON.",
     )
+    parser.add_argument(
+        "--envelope",
+        action="store_true",
+        help="Emit a check-skill-style envelope (rule_id=handoff-shape).",
+    )
     return parser
+
+
+_RECOMMENDED_CHANGES = (
+    "Remove the **Receives:** and/or **Produces:** lines from the "
+    "## Handoff section. Keep only **Chainable to:**. See "
+    "skill-best-practices.md (Authoring Principles → Handoff section)."
+)
+
+
+def _build_envelope(violations: list[dict]) -> dict:
+    findings = [
+        {
+            "status": "warn",
+            "location": {
+                "line": v["line"],
+                "context": f"{v['file']}: {v['text']}",
+            },
+            "reasoning": (
+                f"`**{v['kind'].capitalize()}:**` line in ## Handoff "
+                f"duplicates frontmatter or output-format heading."
+            ),
+            "recommended_changes": _RECOMMENDED_CHANGES,
+        }
+        for v in violations
+    ]
+    return {
+        "rule_id": "handoff-shape",
+        "overall_status": "warn" if findings else "pass",
+        "findings": findings,
+    }
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -108,6 +144,9 @@ def main(argv: list[str] | None = None) -> int:
                 f"{len({v['file'] for v in all_violations})} files",
                 file=sys.stderr,
             )
+    elif args.envelope:
+        json.dump(_build_envelope(all_violations), sys.stdout, indent=2)
+        sys.stdout.write("\n")
     else:
         json.dump(all_violations, sys.stdout, indent=2)
         sys.stdout.write("\n")

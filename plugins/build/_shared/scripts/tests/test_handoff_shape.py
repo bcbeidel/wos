@@ -183,6 +183,36 @@ def test_main_clean_repo_returns_zero(tmp_path, capsys):
     assert parsed == []
 
 
+def test_main_envelope_output(tmp_path, capsys):
+    skill = tmp_path / "skill-dir" / "SKILL.md"
+    skill.parent.mkdir()
+    skill.write_text(BOTH_VIOLATIONS, encoding="utf-8")
+    rc = main(["--envelope", str(tmp_path)])
+    assert rc == 1
+    captured = capsys.readouterr()
+    parsed = json.loads(captured.out)
+    assert parsed["rule_id"] == "handoff-shape"
+    assert parsed["overall_status"] == "warn"
+    assert len(parsed["findings"]) == 2
+    for finding in parsed["findings"]:
+        assert finding["status"] == "warn"
+        assert "line" in finding["location"]
+        assert finding["recommended_changes"]
+
+
+def test_main_envelope_clean_returns_pass(tmp_path, capsys):
+    skill = tmp_path / "skill-dir" / "SKILL.md"
+    skill.parent.mkdir()
+    skill.write_text(CLEAN_HANDOFF, encoding="utf-8")
+    rc = main(["--envelope", str(tmp_path)])
+    assert rc == 0
+    captured = capsys.readouterr()
+    parsed = json.loads(captured.out)
+    assert parsed["rule_id"] == "handoff-shape"
+    assert parsed["overall_status"] == "pass"
+    assert parsed["findings"] == []
+
+
 def test_main_human_output(tmp_path, capsys):
     skill = tmp_path / "skill-dir" / "SKILL.md"
     skill.parent.mkdir()

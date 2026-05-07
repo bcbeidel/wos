@@ -29,7 +29,7 @@ license: MIT
 
 Evaluate the quality of an existing Claude Code skill. Three tiers, in order: deterministic format checks (no LLM), per-skill semantic checks (nine always-on dimensions in a single locked-rubric call), then cross-skill description collision detection.
 
-This skill follows the [check-skill pattern](../../_shared/references/check-skill-pattern.md). Tier-1 detection is in 8 scripts emitting JSON envelopes via `_common.py` (21 rule_ids total). Tier-2 has 9 judgment dimensions read inline by the primary agent. Tier-3 is a judgment-driven cross-skill description-collision pass over candidate pairs.
+This skill follows the [check-skill pattern](../../_shared/references/check-skill-pattern.md). Tier-1 detection is in 8 per-skill scripts emitting JSON envelopes via `_common.py` plus one shared detector (`_shared/scripts/check_handoff_shape.py` invoked with `--envelope`), 22 rule_ids total. Tier-2 has 9 judgment dimensions read inline by the primary agent. Tier-3 is a judgment-driven cross-skill description-collision pass over candidate pairs.
 
 The audit rubric mirrors the authoring principles in [skill-best-practices.md](../../_shared/references/skill-best-practices.md). Each Tier-2 dimension cites its source principle. When the principles doc changes, the dimensions should follow.
 
@@ -52,10 +52,11 @@ Report: "Found N skills. Auditing..."
 
 ### 2. Tier-1 Deterministic Format Checks
 
-Invoke 8 detection scripts:
+Invoke 9 detection scripts:
 
 ```bash
 SCRIPTS="${SKILL_DIR}/scripts"
+SHARED_SCRIPTS="${SKILL_DIR}/../../_shared/scripts"
 TARGETS="$ARGUMENTS"
 
 bash    "$SCRIPTS/check_identity.sh"           $TARGETS   # 5 rules: filename, directory-basename, name-slug, reserved-names, name-uniqueness
@@ -66,11 +67,12 @@ bash    "$SCRIPTS/check_prose.sh"              $TARGETS   # 2 rules: prose-hedge
 bash    "$SCRIPTS/check_secret.sh"             $TARGETS   # 1 rule:  secret
 bash    "$SCRIPTS/check_dangerous_patterns.sh" $TARGETS   # 2 rules: remote-exec, destructive-cmd
 python3 "$SCRIPTS/check_cisco.py"              $TARGETS   # 2 rules: scanner-fail, scanner-warn (inapplicable when scanner missing)
+python3 "$SHARED_SCRIPTS/check_handoff_shape.py" --envelope $TARGETS   # 1 rule:  handoff-shape
 ```
 
 Each script emits a JSON array of envelopes: `{rule_id, overall_status, findings[]}`. `recommended_changes` is canonical — copy through verbatim.
 
-**Script-to-rules map** (21 Tier-1 rule_ids):
+**Script-to-rules map** (22 Tier-1 rule_ids):
 
 | Script | rule_ids | Severity |
 |---|---|---|
@@ -95,6 +97,7 @@ Each script emits a JSON array of envelopes: `{rule_id, overall_status, findings
 | `check_dangerous_patterns.sh` | `destructive-cmd` | warn |
 | `check_cisco.py` | `scanner-fail` | fail |
 | `check_cisco.py` | `scanner-warn` | warn |
+| `_shared/scripts/check_handoff_shape.py` | `handoff-shape` | warn |
 
 **Tier-2 exclusion list.** Any FAIL in `filename`, `directory-basename`, `name-slug`, `reserved-names`, `required-frontmatter`, `version-shape`, `description-cap`, `required-sections`, `body-length` (>400 line case), `secret`, or `scanner-fail` excludes the skill from Tier-2 — malformed skills don't reach the LLM step.
 
@@ -166,7 +169,7 @@ After each applied fix, re-run the relevant Tier-1 script (or re-judge the Tier-
 4. **Vague finding text.** Cite the specific SKILL.md and the exact phrasing or field that triggered the finding.
 5. **Cross-skill collision-comparing skills with disjoint descriptions.** Gate Tier-3 on co-fire potential (overlapping trigger phrases or both always-on).
 6. **Trigger-gating Tier-2 dimensions.** Don't skip dimensions based on whether the skill "opts into" a shape; run all 9. Dimensions that don't apply return `inapplicable` silently.
-7. **Re-evaluating scripted rules in Tier-2.** Scripts are authoritative for the 21 Tier-1 rules; trust the `pass` envelope.
+7. **Re-evaluating scripted rules in Tier-2.** Scripts are authoritative for the 22 Tier-1 rules; trust the `pass` envelope.
 8. **Suppressing the inapplicable envelope.** When the cisco scanner is missing, surface `inapplicable` — do not silently skip.
 9. **Embellishing scripts' `recommended_changes`.** Each rule's recipe constant is canonical guidance sourced from `skill-best-practices.md`. Copy it through.
 
@@ -183,6 +186,6 @@ After each applied fix, re-run the relevant Tier-1 script (or re-judge the Tier-
 
 **Receives:** Path to a `SKILL.md` file or directory under `skills/`, or no argument (scans the current plugin's skills).
 
-**Produces:** A unified findings table merging the 21 Tier-1 envelopes (script JSON), 9 Tier-2 judgment findings per skill, and Tier-3 cross-skill collision findings per skill pair. Each row: tier, rule_id, location, status, reasoning + `recommended_changes` excerpt. Optionally — per user confirmation in the Repair Loop — targeted edits to SKILL.md files.
+**Produces:** A unified findings table merging the 22 Tier-1 envelopes (script JSON), 9 Tier-2 judgment findings per skill, and Tier-3 cross-skill collision findings per skill pair. Each row: tier, rule_id, location, status, reasoning + `recommended_changes` excerpt. Optionally — per user confirmation in the Repair Loop — targeted edits to SKILL.md files.
 
 **Chainable to:** `/build:build-skill` (rebuild non-compliant skills from scratch when targeted repair would exceed the skill's scope); `/build:check-skill-pair <primitive>` (audit pair-level integrity for build/check pairs).
