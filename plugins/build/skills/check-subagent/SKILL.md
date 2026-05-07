@@ -7,10 +7,10 @@ description: >
   judgment dimensions (scope discipline, routing-description quality,
   tool proportionality, output contract, voice & framing, failure
   behavior, injection surface). Use when the user wants to "audit a
-  subagent", "check my agents", "review agent permissions", "validate
-  a subagent definition", or "are my subagents well-formed". Not for
-  skills (route to `/build:check-skill`), hooks (route to
-  `/build:check-hook`), or rules (route to `/build:check-rule`).
+  subagent", "review agent permissions", or "validate a subagent
+  definition". Not for skills (route to `/build:check-skill`), hooks
+  (route to `/build:check-hook`), or rules (route to
+  `/build:check-rule`).
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[path]"
 user-invocable: true
@@ -31,6 +31,13 @@ license: MIT
 Audit Claude Code custom subagent definitions for structural soundness, tool-scope hygiene, routing-contract clarity, and safety posture. The rubric — what makes a subagent load-bearing, the file anatomy, the patterns that work — lives in [subagent-best-practices.md](../../_shared/references/subagent-best-practices.md).
 
 This skill follows the [check-skill pattern](../../_shared/references/check-skill-pattern.md). Tier-1 detection is in 8 scripts emitting JSON envelopes via `_common.py` (20 rule_ids total). Tier-2 has 7 judgment dimensions read inline by the primary agent. Tier-3 is `description-collision` (mechanically detected by `check_collision.sh`).
+
+## When to use
+
+Also fires when the user phrases the request as:
+
+- "check my agents"
+- "are my subagents well-formed"
 
 ## Workflow
 
