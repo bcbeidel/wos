@@ -323,24 +323,19 @@ baseline-clean starting point.
 
 ## Anti-Pattern Guards
 
-1. **Skipping the Scope Gate** — always probe the five signals before
-   Elicit. Scaffolding bash for a workflow that wants Python or POSIX
-   `sh` pushes the wrong primitive into the codebase.
-2. **Scaffolding under `#!/bin/sh`** — this skill is bash-only. Bash
+1. **Scaffolding under `#!/bin/sh`** — this skill is bash-only. Bash
    features under a `sh` shebang fail silently on `dash`/BusyBox.
    Refuse via Scope Gate signal #1; do not produce a "mostly portable"
    hybrid.
-3. **Setuid scaffolding** — security minefield. Refuse via Scope Gate
+2. **Setuid scaffolding** — security minefield. Refuse via Scope Gate
    signal #2; recommend a compiled wrapper instead.
-4. **Hand-waving `--dry-run`** — if Intake step 3.5 flagged
+3. **Hand-waving `--dry-run`** — if Intake step 3.5 flagged
    destructive operations, the draft must wire the dry-run flag into
    the destructive code path, not just declare the flag and ignore
    it. Show the `if [[ "${dry_run}" ]]; then ...` branch in `main`.
-5. **Empty `REQUIRED_CMDS`** — when external deps are intaken, the
+4. **Empty `REQUIRED_CMDS`** — when external deps are intaken, the
    array is populated. Empty array silently skips preflight, killing
    the fail-fast contract.
-6. **Skipping the Review Gate** — write to disk only after explicit
-   user approval. Present both artifacts first.
 
 ## Key Instructions
 

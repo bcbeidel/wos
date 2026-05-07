@@ -331,28 +331,23 @@ catches anything the Safety Check missed and gives a clean baseline.
 
 ## Anti-Pattern Guards
 
-1. **Skipping the Scope Gate.** The six refusal signals are the
-   most-exploited patterns in the Actions domain — scaffolding past
-   any of them ships a known CVE shape.
-2. **Scaffolding `pull_request_target` with PR checkout.** Unconditional
+1. **Scaffolding `pull_request_target` with PR checkout.** Unconditional
    refuse. There is no safe form of this combination.
-3. **Scaffolding with `@main` / `@master` / `@v*.*`.** Unconditional
+2. **Scaffolding with `@main` / `@master` / `@v*.*`.** Unconditional
    refuse. Ask for a SHA.
-4. **Missing top-level `permissions:`.** Default `GITHUB_TOKEN` is too
+3. **Missing top-level `permissions:`.** Default `GITHUB_TOKEN` is too
    broad. Every scaffolded workflow has `contents: read` at minimum
    at the top level.
-5. **Missing `timeout-minutes:` on any job.** Default is 360 minutes;
+4. **Missing `timeout-minutes:` on any job.** Default is 360 minutes;
    every job gets an explicit timeout.
-6. **User-controlled expressions in `run:` bodies.** Route through
+5. **User-controlled expressions in `run:` bodies.** Route through
    `env:` without exception.
-7. **`cancel-in-progress: true` on deploy.** Scaffold rejects this
+6. **`cancel-in-progress: true` on deploy.** Scaffold rejects this
    combination; the deploy concurrency group omits the cancel flag.
-8. **Empty `REQUIRED_CMDS`-equivalent.** Whatever the Intake
+7. **Empty `REQUIRED_CMDS`-equivalent.** Whatever the Intake
    collected, the scaffold uses it — don't scaffold placeholder
    steps the user didn't ask for (`setup-python` when the Intake
    said Node, etc.).
-9. **Skipping the Review Gate.** Write to disk only after explicit
-   approval.
 
 ## Key Instructions
 

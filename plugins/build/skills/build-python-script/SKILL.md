@@ -369,24 +369,18 @@ baseline-clean starting point.
 
 ## Anti-Pattern Guards
 
-1. **Skipping the Scope Gate** — always probe the five signals before
-   Elicit. Scaffolding a single-file script when the workflow wants a
-   package pushes technical debt into the repo that will be expensive
-   to pay down later.
-2. **Leaving dependencies undeclared** — scripts that import
+1. **Leaving dependencies undeclared** — scripts that import
    third-party packages without a PEP 723 block, `requirements.txt`,
    or top-of-file comment block are not reproducible. The intake
    explicitly elicits the declaration mechanism; populate it.
-3. **Omitting the KeyboardInterrupt handler** — a script that dumps a
+2. **Omitting the KeyboardInterrupt handler** — a script that dumps a
    traceback on Ctrl+C is user-hostile, and this is a detail authors
    routinely forget. The scaffold includes it by default; do not
    strip it for brevity.
-4. **Hand-waving `--dry-run`** — if Intake step 3.5 flagged destructive
+3. **Hand-waving `--dry-run`** — if Intake step 3.5 flagged destructive
    operations, the draft must wire `args.dry_run` into the actual
    destructive code path, not just accept the flag and ignore it.
    Show the `if args.dry_run: ...` branch in the `run()` body.
-5. **Skipping the Review Gate** — write to disk only after explicit
-   user approval. Present both artifacts first.
 
 ## Key Instructions
 
