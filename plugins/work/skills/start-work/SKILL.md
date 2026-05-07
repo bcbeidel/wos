@@ -3,9 +3,8 @@ name: start-work
 description: >
   Use when you have an approved implementation plan to execute.
   Handles sequential execution, progress tracking, and recovery.
-  Enforces the approval gate. Use when the
-  user wants to "execute the plan", "run the plan", "implement this
-  plan", "start work", or "start building".
+  Enforces the approval gate. Use when the user wants to "execute
+  the plan", "implement this plan", or "start work".
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[plan file path]"
 user-invocable: true
@@ -22,6 +21,13 @@ Execute approved implementation plans with lifecycle enforcement, progress
 tracking, and multi-session resumption.
 
 **Announce at start:** "I'm using the start-work skill to implement this plan."
+
+## When to use
+
+Also fires when the user phrases the request as:
+
+- "run the plan"
+- "start building"
 
 ## Workflow
 

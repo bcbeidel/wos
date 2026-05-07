@@ -1,6 +1,6 @@
 ---
 name: build-rule
-description: Create a Claude Code rule under `.claude/rules/` — a markdown instruction file with optional `paths:` frontmatter for path-scoping. Use when the user wants to "create a rule", "build a rule", "add a rule", "capture this convention", or "enforce this pattern".
+description: Create a Claude Code rule under `.claude/rules/` — a markdown instruction file with optional `paths:` frontmatter for path-scoping. Use when the user wants to "create a rule", "capture this convention", or "enforce this pattern".
 argument-hint: A topic name or description of the convention to capture
 user-invocable: true
 references:
@@ -20,6 +20,13 @@ Authoring principles — what makes a rule load-bearing, the anatomy
 template, patterns that work — live in
 [rule-best-practices.md](../../_shared/references/rule-best-practices.md).
 This skill is the workflow; the principles doc is the rubric.
+
+## When to use
+
+Also fires when the user phrases the request as:
+
+- "build a rule"
+- "add a rule"
 
 ## Workflow
 

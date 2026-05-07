@@ -1,10 +1,10 @@
 ---
 name: build-skill
 description: >-
-  Use when the user wants to "create a skill", "add a skill", "build a
-  skill", "scaffold a skill", "new skill for [X]", "write a skill that
-  does X", or wants to capture a recurring workflow as a reusable
-  Claude Code skill. Also use to improve an existing SKILL.md.
+  Use when the user wants to "create a skill", "scaffold a skill", or
+  "new skill for [X]", or wants to capture a recurring workflow as a
+  reusable Claude Code skill. Also use to improve an existing
+  SKILL.md.
 argument-hint: "[skill name and intent, or path to an existing SKILL.md]"
 user-invocable: true
 version: 1.0.0
@@ -33,6 +33,7 @@ This skill is the workflow; the principles doc is the rubric.
 - The user wants to capture a recurring workflow as a reusable skill
 - The user passes an existing `SKILL.md` path and wants it improved
 - The conversation contains a workflow the user asks to "turn into a skill"
+- The user phrases the request as "add a skill", "build a skill", or "write a skill that does X"
 
 ## Prerequisites
 

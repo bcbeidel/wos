@@ -5,9 +5,9 @@ description: >
   automation helper, or data-wrangling utility — with shebang, module
   docstring, `main(argv) -> int`, `__main__` guard via `sys.exit(main())`,
   argparse parser, KeyboardInterrupt handling, and declared dependencies.
-  Use when the user wants to "create a python script", "scaffold a
-  python script", "write a CLI script in python", "new python script",
-  or "build an automation script in python". Not for long-running
+  Use when the user wants to "scaffold a python script", "create a
+  python script", or "build an automation script in python". Not for
+  long-running
   services, packages with multiple modules, or Claude Code hooks — route
   to the appropriate primitive instead.
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
@@ -35,6 +35,13 @@ threshold; start a proper package instead).
 
 **Workflow sequence:** 1. Route → 2. Scope Gate → 3. Elicit →
 4. Draft → 5. Safety Check → 6. Review Gate → 7. Save → 8. Test
+
+## When to use
+
+Also fires when the user phrases the request as:
+
+- "write a CLI script in python"
+- "new python script"
 
 ## 1. Route
 

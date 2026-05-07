@@ -3,9 +3,7 @@ name: research
 description: >
   Conducts structured investigations using the SIFT framework and
   produces verified research documents. Use when the user wants to
-  "investigate", "research", "look into", "what do we know about",
-  "compare options", "evaluate feasibility", "analyze the landscape",
-  "find out about", "deep dive into", "explore alternatives", or any
+  "research", "investigate", or "deep dive into" a topic — any
   request to conduct a structured investigation.
 argument-hint: "[topic or question to investigate]"
 user-invocable: true
@@ -33,6 +31,18 @@ Conduct structured investigations using the SIFT framework (Stop,
 Investigate the source, Find better coverage, Trace claims). Produces
 research documents with verified sources and structured findings.
 Save location follows the project's layout hint in AGENTS.md.
+
+## When to use
+
+Also fires when the user phrases the request as:
+
+- "look into"
+- "what do we know about"
+- "compare options"
+- "evaluate feasibility"
+- "analyze the landscape"
+- "find out about"
+- "explore alternatives"
 
 ## Mode Detection
 

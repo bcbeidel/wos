@@ -5,9 +5,9 @@ description: >
   under `.claude/agents/` with a routing-oriented description, an
   explicit `tools` allowlist sized to the workflow, a bounded system
   prompt in the markdown body, and explicit failure behavior. Use when
-  the user wants to "create a subagent", "add a subagent", "build an
-  agent", "scaffold an agent", or "make a custom agent". Not for
-  skills (route to `/build:build-skill`), hooks (route to
+  the user wants to "create a subagent", "scaffold an agent", or "make
+  a custom agent". Not for skills (route to `/build:build-skill`),
+  hooks (route to
   `/build:build-hook`), or rules (route to `/build:build-rule`).
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, WebFetch, WebSearch
 argument-hint: "[name or intent]"
@@ -34,6 +34,13 @@ every intake answers is whether a subagent is even the right primitive.
 
 **Workflow sequence:** 1. Route → 2. Scope Gate → 3. Elicit →
 4. Draft → 5. Safety Check → 6. Review Gate → 7. Save → 8. Test
+
+## When to use
+
+Also fires when the user phrases the request as:
+
+- "add a subagent"
+- "build an agent"
 
 ## 1. Route
 

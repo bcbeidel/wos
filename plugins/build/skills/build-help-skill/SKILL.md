@@ -1,11 +1,11 @@
 ---
 name: build-help-skill
 description: >-
-  Use when the user wants to "create a help skill", "scaffold a help
-  skill for the X plugin", "add a /<plugin>:help command", "build a
-  plugin index skill", or wants to give a plugin an orientation
-  surface that lists its skills and common workflows. Produces a
-  SKILL.md at plugins/<plugin>/skills/help/SKILL.md.
+  Use when the user wants to "scaffold a help skill", "add a
+  /<plugin>:help command", or "build a plugin index skill", or wants
+  to give a plugin an orientation surface that lists its skills and
+  common workflows. Produces a SKILL.md at
+  plugins/<plugin>/skills/help/SKILL.md.
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[plugin name]"
 user-invocable: true
@@ -35,8 +35,9 @@ This skill is the workflow; the principles doc is the rubric.
 
 ## When to use
 
-- The user says "create/build/scaffold a help skill" or "add a
+- The user says "create a help skill" or any of "create/build/scaffold a help skill" or "add a
   `/<plugin>:help` command"
+- The user phrases the request as "scaffold a help skill for the X plugin"
 - A plugin has grown to 5+ sibling skills and discovery by grep is
   slow
 - The user wants a plugin to have an orientation surface that lists

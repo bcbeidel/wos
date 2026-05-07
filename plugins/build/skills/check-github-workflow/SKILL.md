@@ -10,9 +10,8 @@ description: >
   first, persist-credentials, strict bash, actionlint, zizmor,
   yamllint, shellcheck on extracted `run:` content) plus seven
   judgment dimensions. Use when the user wants to "audit a github
-  workflow", "check this workflow", "review my github actions", "is
-  this workflow safe", "lint my workflow", or "run zizmor on this".
-  Not for composite actions — different rubric.
+  workflow", "lint my workflow", or "run zizmor on this". Not for
+  composite actions — different rubric.
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[path]"
 user-invocable: true
@@ -33,6 +32,14 @@ license: MIT
 Audit a GitHub Actions workflow file for structural soundness, safety posture, pinning discipline, and adherence to the authoring rubric. The rubric lives in [github-workflow-best-practices.md](../../_shared/references/github-workflow-best-practices.md).
 
 This skill follows the [check-skill pattern](../../_shared/references/check-skill-pattern.md). Tier-1 detection is in 9 scripts emitting JSON envelopes via `_common.py` (30 rule_ids total). Tier-2 has 7 judgment dimensions read inline by the primary agent. No Tier-3 cross-entity rule for this skill (workflows audit individually).
+
+## When to use
+
+Also fires when the user phrases the request as:
+
+- "check this workflow"
+- "review my github actions"
+- "is this workflow safe"
 
 ## Workflow
 

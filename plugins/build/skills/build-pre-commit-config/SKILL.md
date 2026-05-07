@@ -7,12 +7,10 @@ description: >
   and validators against staged changes via the `pre-commit`
   framework. Pins every `rev:`, declares scope per hook, serializes
   file-mutators, and documents the bootstrap. Use when the user wants
-  to "set up pre-commit", "add a pre-commit config", "scaffold
-  pre-commit hooks", "add commit-time linting", "gate commits with
-  checks", or "configure .pre-commit-config.yaml". Not for
-  hand-rolled `.git/hooks/` scripts, not for `pre-push` /
-  `commit-msg` / server-side hooks, not for CI pipelines — route to
-  the appropriate primitive.
+  to "set up pre-commit", "scaffold pre-commit hooks", or "configure
+  .pre-commit-config.yaml". Not for hand-rolled `.git/hooks/` scripts,
+  not for `pre-push` / `commit-msg` / server-side hooks, not for CI
+  pipelines — route to the appropriate primitive.
 argument-hint: "[project-context]"
 user-invocable: true
 references:
@@ -36,6 +34,14 @@ refused at the Scope Gate.
 
 **Workflow sequence:** 1. Route → 2. Scope Gate → 3. Elicit →
 4. Draft → 5. Safety Check → 6. Review Gate → 7. Save → 8. Test
+
+## When to use
+
+Also fires when the user phrases the request as:
+
+- "add a pre-commit config"
+- "add commit-time linting"
+- "gate commits with checks"
 
 ## 1. Route
 

@@ -11,11 +11,11 @@ description: >
   build→check handoff. Per-half structural compliance with the
   unified pattern (`check-skill-pattern.md`) is delegated to
   `plugins/build/_shared/scripts/check_skill_pattern.py`.
-  Use when the user wants to "audit a skill pair", "check pair
-  integrity", "review a primitive pair", "is this pair consistent",
-  or "validate the skill pair for X". Not for auditing a single
-  SKILL.md — route to `/build:check-skill`. Not for re-distilling a
-  stale principles doc — route to `/build:build-skill-pair`.
+  Use when the user wants to "audit a skill pair", "review a
+  primitive pair", or "validate the skill pair for X". Not for
+  auditing a single SKILL.md — route to `/build:check-skill`. Not
+  for re-distilling a stale principles doc — route to
+  `/build:build-skill-pair`.
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[primitive-name]"
 references:
@@ -50,6 +50,13 @@ dimension at
 `<SKILL_ROOT>` and `<SHARED_REF_DIR>` resolve from the chosen target —
 see [skill-locations.md](../../_shared/references/skill-locations.md)
 for the prefix table.
+
+## When to use
+
+Also fires when the user phrases the request as:
+
+- "check pair integrity"
+- "is this pair consistent"
 
 ## Workflow
 

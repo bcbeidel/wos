@@ -7,10 +7,9 @@ description: >
   per judgment dimension on the check half. Distills best-practice
   material (files, URLs, pasted text, or the model's own domain
   knowledge) into one rubric that both halves reference. Use when the
-  user wants to
-  "create a skill pair", "build a primitive pair", "new paired skill",
-  "scaffold build and check skills for X", or "codify best practices
-  for a new primitive". Not for creating a single skill — route to
+  user wants to "create a skill pair", "scaffold build and check
+  skills for X", or "codify best practices for a new primitive". Not
+  for creating a single skill — route to
   `/build:build-skill`. Not for auditing an existing pair — route to
   `/build:check-skill` on each half.
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, WebFetch
@@ -31,6 +30,13 @@ rubric. `build-<primitive>` scaffolds; `check-<primitive>` audits; both
 point at the same principles doc so creation and review never drift.
 The distillation step — reconciling multiple inputs into one
 internally-consistent rubric — is where this skill earns its keep.
+
+## When to use
+
+Also fires when the user phrases the request as:
+
+- "build a primitive pair"
+- "new paired skill"
 
 **Workflow sequence:** 0. Brief → 1. Route → 2. Target → 3. Scope Gate →
 4. Intake → 5. Distill → 6. Draft → 7. Review Gate → 8. Save →

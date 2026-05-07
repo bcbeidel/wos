@@ -1,6 +1,6 @@
 ---
 name: check-resolver
-description: Audit a root-level resolver — verify AGENTS.md pointer, managed-region integrity, filing-table coverage against disk, context-table actionability, and trigger-eval pass rate. Use when the user wants to "audit a resolver", "check RESOLVER.md", "validate routing table", "find dark capabilities", or "are my filing rules current".
+description: Audit a root-level resolver — verify AGENTS.md pointer, managed-region integrity, filing-table coverage against disk, context-table actionability, and trigger-eval pass rate. Use when the user wants to "audit a resolver", "validate routing table", or "find dark capabilities".
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[target directory — defaults to CWD; walks up to the nearest RESOLVER.md and audits that one]"
 user-invocable: true
@@ -21,6 +21,13 @@ Evaluate a root-level resolver in three tiers: deterministic artifact and path c
 This skill follows the [check-skill pattern](../../_shared/references/check-skill-pattern.md). Tier-1 detection is in 3 scripts emitting JSON envelopes via `_common.py` (11 rule_ids total). Tier-2 has 4 judgment dimensions read inline by the primary agent. Tier-3 cross-artifact checks are mechanized as Tier-1 rule_ids (`dark-capability`) or opt-in (`--run-evals`).
 
 The audit rubric mirrors the authoring principles in [resolver-best-practices.md](../../_shared/references/resolver-best-practices.md). When the principles doc changes, the dimensions follow.
+
+## When to use
+
+Also fires when the user phrases the request as:
+
+- "check RESOLVER.md"
+- "are my filing rules current"
 
 ## Workflow
 

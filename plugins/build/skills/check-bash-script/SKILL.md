@@ -11,11 +11,10 @@ description: >
   conventions, command preflight) plus six judgment dimensions
   (output discipline, input validation, performance intent, function
   design, commenting intent, cross-entity collision). Use when the
-  user wants to "audit a bash script", "check this bash script",
-  "review my bash script", "lint a bash script", "is this bash script
-  safe", "what's wrong with my shell script", or "run shellcheck on
-  this". Not for POSIX `sh` portability — refused at scope. Not for
-  Python scripts — route to `/build:check-python-script`.
+  user wants to "audit a bash script", "lint a bash script", or "run
+  shellcheck on this". Not for POSIX `sh` portability — refused at
+  scope. Not for Python scripts — route to
+  `/build:check-python-script`.
 argument-hint: "[path]"
 user-invocable: true
 references:
@@ -54,6 +53,15 @@ duplicated logic the maintainer could consolidate.
 Read-only by default. The opt-in repair loop applies fixes only after
 per-finding confirmation. Each script's `recommended_changes` field is
 the canonical repair guidance — no enrichment needed.
+
+## When to use
+
+Also fires when the user phrases the request as:
+
+- "check this bash script"
+- "review my bash script"
+- "is this bash script safe"
+- "what's wrong with my shell script"
 
 ## Workflow
 

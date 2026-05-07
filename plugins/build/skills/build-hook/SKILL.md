@@ -3,9 +3,8 @@ name: build-hook
 description: >
   Builds a Claude Code hook (event-driven quality gate) with a script and
   the corresponding settings.json hooks entry. Use when the user wants to
-  "create a hook", "add a PostToolUse hook", "build a hook", "enforce
-  quality on tool use", "set up automated quality gates", "run a script
-  after tool use", or "block dangerous operations automatically".
+  "create a hook", "add a PostToolUse hook", or "enforce quality on tool
+  use".
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[hook event] [enforcement goal]"
 user-invocable: true
@@ -27,6 +26,15 @@ rubric both halves of the pair share.
 **Workflow sequence:** 0. Brief → 1. Route → 2. Scope Gate → 3. Elicit →
 4. Draft → 5. Safety Check → 6. Stop Hook Guard (conditional) →
 7. Rule Overlap → 8. Review Gate → 9. Save → 10. Test
+
+## When to use
+
+Also fires when the user phrases the request as:
+
+- "build a hook"
+- "set up automated quality gates"
+- "run a script after tool use"
+- "block dangerous operations automatically"
 
 ## 0. Brief
 

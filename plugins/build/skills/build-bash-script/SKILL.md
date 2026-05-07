@@ -5,11 +5,10 @@ description: >
   glue automation, or ops utility — with explicit shebang,
   `set -euo pipefail`, header comment, `readonly` constants, `die`
   helper, `local` variables, `main` function, and a sourceable guard.
-  Use when the user wants to "create a bash script", "scaffold a
-  bash script", "write a CLI script in bash", "new bash automation",
-  "build a bash glue script", or "scaffold a shell script". Not for
-  POSIX `sh` portability targets, Claude Code hooks, or scripts that
-  would be cleaner in Python — route to the appropriate primitive.
+  Use when the user wants to "scaffold a bash script", "create a
+  bash script", or "scaffold a shell script". Not for POSIX `sh`
+  portability targets, Claude Code hooks, or scripts that would be
+  cleaner in Python — route to the appropriate primitive.
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[purpose]"
 user-invocable: true
@@ -36,6 +35,14 @@ and not for multi-file Bash applications (those want a real language).
 
 **Workflow sequence:** 1. Route → 2. Scope Gate → 3. Elicit →
 4. Draft → 5. Safety Check → 6. Review Gate → 7. Save → 8. Test
+
+## When to use
+
+Also fires when the user phrases the request as:
+
+- "write a CLI script in bash"
+- "new bash automation"
+- "build a bash glue script"
 
 ## 1. Route
 

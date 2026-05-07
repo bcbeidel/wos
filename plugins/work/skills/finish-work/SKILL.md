@@ -4,8 +4,8 @@ description: >
   Use when implementation is complete and validated, to decide how to
   integrate the work. Presents structured options for merge, PR, keep,
   or discard with safety verification. Use when the user wants to
-  "finish", "done", "merge this", "create PR", "wrap up", "ship it",
-  or after completing all tasks and validation in a plan.
+  "finish", "create PR", or "ship it", or after completing all tasks
+  and validation in a plan.
 argument-hint: "[plan file path]"
 user-invocable: true
 disable-model-invocation: true
@@ -21,6 +21,14 @@ Decide how to integrate completed work — merge, PR, keep, or discard —
 with safety verification and optional plan lifecycle updates.
 
 **Announce at start:** "I'm using the finish-work skill to complete this work."
+
+## When to use
+
+Also fires when the user phrases the request as:
+
+- "done"
+- "merge this"
+- "wrap up"
 
 ## Trust Model
 

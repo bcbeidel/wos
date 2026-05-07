@@ -7,11 +7,10 @@ description: >
   `defaults.run.shell: bash`, scoped triggers, `harden-runner` as
   first step, `set -euo pipefail` in every multi-line `run:`, and
   deliberate concurrency posture (cancel-in-progress for PR/push,
-  no-cancel for deploy). Use when the user wants to "create a github
-  workflow", "scaffold a ci workflow", "new deploy workflow", "build
-  a github actions workflow for X", or "write a release workflow".
-  Not for composite actions (`action.yml` — separate primitive), org
-  rulesets, Dependabot configs, or GitHub Apps.
+  no-cancel for deploy). Use when the user wants to "scaffold a ci
+  workflow", "create a github workflow", or "build a github actions
+  workflow for X". Not for composite actions (`action.yml` — separate
+  primitive), org rulesets, Dependabot configs, or GitHub Apps.
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[purpose]"
 user-invocable: true
@@ -38,6 +37,13 @@ separate primitives.
 
 **Workflow sequence:** 1. Route → 2. Scope Gate → 3. Elicit →
 4. Draft → 5. Safety Check → 6. Review Gate → 7. Save → 8. Test
+
+## When to use
+
+Also fires when the user phrases the request as:
+
+- "new deploy workflow"
+- "write a release workflow"
 
 ## 1. Route
 

@@ -1,12 +1,11 @@
 ---
 name: check-help-skill
 description: >-
-  Use when the user wants to "audit a help skill", "check the
-  /<plugin>:help command", "review my plugin index", "verify my
-  help-skill is up to date", or "is the skill table in this help-skill
-  current". Audits a plugins/<plugin>/skills/help/SKILL.md against the
-  help-skill rubric — coverage, freshness, frontmatter fidelity, plus
-  five judgment dimensions and a trigger-collision check.
+  Use when the user wants to "audit a help skill", "review my plugin
+  index", or "verify my help-skill is up to date". Audits a
+  plugins/<plugin>/skills/help/SKILL.md against the help-skill rubric
+  — coverage, freshness, frontmatter fidelity, plus five judgment
+  dimensions and a trigger-collision check.
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[path to help-skill SKILL.md, or plugin name]"
 user-invocable: true
@@ -36,6 +35,13 @@ deterministic via `scripts/check_help_skill.py` (17 rule_ids; emits a
 JSON array of envelopes via `_common.py`). Tier-2 has 5 judgment
 dimensions read inline by the primary agent. Tier-3 is the
 trigger-collision cross-entity rule.
+
+## When to use
+
+Also fires when the user phrases the request as:
+
+- "check the /<plugin>:help command"
+- "is the skill table in this help-skill current"
 
 ## Workflow
 
