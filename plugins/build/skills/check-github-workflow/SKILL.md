@@ -105,12 +105,7 @@ For each workflow that passed the Tier-2 exclusion gate, evaluate against the **
 | [check-performance-and-concurrency.md](references/check-performance-and-concurrency.md) | D6 — concurrency posture deliberate; caches deterministic | warn |
 | [check-maintainability.md](references/check-maintainability.md) | D7 — names are developer-facing; long blocks extracted | warn |
 
-#### Evaluator policy
-
-- **Single locked-rubric pass per workflow.** Read all 7 rule files first, then evaluate the workflow in one LLM call.
-- **Default-closed when borderline.** When evidence is ambiguous, return `warn`.
-- **Severity floor: WARN.**
-- **One finding per dimension maximum.**
+**Evaluator policy:** see [check-skill-pattern.md §Evaluator policy](../../_shared/references/check-skill-pattern.md#evaluator-policy). Read all 7 rule files first, then evaluate the workflow in one LLM call.
 
 ### 4. Tier-3
 

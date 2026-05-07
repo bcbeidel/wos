@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.23.0
+
+- Repo simplification sweep cycles 1–3 (codify-then-sweep, per design
+  `.designs/2026-05-07-simplification-sweep.design.md`):
+  - **Cycle 1 (#432):** New Tier-1 detector
+    `_shared/scripts/check_handoff_shape.py` flags `Receives:` /
+    `Produces:` lines in any SKILL.md `## Handoff` section. Wired into
+    `check-skill` Tier-1; codified in
+    `skill-best-practices.md`. Sweep removed Receives/Produces
+    boilerplate from ~55 SKILL.md across all 4 plugins.
+  - **Cycle 2 (#433):** New Tier-1 detector
+    `_shared/scripts/check_reference_lead.py` flags judgment-rule
+    `references/*.md` files whose first body paragraph paraphrases the
+    frontmatter `description:` (Jaccard token-overlap ≥ 0.70, stopwords
+    excluded). Wired into `check-skill` Tier-1. Sweep dropped the
+    leading restatement from 39 reference files.
+  - **Cycle 3 (this release):** New Tier-1 detector
+    `_shared/scripts/check_evaluator_policy_echo.py` flags SKILL.md
+    files that copy the verbatim Evaluator-policy bullet triple from
+    `check-skill-pattern.md` instead of citing the canonical SSoT
+    (boolean AND across "Default-closed when borderline", "Severity
+    floor: WARN", "One finding per dimension"). New Tier-2 dimension
+    `check-skill/references/check-best-practices-doc-restatement.md`
+    covers the broader pattern. The pattern doc itself flipped from
+    "(copy verbatim)" to "(cite via anchor link)". Sweeps applied:
+    Row 4 (12 check-* SKILL.md cite Evaluator policy by anchor),
+    Row 7 (6 build-* SKILL.md drop generic "rm <path>" Recovery
+    stanzas), Row 8 (7 build-* SKILL.md drop Won't bullets that
+    echo frontmatter or Scope/Review-Gate steps), Row 18 (2 build-*
+    SKILL.md collapse language-tiebreaker prose to a one-line link
+    to `primitive-routing.md §Language Selection`).
+  - Authoring rule "cite, don't restate, the principles doc" landed in
+    both `skill-best-practices.md` and `skill-pair-best-practices.md`;
+    `build-skill` and `build-skill-pair` scaffolder prose updated.
+
 ## 0.22.0
 
 - Python script profiles (cli/library/skill-helper) for

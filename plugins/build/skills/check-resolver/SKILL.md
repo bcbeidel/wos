@@ -89,12 +89,7 @@ For resolvers that passed the Tier-2 exclusion gate, evaluate against the **4 ju
 | [check-eval-representativeness.md](references/check-eval-representativeness.md) | D3 — evals exercise both filing/context routing; ≥1 case per filing row; ≥15% negative | warn |
 | [check-brief-presence-and-content.md](references/check-brief-presence-and-content.md) | D4 — `.briefs/<slug>.brief.md` exists with 5 H2s; *So-what* is specific | warn |
 
-#### Evaluator policy
-
-- **Single locked-rubric pass.** Read all 4 rule files first, then evaluate the resolver in one LLM call against the unified rubric. A single locked-rubric pass produces stable scoring.
-- **Default-closed when borderline.** When evidence is ambiguous, return `warn`, not `pass`.
-- **Severity floor: WARN.** All 4 Tier-2 dimensions are coaching, not blocking. Escalate to FAIL only for safety concerns Tier-1 missed.
-- **One finding per dimension maximum.** Surface the highest-signal location with concrete excerpts.
+**Evaluator policy:** see [check-skill-pattern.md §Evaluator policy](../../_shared/references/check-skill-pattern.md#evaluator-policy). Read all 4 rule files first, then evaluate the resolver in one LLM call.
 
 Include `RESOLVER.md` verbatim in the Tier-2 prompt — never summarize. Include the directory scan output, `.resolver/evals.yml`, and `.briefs/<slug>.brief.md` (if present).
 

@@ -59,21 +59,7 @@ Bash is the right language before asking scaffold-specific questions.
 - **A semantic judgment captured as an LLM-evaluated rule** →
   `/build:build-rule`.
 
-**Wrong language — should be Python instead:**
-
-- Task manipulates structured data — arrays of typed records, nested
-  JSON beyond a `jq` one-liner, schema-validated payloads
-- Projected logic exceeds ~300 LOC of business code
-- Task needs testable seams beyond `bats`/`shunit2` glue
-- Task needs concurrency, HTTP with retry / JSON, or cross-platform
-  correctness (Windows)
-
-The full language-selection decision lives in the *Language Selection*
-section of
-[primitive-routing.md](../../_shared/references/primitive-routing.md) —
-consult it when the choice is not obvious. **Tiebreaker rule from that
-doc:** when the decision is genuinely balanced, Python wins on
-interpretability.
+**Wrong language — should be Python instead:** see [primitive-routing.md §Language Selection](../../_shared/references/primitive-routing.md#language-selection--when-the-answer-is-a-script).
 
 **Right primitive and right language** (CLI glue stitching `git` /
 `curl` / `jq` / `find` / `xargs`; Makefile-invoked automation; one-shot
@@ -368,16 +354,7 @@ baseline-clean starting point.
 - The `command -v` preflight is only scaffolded when Intake step 3.6
   named external dependencies. Do not add an empty preflight as
   "best-effort" structure — it is dead code.
-- Won't scaffold scripts for Claude Code hook events — route to
-  `/build:build-hook`.
-- Won't scaffold POSIX `sh` scripts — out of scope; the synthesis
-  this skill operationalizes is bash-only.
 - Won't scaffold setuid scripts — recommend a compiled wrapper.
-- Won't scaffold when any Scope Gate signal fires — recommend the
-  appropriate alternative.
-- Recovery if a script is written in error: `rm <path>` removes it
-  cleanly. The scaffold is self-contained (no settings.json entry,
-  no shared-module registration), so removal leaves no dangling state.
 
 ## Handoff
 

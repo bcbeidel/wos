@@ -229,6 +229,12 @@ Runs `/build:check-skill` — 0 findings. Reports the path.
   [skill-best-practices.md](../../_shared/references/skill-best-practices.md);
   don't invent frontmatter fields or required sections
   (`/build:check-skill`'s Tier-1 flags unknown structural shapes)
+- When the new SKILL.md cites a `*-best-practices.md` (or comparable
+  SSoT like `check-skill-pattern.md`), the SKILL.md body does NOT
+  duplicate that doc's named principles — link only. Emit a citation,
+  not a restatement; the linked doc IS the authority. Verbatim copies
+  are flagged by `evaluator-policy-echo` (Tier-1) and
+  `best-practices-doc-restatement` (Tier-2).
 - Lead with load-bearing content in the first ~5K tokens —
   compaction-safe window
 - Hold the write until the user approves the draft (Step 7 gate)

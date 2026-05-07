@@ -252,7 +252,14 @@ under `scripts/check_<id>.{py,sh}`) → Judgment Checks (Tier-2 against
 each `references/check-<dim>.md`) → Cross-Entity (Tier-3, if scope is
 a directory) → Report → Opt-In Repair Loop. Frontmatter `references:`
 includes the principles doc and every `references/check-<dim>.md`
-file produced as Artifact 4.
+file produced as Artifact 4. The Tier-2 section cites the Evaluator
+policy from
+[check-skill-pattern.md §Evaluator policy](../../_shared/references/check-skill-pattern.md#evaluator-policy)
+by anchor link; it does NOT duplicate the bullets. SKILL.md bodies
+that cite a `*-best-practices.md` (or comparable SSoT) link to it and
+do not restate its named principles — verbatim copies are flagged by
+`evaluator-policy-echo` (Tier-1) and `best-practices-doc-restatement`
+(Tier-2).
 
 **Artifact 4 — `check-<primitive>/references/check-<dim>.md`** *(one
 file per judgment dimension)*. Each file carries `name`, `description`,
@@ -409,13 +416,6 @@ paragraph under *What Each Primitive Was Designed For* and appending
 
 ## Key Instructions
 
-- Won't scaffold over an existing pair — Scope Gate signal #1 applies
-  without exception. Offer to revise instead.
-- Won't produce a principles doc from zero input material — Scope
-  Gate signal #2 applies. Any mix of files, URLs, pasted text, or
-  named model knowledge clears the gate; *nothing* does not.
-- Won't write any artifact — or the routing-doc diff — until the
-  Review Gate passes.
 - Principles doc lives in `_shared/references/`, not inside either
   skill directory. Both halves reference it at the same path so
   creation and review stay aligned.

@@ -115,12 +115,7 @@ For each Makefile that passed the Tier-2 exclusion gate, evaluate against the **
 | [check-naming-and-structure.md](references/check-naming-and-structure.md) | D6 — target names verb-ish; helpers prefixed; sections grouped | warn |
 | [check-documentation-intent.md](references/check-documentation-intent.md) | D7 — header comment + per-target `## help`; comments explain why | warn |
 
-#### Evaluator policy
-
-- **Single locked-rubric pass per Makefile.** Read all 7 rule files first, then evaluate the Makefile in one LLM call.
-- **Default-closed when borderline.** When evidence is ambiguous, return `warn`.
-- **Severity floor: WARN.**
-- **One finding per dimension maximum.**
+**Evaluator policy:** see [check-skill-pattern.md §Evaluator policy](../../_shared/references/check-skill-pattern.md#evaluator-policy). Read all 7 rule files first, then evaluate the Makefile in one LLM call.
 
 ### 4. Tier-3 Cross-Makefile Collision
 

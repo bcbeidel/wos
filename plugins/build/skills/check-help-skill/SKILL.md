@@ -113,17 +113,7 @@ the **5 judgment rules** at `references/check-*.md`:
 | [check-scope-discipline.md](references/check-scope-discipline.md) | D4 — stays inside (synopsis, index, workflows, pointers) | warn |
 | [check-trigger-quality.md](references/check-trigger-quality.md) | D5 — fires on meta-questions, not the plugin's own workflows | warn |
 
-#### Evaluator policy
-
-- **Single locked-rubric pass.** Read all 5 rule files first, then
-  evaluate the help-skill against the unified rubric. A single
-  locked-rubric pass produces stable scoring.
-- **Default-closed when borderline.** When evidence is ambiguous,
-  return `warn`, not `pass`.
-- **Severity floor: WARN.** All 5 Tier-2 dimensions are coaching, not
-  blocking. Escalate to FAIL only for safety concerns Tier-1 missed.
-- **One finding per dimension maximum.** If a single hook trips one
-  dimension at multiple locations, surface the highest-signal one.
+**Evaluator policy:** see [check-skill-pattern.md §Evaluator policy](../../_shared/references/check-skill-pattern.md#evaluator-policy). Read all 5 rule files first, then evaluate the help-skill in one LLM call.
 
 ### 4. Tier-3 cross-entity trigger collision
 

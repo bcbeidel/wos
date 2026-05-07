@@ -369,15 +369,10 @@ catches anything the Safety Check missed and gives a clean baseline.
   no exceptions; this is the post-tj-actions runtime defense.
 - Every multi-line bash `run:` block starts with `set -euo pipefail`.
 - Write files to disk only after the Review Gate passes.
-- Won't scaffold composite actions — different rubric, different
-  schema. Out of scope.
 - Won't scaffold `pull_request_target` + PR checkout — unconditional
   refuse.
 - Won't scaffold mutable refs (`@main`, `@master`, `@v*.*`) —
   unconditional refuse.
-- Recovery if a workflow is written in error: `rm <path>` removes it
-  cleanly. The scaffold is self-contained — no settings.json, no
-  shared-module registration — so removal leaves no dangling state.
 
 ## Handoff
 

@@ -300,11 +300,6 @@ Check missed and gives the user a baseline-clean starting point.
   flagged destructive operations. Do not add it as a general pattern.
 - `-include .env.mk` is only scaffolded when Intake step 3.6 opted
   in. Do not add it as dead structure.
-- Won't scaffold when any Scope Gate signal fires — recommend the
-  appropriate alternative.
-- Recovery if a Makefile is written in error: `rm Makefile` removes
-  it cleanly. No settings.json entries, no shared-module
-  registration — the scaffold is self-contained.
 
 ## Handoff
 

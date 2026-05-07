@@ -309,15 +309,10 @@ catches anything the Safety Check missed.
   Default to the target shell / language; never empty info-strings.
 - Use relative links by default; switch to absolute URLs only when
   Intake #9 flags package-mirror distribution.
-- Won't scaffold sub-package READMEs — out of scope; different
-  audience, different rubric.
 - Won't scaffold over a non-trivial existing README — offer
   `/build:check-readme` instead.
 - Won't inline real secrets, hostnames, or credentials in examples
   — use reserved ranges.
-- Recovery if a README is scaffolded in error: `rm <path>` removes
-  it cleanly. The scaffold is self-contained (no sibling file
-  writes, no registration), so removal leaves no dangling state.
 
 ## Handoff
 

@@ -105,23 +105,14 @@ The 18 dimensions:
 | [check-brief-presence-and-content.md](references/check-brief-presence-and-content.md) | Brief presence + content (5 H2 sections; specific *So-what*) | warn |
 | [check-primitive-routing-coverage.md](references/check-primitive-routing-coverage.md) | CLAUDE.md → hook conversion candidates | warn |
 
-#### Evaluator policy
+**Evaluator policy:** see [check-skill-pattern.md §Evaluator policy](../../_shared/references/check-skill-pattern.md#evaluator-policy). Read all 18 rule files first, then evaluate each hook in turn against the unified rubric.
 
-- **Single locked-rubric pass per hook.** Read all 18 rule files
-  first, then evaluate each hook in turn against the unified rubric.
-  A single locked-rubric pass stabilizes severity.
-- **Default-closed when borderline.** When evidence is ambiguous,
-  return `warn`, not `pass`.
-- **Severity floor: WARN.** Most dimensions are coaching, not
-  blocking. Escalate to FAIL only for the 7 rules whose severity is
-  documented as `fail` (event-matcher-fit, exit-code-contract,
-  async-blocking-coherence, stop-loop-guard, destructive-operations,
-  injection-safety, jq-handling for Copilot field-path mismatch,
-  latency for recursive `claude` invocation).
-- **One finding per dimension per hook maximum.** If a single hook
-  trips one dimension at multiple locations, surface the
-  highest-signal location with concrete detail. Bulk findings train
-  the user to disregard the audit.
+**Skill-specific severity floor exceptions.** The default WARN floor is
+overridden for the 7 rules documented as `fail`:
+event-matcher-fit, exit-code-contract, async-blocking-coherence,
+stop-loop-guard, destructive-operations, injection-safety, jq-handling
+(Copilot field-path mismatch), and latency (recursive `claude`
+invocation).
 
 For each finding, capture: dimension name, offending hook / command /
 file, specific issue, severity. The finding's `recommended_changes`

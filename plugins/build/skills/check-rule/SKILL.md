@@ -94,12 +94,7 @@ For each structurally valid rule, evaluate against the **8 judgment rules** at `
 | [check-judgment-not-linter.md](references/check-judgment-not-linter.md) | D7 — semantic conventions only; no formatter/linter overlap | warn |
 | [check-example-realism.md](references/check-example-realism.md) | D8 — domain-specific identifiers, not synthetic placeholders | warn |
 
-#### Evaluator policy
-
-- **Single locked-rubric pass per rule.** Read all 8 rule files first, then evaluate each rule in turn against the unified rubric. A single locked-rubric pass produces stable scoring.
-- **Default-closed when borderline.** When evidence is ambiguous, return `warn`, not `pass`.
-- **Severity floor: WARN.** All 8 Tier-2 dimensions are coaching, not blocking. Escalate to FAIL only for safety concerns Tier-1 missed.
-- **One finding per dimension per rule maximum.** If a single rule trips one dimension at multiple locations, surface the highest-signal one with concrete excerpts.
+**Evaluator policy:** see [check-skill-pattern.md §Evaluator policy](../../_shared/references/check-skill-pattern.md#evaluator-policy). Read all 8 rule files first, then evaluate each rule in turn against the unified rubric.
 
 Include the full rule file verbatim in the prompt — never summarize. Include the Tier-1 shape-hints keyword sniff as context. Dimensions that don't apply (e.g., D8 Example Realism on a rule with no examples) return `inapplicable` silently.
 

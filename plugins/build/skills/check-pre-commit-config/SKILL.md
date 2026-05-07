@@ -93,12 +93,7 @@ For each config that passed the Tier-2 exclusion gate, evaluate against the **7 
 | [check-developer-experience.md](references/check-developer-experience.md) | D6 — names + ids developer-facing; minimum_pre_commit_version pinned | warn |
 | [check-hook-structure.md](references/check-hook-structure.md) | D7 — repo entries grouped logically; one concern per hook | warn |
 
-#### Evaluator policy
-
-- **Single locked-rubric pass per config.** Read all 7 rule files first, then evaluate the config in one LLM call.
-- **Default-closed when borderline.** When evidence is ambiguous, return `warn`, not `pass`.
-- **Severity floor: WARN.** All 7 Tier-2 dimensions are coaching, not blocking.
-- **One finding per dimension maximum.**
+**Evaluator policy:** see [check-skill-pattern.md §Evaluator policy](../../_shared/references/check-skill-pattern.md#evaluator-policy). Read all 7 rule files first, then evaluate the config in one LLM call.
 
 ### 4. Tier-3 Cross-Config Collision
 

@@ -303,8 +303,6 @@ Also offer the CI mirror (explicitly not scaffolded above):
 
 - Won't scaffold over an existing `.pre-commit-config.yaml` — Scope
   Gate signal #1 applies. Offer the audit instead.
-- Won't scaffold hand-rolled `.git/hooks/pre-commit` files — out of
-  scope; the principles doc is framework-only.
 - Every `rev:` in the draft is either a verified current tag or a
   placeholder flagged for the user to resolve at Review Gate.
 - `require_serial: true` is mandatory on any hook that modifies
