@@ -2,10 +2,8 @@
 name: lint
 description: >
   Runs lint checks on project content quality and reports frontmatter, URL,
-  index, and skill issues. Use when the user asks to "lint", "run lint",
-  "check lint", "check health", "validate documents", "run validation",
-  "audit content quality", "review documents", "check coverage",
-  "check freshness", "run health check", or "what needs attention".
+  index, and skill issues. Use when the user asks to "lint", "audit content
+  quality", or "check health".
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[path/to/file.md]"
 user-invocable: true
@@ -26,6 +24,20 @@ script under `plugins/wiki/scripts/lint.py`; `<plugin-scripts-dir>` in
 the invocation lines below resolves there. Inputs are validated by
 argparse; the script does not call `subprocess` with `shell=True` or
 take untrusted command strings.
+
+## When to use
+
+Also fires when the user phrases the request as:
+
+- "run lint"
+- "check lint"
+- "validate documents"
+- "run validation"
+- "review documents"
+- "check coverage"
+- "check freshness"
+- "run health check"
+- "what needs attention"
 
 ## Workflow
 
