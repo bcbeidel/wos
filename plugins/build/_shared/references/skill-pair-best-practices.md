@@ -57,8 +57,7 @@ plugins/build/
         ├── assets/
         │   └── output-example.json              ← canonical envelope shape
         ├── references/
-        │   ├── check-<rule>.md ...              ← one per judgment-mode rule
-        │   └── (no audit-dimensions.md, no repair-playbook.md — those are gone)
+        │   └── check-<rule>.md ...              ← one per judgment-mode rule
         └── scripts/
             ├── _common.py                       ← JSON-emit helpers
             ├── check_<rule>.{py,sh} ...         ← one per scripted rule (or one emitting an array)
@@ -80,14 +79,14 @@ The optional fifth slot:
 
 The principles doc lives in `_shared/`, not inside either skill, so both halves cite the same absolute path. The check half's rules (judgment `.md` files and detection scripts) live with the check half because that is where they are applied. The routing-doc registration is the pair's public handle — without it, discovery is grep-only.
 
-There is no `audit-dimensions.md` and no `repair-playbook.md` under the new pattern. The check half's rule set is the union of `references/check-*.md` filenames + `rule_id`s emitted by `scripts/check_*.{py,sh}` outputs (per the single-artifact-per-rule discipline). Per-rule fix recipes are embedded as `_RECIPE_<NAME>` constants inside each detection script (sourced from the principles doc) — no centralized playbook.
+The check half's rule set is the union of `references/check-*.md` filenames + `rule_id`s emitted by `scripts/check_*.{py,sh}` outputs (per the single-artifact-per-rule discipline). Per-rule fix recipes are embedded as `_RECIPE_<NAME>` constants inside each detection script, sourced from the principles doc.
 
 ## Patterns That Work
 
 - **Single shared principles doc.** Both halves' frontmatter `references:` resolve to the same path. Two docs (one per skill) guarantee drift; one doc makes drift impossible by construction.
 - **Single-artifact-per-rule.** Every rule lives as exactly one of: a script (when ≥70% mechanically detectable) or a `references/check-<rule>.md` file (judgment-driven). Never both. Per `check-skill-pattern.md`.
 - **Three-tier audit structure.** The check half organizes work as Tier-1 deterministic (scripts emit JSON envelopes) / Tier-2 judgment (primary agent reads `check-*.md` files inline) / Tier-3 cross-entity. Tier-1 short-circuits missing inputs so Tier-2/3 read nothing that is absent.
-- **Embedded recipes, no centralized playbook.** Each detection script carries its own `_RECIPE_<NAME>` module-level constant sourced from the principles doc. Each judgment rule's *How to apply* section IS the recipe. There is no `repair-playbook.md` — it became drift surface area without earning its keep.
+- **Embedded recipes.** Each detection script carries its own `_RECIPE_<NAME>` module-level constant sourced from the principles doc. Each judgment rule's *How to apply* section IS the recipe. Recipes live with the rule they serve, not in a separate document.
 - **Per-finding Repair Loop.** The audit always offers an opt-in repair with per-item confirmation. Bulk application overwrites mid-refactor intent; per-finding keeps the user in control.
 - **Scope Gate in the build half.** A scaffolder that forgets its scope produces out-of-bounds artifacts. Explicit refusal signals (wrong primitive, wrong language, setuid intent, etc.) at the top of the build workflow keep the pair honest.
 - **Pair registered in `primitive-routing.md`.** Both route lines (`/build:build-<primitive>` and `/build:check-<primitive>`) appear, and the primitive class is described under *What Each Primitive Was Designed For* (new class) or *Language Selection* (variant).
@@ -95,7 +94,6 @@ There is no `audit-dimensions.md` and no `repair-playbook.md` under the new patt
 ## Anti-Patterns
 
 - **Principles doc duplicated inside each skill.** The duplication creates two rubrics that diverge silently. Audit findings cite one copy while the scaffolder reads the other, and users discover the drift only when a pattern flagged in review was never in the scaffold template.
-- **Centralized `audit-dimensions.md` or `repair-playbook.md`.** Pre-pattern era. Centralized parallel docs drift relative to detection scripts and the principles doc. Replaced by per-rule files (`check-*.md` for judgment, `scripts/check_*.*` for scripted) — the filesystem itself is the canonical TOC.
 - **Rule lives as both a script AND a `check-*.md`.** The single-artifact-per-rule discipline forbids overlap. Pick one home: script if mechanically detectable at ≥70% recall, markdown otherwise.
 - **Unregistered pair.** Pairs absent from `primitive-routing.md` are discoverable only by grep. Other skills and future authors do not find them; the pair sits on disk but is invisible to the routing layer that is supposed to catalog it.
 - **Build without check (or vice versa) using this pattern.** Single-skill authoring has a home — `/build:build-skill` — and the pair pattern does not replace it. Scaffolding one half alone with the pair meta-skill produces a dangling rubric nothing references.

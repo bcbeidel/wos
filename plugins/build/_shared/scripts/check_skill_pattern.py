@@ -8,9 +8,6 @@ embedded `recommended_changes` recipes — eats its own dogfood).
 
 Checks performed (rule_ids):
 
-  - pattern-no-stale-artifacts:    audit-dimensions.md, repair-playbook.md,
-                                   _hub.md, references/fixtures/, and
-                                   references/rule-*.md must not exist
   - pattern-no-subagent-footprint: plugins/build/agents/, audit_with_dispatcher.py,
                                    invoke_subagent.py, orchestrator.py must
                                    not exist anywhere related to this skill
@@ -49,17 +46,6 @@ import sys
 from pathlib import Path
 
 EXIT_USAGE = 64
-
-_RECIPE_NO_STALE = (
-    "Delete the legacy artifact. Convention prose belongs in "
-    "`plugins/build/_shared/references/<primitive>-best-practices.md`; "
-    "per-rule repair guidance belongs in each detection script's "
-    "`_RECIPE_*` module constant. The filesystem (`references/check-*.md` "
-    "+ scripts/check_*.{py,sh}`) is the canonical TOC — no `_hub.md` or "
-    "`audit-dimensions.md` listing rules. See "
-    "`plugins/build/_shared/references/check-skill-pattern.md` "
-    "§\"Anatomy\" + \"Migration Workflow\" steps 4–5."
-)
 
 _RECIPE_NO_SUBAGENT = (
     "Delete any `plugins/build/agents/audit-dispatcher*` artifact, "
@@ -139,51 +125,6 @@ def envelope(rule_id: str, findings: list[dict]) -> dict:
     else:
         overall = "pass"
     return {"rule_id": rule_id, "overall_status": overall, "findings": findings}
-
-
-def check_no_stale_artifacts(skill_dir: Path) -> dict:
-    findings: list[dict] = []
-    refs = skill_dir / "references"
-    stale_paths = [
-        refs / "audit-dimensions.md",
-        refs / "repair-playbook.md",
-        refs / "_hub.md",
-        refs / "fixtures",
-    ]
-    for p in stale_paths:
-        if p.exists():
-            findings.append(
-                emit_finding(
-                    rule_id="pattern-no-stale-artifacts",
-                    status="fail",
-                    location={"line": 0, "context": str(p.relative_to(skill_dir))},
-                    reasoning=(
-                        f"Legacy pre-pattern artifact `{p.relative_to(skill_dir)}` "
-                        "exists; the unified pattern eliminates it."
-                    ),
-                    recommended_changes=_RECIPE_NO_STALE,
-                )
-            )
-    if refs.is_dir():
-        for p in sorted(refs.glob("rule-*.md")):
-            findings.append(
-                emit_finding(
-                    rule_id="pattern-no-stale-artifacts",
-                    status="fail",
-                    location={"line": 0, "context": str(p.relative_to(skill_dir))},
-                    reasoning=(
-                        f"Legacy `rule-*.md` filename: `{p.relative_to(skill_dir)}`. "
-                        "Judgment rules use the `check-*.md` prefix."
-                    ),
-                    recommended_changes=(
-                        "Rename via `git mv references/rule-<id>.md "
-                        "references/check-<id>.md` (judgment rule) OR delete the "
-                        "file if its detection moved to a script (scripted rule). "
-                        + _RECIPE_NO_STALE
-                    ),
-                )
-            )
-    return envelope("pattern-no-stale-artifacts", findings)
 
 
 def check_no_subagent_footprint(skill_dir: Path) -> dict:
@@ -454,7 +395,6 @@ def check_no_rule_overlap(skill_dir: Path) -> dict:
 
 
 _AUDITS = (
-    check_no_stale_artifacts,
     check_no_subagent_footprint,
     check_judgment_rule_shape,
     check_output_example_asset,

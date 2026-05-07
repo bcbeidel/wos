@@ -120,9 +120,10 @@ Present both artifacts to the user before the Safety Check.
 ## 5. Safety Check
 
 Review the draft against the audit rubric in
-[audit-dimensions.md](../check-hook/references/audit-dimensions.md) —
-the same dimensions `/build:check-hook` uses. Revise until each applicable
-dimension passes. High-leverage checks for a fresh scaffold:
+[`check-hook/references/`](../check-hook/references/) — the same per-dimension
+files `/build:check-hook` uses (`check-<dim>.md`, one per judgment
+dimension). Revise until each applicable dimension passes. High-leverage
+checks for a fresh scaffold:
 
 - `exit-code-contract` — blocking intent uses `exit 2`, not `exit 1` or an unthrown exception.
 - `async-blocking-coherence` — `async: true` and `exit 2` are mutually exclusive.
@@ -259,7 +260,7 @@ offers `/build:check-hook` to audit the configuration.
 - Do not auto-patch `settings.json`; always show the snippet for manual application.
 - Won't build a hook when `permissions.deny` covers the goal — unconditional blocks need no script.
 - Won't build a hook for advisory guidance — suggest CLAUDE.md or a skill instead.
-- Won't skip the Safety Check against `audit-dimensions.md`.
+- Won't skip the Safety Check against the dimension files in `check-hook/references/`.
 - Recovery if a hook is written in error: `chmod -x .claude/hooks/<name>.sh`
   (disables without deleting) or remove the file and its `settings.json`
   entry. A configured hook whose script is missing or non-executable silently
@@ -269,4 +270,4 @@ offers `/build:check-hook` to audit the configuration.
 
 **Receives:** Hook event, handler type, enforcement goal.
 **Produces:** Hook script at `.claude/hooks/<name>.sh` + settings.json entry snippet.
-**Chainable to:** `/build:check-hook` (audit the hook against `audit-dimensions.md`).
+**Chainable to:** `/build:check-hook` (audit the hook against the per-dimension files in `check-hook/references/`).

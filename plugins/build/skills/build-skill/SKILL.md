@@ -162,9 +162,9 @@ This skill is the workflow; the principles doc is the rubric.
   re-present; do not write until the objection is addressed.
 - **check-skill findings block the write.** After Step 8, if
   `/build:check-skill` surfaces FAIL findings on the new skill,
-  apply the canonical repair from `repair-playbook.md` and re-audit
-  until only WARNs remain (or until the user explicitly accepts a
-  FAIL).
+  apply the *How to apply* guidance from the dimension's
+  `references/check-<dim>.md` and re-audit until only WARNs remain
+  (or until the user explicitly accepts a FAIL).
 - **Destructive-intent skill without `disable-model-invocation`.**
   The skill can auto-fire during routing, triggering the destructive
   workflow without the user's intent. Recovery: set

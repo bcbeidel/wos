@@ -7,10 +7,10 @@ the managed skill-index region, workflow curation, and trigger shape).
 Empty findings → overall_status=pass.
 
 Each finding carries a non-empty `recommended_changes` recipe sourced
-from help-skill-best-practices.md (and the deleted repair-playbook.md);
-the orchestrator does not enrich. Tier-2 (5 judgment dimensions) and
-Tier-3 (trigger collision) are not handled by this script — they live
-as references/check-*.md files read inline by the primary agent.
+from help-skill-best-practices.md; the orchestrator does not enrich.
+Tier-2 (5 judgment dimensions) and Tier-3 (trigger collision) are not
+handled by this script — they live as references/check-*.md files read
+inline by the primary agent.
 
 Exit codes:
     0 — overall_status pass / warn for every emitted envelope
@@ -111,10 +111,10 @@ DRIFT_PREFIX_WORDS = 6
 Finding = tuple[str, str, str]
 
 
-# ---- Rule IDs and recipes (sourced from help-skill-best-practices.md
-# ---- and the deleted repair-playbook.md). Each rule_id below is one
-# ---- the detection layer below emits; the recipe is canonical guidance
-# ---- copied through to the audit's recommended_changes field.
+# ---- Rule IDs and recipes (sourced from help-skill-best-practices.md).
+# ---- Each rule_id below is one the detection layer emits; the recipe
+# ---- is canonical guidance copied through to the audit's
+# ---- recommended_changes field.
 
 _RULE_ORDER: list[str] = [
     "slug-mismatch",

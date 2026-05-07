@@ -3,10 +3,11 @@ name: build-skill-pair
 description: >
   Scaffolds a primitive-pair — a matched `build-<primitive>` and
   `check-<primitive>` skill sharing a single distilled principles doc
-  under `_shared/references/`, a scoreable `audit-dimensions.md`, and
-  a `repair-playbook.md`. Distills best-practice material (files,
-  URLs, pasted text, or the model's own domain knowledge) into one
-  rubric that both halves reference. Use when the user wants to
+  under `_shared/references/`, plus one `references/check-<dim>.md`
+  per judgment dimension on the check half. Distills best-practice
+  material (files, URLs, pasted text, or the model's own domain
+  knowledge) into one rubric that both halves reference. Use when the
+  user wants to
   "create a skill pair", "build a primitive pair", "new paired skill",
   "scaffold build and check skills for X", or "codify best practices
   for a new primitive". Not for creating a single skill — route to
@@ -53,9 +54,10 @@ appended-to throughout the workflow.
 
 Pre-populate the two checklists from the planned workflow:
 
-- **Planned artifacts** — the five files produced by Step 8 Save:
-  principles doc, both SKILL.mds, audit-dimensions.md,
-  repair-playbook.md (plus `primitive-routing.md` diff for plugin
+- **Planned artifacts** — the files produced by Step 8 Save:
+  principles doc, both SKILL.mds, and one
+  `check-<primitive>/references/check-<dim>.md` per judgment dimension
+  identified in Distill (plus `primitive-routing.md` diff for plugin
   target).
 - **Planned handoffs** — `/build:check-skill-pair`,
   `/build:check-skill` on each half, and (conditional on the check
@@ -219,18 +221,18 @@ description: Authoring guide for <primitive> — ... Referenced by build-<primit
 <how to keep the primitive honest over time>
 ```
 
-## 6. Draft (five artifacts)
+## 6. Draft
 
 Re-read the brief's *So-what* and *Scope boundaries* before drafting
-the audit dimensions. Audit dimensions inherited from defaults
-(rather than from the principles distilled at intake) are the
-primary intra-skill drift symptom.
+the dimension files. Dimensions inherited from defaults (rather than
+from the principles distilled at intake) are the primary intra-skill
+drift symptom.
 
-Produce all five before the Review Gate — present them together so the
-user sees the whole pair. Tick each item in *Planned artifacts* off
-in `.briefs/<primitive>.brief.md` as it is drafted.
+Produce every artifact before the Review Gate — present them together
+so the user sees the whole pair. Tick each item in *Planned artifacts*
+off in `.briefs/<primitive>.brief.md` as it is drafted.
 
-**Artifact 1 — Principles doc.** Output of Step 4.
+**Artifact 1 — Principles doc.** Output of Step 5.
 
 **Artifact 2 — `build-<primitive>/SKILL.md`.** Workflow template:
 Route → Scope Gate → Elicit → Draft → Safety Check → Review Gate →
@@ -239,28 +241,29 @@ includes the principles doc and `primitive-routing.md`. The body cites
 the principles doc as "the rubric"; the skill body is "the workflow."
 
 **Artifact 3 — `check-<primitive>/SKILL.md`.** Workflow template:
-Route → Scope → Deterministic Checks (if applicable; Tier-1 shell
-scripts under `scripts/`) → Judgment Checks (Tier-2 against
-`audit-dimensions.md`) → Cross-Entity (Tier-3, if scope is a directory)
-→ Report → Opt-In Repair Loop (handoff to `repair-playbook.md`).
-Frontmatter `references:` includes the principles doc,
-`audit-dimensions.md`, and `repair-playbook.md`.
+Route → Scope → Deterministic Checks (if applicable; Tier-1 scripts
+under `scripts/check_<id>.{py,sh}`) → Judgment Checks (Tier-2 against
+each `references/check-<dim>.md`) → Cross-Entity (Tier-3, if scope is
+a directory) → Report → Opt-In Repair Loop. Frontmatter `references:`
+includes the principles doc and every `references/check-<dim>.md`
+file produced as Artifact 4.
 
-**Artifact 4 — `check-<primitive>/references/audit-dimensions.md`.**
-One entry per dimension with these fields: *name*, *what it checks*,
-*pass criteria*, *fail criteria*, *severity*, *principles-doc section
-it enforces*. Group into Structure / Safety / Documentation (or
-primitive-appropriate groups).
-
-**Artifact 5 — `check-<primitive>/references/repair-playbook.md`.**
-One entry per dimension: *finding* → *diagnosis* → *fix recipe*
-(code snippet or prose). The repair playbook is what turns an audit
-finding into a pull request; it must be concrete, not advisory.
+**Artifact 4 — `check-<primitive>/references/check-<dim>.md`** *(one
+file per judgment dimension)*. Each file carries `name`, `description`,
+optional `paths` in YAML frontmatter; the body is an imperative
+statement of the positive direction, then **Why:**, **How to apply:**,
+and an optional code example. The same body serves both ambient
+authoring guidance and the Tier-2 audit. Per-dimension fix recipes
+live inline in *How to apply*; for scripted dimensions, recipes are
+embedded as `_RECIPE_<NAME>` constants inside the detection script.
+See
+[skill-pair-best-practices.md](../../_shared/references/skill-pair-best-practices.md)
+for the canonical shape.
 
 ## 7. Review Gate
 
-Present all five artifacts plus — for `plugin` target — the proposed
-diff to `primitive-routing.md`. Wait for explicit user approval before
+Present every drafted artifact plus — for `plugin` target — the
+proposed diff to `primitive-routing.md`. Wait for explicit user approval before
 writing any file. If the user requests changes, revise and re-present
 — continue until the user approves or cancels. Proceed to Save only on
 explicit approval.
@@ -272,19 +275,20 @@ either the artifact was forgotten, or scope changed and the brief
 needs updating with a *Decisions log* entry justifying the drop.
 *Planned handoffs* may remain unchecked here; those land in Step 10.
 
-This gate exists because five new files (plus a routing-doc change in
-plugin mode) is a large commit to land silently. The user needs to
-see the whole shape, not just the parts.
+This gate exists because the principles doc, both SKILL.mds, and one
+file per dimension (plus a routing-doc change in plugin mode) is a
+large commit to land silently. The user needs to see the whole shape,
+not just the parts.
 
 ## 8. Save
 
-Resolve the five paths against the target chosen in Step 2 and write:
+Resolve every artifact path against the target chosen in Step 2 and write:
 
 - `<SHARED_REF_DIR>/<primitive>-best-practices.md`
 - `<SKILL_ROOT>/build-<primitive>/SKILL.md`
 - `<SKILL_ROOT>/check-<primitive>/SKILL.md`
-- `<SKILL_ROOT>/check-<primitive>/references/audit-dimensions.md`
-- `<SKILL_ROOT>/check-<primitive>/references/repair-playbook.md`
+- `<SKILL_ROOT>/check-<primitive>/references/check-<dim>.md` (one per
+  judgment dimension)
 
 Do not `chmod` — these are markdown. Tier-1 deterministic-check
 scripts under `check-<primitive>/scripts/` are out of scope here —
@@ -364,8 +368,10 @@ Intake (pre-filled primitive name):
   Terraform module conventions (named knowledge).
 - Routing-doc placement: new top-level primitive class.
 
-Output: five files plus a routing-doc diff adding a paragraph under
-*What Each Primitive Was Designed For* and appending
+Output: principles doc, both SKILL.mds, and one
+`check-<dim>.md` per judgment dimension under
+`check-terraform-module/references/`, plus a routing-doc diff adding a
+paragraph under *What Each Primitive Was Designed For* and appending
 `/build:build-terraform-module` / `/build:check-terraform-module`.
 
 ## Anti-Pattern Guards
@@ -383,9 +389,10 @@ Output: five files plus a routing-doc diff adding a paragraph under
    if only an auditor, route there too and hand-write the principles
    doc. Scaffolding one half alone with this skill produces a
    dangling rubric nothing references.
-4. **Writing before Review Gate approval.** Five files plus a routing
-   diff is a large drop. Present the whole shape first; write only
-   after explicit approval.
+4. **Writing before Review Gate approval.** Principles doc, both
+   SKILL.mds, one file per dimension, plus a routing diff is a large
+   drop. Present the whole shape first; write only after explicit
+   approval.
 5. **Inlining a chained skill instead of invoking it.** MUST invoke
    `/build:<chained-skill>` via the Skill tool. MUST NOT read its
    SKILL.md and inline a partial implementation. The shortcut bypasses
@@ -399,8 +406,8 @@ Output: five files plus a routing-doc diff adding a paragraph under
 - Won't produce a principles doc from zero input material — Scope
   Gate signal #2 applies. Any mix of files, URLs, pasted text, or
   named model knowledge clears the gate; *nothing* does not.
-- Won't write any of the five files — or the routing-doc diff —
-  until the Review Gate passes.
+- Won't write any artifact — or the routing-doc diff — until the
+  Review Gate passes.
 - Principles doc lives in `_shared/references/`, not inside either
   skill directory. Both halves reference it at the same path so
   creation and review stay aligned.
@@ -426,18 +433,17 @@ best-practice input material (files / URLs / pasted text /
 named-model-knowledge), and a routing-doc placement decision (new
 top-level class or variant of an existing class).
 
-**Produces:** five files at the chosen target — the distilled
-principles doc under `<SHARED_REF_DIR>/`, `build-<primitive>/SKILL.md`,
-`check-<primitive>/SKILL.md`,
-`check-<primitive>/references/audit-dimensions.md`, and
-`check-<primitive>/references/repair-playbook.md`. In `plugin` mode,
-also produces an updated `primitive-routing.md`. In `project` /
-`user` mode, the routing-doc update is skipped unless one already
-exists at the chosen scope.
+**Produces:** at the chosen target — the distilled principles doc
+under `<SHARED_REF_DIR>/`, `build-<primitive>/SKILL.md`,
+`check-<primitive>/SKILL.md`, and one
+`check-<primitive>/references/check-<dim>.md` per judgment dimension.
+In `plugin` mode, also produces an updated `primitive-routing.md`. In
+`project` / `user` mode, the routing-doc update is skipped unless one
+already exists at the chosen scope.
 
 **Chainable to:** `/build:check-skill-pair <primitive>` for
-pair-level integrity (principles doc present, audit/playbook
-dimension coverage, routing registration, shared principles path);
+pair-level integrity (principles doc present, dimension coverage,
+routing registration, shared principles path);
 `/build:check-skill` on each of the two new SKILL.md files (catches
 per-SKILL.md structural issues the Draft step missed);
 `/build:build-bash-script` or `/build:build-python-script` when
