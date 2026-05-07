@@ -1,6 +1,6 @@
 ---
 name: check-rule
-description: Check a Claude Code rule library under `.claude/rules/` for path-glob validity, vague phrasing, contradictions, and oversize files. Use when the user wants to "audit rules", "check rule quality", "find conflicting rules", "review my rules", or "are my rules well-formed".
+description: Check a Claude Code rule library under `.claude/rules/` for path-glob validity, vague phrasing, contradictions, and oversize files. Use when the user wants to "audit rules", "review my rules", or "find conflicting rules".
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[path to rule file or directory — scans .claude/rules/ if omitted]"
 user-invocable: true
@@ -25,6 +25,13 @@ Evaluate the quality of an existing Claude Code rule library. Three tiers, in or
 This skill follows the [check-skill pattern](../../_shared/references/check-skill-pattern.md). Tier-1 detection is in 5 scripts emitting JSON envelopes via `_common.py` (9 rule_ids total). Tier-2 has 8 judgment dimensions read inline by the primary agent. Tier-3 is the cross-rule-conflict judgment rule fired against rule pairs that could co-fire.
 
 The audit rubric mirrors the authoring principles in [rule-best-practices.md](../../_shared/references/rule-best-practices.md). Each Tier-2 dimension cites its source principle. When the principles doc changes, the dimensions follow.
+
+## When to use
+
+Also fires when the user phrases the request as:
+
+- "check rule quality"
+- "are my rules well-formed"
 
 ## Workflow
 
