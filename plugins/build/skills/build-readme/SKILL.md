@@ -8,8 +8,7 @@ description: >
   section sequence (Prerequisites → Installation → Usage →
   Configuration → Troubleshooting → Contributing → License), fenced
   code blocks with language tags, and placeholder discipline. Use
-  when the user wants to "create a README", "scaffold a README",
-  "write the project README", "new README for this repo", or
+  when the user wants to "scaffold a README", "create a README", or
   "bootstrap README.md". Not for sub-package READMEs inside a
   monorepo, docs-site landing pages, or GitHub org-profile READMEs
   — those have different audiences and out of scope.
@@ -37,6 +36,13 @@ serve different audiences and deserve different rubrics.
 
 **Workflow sequence:** 1. Route → 2. Scope Gate → 3. Elicit →
 4. Draft → 5. Safety Check → 6. Review Gate → 7. Save → 8. Test
+
+## When to use
+
+Also fires when the user phrases the request as:
+
+- "write the project README"
+- "new README for this repo"
 
 ## 1. Route
 
