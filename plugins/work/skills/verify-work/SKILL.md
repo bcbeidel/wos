@@ -4,10 +4,8 @@ description: >
   Verifies completed work against validation criteria. Works in two
   modes: with a plan (runs the plan's Validation section) or ad-hoc
   (builds checks from git diff, project config, and project docs).
-  Use when the user wants to "validate the work", "verify the work",
-  "check my work", "verify my changes", "does this look right",
-  "run checks", "check if done", "are we done", "did it work",
-  or after completing all tasks in a plan.
+  Use when the user wants to "verify the work", "validate the work",
+  or "run checks", or after completing all tasks in a plan.
 argument-hint: "[plan file path (optional)]"
 user-invocable: true
 references:
@@ -26,6 +24,17 @@ Validation section or from a hypothesis built from git diff, project
 conventions, and project docs.
 
 **Announce at start:** "I'm using the verify-work skill to verify this work."
+
+## When to use
+
+Also fires when the user phrases the request as:
+
+- "check my work"
+- "verify my changes"
+- "does this look right"
+- "check if done"
+- "are we done"
+- "did it work"
 
 ## Trust Model
 
