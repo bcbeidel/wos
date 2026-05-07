@@ -5,8 +5,7 @@ paths:
   - "**/*.py"
 ---
 
-**Why:** Short, well-named functions read as their own commentary — `main()` becomes a sequence of named operations rather than a 200-line wall. Duplicated blocks drift: fix one copy, forget the others, ship a partial bug. Conjunction names are a smell that the function is doing more than one thing and should be split. Source principles: *Keep functions small and single-purpose*; *Eliminate duplication* (plus Clean Code ch. 3 and Pragmatic Programmer §15 DRY).
-
+**Why:** Short, well-named functions read as their own commentary — `main()` becomes a sequence of named operations rather than a 200-line wall. Duplicated blocks drift: fix one copy, forget the others, ship a partial bug. Conjunction names are a smell that the function is doing more than one thing and should be split.
 **How to apply:** read `main()` aloud — if it doesn't sound like a sequence of named operations, extract the cohesive sections. Helper functions get verb-phrased single-purpose names (`fetch`, `transform`, `validate`, `write`). Three near-identical blocks become a single helper called three times.
 
 ```python
