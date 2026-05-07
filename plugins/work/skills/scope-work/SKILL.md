@@ -4,8 +4,8 @@ description: >
   Use before creating implementation plans. Explores user intent,
   requirements, and design through structured divergent-then-convergent
   thinking. Produces a design document, not code. Use when the user
-  wants to "brainstorm", "explore", "design", "figure out what to build",
-  or needs to think through a problem before planning.
+  wants to "brainstorm", "design", or "figure out what to build", or
+  needs to think through a problem before planning.
 argument-hint: "[topic or problem to explore]"
 user-invocable: true
 references:
@@ -25,6 +25,12 @@ or implementation skill, writing code, or taking any implementation action.
 This applies to every task regardless of perceived simplicity. The design
 is the deliverable at this stage — not code, not a plan.
 </HARD-GATE>
+
+## When to use
+
+Also fires when the user phrases the request as:
+
+- "explore"
 
 ## Workflow
 
