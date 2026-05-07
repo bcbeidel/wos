@@ -265,20 +265,6 @@ Each phase ends with a checkpoint. Do not proceed until the gate is met.
 
 STOP at each gate. If the condition is not met, complete it before proceeding.
 
-## Common Deviations (Do Not)
-
-- **Do not write the entire document in one pass at the end.** Each phase
-  writes to disk. If you haven't written to disk since Phase 2, you've
-  skipped checkpoints.
-- **Do not skip sub-questions.** They structure Phase 6 synthesis. Without
-  them, findings will organize by whatever taxonomy emerges from searching.
-- **Do not SIFT "in your head."** Use the SIFT evaluation log in the
-  sources table. If there's no visible per-source tier annotation, SIFT
-  didn't happen.
-- **Do not skip `url_checker`.** Fetching content via WebFetch verifies
-  content; `url_checker` verifies the URL itself (catches 404s, hallucinated
-  URLs).
-
 ## Output Document Format
 
 The final research document is saved with a `{date}-{slug}.research.md`
