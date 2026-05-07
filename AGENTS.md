@@ -1,5 +1,7 @@
 # AGENTS.md
 
+This repo is **toolkit** — a Claude Code plugin marketplace. You are building the tools, not using them.
+
 <!-- wiki:begin -->
 ## Context Navigation
 
