@@ -85,7 +85,5 @@ Ship the IDE adapter integration — it leverages the core strength (simple CLI)
 
 ## Handoff
 
-**Receives:** A project, product, team, or strategy to evaluate
-**Produces:** A four-quadrant inventory with cross-referenced strategic options and a priority action
 **Chainable to:** `opportunity-cost` (to evaluate tradeoffs between strategic options), `eisenhower-matrix` (to prioritize the resulting strategic actions)
 

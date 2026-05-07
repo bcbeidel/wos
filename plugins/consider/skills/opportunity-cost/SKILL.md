@@ -82,7 +82,5 @@ Auth0 justified. The opportunity cost of building (delayed notifications = reven
 
 ## Handoff
 
-**Receives:** A decision with a favored option and at least one realistic alternative
-**Produces:** An option comparison table with opportunity cost named explicitly and a verdict
 **Chainable to:** `reversibility` (to assess how locked in the favored choice is), `second-order` (to trace downstream effects of the foregone alternative)
 

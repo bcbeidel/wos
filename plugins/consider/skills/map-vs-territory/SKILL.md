@@ -85,7 +85,5 @@ Ask the external team for their delivery date and confidence level. If they can'
 
 ## Handoff
 
-**Receives:** A mental model, plan, or abstraction the user is relying on for a decision
-**Produces:** A three-zone gap audit (matches / simplifies / ignores) with the highest-risk divergence and a reality-check approach
 **Chainable to:** `first-principles` (to rebuild from verified fundamentals), `second-order` (to trace consequences of the highest-risk gap)
 

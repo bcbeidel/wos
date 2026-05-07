@@ -87,7 +87,5 @@ Bring in outside expertise. Hire or contract a mobile developer for the app shel
 
 ## Handoff
 
-**Receives:** A domain or decision where expertise boundaries affect the outcome
-**Produces:** A three-zone competence map (inside / edge / outside) with a recommended strategy
 **Chainable to:** `consider` (to apply additional mental models), `opportunity-cost` (to evaluate the cost of staying in vs. expanding the circle)
 

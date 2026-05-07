@@ -83,7 +83,5 @@ Pause the architecture video project and the onboarding doc rewrite until setup 
 
 ## Handoff
 
-**Receives:** A goal or area where the user needs to establish focus amid competing priorities
-**Produces:** A candidate action leverage analysis identifying the single highest-leverage action, its definition of done, and what to deprioritize
 **Chainable to:** `eisenhower-matrix` (to slot the one thing alongside other demands), `pareto` (to validate the 80/20 leverage claim)
 

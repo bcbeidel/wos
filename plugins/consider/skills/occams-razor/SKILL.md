@@ -79,7 +79,5 @@ Check the provider's status page for Tuesday incidents. If clean, run `curl` dir
 
 ## Handoff
 
-**Receives:** A phenomenon or problem with multiple possible explanations and a set of known observations
-**Produces:** A ranked candidate explanation table with the simplest sufficient explanation and distinguishing evidence
 **Chainable to:** `5-whys` (to drill into the chosen explanation's root cause), `map-vs-territory` (to check whether the observations themselves are accurate)
 

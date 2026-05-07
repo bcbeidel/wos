@@ -81,7 +81,5 @@ Incremental refactor (Option B). The 10-month horizon reveals that the rewrite's
 
 ## Handoff
 
-**Receives:** A decision the user is weighing, ideally with at least two options identified
-**Produces:** Structured time-horizon analysis table with divergence points and a recommendation
 **Chainable to:** `consider` (to apply additional mental models), `second-order` (for deeper consequence mapping on the chosen option)
 

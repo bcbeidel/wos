@@ -83,7 +83,5 @@ Break the PR into 2-3 smaller PRs if possible. Message the reviewer offering to 
 
 ## Handoff
 
-**Receives:** A situation where someone's behavior seems problematic, hostile, or deliberately harmful
-**Produces:** A structured alternatives analysis with distinguishing evidence and a recommended response
 **Chainable to:** `consider` (to apply additional models), `map-vs-territory` (to check what assumptions are driving the uncharitable interpretation)
 

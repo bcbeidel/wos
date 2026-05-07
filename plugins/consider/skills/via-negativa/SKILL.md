@@ -83,7 +83,5 @@ The 30-minute canary monitor looks like wasted time but caught a memory leak las
 
 ## Handoff
 
-**Receives:** A system, process, or situation where something currently present may be causing friction or unnecessary complexity
-**Produces:** A ranked removal candidate analysis with a simplified version and explicit load-bearing elements to preserve
 **Chainable to:** `occams-razor` (to confirm the simplified version is the most parsimonious one that still works), `first-principles` (to verify the core purpose before deciding what's essential)
 
