@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.24.1
+
+- **Cycle 5 row 25**: drop dead-link to nonexistent `rule-header-comment.md`
+  from `check-bash-script/references/check-commenting-intent.md`.
+
 ## 0.24.0
 
 - **Cycle 4 — Process-Echo Guards Sweep** (codify-then-sweep, per
