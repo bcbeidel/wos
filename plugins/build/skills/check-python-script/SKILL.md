@@ -144,12 +144,7 @@ For each script that passed the Tier-2 exclusion gate, evaluate against the **9 
 | [check-structured-stderr-errors.md](references/check-structured-stderr-errors.md) | Skill-helper — JSON to stderr, not tracebacks | warn | skill-helper |
 | [check-exit-code-meaning.md](references/check-exit-code-meaning.md) | Skill-helper — distinct exit codes by recovery class | warn | skill-helper |
 
-#### Evaluator policy
-
-- **Single locked-rubric pass per script.** Read all 9 rule files first, then evaluate the script in one LLM call.
-- **Default-closed when borderline.** When evidence is ambiguous, return `warn`.
-- **Severity floor: WARN.**
-- **One finding per dimension maximum.**
+**Evaluator policy:** see [check-skill-pattern.md §Evaluator policy](../../_shared/references/check-skill-pattern.md#evaluator-policy). Read all 9 rule files first, then evaluate the script in one LLM call.
 
 ### 4. Tier-3 Cross-Script Collision
 

@@ -201,21 +201,11 @@ mechanical portion of those rules is now scripted; the judgment portion
 folds into D5 Function Design and the canonical convention doc
 [bash-script-best-practices.md](../../_shared/references/bash-script-best-practices.md).)
 
-**Evaluator policy:**
+**Evaluator policy:** see [check-skill-pattern.md §Evaluator policy](../../_shared/references/check-skill-pattern.md#evaluator-policy). Read all six files first, then evaluate each in turn against the same artifact.
 
-- **Single locked-rubric pass per artifact.** Read all six files first,
-  then evaluate each in turn against the same artifact. Don't
-  re-decompose into sub-checks; the unified rubric stabilizes severity.
-- **Default-closed when borderline.** If evidence is ambiguous or an
-  exception nearly fits, return `warn`, not `pass`. False-positive
-  WARNs cost a glance; false-negative PASSes erode trust.
-- **Severity floor: WARN.** Judgment-mode findings default to WARN —
-  coaching, not blocking. Escalate to FAIL only for safety concerns
-  that Tier-1 missed (e.g., a hand-rolled SQL-shaped string in shell).
-- **One finding per dimension maximum.** If a dimension identifies
-  multiple problematic locations, surface the highest-signal one with
-  concrete detail (line numbers, what to extract). Bulk findings train
-  the user to disregard the audit.
+**Skill-specific FAIL escalations.** Beyond the canonical WARN floor,
+escalate to FAIL only for safety concerns Tier-1 missed (e.g., a
+hand-rolled SQL-shaped string in shell).
 
 ### 4. Tier-3 Cross-Entity Collision
 

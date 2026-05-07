@@ -112,12 +112,7 @@ For each structurally valid subagent, evaluate against the **7 judgment rules** 
 | [check-failure-behavior.md](references/check-failure-behavior.md) | D6 — named failure modes with explicit recovery | warn |
 | [check-injection-surface.md](references/check-injection-surface.md) | D7 — payload-derived input not exec'd or eval'd unsafely | warn |
 
-#### Evaluator policy
-
-- **Single locked-rubric pass per subagent.** Read all 7 rule files first, then evaluate each subagent in one LLM call against the unified rubric. A single locked-rubric pass produces stable scoring.
-- **Default-closed when borderline.** When evidence is ambiguous, return `warn`, not `pass`.
-- **Severity floor: WARN.** All 7 Tier-2 dimensions are coaching, not blocking. Escalate to FAIL only for safety concerns Tier-1 missed.
-- **One finding per dimension per subagent maximum.** Surface the highest-signal location with concrete excerpts.
+**Evaluator policy:** see [check-skill-pattern.md §Evaluator policy](../../_shared/references/check-skill-pattern.md#evaluator-policy). Read all 7 rule files first, then evaluate each subagent in one LLM call.
 
 Include the full subagent definition verbatim — never summarize. Dimensions that don't apply (e.g., D7 Injection Surface on a subagent that never reads input) return `inapplicable` silently.
 

@@ -125,12 +125,7 @@ For each structurally valid skill, evaluate against the **10 judgment rules** at
 | [check-mechanical-work-partition.md](references/check-mechanical-work-partition.md) | D9 — mechanical work in scripts; judgment in SKILL.md | warn |
 | [check-best-practices-doc-restatement.md](references/check-best-practices-doc-restatement.md) | D10 — SKILL.md cites `*-best-practices.md`; does not restate principles | warn |
 
-#### Evaluator policy
-
-- **Single locked-rubric pass per skill.** Read all 9 rule files first, then evaluate each skill in turn against the unified rubric. A single locked-rubric pass produces stable scoring.
-- **Default-closed when borderline.** When evidence is ambiguous, return `warn`, not `pass`.
-- **Severity floor: WARN.** All 9 Tier-2 dimensions are coaching, not blocking. Escalate to FAIL only for safety concerns Tier-1 missed.
-- **One finding per dimension per skill maximum.** Surface the highest-signal location with concrete excerpts.
+**Evaluator policy:** see [check-skill-pattern.md §Evaluator policy](../../_shared/references/check-skill-pattern.md#evaluator-policy). Read all 10 rule files first, then evaluate each skill in turn against the unified rubric.
 
 Include the full SKILL.md verbatim — never summarize. Dimensions that don't apply (e.g., D7 Safety Gating on a skill with no destructive ops; D8 Example Realism on a skill with no examples) return `inapplicable` silently.
 
