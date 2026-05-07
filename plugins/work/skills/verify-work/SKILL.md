@@ -246,21 +246,13 @@ Results:
 
 ## Anti-Pattern Guards
 
-1. **Validating with unchecked tasks** — partial validation is unreliable.
-   The precondition check prevents this, but if you notice unchecked tasks
-   after loading the plan, stop and report them.
-2. **Marking completed on failure** — failed validation means the plan
-   needs more work. Add tasks or abandon; never mark completed.
-3. **Inventing criteria** — the Validation section is the contract. Adding
-   criteria the plan author didn't write changes the success bar without
-   consent.
-4. **Skipping human criteria** — automated-only validation misses
+1. **Skipping human criteria** — automated-only validation misses
    qualitative concerns. Present human criteria even when all automated
    checks pass.
-5. **Diagnosing without evidence** — when reporting failures, include
+2. **Diagnosing without evidence** — when reporting failures, include
    command output, error messages, or specific observations. "It didn't
    work" is not a diagnosis.
-6. **Running quality judgment before structural checks pass** — if plan structure is malformed (missing status, wrong task count), quality checks produce meaningless results. Structural preconditions (Step 2) must pass before any judgment-based criterion runs. A malformed plan is not "mostly validated."
+3. **Running quality judgment before structural checks pass** — if plan structure is malformed (missing status, wrong task count), quality checks produce meaningless results. Structural preconditions (Step 2) must pass before any judgment-based criterion runs. A malformed plan is not "mostly validated."
 
 ## Handoff
 
