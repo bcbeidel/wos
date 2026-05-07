@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.22.0
+
+- Python script profiles (cli/library/skill-helper) for
+  `build-python-script` and `check-python-script` (#430, refs #380 #389):
+  - Profiles spec at `_shared/references/python-script-profiles.md` —
+    canonical source for both halves of the pair.
+  - `_shared/scripts/detect_python_profile.py` heuristic detector with
+    `--profile=<name>` override (stdlib only, 9 unit tests).
+  - `check-python-script` Tier-1 detectors: library-discipline
+    (no-side-effects, public-api-declared) and skill-helper-contract
+    (stdin-json, atomic-write, distinct-error-codes).
+  - `check-python-script` Tier-2 dimensions: library
+    (no-import-time-side-effects, public-symbols-typed,
+    public-symbols-documented) and skill-helper
+    (structured-stderr-errors, exit-code-meaning).
+  - `build-python-script` Step 3 elicits profile up-front; Step 4 Draft
+    branches on profile; Step 5 Safety Check adds Profile-fit group.
+- Trigger-cap sweep: cap each SKILL.md description to ≤3 quoted phrases;
+  surplus phrases relocated to `## When to use` (#429, refs #399). Adds
+  `_shared/scripts/count_triggers.py` audit script. Touches every
+  `build-*` and `check-*` skill description.
+
 ## 0.21.0
 
 - Refactor every check-* skill onto the unified single-artifact-per-rule
