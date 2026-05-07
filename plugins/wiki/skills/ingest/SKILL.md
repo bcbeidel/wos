@@ -273,9 +273,6 @@ The high-rigor path is never required. It is appropriate when the user wants to 
 
 ## Key Instructions
 
-- **Won't overwrite existing prose** — ingest is append-only; every `git diff` should show only additions
-- **Won't write until confirmed** — Step 1b gate is non-negotiable; present the full list and wait for approval
-- **Won't ingest without resolving filing target** — Pre-Ingest reads RESOLVER.md (or asks the user in degraded mode) before any page identification
 - **Recovery:** if an ingest produces unwanted changes, use `git diff` to review; writes are isolated to the filing target(s) resolved in Pre-Ingest, so `git checkout -- <filing-target>/` reverts cleanly
 
 ## Anti-Pattern Guards
