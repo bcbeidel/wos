@@ -118,6 +118,16 @@ Bash scripts run with the invoker's privileges and reach the filesystem, the net
 
 `eval`, `mktemp`/`trap` pairing, hardcoded `/tmp/` literals, `cd` without exit, GNU-flag detection, and unquoted-variable expansion are audited deterministically (mostly via ShellCheck). The remaining rules rely on author judgment — they live in the audit rubric and code review.
 
+## Detector-Script Pattern Hygiene
+
+A pattern-scanning script — anything that greps source for forbidden constructs and emits findings — has a self-incrimination risk: if its docstring, comments, or regex literals contain the byte sequences it scans for, scanning the scanner produces phantom findings that mask real ones. Two rules contain the risk:
+
+**Paraphrase docstrings, comments, and identifier names.** Describe the detected pattern abstractly, not literally. "Pipe-to-shell installer pattern" beats `curl | sh`; "dynamic-evaluation call" beats the literal `eval`-call form. Apply to every place the description lives — header comment, `usage()` text, error messages emitted via `die`, function names. The shipped `plugins/build/skills/check-makefile/scripts/check_safety.py` line 11 ("pipe-to-shell pattern (curl piped into sh/bash)") is the live example for the paraphrase rule, even though that file is Python — the rule applies identically to bash detectors that use `grep`/`awk` patterns embedded in here-docs or arrays.
+
+**Split or interleave grep / regex literals so the byte sequence is non-contiguous.** When a `grep -E`, `awk`, or `[[ =~ ]]` pattern would otherwise contain the literal bytes being detected, structure it so the scanned bytes do not appear adjacent in source — separator character classes, alternation, or string concatenation via `printf -v` all work. The compiled pattern must stay equivalent. `plugins/build/skills/check-readme/scripts/check_safety.py` lines 55–60 demonstrate the technique (Python regex, but the construction translates: separator `\s[^|]*\|\s*` keeps `curl` and `(sh|bash|zsh)` non-adjacent in source).
+
+The two rules together let a detector script pass its own audit without weakening what it detects. Authors writing a new bash pattern-scanner should reach for both at draft time, not retrofit after the first self-flag.
+
 ## Review and Decay
 
 Bash scripts rot. The platform `bash` moves (especially across macOS-Homebrew and Linux versions), the external CLI tools change flags, the `find`/`xargs`/`grep` flavors diverge between distributions. Retire a script when its automation is no longer invoked, when its logic has migrated into a real tool, or when its exit contract can no longer be trusted. **Convert to a real language when the script grows past ~300 non-blank lines, acquires data structures Bash cannot express, or accumulates control flow Bash cannot debug** — `primitive-routing.md` covers the shell-vs-Python decision. A neglected script is worse than a missing one — callers trust the exit code they have stopped reading.
