@@ -89,12 +89,10 @@ A judgment rule lives at `references/check-<rule_id>.md` and follows the unified
 ```markdown
 ---
 name: <Human-Readable Title>
-description: <One-sentence summary>
+description: <One-line imperative statement of the rule>
 paths:                            # optional
   - "**/*.<ext>"
 ---
-
-<One-line imperative statement>
 
 **Why:** <reason — the failure cost>
 
@@ -108,6 +106,8 @@ paths:                            # optional
 ```
 
 Same shape as the deleted `rule-*.md` files — only the filename prefix changed (`rule-` → `check-`). The `paths:` glob, when present, lets Claude apply the rule ambiently when editing matching files; the audit reads it during Tier-2 regardless.
+
+**Body lead.** The frontmatter `description:` carries the imperative — it is the retrieval anchor, the TOC line, and the rule itself. The body opens with `**Why:**`, not a paraphrase of the description. Restating the description as a body-lead paragraph adds tokens without adding signal: a reader who already saw the description sees the same claim again, and an LLM scoring against the rule double-counts the same content. The deterministic check is `plugins/build/_shared/scripts/check_reference_lead.py`, which flags references whose body lead covers ≥70% of the description's content tokens (rule_id `reference-lead-echo`, severity `warn`).
 
 ## `assets/output-example.json`
 

@@ -256,13 +256,15 @@ file produced as Artifact 4.
 
 **Artifact 4 — `check-<primitive>/references/check-<dim>.md`** *(one
 file per judgment dimension)*. Each file carries `name`, `description`,
-optional `paths` in YAML frontmatter; the body is an imperative
-statement of the positive direction, then **Why:**, **How to apply:**,
-and an optional code example. The same body serves both ambient
-authoring guidance and the Tier-2 audit. Per-dimension fix recipes
-live inline in *How to apply*; for scripted dimensions, recipes are
-embedded as `_RECIPE_<NAME>` constants inside the detection script.
-See
+optional `paths` in YAML frontmatter. The frontmatter `description:`
+carries the imperative claim of the rule; the body opens directly with
+**Why:**, then **How to apply:**, and an optional code example.
+Restating the description as a body-lead paragraph is the
+`reference-lead-echo` violation flagged by `check_reference_lead.py`.
+The same body serves both ambient authoring guidance and the Tier-2
+audit. Per-dimension fix recipes live inline in *How to apply*; for
+scripted dimensions, recipes are embedded as `_RECIPE_<NAME>` constants
+inside the detection script. See
 [skill-pair-best-practices.md](../../_shared/references/skill-pair-best-practices.md)
 for the canonical shape.
 

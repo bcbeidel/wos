@@ -25,12 +25,10 @@ Both consumers read the same file with the same frontmatter and the same body. T
 ```markdown
 ---
 name: <Human-Readable Title>
-description: <One-sentence summary suitable as a TOC entry>
+description: <One-line imperative rule statement, framed as an action to take.>
 paths:
   - "path/glob/**/*.ext"
 ---
-
-<One-line imperative rule statement, framed as an action to take.>
 
 **Why:** <the reason — incident, constraint, strong preference that justifies the rule>
 **How to apply:** <when/where this kicks in, including edge cases and exceptions>
@@ -40,7 +38,7 @@ paths:
 
 Three frontmatter fields: `name` and `description` are required (and validate via `wiki/document.py`); `paths` is optional — present when the rule should auto-load on file matches, omitted for rules that load only on-demand by audit subagents or by explicit reference.
 
-Three load-bearing body elements: the rule itself, the reasoning, the path scope. A rule that needs more structure is usually two rules in one file. The body shape is identical for both consumers — the dispatcher subagent reads the same prose Claude does.
+Two load-bearing body elements: the reasoning (`**Why:**`) and the application guidance (`**How to apply:**`). The rule itself lives in the frontmatter `description:` — it is the retrieval anchor, the TOC line, and the imperative claim. Re-stating the description as a body-lead paragraph adds tokens without adding signal; the body opens directly with `**Why:**`. The deterministic check for this is `plugins/build/_shared/scripts/check_reference_lead.py` (rule_id `reference-lead-echo`). A rule that needs more structure is usually two rules in one file. The body shape is identical for both consumers — the dispatcher subagent reads the same prose Claude does.
 
 ## Authoring Principles
 

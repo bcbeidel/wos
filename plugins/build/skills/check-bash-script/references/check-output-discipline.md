@@ -6,8 +6,6 @@ paths:
   - "**/*.bash"
 ---
 
-Route data output to stdout, log and error and prompt output to stderr, and ensure every error branch produces a non-zero exit code — typically via a `die` helper.
-
 **Why:** Unix pipelines depend on the stdout-for-data, stderr-for-chatter convention. A script that prints "processing file X" to stdout silently corrupts every pipeline that consumes its output. Callers in cron, CI, and Makefiles depend on the exit-code contract — an error branch that logs a problem then exits 0 makes the failure invisible to the caller; cron sends no email, CI marks the job green, the bug ships to production. The `die` helper centralizes the "log to stderr + exit non-zero" pattern so every error path follows the same discipline; without it, error paths drift (some `echo`, some `>&2`, some `exit 1`, some `exit 0`) and the contract degrades.
 
 **How to apply:** define a `die` helper for failure paths instead of bare `exit 1` calls without messages. Route error and log output via `>&2` redirection (or through `die`). Ensure every error branch ends with `die` or `exit N` where `N > 0`. Reserve stdout for the script's actual data output — when the script's purpose is to produce a value (a path, a number, a JSON document), that value goes to stdout untouched by progress messages.

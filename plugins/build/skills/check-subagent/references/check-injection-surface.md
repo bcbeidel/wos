@@ -6,8 +6,6 @@ paths:
   - "**/agents/**/*.md"
 ---
 
-Frame user-supplied text as data — enclosed in context tags, explicitly named as content to inspect — rather than interpolated raw into instruction position.
-
 **Why:** Raw interpolation of user input is a prompt-injection surface. The model reads untrusted text as instruction unless the body explicitly frames it as data. Template placeholders (`{user_input}`, `$USER_MESSAGE`) sitting in instruction position let an attacker rewrite the agent's task by crafting the input. Framing untrusted content as data — explicitly — narrows the attack surface without eliminating the need for content review. Source principle: *No interpolation of untrusted input.*
 
 **How to apply:** Enclose user-supplied content in context tags (e.g., `<user-input>...</user-input>`). State explicitly that the agent should inspect (not follow) the content. Avoid placeholder substitution that drops untrusted text directly into the instruction surface.

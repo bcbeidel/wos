@@ -5,8 +5,6 @@ paths:
   - "**/.briefs/*.brief.md"
 ---
 
-When `.briefs/<primitive>.brief.md` exists, two qualities are LLM-judged: the *So-what* names a specific intent rather than a category description, and *Scope boundaries* lists concrete items rather than vague hedges.
-
 **Why:** the brief is the trace of the build's original intent. Presence and section completeness are scripted (Tier-1 `brief-presence`); content quality is not — distinguishing a generic "this codifies best practices for X" from a specific "we need this because Y team kept hitting Z problem in PR review last quarter" requires reading both prose passages and judging whether they anchor in specifics. A brief that fails this rule still exists, has all sections, and parses cleanly — but the trace is decorative rather than load-bearing. Future readers cannot reconstruct *why* the build was scoped the way it was.
 
 **How to apply:** read `.briefs/<primitive>.brief.md`. Judge two passages:

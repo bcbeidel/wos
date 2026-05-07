@@ -5,8 +5,6 @@ paths:
   - "**/*.chain.md"
 ---
 
-For every step in a `*.chain.md` manifest, the declared `output_contract` must be plausible given what the referenced SKILL.md actually produces. Mismatches surface as `warn` findings — never `fail`.
-
 **Why:** structural lint (delegated to `plugins/wiki/scripts/lint.py`) verifies the manifest is well-formed — skills exist, contracts are declared, gates appear on consequential steps, no cycles. What it cannot verify is whether the *content* of each step's contract matches reality. A step may declare `output_contract: returns a list of validated URLs` while the underlying SKILL.md actually produces a markdown report with embedded URLs. The chain still parses, but the next step's `input_contract` will fail to resolve at execution time. Cross-reference catches this drift between declared and actual contracts before runtime surprises.
 
 **How to apply:** for each step in the manifest:

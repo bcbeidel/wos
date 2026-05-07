@@ -5,8 +5,6 @@ paths:
   - "**/SKILL.md"
 ---
 
-Write a failure contract — name specific failure modes tied to specific steps or external calls, give each a concrete recovery action, and bound every polling/retry/wait step with explicit timeout and backoff parameters.
-
 **Why:** Generic recovery text is functionally silence. "If something goes wrong, handle it" gives the agent nothing to execute; it falls back to whatever default behavior it improvises, which differs run to run. "Poll until ready" with no upper bound is an open-ended hang waiting to happen — the agent cannot decide when to give up, so it either thrashes forever or surfaces an arbitrary timeout the user didn't sanction. External calls (network, filesystem, subprocess) without corresponding failure modes leave the agent with no rubric for partial success — does a 403 retry or stop? The contract decides; silence forces guessing.
 
 **How to apply:** For each external call in Steps, name the realistic failure (`ParserError`, HTTP 403, registry timeout) and a concrete recovery (stop and surface the line; surface the missing permission; retry with `2s, 4s, 8s` up to 30s, then surface `registry-unavailable`). Add explicit timeout + backoff to any polling/retry/wait language.

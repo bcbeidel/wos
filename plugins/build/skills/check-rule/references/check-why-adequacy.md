@@ -6,8 +6,6 @@ paths:
   - "**/.claude/rules/**/*.md"
 ---
 
-Include reasoning for every rule. For judgment-based rules — those signaled by compliant/non-compliant examples, `violation`/`exception`/`failure` vocabulary, or multi-paragraph why prose — name the specific failure cost (what breaks, who bears it) and at least one legitimate exception.
-
 **Why:** Without reasoning, Claude can't extend the rule to edge cases and maintainers can't decide whether the rule is still load-bearing. Rules without failure cost get weighed as bureaucratic overhead rather than real risk — disable rates rise. Rules with no named exception appear to admit no flexibility, causing developers to disable them entirely rather than follow them in the 95% case. The exception clause is what keeps the rule alive when the edge case finally arrives.
 
 **How to apply:** For simple directive rules ("Use snake_case for table names"), a brief inline `**Why:**` line suffices. For judgment-based rules, the why must do two things: name the specific consequence and who bears it (not just "X is bad"), and append an `Exception:` line naming at least one legitimate bypass case. Replace "It creates noise" with "exposes internal state via browser developer tools and adds measurable latency in high-frequency call paths." Replace silence on exceptions with "Exception: test files; scripts in `tools/` that are never bundled for production."

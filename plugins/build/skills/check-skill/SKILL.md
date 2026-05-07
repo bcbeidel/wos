@@ -29,7 +29,7 @@ license: MIT
 
 Evaluate the quality of an existing Claude Code skill. Three tiers, in order: deterministic format checks (no LLM), per-skill semantic checks (nine always-on dimensions in a single locked-rubric call), then cross-skill description collision detection.
 
-This skill follows the [check-skill pattern](../../_shared/references/check-skill-pattern.md). Tier-1 detection is in 8 per-skill scripts emitting JSON envelopes via `_common.py` plus one shared detector (`_shared/scripts/check_handoff_shape.py` invoked with `--envelope`), 22 rule_ids total. Tier-2 has 9 judgment dimensions read inline by the primary agent. Tier-3 is a judgment-driven cross-skill description-collision pass over candidate pairs.
+This skill follows the [check-skill pattern](../../_shared/references/check-skill-pattern.md). Tier-1 detection is in 8 per-skill scripts emitting JSON envelopes via `_common.py` plus two shared detectors (`_shared/scripts/check_handoff_shape.py` and `_shared/scripts/check_reference_lead.py`, both invoked with `--envelope`), 23 rule_ids total. Tier-2 has 9 judgment dimensions read inline by the primary agent. Tier-3 is a judgment-driven cross-skill description-collision pass over candidate pairs.
 
 The audit rubric mirrors the authoring principles in [skill-best-practices.md](../../_shared/references/skill-best-practices.md). Each Tier-2 dimension cites its source principle. When the principles doc changes, the dimensions should follow.
 
@@ -52,7 +52,7 @@ Report: "Found N skills. Auditing..."
 
 ### 2. Tier-1 Deterministic Format Checks
 
-Invoke 9 detection scripts:
+Invoke 10 detection scripts:
 
 ```bash
 SCRIPTS="${SKILL_DIR}/scripts"
@@ -67,12 +67,13 @@ bash    "$SCRIPTS/check_prose.sh"              $TARGETS   # 2 rules: prose-hedge
 bash    "$SCRIPTS/check_secret.sh"             $TARGETS   # 1 rule:  secret
 bash    "$SCRIPTS/check_dangerous_patterns.sh" $TARGETS   # 2 rules: remote-exec, destructive-cmd
 python3 "$SCRIPTS/check_cisco.py"              $TARGETS   # 2 rules: scanner-fail, scanner-warn (inapplicable when scanner missing)
-python3 "$SHARED_SCRIPTS/check_handoff_shape.py" --envelope $TARGETS   # 1 rule:  handoff-shape
+python3 "$SHARED_SCRIPTS/check_handoff_shape.py"  --envelope $TARGETS   # 1 rule:  handoff-shape
+python3 "$SHARED_SCRIPTS/check_reference_lead.py" --envelope $TARGETS   # 1 rule:  reference-lead-echo (walks each SKILL.md's sibling references/)
 ```
 
 Each script emits a JSON array of envelopes: `{rule_id, overall_status, findings[]}`. `recommended_changes` is canonical — copy through verbatim.
 
-**Script-to-rules map** (22 Tier-1 rule_ids):
+**Script-to-rules map** (23 Tier-1 rule_ids):
 
 | Script | rule_ids | Severity |
 |---|---|---|
@@ -98,6 +99,7 @@ Each script emits a JSON array of envelopes: `{rule_id, overall_status, findings
 | `check_cisco.py` | `scanner-fail` | fail |
 | `check_cisco.py` | `scanner-warn` | warn |
 | `_shared/scripts/check_handoff_shape.py` | `handoff-shape` | warn |
+| `_shared/scripts/check_reference_lead.py` | `reference-lead-echo` | warn |
 
 **Tier-2 exclusion list.** Any FAIL in `filename`, `directory-basename`, `name-slug`, `reserved-names`, `required-frontmatter`, `version-shape`, `description-cap`, `required-sections`, `body-length` (>400 line case), `secret`, or `scanner-fail` excludes the skill from Tier-2 — malformed skills don't reach the LLM step.
 
