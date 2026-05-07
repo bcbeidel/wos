@@ -5,9 +5,6 @@ stage: shared
 pipeline: research
 ---
 
-## Purpose
-Reference for CLI commands used across multiple research stages — lint validation and URL reachability checking.
-
 # Python Utilities Reference
 
 CLI commands for research sessions. `<plugin-scripts-dir>` refers to
