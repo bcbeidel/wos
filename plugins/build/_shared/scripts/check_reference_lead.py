@@ -66,7 +66,7 @@ THRESHOLD = 0.70
 
 _FRONTMATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 _DESCRIPTION_LINE_RE = re.compile(
-    r"^description:\s*(?P<style>[>|][-+]?)?\s*(?P<inline>.*)$",
+    r"^description:[ \t]*(?P<style>[>|][-+]?)?[ \t]*(?P<inline>.*)$",
     re.MULTILINE,
 )
 _PUNCT_RE = re.compile(r"[\.,;:!?()\[\]{}\"'`/\\]+")
