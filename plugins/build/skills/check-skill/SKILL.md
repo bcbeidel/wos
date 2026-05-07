@@ -13,6 +13,7 @@ version: 1.0.0
 owner: build-plugin
 references:
   - ../../_shared/references/skill-best-practices.md
+  - references/check-best-practices-doc-restatement.md
   - references/check-clarity-and-consistency.md
   - references/check-description-retrieval-signal.md
   - references/check-example-realism.md
@@ -27,9 +28,9 @@ license: MIT
 
 # /build:check-skill
 
-Evaluate the quality of an existing Claude Code skill. Three tiers, in order: deterministic format checks (no LLM), per-skill semantic checks (nine always-on dimensions in a single locked-rubric call), then cross-skill description collision detection.
+Evaluate the quality of an existing Claude Code skill. Three tiers, in order: deterministic format checks (no LLM), per-skill semantic checks (ten always-on dimensions in a single locked-rubric call), then cross-skill description collision detection.
 
-This skill follows the [check-skill pattern](../../_shared/references/check-skill-pattern.md). Tier-1 detection is in 8 per-skill scripts emitting JSON envelopes via `_common.py` plus two shared detectors (`_shared/scripts/check_handoff_shape.py` and `_shared/scripts/check_reference_lead.py`, both invoked with `--envelope`), 23 rule_ids total. Tier-2 has 9 judgment dimensions read inline by the primary agent. Tier-3 is a judgment-driven cross-skill description-collision pass over candidate pairs.
+This skill follows the [check-skill pattern](../../_shared/references/check-skill-pattern.md). Tier-1 detection is in 8 per-skill scripts emitting JSON envelopes via `_common.py` plus three shared detectors (`_shared/scripts/check_handoff_shape.py`, `_shared/scripts/check_reference_lead.py`, and `_shared/scripts/check_evaluator_policy_echo.py`, all invoked with `--envelope`), 24 rule_ids total. Tier-2 has 10 judgment dimensions read inline by the primary agent. Tier-3 is a judgment-driven cross-skill description-collision pass over candidate pairs.
 
 The audit rubric mirrors the authoring principles in [skill-best-practices.md](../../_shared/references/skill-best-practices.md). Each Tier-2 dimension cites its source principle. When the principles doc changes, the dimensions should follow.
 
@@ -67,13 +68,14 @@ bash    "$SCRIPTS/check_prose.sh"              $TARGETS   # 2 rules: prose-hedge
 bash    "$SCRIPTS/check_secret.sh"             $TARGETS   # 1 rule:  secret
 bash    "$SCRIPTS/check_dangerous_patterns.sh" $TARGETS   # 2 rules: remote-exec, destructive-cmd
 python3 "$SCRIPTS/check_cisco.py"              $TARGETS   # 2 rules: scanner-fail, scanner-warn (inapplicable when scanner missing)
-python3 "$SHARED_SCRIPTS/check_handoff_shape.py"  --envelope $TARGETS   # 1 rule:  handoff-shape
-python3 "$SHARED_SCRIPTS/check_reference_lead.py" --envelope $TARGETS   # 1 rule:  reference-lead-echo (walks each SKILL.md's sibling references/)
+python3 "$SHARED_SCRIPTS/check_handoff_shape.py"           --envelope $TARGETS   # 1 rule:  handoff-shape
+python3 "$SHARED_SCRIPTS/check_reference_lead.py"          --envelope $TARGETS   # 1 rule:  reference-lead-echo (walks each SKILL.md's sibling references/)
+python3 "$SHARED_SCRIPTS/check_evaluator_policy_echo.py"   --envelope $TARGETS   # 1 rule:  evaluator-policy-echo
 ```
 
 Each script emits a JSON array of envelopes: `{rule_id, overall_status, findings[]}`. `recommended_changes` is canonical — copy through verbatim.
 
-**Script-to-rules map** (23 Tier-1 rule_ids):
+**Script-to-rules map** (24 Tier-1 rule_ids):
 
 | Script | rule_ids | Severity |
 |---|---|---|
@@ -100,6 +102,7 @@ Each script emits a JSON array of envelopes: `{rule_id, overall_status, findings
 | `check_cisco.py` | `scanner-warn` | warn |
 | `_shared/scripts/check_handoff_shape.py` | `handoff-shape` | warn |
 | `_shared/scripts/check_reference_lead.py` | `reference-lead-echo` | warn |
+| `_shared/scripts/check_evaluator_policy_echo.py` | `evaluator-policy-echo` | warn |
 
 **Tier-2 exclusion list.** Any FAIL in `filename`, `directory-basename`, `name-slug`, `reserved-names`, `required-frontmatter`, `version-shape`, `description-cap`, `required-sections`, `body-length` (>400 line case), `secret`, or `scanner-fail` excludes the skill from Tier-2 — malformed skills don't reach the LLM step.
 
@@ -107,7 +110,7 @@ Each script emits a JSON array of envelopes: `{rule_id, overall_status, findings
 
 ### 3. Tier-2 Semantic Dimensions (One LLM Call per Skill)
 
-For each structurally valid skill, evaluate against the **9 judgment rules** at `references/check-*.md`:
+For each structurally valid skill, evaluate against the **10 judgment rules** at `references/check-*.md`:
 
 | File | Dimension | Severity |
 |---|---|---|
@@ -120,6 +123,7 @@ For each structurally valid skill, evaluate against the **9 judgment rules** at 
 | [check-safety-gating.md](references/check-safety-gating.md) | D7 — destructive ops gate on user confirmation | warn |
 | [check-example-realism.md](references/check-example-realism.md) | D8 — examples use domain-specific identifiers | warn |
 | [check-mechanical-work-partition.md](references/check-mechanical-work-partition.md) | D9 — mechanical work in scripts; judgment in SKILL.md | warn |
+| [check-best-practices-doc-restatement.md](references/check-best-practices-doc-restatement.md) | D10 — SKILL.md cites `*-best-practices.md`; does not restate principles | warn |
 
 #### Evaluator policy
 
@@ -178,7 +182,7 @@ After each applied fix, re-run the relevant Tier-1 script (or re-judge the Tier-
 ## Key Instructions
 
 - Run Tier-1 deterministic checks first; gate LLM evaluation on structural validity.
-- Present all 9 Tier-2 dimensions as a single locked-rubric call per skill.
+- Present all 10 Tier-2 dimensions as a single locked-rubric call per skill.
 - Include the full SKILL.md verbatim in every LLM evaluation.
 - Limit Tier-3 collision comparison to skill pairs that could co-fire.
 - Surface borderline evidence as WARN (default-closed).
