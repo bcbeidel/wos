@@ -110,8 +110,8 @@ the **5 judgment rules** at `references/check-*.md`:
 #### Evaluator policy
 
 - **Single locked-rubric pass.** Read all 5 rule files first, then
-  evaluate the help-skill in turn against each. Don't re-decompose
-  into sub-checks (RULERS, Hong et al. 2026).
+  evaluate the help-skill against the unified rubric. A single
+  locked-rubric pass produces stable scoring.
 - **Default-closed when borderline.** When evidence is ambiguous,
   return `warn`, not `pass`.
 - **Severity floor: WARN.** All 5 Tier-2 dimensions are coaching, not

@@ -111,7 +111,7 @@ For each structurally valid skill, evaluate against the **9 judgment rules** at 
 
 #### Evaluator policy
 
-- **Single locked-rubric pass per skill.** Read all 9 rule files first, then evaluate each skill in turn against them. Don't re-decompose into sub-checks (RULERS, Hong et al. 2026 — per-dimension calls cost ~11.5 points of agreement).
+- **Single locked-rubric pass per skill.** Read all 9 rule files first, then evaluate each skill in turn against the unified rubric. A single locked-rubric pass produces stable scoring.
 - **Default-closed when borderline.** When evidence is ambiguous, return `warn`, not `pass`.
 - **Severity floor: WARN.** All 9 Tier-2 dimensions are coaching, not blocking. Escalate to FAIL only for safety concerns Tier-1 missed.
 - **One finding per dimension per skill maximum.** Surface the highest-signal location with concrete excerpts.
@@ -153,7 +153,7 @@ After each applied fix, re-run the relevant Tier-1 script (or re-judge the Tier-
 
 ## Anti-Pattern Guards
 
-1. **Per-dimension LLM call.** Collapse into one locked-rubric call per skill (RULERS — per-dimension splits cost ~11.5 points of agreement).
+1. **Per-dimension LLM call.** Use one locked-rubric call per skill — a unified rubric produces stable scoring.
 2. **LLM-evaluating format compliance.** Frontmatter shape, slug syntax, body length — handle deterministically in Tier-1; send only structurally valid skills to the LLM.
 3. **Ambiguous compliance reported as PASS.** Surface as WARN (default-closed).
 4. **Vague finding text.** Cite the specific SKILL.md and the exact phrasing or field that triggered the finding.

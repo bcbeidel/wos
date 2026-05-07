@@ -125,7 +125,7 @@ Three load-bearing sections shape the skill's behavior:
 
 **Tier-2 section** says: "the primary agent reads each `references/check-*.md` and judges the artifact directly." No subagent dispatch, no SDK calls, no API key. The dimensions table links each `.md` file. Includes the **Evaluator policy** subsection (copy verbatim):
 
-> - **Single locked-rubric pass per artifact.** Read all N files first, then evaluate each in turn. Don't re-decompose into sub-checks; the unified rubric stabilizes severity (RULERS, Hong et al. 2026).
+> - **Single locked-rubric pass per artifact.** Read all N files first, then evaluate each in turn against the unified rubric. A single locked-rubric pass stabilizes severity.
 > - **Default-closed when borderline.** When evidence is ambiguous, return `warn`, not `pass`.
 > - **Severity floor: WARN.** Judgment-mode findings default to WARN — coaching, not blocking. Escalate to FAIL only for safety concerns Tier-1 missed.
 > - **One finding per dimension maximum.** Surface the highest-signal location with concrete detail. Bulk findings train the user to disregard the audit.

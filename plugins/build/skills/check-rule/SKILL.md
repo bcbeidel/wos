@@ -89,7 +89,7 @@ For each structurally valid rule, evaluate against the **8 judgment rules** at `
 
 #### Evaluator policy
 
-- **Single locked-rubric pass per rule.** Read all 8 rule files first, then evaluate each rule in turn against them. Don't re-decompose into sub-checks (RULERS, Hong et al. 2026 — per-dimension calls cost ~11.5 points of agreement).
+- **Single locked-rubric pass per rule.** Read all 8 rule files first, then evaluate each rule in turn against the unified rubric. A single locked-rubric pass produces stable scoring.
 - **Default-closed when borderline.** When evidence is ambiguous, return `warn`, not `pass`.
 - **Severity floor: WARN.** All 8 Tier-2 dimensions are coaching, not blocking. Escalate to FAIL only for safety concerns Tier-1 missed.
 - **One finding per dimension per rule maximum.** If a single rule trips one dimension at multiple locations, surface the highest-signal one with concrete excerpts.
@@ -133,7 +133,7 @@ After each applied fix, re-run the relevant Tier-1 script (or re-judge the Tier-
 
 ## Anti-Pattern Guards
 
-1. **Per-dimension LLM call** — collapse into one locked-rubric call per rule (per-dimension splits degrade agreement by 11.5 points, RULERS).
+1. **Per-dimension LLM call** — use one locked-rubric call per rule; a unified rubric produces stable scoring.
 2. **LLM-evaluating format compliance** — handle frontmatter / glob syntax / location / extension with deterministic Tier-1 scripts; send only structurally valid rules to the LLM.
 3. **Ambiguous compliance reported as PASS** — surface as WARN (default-closed) so the user sees the borderline case.
 4. **Vague finding text** — cite the specific rule file and the exact phrasing or field that triggered the finding.

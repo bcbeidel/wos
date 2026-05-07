@@ -148,8 +148,8 @@ flagged it and there is nothing to read.
 #### Evaluator policy
 
 - **Single locked-rubric pass.** Read `check-brief-content-quality.md`
-  first, then evaluate the brief's prose against it. Don't re-decompose
-  into sub-checks (RULERS, Hong et al. 2026).
+  first, then evaluate the brief's prose against the unified rubric. A
+  single locked-rubric pass produces stable scoring.
 - **Default-closed when borderline.** When evidence is ambiguous,
   return `warn`, not `pass`.
 - **Severity floor: WARN.** Brief content quality is coaching, not

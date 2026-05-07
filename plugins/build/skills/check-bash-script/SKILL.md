@@ -193,7 +193,7 @@ mechanical portion of those rules is now scripted; the judgment portion
 folds into D5 Function Design and the canonical convention doc
 [bash-script-best-practices.md](../../_shared/references/bash-script-best-practices.md).)
 
-**Evaluator policy** (RULERS-aligned, Hong et al. 2026):
+**Evaluator policy:**
 
 - **Single locked-rubric pass per artifact.** Read all six files first,
   then evaluate each in turn against the same artifact. Don't
