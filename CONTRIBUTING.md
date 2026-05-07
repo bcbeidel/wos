@@ -4,7 +4,7 @@
 
 ```bash
 pip install -e plugins/wiki -e ".[dev]"
-python -m pytest plugins/wiki/tests/ plugins/check/tests/ -v
+python -m pytest plugins/wiki/tests/ -v
 ruff check plugins/
 ```
 
