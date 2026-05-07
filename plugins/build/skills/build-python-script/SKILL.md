@@ -113,7 +113,28 @@ purpose field. Otherwise ask, one question at a time:
 **1. Purpose** — one sentence: what does this script do? Preferably
 verb-phrased ("fetch daily exchange rates and write them to a CSV").
 
-**2. Invocation style** — pick one:
+**2. Profile** — pick one. See
+[python-script-profiles.md](../../_shared/references/python-script-profiles.md)
+for the full spec.
+- `cli` (default) — single-file program invoked from the shell;
+  argparse, exit codes, `__main__` guard. The current scaffold shape.
+- `library` — a module imported, not invoked. No shebang, no main,
+  no argparse. Module docstring + `__all__` + public API only.
+- `skill-helper` — JSON-over-stdio helper called from a skill.
+  Reads `json.loads(sys.stdin.read())`; writes JSON to stdout;
+  emits structured JSON errors to stderr; distinct exit codes
+  (`EXIT_OK=0`, `EXIT_USER_ERROR=2`, `EXIT_INTERNAL_ERROR=3`);
+  atomic file writes via `<path>.tmp` + `os.replace`.
+
+When profile=library, **skip Questions 3, 4, 5, and 6** (invocation
+style, input shape, output destination, destructive ops are all
+CLI-shape concerns). Ask Question 7 (third-party dependencies — a
+library can have them too) and Question 8 (save path).
+
+When profile=skill-helper, skip Question 3 (invocation style is
+fixed by the profile). Keep the rest.
+
+**3. Invocation style** *(cli only)* — pick one:
 - `cli` — accepts flags and positional args via `argparse`; has
   `--help` output. Default for anything a human invokes.
 - `glue` — fixed positional args, called from a Makefile or another
@@ -123,12 +144,12 @@ verb-phrased ("fetch daily exchange rates and write them to a CSV").
   structure already supports this; pick when the user will write
   `pytest` against `main()`.
 
-**3. Input shape** — where does the script read from?
+**4. Input shape** *(cli only)* — where does the script read from?
 - `args` — filenames or values passed as positional arguments.
 - `stdin` — reads from stdin, supports `-` as stdin sentinel.
 - `none` — no input beyond flags.
 
-**4. Output destination** — where does primary output go?
+**5. Output destination** *(cli, skill-helper)* — where does primary output go?
 - `stdout` — default; data to stdout, logs to stderr. Composable in
   pipelines.
 - `file` — writes to a path provided via `--out`. Pair with
@@ -136,12 +157,12 @@ verb-phrased ("fetch daily exchange rates and write them to a CSV").
 - `none` — the script is called for its side effects (e.g., network
   calls).
 
-**5. Destructive operations?** — does the script delete, overwrite,
-move files, or make irreversible network calls? If yes, the scaffold
-adds a `--dry-run` flag (default true) and a `--yes` confirmation
-flag. If no, those are omitted.
+**6. Destructive operations?** *(cli, skill-helper)* — does the script
+delete, overwrite, move files, or make irreversible network calls? If
+yes, the scaffold adds a `--dry-run` flag (default true) and a `--yes`
+confirmation flag. If no, those are omitted.
 
-**6. Third-party dependencies** — any non-stdlib imports? If yes,
+**7. Third-party dependencies** — any non-stdlib imports? If yes,
 collect the list and pick the declaration mechanism:
 - `pep723` — inline `# /// script` block at the top of the file. Best
   for portable single-file scripts run via `uv run` or `pipx run`.
@@ -152,7 +173,7 @@ collect the list and pick the declaration mechanism:
   needs are met by `argparse`, `pathlib`, `json`, `csv`,
   `subprocess`, `logging`, `http.client`, `tempfile`).
 
-**7. Save path** — where should the script land? No default; common
+**8. Save path** — where should the script land? No default; common
 homes: `scripts/`, `bin/`, `plugins/<name>/scripts/`,
 `.github/scripts/`. Ask explicitly.
 
@@ -160,7 +181,26 @@ homes: `scripts/`, `bin/`, `plugins/<name>/scripts/`,
 
 Produce two artifacts.
 
-**Artifact 1: The script.**
+**Artifact 1: The script.** Branch on profile.
+
+### Profile: library
+
+Use the `library` template from
+[python-script-profiles.md](../../_shared/references/python-script-profiles.md):
+module docstring + `__all__` + public functions / classes only. No
+shebang, no main, no `__main__` guard, no argparse. Type-hint the
+public API; docstring the public symbols.
+
+### Profile: skill-helper
+
+Use the `skill-helper` template from the profiles spec: cli template
+extended with `EXIT_OK / EXIT_USER_ERROR / EXIT_INTERNAL_ERROR`
+constants, `json.loads(sys.stdin.read())` payload read in `main()`,
+an `emit_error(code, message, hint=None)` helper writing JSON to
+stderr, and an `atomic_write(path, content)` helper using `<path>.tmp`
++ `os.replace`. Argparse holds flags only — payload arrives on stdin.
+
+### Profile: cli (default)
 
 One conditionalized template. Sections marked *(if destructive)* or
 *(if pep723)* are omitted when the intake rules them out.
@@ -277,6 +317,16 @@ those come from arguments or `os.environ.get()`.
 **Dependencies.** If any non-stdlib import is present, dependencies
 are declared (PEP 723 block, colocated `requirements.txt`, or
 top-of-file comment). No wildcard imports. No unused imports.
+
+**Profile fit** *(applies when profile≠cli)*. For profile=library,
+verify the draft has no shebang, no `__main__` guard, no `main()`,
+no argparse, and declares `__all__`. For profile=skill-helper,
+verify the draft reads JSON from stdin (`json.loads(sys.stdin.read())`),
+emits structured JSON to stderr on error, declares ≥2 distinct
+non-zero exit-code constants, and uses `os.replace` for any file
+writes. The
+[profiles spec](../../_shared/references/python-script-profiles.md)
+is the canonical applicability matrix.
 
 **Detector-script hygiene** *(applies when the script scans source
 for forbidden patterns — `check-*/scripts/`, or a docstring that
