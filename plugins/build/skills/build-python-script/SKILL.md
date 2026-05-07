@@ -271,6 +271,16 @@ those come from arguments or `os.environ.get()`.
 are declared (PEP 723 block, colocated `requirements.txt`, or
 top-of-file comment). No wildcard imports. No unused imports.
 
+**Detector-script hygiene** *(applies when the script scans source
+for forbidden patterns — `check-*/scripts/`, or a docstring that
+names "detect," "scanner," or "linter")*. Docstrings, comments, and
+identifier names paraphrase the detected pattern rather than naming
+it literally (the *Detector-Script Pattern Hygiene* section of
+[python-script-best-practices.md](../../_shared/references/python-script-best-practices.md)
+covers the rules and live examples). Regex literals are structured
+so the scanned byte sequence is non-contiguous in source — a
+self-scan must not produce phantom findings.
+
 If any check fails, revise the draft before presenting. The Review
 Gate is for user approval, not correctness recovery — safety issues
 get fixed in the draft, not at the gate.

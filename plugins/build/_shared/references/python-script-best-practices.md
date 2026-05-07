@@ -110,6 +110,16 @@ Scripts run with the invoker's privileges and reach the filesystem, the network,
 
 Shell-injection, `eval`/`exec`, and literal `/tmp/` path construction are audited deterministically. The remaining rules rely on author judgment — deterministic detection of "is this input validated enough before the delete?" is infeasible — and live in the authoring rubric and code review.
 
+## Detector-Script Pattern Hygiene
+
+A pattern-scanning script — anything that greps source for forbidden constructs and emits findings — has a self-incrimination risk: if its docstring, comments, or regex literals contain the byte sequences it scans for, scanning the scanner produces phantom findings that mask real ones. Two rules contain the risk:
+
+**Paraphrase docstrings, comments, and identifier names.** Describe the detected pattern abstractly, not literally. "Pipe-to-shell installer pattern" beats `curl | sh`; "dynamic-evaluation call" beats `eval(`. Apply to every place the description lives — module docstring, rule headers, error messages, log lines, function names. The shipped scanners under `plugins/build/skills/check-makefile/scripts/check_safety.py` (line 11: `"pipe-to-shell pattern (curl piped into sh/bash)"`) and `plugins/build/skills/check-bash-script/scripts/check_safety.py` (rule headers in the docstring use backticks around the keyword instead of the literal call form) are the live examples.
+
+**Split or interleave regex literals so the byte sequence is non-contiguous.** When a regex literal would otherwise contain the literal pattern being detected, structure it so the scanned bytes do not appear adjacent in source — separator characters, character classes, or string concatenation all work. The compiled regex must stay byte-equivalent. `plugins/build/skills/check-readme/scripts/check_safety.py` lines 55–60 are the live example: the pipe-to-shell regexes have `\s[^|]*\|\s*` between `curl`/`wget` and `(sh|bash|zsh)`, so the literal `curl | sh` byte sequence never appears in the source.
+
+The two rules together let a detector script pass its own audit without weakening what it detects. Authors writing a new pattern-scanner should reach for both at draft time, not retrofit after the first self-flag.
+
 ## Review and Decay
 
 Scripts rot. The platform `python3` moves, third-party APIs change, the shell environment the script assumed goes away. Retire a script when it stops being invoked, when its functionality migrates into a package or service, or when its exit contract can no longer be trusted. Convert to a package when the single file acquires shared state, multiple entry points, or test coverage heavier than the code itself — single-file discipline breaks down past a threshold, and fighting it produces a worse package than starting one would. A neglected script is worse than a missing one — callers trust the exit code they have stopped checking.
