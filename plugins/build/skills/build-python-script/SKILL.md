@@ -58,20 +58,7 @@ Python is the right language before asking scaffold-specific questions.
 - **A semantic judgment captured as an LLM-evaluated rule** →
   `/build:build-rule`.
 
-**Wrong language — should be shell instead:**
-
-- Task is pure glue — stitching `git` / `curl` / `jq` / `find` /
-  `xargs` through a pipeline, no structured data
-- Task is genuinely one-shot and will not grow business logic
-- Execution environment cannot be relied on to ship Python (bare
-  containers, minimal CI images)
-
-The full language-selection decision lives in the *Language Selection*
-section of
-[primitive-routing.md](../../_shared/references/primitive-routing.md) —
-consult it when the choice is not obvious. **Tiebreaker rule from that
-doc:** when the decision is genuinely balanced, Python wins on
-interpretability.
+**Wrong language — should be shell instead:** see [primitive-routing.md §Language Selection](../../_shared/references/primitive-routing.md#language-selection--when-the-answer-is-a-script).
 
 **Right primitive and right language** (CLI tool, data-wrangling helper,
 automation utility, one-shot job with structured data or >100 LOC of

@@ -59,21 +59,7 @@ Bash is the right language before asking scaffold-specific questions.
 - **A semantic judgment captured as an LLM-evaluated rule** →
   `/build:build-rule`.
 
-**Wrong language — should be Python instead:**
-
-- Task manipulates structured data — arrays of typed records, nested
-  JSON beyond a `jq` one-liner, schema-validated payloads
-- Projected logic exceeds ~300 LOC of business code
-- Task needs testable seams beyond `bats`/`shunit2` glue
-- Task needs concurrency, HTTP with retry / JSON, or cross-platform
-  correctness (Windows)
-
-The full language-selection decision lives in the *Language Selection*
-section of
-[primitive-routing.md](../../_shared/references/primitive-routing.md) —
-consult it when the choice is not obvious. **Tiebreaker rule from that
-doc:** when the decision is genuinely balanced, Python wins on
-interpretability.
+**Wrong language — should be Python instead:** see [primitive-routing.md §Language Selection](../../_shared/references/primitive-routing.md#language-selection--when-the-answer-is-a-script).
 
 **Right primitive and right language** (CLI glue stitching `git` /
 `curl` / `jq` / `find` / `xargs`; Makefile-invoked automation; one-shot
