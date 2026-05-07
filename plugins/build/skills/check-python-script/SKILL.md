@@ -8,10 +8,9 @@ description: >
   posture, performance intent, naming, function design, module-scope
   discipline, literal intent, commenting intent) and a Tier-3
   cross-script collision check. Use when the user wants to "audit a
-  python script", "check my python script", "review this script",
-  "lint a python script", "is this script safe", "what's wrong with
-  my script", or "why is my script failing". Not for general-purpose
-  shell scripts — route to `/build:check-bash-script`.
+  python script", "lint a python script", or "review this script".
+  Not for general-purpose shell scripts — route to
+  `/build:check-bash-script`.
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[path]"
 user-invocable: true
@@ -35,6 +34,15 @@ license: MIT
 Audit a standalone Python 3 script for structural soundness, dependency posture, ruff-backed lint cleanliness, and adherence to the project's Python conventions. The rubric — what makes a Python script load-bearing, the anatomy template, the patterns that work — lives in [python-script-best-practices.md](../../_shared/references/python-script-best-practices.md).
 
 This skill follows the [check-skill pattern](../../_shared/references/check-skill-pattern.md). Tier-1 detection is in 6 scripts emitting JSON envelopes via `_common.py` (25 rule_ids total, including 13 from `check_ruff.sh` wrapping ruff). Tier-2 has 9 judgment dimensions read inline by the primary agent. Tier-3 is `collision` (cross-script duplication).
+
+## When to use
+
+Also fires when the user phrases the request as:
+
+- "check my python script"
+- "is this script safe"
+- "what's wrong with my script"
+- "why is my script failing"
 
 ## Workflow
 
