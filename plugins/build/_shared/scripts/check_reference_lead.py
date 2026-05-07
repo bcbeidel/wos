@@ -118,14 +118,37 @@ _STOPWORDS = frozenset(
 
 
 def _iter_reference_files(paths: list[Path]) -> list[Path]:
+    """Resolve targets to reference files.
+
+    - A `.md` file under a `references/` directory is included directly.
+    - A `SKILL.md` resolves to its sibling `references/` directory walk.
+    - A directory is rglob-walked for `.md` files under any `references/`.
+    Other paths are ignored.
+    """
     out: list[Path] = []
-    for p in paths:
-        if p.is_file() and p.suffix == ".md" and "references" in p.parts:
+    seen: set[Path] = set()
+
+    def add(p: Path) -> None:
+        rp = p.resolve()
+        if rp not in seen:
+            seen.add(rp)
             out.append(p)
+
+    for p in paths:
+        if p.is_file():
+            if p.suffix != ".md":
+                continue
+            if p.name == "SKILL.md":
+                refs_dir = p.parent / "references"
+                if refs_dir.is_dir():
+                    for candidate in sorted(refs_dir.rglob("*.md")):
+                        add(candidate)
+            elif "references" in p.parts:
+                add(p)
         elif p.is_dir():
             for candidate in sorted(p.rglob("*.md")):
                 if "references" in candidate.parts:
-                    out.append(candidate)
+                    add(candidate)
     return out
 
 
