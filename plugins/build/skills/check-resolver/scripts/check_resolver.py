@@ -60,8 +60,7 @@ STALE_DAYS = 90
 STALE_SECONDS = STALE_DAYS * SECONDS_PER_DAY
 
 # Directories ignored by the dark-capability scan regardless of resolver
-# contents. Mirrors the ambient list documented in audit-dimensions.md.
-# `.resolver` is the resolver's own machinery (siblings to RESOLVER.md).
+# contents. `.resolver` is the resolver's own machinery (siblings to RESOLVER.md).
 AMBIENT_BASENAMES = frozenset(
     {
         ".git",

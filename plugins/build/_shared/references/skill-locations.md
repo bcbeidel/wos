@@ -26,14 +26,13 @@ flag or equivalent intake question.
 | `project` | Skill is repo-specific — rubric depends on this repo's conventions | `.claude/skills` | `.claude/skills/_shared/references` |
 | `user` | Skill is reusable across any project but not distributed as a marketplace plugin | `~/.claude/skills` | `~/.claude/skills/_shared/references` |
 
-The five-artifact pair resolves as:
+The pair resolves as:
 
 ```
 <SHARED_REF_DIR>/<primitive>-best-practices.md      ← principles doc
 <SKILL_ROOT>/build-<primitive>/SKILL.md             ← scaffolder
 <SKILL_ROOT>/check-<primitive>/SKILL.md             ← auditor
-<SKILL_ROOT>/check-<primitive>/references/audit-dimensions.md
-<SKILL_ROOT>/check-<primitive>/references/repair-playbook.md
+<SKILL_ROOT>/check-<primitive>/references/check-<dim>.md  ← one per judgment dimension
 ```
 
 The `references:` frontmatter inside each generated SKILL.md uses the
