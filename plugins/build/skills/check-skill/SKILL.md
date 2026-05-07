@@ -1,11 +1,11 @@
 ---
 name: check-skill
 description: >-
-  Use when the user wants to "audit a skill", "review a skill", "check
-  skill quality", "find problems in a skill", or "improve a skill".
-  Audits a Claude Code SKILL.md for format compliance, content
-  quality, and cross-skill description collisions across three tiers
-  (deterministic scripts → LLM rubric → cross-skill conflict).
+  Use when the user wants to "audit a skill", "review a skill", or
+  "improve a skill". Audits a Claude Code SKILL.md for format
+  compliance, content quality, and cross-skill description collisions
+  across three tiers (deterministic scripts → LLM rubric →
+  cross-skill conflict).
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[path/to/SKILL.md or skills/ directory — scans the plugin's skills when omitted]"
 user-invocable: true
@@ -32,6 +32,13 @@ Evaluate the quality of an existing Claude Code skill. Three tiers, in order: de
 This skill follows the [check-skill pattern](../../_shared/references/check-skill-pattern.md). Tier-1 detection is in 8 scripts emitting JSON envelopes via `_common.py` (21 rule_ids total). Tier-2 has 9 judgment dimensions read inline by the primary agent. Tier-3 is a judgment-driven cross-skill description-collision pass over candidate pairs.
 
 The audit rubric mirrors the authoring principles in [skill-best-practices.md](../../_shared/references/skill-best-practices.md). Each Tier-2 dimension cites its source principle. When the principles doc changes, the dimensions should follow.
+
+## When to use
+
+Also fires when the user phrases the request as:
+
+- "check skill quality"
+- "find problems in a skill"
 
 ## Workflow
 
