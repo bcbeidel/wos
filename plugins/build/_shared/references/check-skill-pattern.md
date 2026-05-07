@@ -123,12 +123,16 @@ Three load-bearing sections shape the skill's behavior:
 
 **Tier-1 section** invokes scripts with `python3 path/script.py $TARGETS` and `bash path/script.sh $TARGETS`. Documents the JSON envelope shape inline (copy verbatim from this doc). Lists a **Script-to-rules map** table enumerating each script's emitted `rule_id`s — the table is the canonical TOC for the scripted half of the rule set. Names the Tier-2-exclusion-list (which FAILs short-circuit Tier-2; which do not).
 
-**Tier-2 section** says: "the primary agent reads each `references/check-*.md` and judges the artifact directly." No subagent dispatch, no SDK calls, no API key. The dimensions table links each `.md` file. Includes the **Evaluator policy** subsection (copy verbatim):
+**Tier-2 section** says: "the primary agent reads each `references/check-*.md` and judges the artifact directly." No subagent dispatch, no SDK calls, no API key. The dimensions table links each `.md` file. Cites the **Evaluator policy** below by anchor link to this section (`_shared/references/check-skill-pattern.md#evaluator-policy`); does not duplicate the bullets. Verbatim copies are flagged by `evaluator-policy-echo` (Tier-1) and `best-practices-doc-restatement` (Tier-2).
 
-> - **Single locked-rubric pass per artifact.** Read all N files first, then evaluate each in turn against the unified rubric. A single locked-rubric pass stabilizes severity.
-> - **Default-closed when borderline.** When evidence is ambiguous, return `warn`, not `pass`.
-> - **Severity floor: WARN.** Judgment-mode findings default to WARN — coaching, not blocking. Escalate to FAIL only for safety concerns Tier-1 missed.
-> - **One finding per dimension maximum.** Surface the highest-signal location with concrete detail. Bulk findings train the user to disregard the audit.
+### Evaluator policy
+
+This is the canonical statement. SKILL.md cites; does not restate.
+
+- **Single locked-rubric pass per artifact.** Read all N files first, then evaluate each in turn against the unified rubric. A single locked-rubric pass stabilizes severity.
+- **Default-closed when borderline.** When evidence is ambiguous, return `warn`, not `pass`.
+- **Severity floor: WARN.** Judgment-mode findings default to WARN — coaching, not blocking. Escalate to FAIL only for safety concerns Tier-1 missed.
+- **One finding per dimension maximum.** Surface the highest-signal location with concrete detail. Bulk findings train the user to disregard the audit.
 
 **Tier-3 section** (cross-entity collision) fires only when the audit scope holds multiple artifacts. It is itself a judgment rule — usually `references/check-cross-entity-collision.md` — and follows the same Tier-2 contract. Single-artifact scope returns `inapplicable` silently.
 
