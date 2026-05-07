@@ -6,8 +6,6 @@ paths:
   - "**/*.bash"
 ---
 
-Make `main` an orchestrator of named helpers — a sequence of small, named operations — rather than a wall of inline pipelines. Provide a sourceable guard at the bottom of the file.
-
 **Why:** short named helpers read as their own commentary. A `main` that calls `fetch`, `transform`, `validate`, `write` tells a reader the script's flow at a glance; a 200-line `main` that inlines each phase forces the reader to parse implementation to recover intent. The cost of extracting a helper is one function definition and one call site — small. The benefit is durable: future changes happen in named scopes, tests can target individual helpers, and a sourceable guard at the bottom (`[[ "${BASH_SOURCE[0]}" == "${0}" ]] && main "$@"`) lets `bats`/`shunit2` load the file without running `main`. The pattern composes with `rule-main-fn.md` and `rule-main-guard.md` — those Tier-1 rules ensure the structure exists; this Tier-2 rule judges whether it's used well.
 
 **How to apply:** when `main` exceeds ~30 lines or contains ≥3 distinct logical phases, extract phases into named helpers. Helper names should be verb phrases (`fetch_data`, `validate_records`, `write_output`), not abstract nouns (`processor`, `handler`). Keep each helper short — under ~30 lines — and single-purpose. The sourceable guard goes at the very bottom.
