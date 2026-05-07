@@ -8,11 +8,10 @@ description: >
   guards including `rm -rf`/`sudo`/global-install/curl-pipe, recipe
   hygiene, secrets, file/line size, optional `checkmake` wrap) plus
   seven judgment dimensions and a Tier-3 cross-Makefile collision
-  check. Use when the user wants to "audit a makefile", "check my
-  makefile", "review this makefile", "lint a makefile", "is my
-  makefile any good", or "what's wrong with my makefile". Not for
-  POSIX-`make`, compilation trees, or recursive multi-module builds —
-  different rubric.
+  check. Use when the user wants to "audit a makefile", "lint a
+  makefile", or "review this makefile". Not for POSIX-`make`,
+  compilation trees, or recursive multi-module builds — different
+  rubric.
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[path]"
 user-invocable: true
@@ -34,6 +33,14 @@ license: MIT
 Audit a top-level Makefile for structural soundness, safety, help/`.PHONY` coverage, recipe hygiene, and adherence to the workflow-orchestration rubric. The rubric — what makes a Makefile load-bearing, the anatomy template, the patterns that work — lives in [makefile-best-practices.md](../../_shared/references/makefile-best-practices.md).
 
 This skill follows the [check-skill pattern](../../_shared/references/check-skill-pattern.md). Tier-1 detection is in 11 scripts emitting JSON envelopes via `_common.py` (29 rule_ids total). Tier-2 has 7 judgment dimensions read inline by the primary agent. Tier-3 is `collision` (cross-Makefile drift in multi-Makefile scope).
+
+## When to use
+
+Also fires when the user phrases the request as:
+
+- "check my makefile"
+- "is my makefile any good"
+- "what's wrong with my makefile"
 
 ## Workflow
 
