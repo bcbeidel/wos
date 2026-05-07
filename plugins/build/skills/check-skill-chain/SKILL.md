@@ -3,8 +3,7 @@ name: check-skill-chain
 description: >
   Design a skill-chain from a goal, or check an existing skill-chain manifest
   for structural and contract issues. Use when the user wants to "design a
-  skill-chain", "create a workflow", "check a chain manifest", "audit a chain",
-  or "repair a chain".
+  skill-chain", "audit a chain", or "repair a chain".
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[workflow goal or path/to/manifest.chain.md]"
 user-invocable: true
@@ -31,6 +30,13 @@ pattern's hybrid carve-out; we do not wrap `lint.py` in a thin local
 script just to satisfy "scripts/check_*.py owned by this skill".
 Inputs are validated by argparse; the wrapped script does not call
 subprocess with `shell=True` or take untrusted command strings.
+
+## When to use
+
+Also fires when the user phrases the request as:
+
+- "create a workflow"
+- "check a chain manifest"
 
 ## Workflow
 
