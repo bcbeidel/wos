@@ -90,6 +90,7 @@ The check half's rule set is the union of `references/check-*.md` filenames + `r
 - **Per-finding Repair Loop.** The audit always offers an opt-in repair with per-item confirmation. Bulk application overwrites mid-refactor intent; per-finding keeps the user in control.
 - **Scope Gate in the build half.** A scaffolder that forgets its scope produces out-of-bounds artifacts. Explicit refusal signals (wrong primitive, wrong language, setuid intent, etc.) at the top of the build workflow keep the pair honest.
 - **Pair registered in `primitive-routing.md`.** Both route lines (`/build:build-<primitive>` and `/build:check-<primitive>`) appear, and the primitive class is described under *What Each Primitive Was Designed For* (new class) or *Language Selection* (variant).
+- **SKILL.md cites the principles doc; it does not restate it.** When either half links to the principles doc (or to `check-skill-pattern.md` for the check half's Evaluator policy), the body emits a citation, not a copy. Verbatim duplicates of named principles drift on every edit; the Tier-1 helper `check_evaluator_policy_echo.py` and the Tier-2 dimension `check-best-practices-doc-restatement` flag the pattern.
 
 ## Anti-Patterns
 
