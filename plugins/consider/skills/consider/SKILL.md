@@ -12,25 +12,7 @@ help the user choose by presenting the options below.
 
 ## Available Models
 
-| Model | When to use |
-|-------|------------|
-| `first-principles` | Break down assumptions, rebuild from fundamentals |
-| `occams-razor` | Find the simplest explanation that fits all facts |
-| `inversion` | Solve problems backwards, identify failure modes |
-| `second-order` | Think through consequences of consequences |
-| `eisenhower-matrix` | Prioritize by urgency and importance |
-| `opportunity-cost` | Analyze what you give up by choosing this option |
-| `via-negativa` | Improve by removing rather than adding |
-| `pareto` | Apply 80/20 rule to find leverage points |
-| `5-whys` | Drill to root cause by asking why repeatedly |
-| `swot` | Map strengths, weaknesses, opportunities, threats |
-| `10-10-10` | Evaluate decisions across three time horizons |
-| `one-thing` | Identify the single highest-leverage action |
-| `circle-of-competence` | Scope decisions, know what you don't know |
-| `map-vs-territory` | Recognize model limitations, check assumptions |
-| `reversibility` | Assess decision risk — one-way vs two-way doors |
-| `hanlons-razor` | Interpret behavior charitably, avoid conspiracy thinking |
-| `pick-model` | Select the right AI model for a task based on benchmarks, pricing, and effort tradeoffs |
+Each model invokes as `/consider:<model-name>` — see the marketplace listing or `plugins/consider/skills/` for the full set.
 
 ## Usage
 
@@ -46,7 +28,6 @@ suggest 2-3 models that would be most relevant to their problem.
 ## Key Instructions
 
 - When no model is specified and the user's problem is unclear, ask one clarifying question before suggesting models.
-- Does not execute implementations or take action; produces framework analysis only.
 
 ## Anti-Pattern Guards
 
