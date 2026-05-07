@@ -12,11 +12,10 @@ description: >
   emoji in headings, LICENSE file presence & link, CONTRIBUTING
   link, TODO/FIXME/XXX markers, README gitignore status) plus
   seven judgment dimensions and a Tier-3 cross-README collision
-  check. Use when the user wants to "audit a README", "check this
-  README", "review my README", "lint a README", "is this README any
-  good", "what's wrong with the README", or "run linters on
-  README.md". Not for sub-package READMEs (different rubric) or
-  docs-site pages (different toolchain).
+  check. Use when the user wants to "audit a README", "lint a
+  README", or "run linters on README.md". Not for sub-package
+  READMEs (different rubric) or docs-site pages (different
+  toolchain).
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[path]"
 user-invocable: true
@@ -38,6 +37,15 @@ license: MIT
 Audit a project's top-level README.md for structural soundness, safety, prose quality, and freshness. The rubric — what makes a README load-bearing in the top 30 seconds — lives in [readme-best-practices.md](../../_shared/references/readme-best-practices.md).
 
 This skill follows the [check-skill pattern](../../_shared/references/check-skill-pattern.md). Tier-1 detection is in 7 scripts emitting JSON envelopes via `_common.py` (28 rule_ids total). Tier-2 has 7 judgment dimensions read inline by the primary agent. Tier-3 is `collision` (cross-README duplication, judgment-driven).
+
+## When to use
+
+Also fires when the user phrases the request as:
+
+- "check this README"
+- "review my README"
+- "is this README any good"
+- "what's wrong with the README"
 
 ## Workflow
 
