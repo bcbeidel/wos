@@ -252,7 +252,14 @@ under `scripts/check_<id>.{py,sh}`) → Judgment Checks (Tier-2 against
 each `references/check-<dim>.md`) → Cross-Entity (Tier-3, if scope is
 a directory) → Report → Opt-In Repair Loop. Frontmatter `references:`
 includes the principles doc and every `references/check-<dim>.md`
-file produced as Artifact 4.
+file produced as Artifact 4. The Tier-2 section cites the Evaluator
+policy from
+[check-skill-pattern.md §Evaluator policy](../../_shared/references/check-skill-pattern.md#evaluator-policy)
+by anchor link; it does NOT duplicate the bullets. SKILL.md bodies
+that cite a `*-best-practices.md` (or comparable SSoT) link to it and
+do not restate its named principles — verbatim copies are flagged by
+`evaluator-policy-echo` (Tier-1) and `best-practices-doc-restatement`
+(Tier-2).
 
 **Artifact 4 — `check-<primitive>/references/check-<dim>.md`** *(one
 file per judgment dimension)*. Each file carries `name`, `description`,
