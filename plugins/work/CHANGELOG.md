@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.5
+
+- **Post-sweep cleanup** (re-audit finding D): drop process-echo
+  `**Won't ...**` Key Instructions bullets from `plan-work/SKILL.md`
+  (1 bullet) and `finish-work/SKILL.md` (2 bullets). Each restated
+  an explicit workflow gate or the frontmatter's scope statement.
+
 ## 0.2.4
 
 - **Cycle 5 row 12**: merge `start-work/SKILL.md` Key Instructions /

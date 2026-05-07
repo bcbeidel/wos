@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.24.2
+
+- **Post-sweep cleanup** (re-audit findings A, B, C from
+  `.prompts/repo-simplification-audit.reverify-2026-05-07.findings.md`):
+  - Drop `Source principles: ...` trailing clause across 15 reference
+    files in `check-readme/`, `check-subagent/`, `check-python-script/`
+    (original audit row 6 — never previously scoped).
+  - Drop "Skipping the Review Gate" + "Scaffolding over an existing
+    Makefile" Anti-Pattern Guards from `build-makefile/SKILL.md`
+    (process-echo of Scope Gate / Review Gate workflow steps).
+  - Drop "Skipping the Review Gate" guard from
+    `build-pre-commit-config/SKILL.md` (same pattern).
+
 ## 0.24.1
 
 - **Cycle 5 row 25**: drop dead-link to nonexistent `rule-header-comment.md`

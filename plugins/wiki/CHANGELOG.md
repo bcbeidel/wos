@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.5
+
+- **Post-sweep cleanup** (re-audit finding D): drop process-echo
+  `**Won't ...**` Key Instructions bullets across `research/SKILL.md`
+  (3 bullets), `ingest/SKILL.md` (3 bullets), and `setup/SKILL.md`
+  (1 bullet — Key Instructions section now empty and removed). Each
+  bullet restated an explicit workflow gate or duplicated a positive
+  Key Instruction immediately following it.
+
 ## 0.5.4
 
 - **Cycle 5 row 10**: drop `research/SKILL.md` `## Common Deviations
