@@ -70,7 +70,6 @@ Check the provider's status page for Tuesday incidents. If clean, run `curl` dir
 ## Key Instructions
 
 - A simpler explanation that doesn't account for all known facts is not Occam's Razor — it's an incomplete explanation; simplicity cannot come at the cost of explanatory coverage.
-- Does not prescribe investigation steps; identifies the most parsimonious explanation to test first.
 
 ## Anti-Pattern Guards
 

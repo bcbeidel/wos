@@ -8,7 +8,7 @@ paths:
 
 **Why:** comments that restate code rot alongside it — `# increment counter` above `((counter++))` adds nothing in the present and lies after the next refactor. Comments that explain *why* (constraints, workarounds, hidden invariants, performance reasons, security considerations) stay useful because they answer questions the code itself can't. The header serves a different role — it orients a reader who has never seen the file before, telling them what to expect in 10 seconds. TODOs without an owner accumulate as orphan maintenance debt; a tagged TODO has someone responsible for it (or a ticket where the work is tracked), making the backlog auditable.
 
-**How to apply:** the header (in the first 10 lines, after the shebang) covers purpose, usage signature, and external dependencies — see `rule-header-comment.md` for the deterministic check. Inline comments answer questions the code can't: *why* this approach, *why* this workaround, *why* this seemingly-redundant check. Reserve comments for the non-obvious; obvious code doesn't need explanation. Tag every TODO with `TODO(<owner>):` or `TODO(<ticket>):` so it can be tracked or assigned.
+**How to apply:** the header (in the first 10 lines, after the shebang) covers purpose, usage signature, and external dependencies. Inline comments answer questions the code can't: *why* this approach, *why* this workaround, *why* this seemingly-redundant check. Reserve comments for the non-obvious; obvious code doesn't need explanation. Tag every TODO with `TODO(<owner>):` or `TODO(<ticket>):` so it can be tracked or assigned.
 
 ```bash
 # Header (first 10 lines)

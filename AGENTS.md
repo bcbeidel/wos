@@ -1,5 +1,7 @@
 # AGENTS.md
 
+This repo is **toolkit** — a Claude Code plugin marketplace. You are building the tools, not using them.
+
 <!-- wiki:begin -->
 ## Context Navigation
 
@@ -32,11 +34,6 @@ LLMs lose attention mid-document — first and last sections are what agents ret
 - Link bidirectionally — if A references B in `related`, B should reference A.
 <!-- wiki:end -->
 
-## Content Routing
-
-Before filing new content or loading context beyond a skill's eager
-`references:`, consult [RESOLVER.md](RESOLVER.md).
-
 ## Plugin Structure
 
 | Plugin | Path | Skills |
@@ -50,11 +47,7 @@ Each plugin's skills live at `plugins/<plugin>/skills/<name>/SKILL.md`.
 Python package: `plugins/wiki/src/wiki/` (editable install).
 Shared scripts: `plugins/wiki/scripts/`.
 
-`build/check-skill` audits authorship quality (structure, completeness,
-prompt clarity); `skill-audit-*` (the CI workflows under
-`.github/workflows/skill-audit-*.yml`) audits adversarial content
-(prompt injection, exfiltration, supply-chain risk). They are
-independent, complementary signals — both pass for a skill to merge.
+- `build/check-skill` audits authorship quality (structure, prompt clarity); `skill-audit-*` workflows audit adversarial content (injection, exfiltration, supply-chain). Both must pass to merge.
 
 ## Preferences
 

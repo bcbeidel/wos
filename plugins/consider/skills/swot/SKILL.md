@@ -76,7 +76,6 @@ Ship the IDE adapter integration — it leverages the core strength (simple CLI)
 ## Key Instructions
 
 - The value is the cross-reference step (steps 6–7), not the lists; a SWOT that produces only four quadrant lists without strategic options hasn't been completed.
-- Does not make strategic decisions; produces a structured inventory and options the user evaluates.
 
 ## Anti-Pattern Guards
 

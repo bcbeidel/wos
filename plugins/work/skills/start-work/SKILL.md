@@ -128,9 +128,6 @@ Wait for user confirmation before invoking the skill.
 
 ## Key Instructions
 
-- **Commit per task creates rollback boundaries.** Every completed task
-  gets its own git commit. On failure, diff against the last passing
-  commit SHA from the checkbox annotation.
 - **Plan file is source of truth.** Checkbox state + commit SHAs are the
   execution record. Do not rely on conversation context for state.
 - **Don't check boxes without proof.** Every `[x]` requires verification
@@ -138,9 +135,6 @@ Wait for user confirmation before invoking the skill.
 - **Intermediates go to disk.** Write discovered decisions, edge cases,
   and API findings to the plan file or a companion notes file. Context
   resets; files persist.
-- **Execute the plan as written.** Don't add features, refactor adjacent
-  code, or expand scope during execution. If the plan needs changes,
-  pause and discuss with the user.
 
 ## Anti-Pattern Guards
 

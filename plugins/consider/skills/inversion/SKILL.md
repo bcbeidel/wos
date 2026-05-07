@@ -78,7 +78,6 @@ We haven't considered what happens if pilot teams' pain points diverge significa
 ## Key Instructions
 
 - If all failure modes seem low-likelihood, explicitly ask what would have to be true for the plan to fail — most teams systematically underestimate operational risks.
-- Does not substitute for direct planning; produces a failure-mode inventory to inform a positive plan.
 
 ## Anti-Pattern Guards
 

@@ -75,7 +75,6 @@ Keep mandatory review but with one approval, not two. Add a "trivial" label for 
 
 - Stop at third-order effects for most decisions — deeper chains multiply uncertainty without adding insight.
 - If a feedback loop identified in step 5 is reinforcing (amplifying), treat it as high severity regardless of the original decision's apparent scale.
-- Does not recommend actions; produces a consequence map so the user can make an informed decision.
 
 ## Anti-Pattern Guards
 

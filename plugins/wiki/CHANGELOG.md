@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.4
+
+- **Cycle 5 row 10**: drop `research/SKILL.md` `## Common Deviations
+  (Do Not)` section. Phase Gates immediately above already enforce
+  the checkpoints these bullets restated.
+
 ## 0.5.3
 
 - Cycle 4 process-echo guard sweep: drop `wiki/setup` Anti-Pattern Guard

@@ -72,8 +72,6 @@ Create per-suite database instances in CI using a template database that's clone
 
 - If the chain reaches "human error" or "bad luck," keep going — those are symptoms, not root causes; ask why that error was possible.
 - Stop when fixing the identified root cause would demonstrably prevent the original symptom from recurring.
-- Does not prescribe solutions; produces diagnosis to inform action.
-- Does not apply to novel one-off incidents where recurrence is not the concern.
 
 ## Anti-Pattern Guards
 

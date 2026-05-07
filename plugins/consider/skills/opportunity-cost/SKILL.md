@@ -73,7 +73,6 @@ Auth0 justified. The opportunity cost of building (delayed notifications = reven
 ## Key Instructions
 
 - Always include "do nothing" as an alternative — it is the most frequently overlooked option and often has the clearest opportunity cost.
-- Does not make the decision; produces a comparison that makes the tradeoff explicit so the user can decide.
 
 ## Anti-Pattern Guards
 

@@ -77,7 +77,6 @@ PR reviews feel urgent because notifications pile up, but they're not important 
 
 - "Urgent" means time-sensitive with an external deadline, not just "feels pressing right now."
 - If the user's list has more than 10 items, group related items before applying the matrix.
-- Does not make scheduling decisions; produces a prioritization framework the user applies.
 
 ## Anti-Pattern Guards
 
