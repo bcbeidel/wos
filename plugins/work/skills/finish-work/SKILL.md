@@ -166,6 +166,4 @@ Summary:
 
 ## Handoff
 
-**Receives:** Plan file path; completed, validated implementation on a feature branch
-**Produces:** PR opened or merge completed; branch cleaned up; roadmap checkbox updated
 **Chainable to:** —

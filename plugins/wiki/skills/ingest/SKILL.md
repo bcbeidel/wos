@@ -288,6 +288,4 @@ The high-rigor path is never required. It is appropriate when the user wants to 
 
 ## Handoff
 
-**Receives:** URL, file path, or pasted text representing an external source
-**Produces:** One or more pages added or updated under the filing target(s) resolved from `RESOLVER.md` (or user-confirmed paths in degraded mode)
 **Chainable to:** `/wiki:lint`; `/build:build-resolver` (when RESOLVER.md is missing or lacks an "ingesting a source" context bundle)

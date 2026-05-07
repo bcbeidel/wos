@@ -185,6 +185,4 @@ The `related` field links to design docs, context files, or other plans.
 
 ## Handoff
 
-**Receives:** Design doc path or feature description; optional issue number and roadmap context
-**Produces:** Implementation plan document saved to `.plans/` with tasks, file changes, and validation criteria
 **Chainable to:** start-work

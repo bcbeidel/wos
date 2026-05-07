@@ -363,6 +363,4 @@ loop itself remains single-threaded (HIGH).
 
 ## Handoff
 
-**Receives:** Topic or question to investigate; optional scope constraints or prior context files
-**Produces:** Verified research document saved to `.research/` with sources, findings, and confidence ratings
 **Chainable to:** ingest, plan-work
