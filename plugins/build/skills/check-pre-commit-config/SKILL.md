@@ -7,11 +7,9 @@ description: >
   error-suppression patterns, shell-script strict mode, hook
   explicit-name and require-serial hygiene) plus seven judgment
   dimensions and a Tier-3 cross-config collision check. Use when the
-  user wants to "audit pre-commit", "check .pre-commit-config.yaml",
-  "review my pre-commit hooks", "is my pre-commit config safe", "lint
-  pre-commit", or "what's wrong with my pre-commit". Not for
-  hand-rolled `.git/hooks/` — out of scope. Not for CI pipelines —
-  route elsewhere.
+  user wants to "audit pre-commit", "lint pre-commit", or "review my
+  pre-commit hooks". Not for hand-rolled `.git/hooks/` — out of
+  scope. Not for CI pipelines — route elsewhere.
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[path-to-repo-root-or-config-file]"
 user-invocable: true
@@ -33,6 +31,14 @@ license: MIT
 Audit a `.pre-commit-config.yaml` — plus the local shell/Python scripts it invokes — for reproducibility, scope, safety, error handling, and adherence to the `pre-commit` framework's conventions. The rubric lives in [pre-commit-config-best-practices.md](../../_shared/references/pre-commit-config-best-practices.md).
 
 This skill follows the [check-skill pattern](../../_shared/references/check-skill-pattern.md). Tier-1 detection is in 6 scripts emitting JSON envelopes via `_common.py` (20 rule_ids total). Tier-2 has 7 judgment dimensions read inline by the primary agent. Tier-3 is `collision` (cross-config duplication).
+
+## When to use
+
+Also fires when the user phrases the request as:
+
+- "check .pre-commit-config.yaml"
+- "is my pre-commit config safe"
+- "what's wrong with my pre-commit"
 
 ## Workflow
 
