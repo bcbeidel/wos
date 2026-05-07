@@ -354,13 +354,7 @@ baseline-clean starting point.
 - The `command -v` preflight is only scaffolded when Intake step 3.6
   named external dependencies. Do not add an empty preflight as
   "best-effort" structure — it is dead code.
-- Won't scaffold scripts for Claude Code hook events — route to
-  `/build:build-hook`.
-- Won't scaffold POSIX `sh` scripts — out of scope; the synthesis
-  this skill operationalizes is bash-only.
 - Won't scaffold setuid scripts — recommend a compiled wrapper.
-- Won't scaffold when any Scope Gate signal fires — recommend the
-  appropriate alternative.
 
 ## Handoff
 

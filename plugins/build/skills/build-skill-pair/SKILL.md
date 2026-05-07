@@ -416,13 +416,6 @@ paragraph under *What Each Primitive Was Designed For* and appending
 
 ## Key Instructions
 
-- Won't scaffold over an existing pair — Scope Gate signal #1 applies
-  without exception. Offer to revise instead.
-- Won't produce a principles doc from zero input material — Scope
-  Gate signal #2 applies. Any mix of files, URLs, pasted text, or
-  named model knowledge clears the gate; *nothing* does not.
-- Won't write any artifact — or the routing-doc diff — until the
-  Review Gate passes.
 - Principles doc lives in `_shared/references/`, not inside either
   skill directory. Both halves reference it at the same path so
   creation and review stay aligned.

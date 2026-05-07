@@ -401,10 +401,6 @@ baseline-clean starting point.
 - When Intake picks `pep723`, use only the PEP 723 block — a second
   declaration (colocated `requirements.txt`) creates two sources of
   truth.
-- Won't scaffold scripts for Claude Code hook events — route to
-  `/build:build-hook`.
-- Won't scaffold when any Scope Gate signal fires — recommend the
-  appropriate alternative instead.
 
 ## Handoff
 
