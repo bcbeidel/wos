@@ -217,6 +217,7 @@ __marimo__/
 .research/*
 .context/*
 .prompts/*
+.briefs/*
 !**/.gitkeep
 
 # Skill scanner output

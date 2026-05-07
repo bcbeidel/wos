@@ -3,8 +3,8 @@
 ## Development Setup
 
 ```bash
-pip install -e plugins/wiki -e plugins/check -e ".[dev]"
-python -m pytest plugins/wiki/tests/ plugins/check/tests/ -v
+pip install -e plugins/wiki -e ".[dev]"
+python -m pytest plugins/wiki/tests/ -v
 ruff check plugins/
 ```
 
