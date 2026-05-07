@@ -106,7 +106,7 @@ For each README that passed the Tier-2 exclusion gate, evaluate against the **7 
 
 #### Evaluator policy
 
-- **Single locked-rubric pass per README.** Read all 7 rule files first, then evaluate the README in one LLM call. Don't re-decompose into sub-checks (RULERS, Hong et al. 2026).
+- **Single locked-rubric pass per README.** Read all 7 rule files first, then evaluate the README in one LLM call against the unified rubric. A single locked-rubric pass produces stable scoring.
 - **Default-closed when borderline.** When evidence is ambiguous, return `warn`, not `pass`.
 - **Severity floor: WARN.** All 7 Tier-2 dimensions are coaching, not blocking.
 - **One finding per dimension maximum.** Surface the highest-signal location.

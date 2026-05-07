@@ -89,7 +89,7 @@ output is the source of truth.
 
 ##### Evaluator policy
 
-- **Single locked-rubric pass per artifact.** Read `check-cross-reference.md` first, then evaluate every step in the manifest against it. Don't re-decompose into sub-checks (RULERS, Hong et al. 2026).
+- **Single locked-rubric pass per artifact.** Read `check-cross-reference.md` first, then evaluate every step in the manifest against the unified rubric. A single locked-rubric pass produces stable scoring.
 - **Default-closed when borderline.** When evidence is ambiguous, return `warn`, not `pass`.
 - **Severity floor: WARN.** Cross-reference findings are coaching, not blocking. Escalate to FAIL only for safety concerns Tier-1 missed (extremely unusual for a chain manifest — typically not applicable).
 - **One finding per step maximum.** If a step has multiple discrepancies (shape and detail and naming), surface the highest-signal one with concrete excerpts from both sides. Bulk findings train the user to disregard the audit.

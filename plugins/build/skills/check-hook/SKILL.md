@@ -101,9 +101,8 @@ The 18 dimensions:
 #### Evaluator policy
 
 - **Single locked-rubric pass per hook.** Read all 18 rule files
-  first, then evaluate each hook in turn against them. Don't
-  re-decompose into sub-checks; the unified rubric stabilizes
-  severity (RULERS, Hong et al. 2026).
+  first, then evaluate each hook in turn against the unified rubric.
+  A single locked-rubric pass stabilizes severity.
 - **Default-closed when borderline.** When evidence is ambiguous,
   return `warn`, not `pass`.
 - **Severity floor: WARN.** Most dimensions are coaching, not

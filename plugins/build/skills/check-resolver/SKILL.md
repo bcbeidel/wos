@@ -84,7 +84,7 @@ For resolvers that passed the Tier-2 exclusion gate, evaluate against the **4 ju
 
 #### Evaluator policy
 
-- **Single locked-rubric pass.** Read all 4 rule files first, then evaluate the resolver in one LLM call (RULERS, Hong et al. 2026). Per-dimension calls cost ~11.5 points of agreement.
+- **Single locked-rubric pass.** Read all 4 rule files first, then evaluate the resolver in one LLM call against the unified rubric. A single locked-rubric pass produces stable scoring.
 - **Default-closed when borderline.** When evidence is ambiguous, return `warn`, not `pass`.
 - **Severity floor: WARN.** All 4 Tier-2 dimensions are coaching, not blocking. Escalate to FAIL only for safety concerns Tier-1 missed.
 - **One finding per dimension maximum.** Surface the highest-signal location with concrete excerpts.
@@ -131,7 +131,7 @@ After each applied fix, re-run the affected Tier-1 script (or re-judge the Tier-
 ## Anti-Pattern Guards
 
 1. **LLM-evaluating path existence.** Path existence is Tier-1's job (deterministic file checks); paths either resolve or they don't.
-2. **Per-dimension Tier-2 calls.** Collapse into one locked-rubric call per resolver. Per-dimension splits cost ~11.5 points of agreement.
+2. **Per-dimension Tier-2 calls.** Use one locked-rubric call per resolver — a unified rubric produces stable scoring.
 3. **Hand-managed region edits treated as valid.** Any row in the managed region that doesn't regenerate from disk is drift — FAIL or WARN depending on whether the row still resolves.
 4. **Reporting without recommendations.** Every finding's `recommended_changes` is canonical; copy it through.
 5. **Silent out-of-scope expansion.** If the user asks to suppress a dark-capability finding, add the directory to the explicit out-of-scope list in RESOLVER.md; don't silently ignore.

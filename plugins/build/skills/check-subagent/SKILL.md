@@ -107,7 +107,7 @@ For each structurally valid subagent, evaluate against the **7 judgment rules** 
 
 #### Evaluator policy
 
-- **Single locked-rubric pass per subagent.** Read all 7 rule files first, then evaluate each subagent in one LLM call. Don't re-decompose into sub-checks (RULERS, Hong et al. 2026 — per-dimension calls cost ~11.5 points of agreement).
+- **Single locked-rubric pass per subagent.** Read all 7 rule files first, then evaluate each subagent in one LLM call against the unified rubric. A single locked-rubric pass produces stable scoring.
 - **Default-closed when borderline.** When evidence is ambiguous, return `warn`, not `pass`.
 - **Severity floor: WARN.** All 7 Tier-2 dimensions are coaching, not blocking. Escalate to FAIL only for safety concerns Tier-1 missed.
 - **One finding per dimension per subagent maximum.** Surface the highest-signal location with concrete excerpts.
