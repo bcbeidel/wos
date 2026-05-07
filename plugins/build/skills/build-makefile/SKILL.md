@@ -273,20 +273,16 @@ Check missed and gives the user a baseline-clean starting point.
 
 ## Anti-Pattern Guards
 
-1. **Scaffolding over an existing Makefile** — Scope Gate signal #1
-   applies without exception. Offer `/build:check-makefile` instead.
-2. **Scaffolding for compilation trees** — this skill is scoped to
+1. **Scaffolding for compilation trees** — this skill is scoped to
    workflow orchestration. Pattern rules, implicit inference, and
    object-file build graphs belong in a real build system.
-3. **Declaring file-producing targets as `.PHONY`** — breaks Make's
+2. **Declaring file-producing targets as `.PHONY`** — breaks Make's
    incremental semantics. If `build` produces `$(BUILD_DIR)/<file>`,
    the target should be `$(BUILD_DIR)/<file>:`, not `build:`.
-4. **Hand-maintained `help` text** — the scaffolded `help` parses
+3. **Hand-maintained `help` text** — the scaffolded `help` parses
    `##` descriptions from `$(MAKEFILE_LIST)`. Do not emit a help
    target that hardcodes a list of commands; it rots the moment a
    target is added.
-5. **Skipping the Review Gate** — write to disk only after explicit
-   user approval. Present both artifacts first.
 
 ## Key Instructions
 

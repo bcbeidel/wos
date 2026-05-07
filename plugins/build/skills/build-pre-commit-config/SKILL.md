@@ -296,8 +296,6 @@ Also offer the CI mirror (explicitly not scaffolded above):
 4. **Scaffolding test runners or whole-repo type checkers.**
    `pytest`, `go test`, `tsc`, `mypy .` belong in CI / `pre-push`,
    not here. Refuse if the user asks for them in the commit stage.
-5. **Skipping the Review Gate.** Write to disk only after explicit
-   approval.
 
 ## Key Instructions
 
