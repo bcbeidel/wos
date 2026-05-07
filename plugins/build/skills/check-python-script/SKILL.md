@@ -33,7 +33,9 @@ license: MIT
 
 Audit a standalone Python 3 script for structural soundness, dependency posture, ruff-backed lint cleanliness, and adherence to the project's Python conventions. The rubric — what makes a Python script load-bearing, the anatomy template, the patterns that work — lives in [python-script-best-practices.md](../../_shared/references/python-script-best-practices.md).
 
-This skill follows the [check-skill pattern](../../_shared/references/check-skill-pattern.md). Tier-1 detection is in 6 scripts emitting JSON envelopes via `_common.py` (25 rule_ids total, including 13 from `check_ruff.sh` wrapping ruff). Tier-2 has 9 judgment dimensions read inline by the primary agent. Tier-3 is `collision` (cross-script duplication).
+This skill follows the [check-skill pattern](../../_shared/references/check-skill-pattern.md). Tier-1 detection is in 6 base scripts plus 2 profile-specific scripts emitting JSON envelopes via `_common.py`. Tier-2 has 9 base judgment dimensions plus up to 3 profile-specific dimensions read inline by the primary agent. Tier-3 is `collision` (cross-script duplication).
+
+**Profiles.** This skill audits three python-script shapes: `cli` (default), `library`, `skill-helper`. The applicable Tier-1 scripts and Tier-2 dimensions vary per profile. See [python-script-profiles.md](../../_shared/references/python-script-profiles.md) for the complete applicability matrix.
 
 ## When to use
 
@@ -50,36 +52,63 @@ Also fires when the user phrases the request as:
 
 Read `$ARGUMENTS`. Resolve to a `.py` file or directory walking top-level for Python scripts. Confirm scope aloud.
 
+**Resolve profile.** If `$ARGUMENTS` carries `--profile=<name>` (one of `cli`, `library`, `skill-helper`), use that. Else run the detector and use its result:
+
+```bash
+PROFILE=$(python3 "${SHARED_SCRIPTS}/detect_python_profile.py" "$TARGET")
+```
+
+The detector is heuristic and best-effort; ambiguous cases default to `cli`. Print the resolved profile to the user before continuing — if it looks wrong, they can re-run with `--profile=<name>`.
+
 ### 2. Tier-1 Deterministic Checks
 
-Invoke 6 detection scripts:
+Per-profile invocation list (full matrix in [python-script-profiles.md](../../_shared/references/python-script-profiles.md)):
 
 ```bash
 SCRIPTS="${SKILL_DIR}/scripts"
 TARGETS="$ARGUMENTS"
 
-bash "$SCRIPTS/check_secrets.sh"   $TARGETS   # 1 rule:  secret (FAIL)
-bash "$SCRIPTS/check_structure.sh" $TARGETS   # 6 rules: shebang, guard-missing, guard-shape, syntax (FAIL); main-returns, keyboard-interrupt (WARN)
-bash "$SCRIPTS/check_argparse.sh"  $TARGETS   # 3 rules: argparse-when-argv, add-argument-help, subprocess-check (WARN)
-bash "$SCRIPTS/check_deps.sh"      $TARGETS   # 1 rule:  declared-deps (WARN)
-bash "$SCRIPTS/check_ruff.sh"      $TARGETS   # 13 rules wrapping ruff codes; inapplicable when ruff missing
-bash "$SCRIPTS/check_size.sh"      $TARGETS   # 1 rule:  size (WARN)
+# Base set — runs under cli + skill-helper
+bash "$SCRIPTS/check_secrets.sh"   $TARGETS   # 1 rule:  secret (FAIL) — all profiles
+bash "$SCRIPTS/check_deps.sh"      $TARGETS   # 1 rule:  declared-deps (WARN) — all profiles
+bash "$SCRIPTS/check_ruff.sh"      $TARGETS   # 13 rules wrapping ruff codes — all profiles
+bash "$SCRIPTS/check_size.sh"      $TARGETS   # 1 rule:  size (WARN) — all profiles
+
+# CLI-shell rules — skip when profile=library
+if [[ "$PROFILE" != "library" ]]; then
+  bash "$SCRIPTS/check_structure.sh" $TARGETS   # 6 rules
+  bash "$SCRIPTS/check_argparse.sh"  $TARGETS   # 3 rules
+fi
+
+# Profile-specific
+case "$PROFILE" in
+  library)
+    python3 "$SCRIPTS/check_library_discipline.py"      $TARGETS  # 2 rules
+    ;;
+  skill-helper)
+    python3 "$SCRIPTS/check_skill_helper_contract.py"   $TARGETS  # 3 rules
+    ;;
+esac
 ```
 
 Each script emits a JSON array of envelopes. `recommended_changes` is canonical — copy through verbatim.
 
-**Script-to-rules map** (25 Tier-1 rule_ids):
+**Script-to-rules map** (Tier-1 rule_ids per profile):
 
-| Script | rule_ids | Severity |
-|---|---|---|
-| `check_secrets.sh` | `secret` | fail |
-| `check_structure.sh` | `shebang`, `guard-missing`, `guard-shape`, `syntax` | fail |
-| `check_structure.sh` | `main-returns`, `keyboard-interrupt` | warn |
-| `check_argparse.sh` | `argparse-when-argv`, `add-argument-help`, `subprocess-check` | warn |
-| `check_deps.sh` | `declared-deps` | warn |
-| `check_ruff.sh` | `ruff-D100`, `ruff-SIM115`, `ruff-PLW1514`, `ruff-PTH`, `ruff-F401`, `ruff-ANN`, `ruff-format`, `ruff-fstring-modernize` | warn |
-| `check_ruff.sh` | `ruff-E722`, `ruff-shell-true`, `ruff-S307`, `ruff-F403`, `ruff-S108` | fail |
-| `check_size.sh` | `size` | warn |
+| Script | rule_ids | Severity | Profiles |
+|---|---|---|---|
+| `check_secrets.sh` | `secret` | fail | cli, library, skill-helper |
+| `check_structure.sh` | `shebang`, `guard-missing`, `guard-shape`, `syntax` | fail | cli, skill-helper |
+| `check_structure.sh` | `main-returns`, `keyboard-interrupt` | warn | cli, skill-helper |
+| `check_argparse.sh` | `argparse-when-argv`, `add-argument-help`, `subprocess-check` | warn | cli, skill-helper |
+| `check_deps.sh` | `declared-deps` | warn | cli, library, skill-helper |
+| `check_ruff.sh` | `ruff-D100`, `ruff-SIM115`, `ruff-PLW1514`, `ruff-PTH`, `ruff-F401`, `ruff-ANN`, `ruff-format`, `ruff-fstring-modernize` | warn | cli, library, skill-helper |
+| `check_ruff.sh` | `ruff-E722`, `ruff-shell-true`, `ruff-S307`, `ruff-F403`, `ruff-S108` | fail | cli, library, skill-helper |
+| `check_size.sh` | `size` | warn | cli, library, skill-helper |
+| `check_library_discipline.py` | `library-no-side-effects` | fail | library |
+| `check_library_discipline.py` | `library-public-api-declared` | warn | library |
+| `check_skill_helper_contract.py` | `skill-helper-stdin-json` | fail | skill-helper |
+| `check_skill_helper_contract.py` | `skill-helper-atomic-write`, `skill-helper-distinct-error-codes` | warn | skill-helper |
 
 The previously-INFO `exec-bit` rule is dropped (the pattern has no INFO; the executable-bit check still runs in `_ast_checks.py` for parity but emits no finding).
 
@@ -91,7 +120,7 @@ The previously-INFO `exec-bit` rule is dropped (the pattern has no INFO; the exe
 
 ### 3. Tier-2 Judgment Dimensions
 
-For each script that passed the Tier-2 exclusion gate, evaluate against the **9 judgment rules** at `references/check-*.md`:
+For each script that passed the Tier-2 exclusion gate, evaluate against the **9 base judgment rules** at `references/check-*.md` (all profiles), plus the profile-specific dimensions from the table below:
 
 | File | Dimension | Severity |
 |---|---|---|
@@ -104,6 +133,16 @@ For each script that passed the Tier-2 exclusion gate, evaluate against the **9 
 | [check-module-scope-discipline.md](references/check-module-scope-discipline.md) | D7 — import + constant + main; no top-level work | warn |
 | [check-literal-intent.md](references/check-literal-intent.md) | D8 — magic numbers / strings named via constants | warn |
 | [check-commenting-intent.md](references/check-commenting-intent.md) | D9 — docstring + why-comments, no what-comments | warn |
+
+**Profile-specific dimensions:**
+
+| File | Dimension | Severity | Profile |
+|---|---|---|---|
+| [check-no-import-time-side-effects.md](references/check-no-import-time-side-effects.md) | Library — no work at import time | warn | library |
+| [check-public-symbols-typed.md](references/check-public-symbols-typed.md) | Library — type hints on public surface | warn | library |
+| [check-public-symbols-documented.md](references/check-public-symbols-documented.md) | Library — docstrings on public symbols | warn | library |
+| [check-structured-stderr-errors.md](references/check-structured-stderr-errors.md) | Skill-helper — JSON to stderr, not tracebacks | warn | skill-helper |
+| [check-exit-code-meaning.md](references/check-exit-code-meaning.md) | Skill-helper — distinct exit codes by recovery class | warn | skill-helper |
 
 #### Evaluator policy
 
