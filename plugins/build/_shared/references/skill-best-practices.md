@@ -18,6 +18,7 @@ description: Use when <concrete trigger>. <One sentence of purpose.>
 version: 1.0.0
 owner: team-or-person
 license: MIT
+allowed-tools: []
 ---
 
 # <Human-readable title>
@@ -45,9 +46,9 @@ Load-bearing elements: the frontmatter identity (`name`, `description`, `version
 
 **Name for discovery.** The file is `SKILL.md`; the directory basename equals `name`; `name` is lowercase kebab-case matching `^[a-z0-9]+(-[a-z0-9]+)*$`, ≤64 characters, unique across the collection. Names are stable identifiers that routing depends on.
 
-**Write the description as a retrieval signal.** Lead with "Use when…" and enumerate concrete invocation triggers — user phrases, file extensions, error strings, event types. Keep it short; long descriptions dilute the signal.
+**Write the description as a retrieval signal.** Lead with "Use when…" and enumerate concrete invocation triggers — user phrases, file extensions, error strings, event types. **Cap the trigger enumeration at 2–3 phrases.** Long lists dilute retrieval ranking (each extra phrase pulls the embedding toward a broader region) and inflate the always-loaded routing context for every conversation. Pick the highest-leverage phrasings; trust the router on near-synonyms.
 
-**Declare identity in frontmatter.** Ship `name`, `description`, `version` (semver), and `owner`. Version bumps are the cache-busting signal consumers rely on; owner is who gets pinged when the skill rots. Add `license` (SPDX identifier such as `MIT`, or a short reference to a bundled `LICENSE` file) so reusers know the redistribution terms — match the host repo's license unless the skill ships under different terms. Invent no keys the skill spec does not sanction.
+**Declare identity in frontmatter.** Ship `name`, `description`, `version` (semver), `owner`, and `allowed-tools`. Version bumps are the cache-busting signal consumers rely on; owner is who gets pinged when the skill rots. `allowed-tools` is the explicit tool-scope contract — declare it on every skill, even when empty (`allowed-tools: []`), so the routing decision is deliberate rather than default-permissive. Omitting the field lets the skill borrow the agent's full toolset, which is rarely what the workflow needs and never what an auditor wants to discover after the fact. Add `license` (SPDX identifier such as `MIT`, or a short reference to a bundled `LICENSE` file) so reusers know the redistribution terms — match the host repo's license unless the skill ships under different terms. Invent no keys the skill spec does not sanction.
 
 **Keep the body short.** Under 300 lines, hard ceiling 400; lines under 120 characters. Move long scripts and reference material to sibling files. Every line is paid for in context tokens.
 
