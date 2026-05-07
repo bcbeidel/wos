@@ -375,9 +375,6 @@ catches anything the Safety Check missed and gives a clean baseline.
   refuse.
 - Won't scaffold mutable refs (`@main`, `@master`, `@v*.*`) —
   unconditional refuse.
-- Recovery if a workflow is written in error: `rm <path>` removes it
-  cleanly. The scaffold is self-contained — no settings.json, no
-  shared-module registration — so removal leaves no dangling state.
 
 ## Handoff
 

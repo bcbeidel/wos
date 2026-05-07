@@ -315,9 +315,6 @@ catches anything the Safety Check missed.
   `/build:check-readme` instead.
 - Won't inline real secrets, hostnames, or credentials in examples
   — use reserved ranges.
-- Recovery if a README is scaffolded in error: `rm <path>` removes
-  it cleanly. The scaffold is self-contained (no sibling file
-  writes, no registration), so removal leaves no dangling state.
 
 ## Handoff
 

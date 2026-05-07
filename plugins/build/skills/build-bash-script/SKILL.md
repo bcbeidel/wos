@@ -361,9 +361,6 @@ baseline-clean starting point.
 - Won't scaffold setuid scripts — recommend a compiled wrapper.
 - Won't scaffold when any Scope Gate signal fires — recommend the
   appropriate alternative.
-- Recovery if a script is written in error: `rm <path>` removes it
-  cleanly. The scaffold is self-contained (no settings.json entry,
-  no shared-module registration), so removal leaves no dangling state.
 
 ## Handoff
 

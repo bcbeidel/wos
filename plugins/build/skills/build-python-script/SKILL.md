@@ -405,9 +405,6 @@ baseline-clean starting point.
   `/build:build-hook`.
 - Won't scaffold when any Scope Gate signal fires — recommend the
   appropriate alternative instead.
-- Recovery if a script is written in error: `rm <path>` removes it
-  cleanly. The scaffold is self-contained (no settings.json entry, no
-  shared-module registration), so removal leaves no dangling state.
 
 ## Handoff
 

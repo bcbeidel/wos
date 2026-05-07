@@ -325,9 +325,6 @@ Check missed and gives a baseline-clean starting point.
   skill.
 - Won't list `Agent` in a subagent's `tools` — it's filtered at the
   platform level for delegated agents.
-- Recovery if a definition is written in error: `rm
-  .claude/agents/<name>.md` removes it cleanly. The definition is
-  self-contained (no registration, no shared-module dependency).
 
 ## Handoff
 
