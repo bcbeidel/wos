@@ -168,8 +168,4 @@ After each fix, re-run the relevant Tier-1 script.
 
 ## Handoff
 
-**Receives:** Path to a single `Makefile` / `GNUmakefile` / `*.mk` or a directory holding such files at the top level.
-
-**Produces:** A unified findings table merging the 29 Tier-1 envelopes (script JSON), 7 Tier-2 judgment findings per Makefile, and Tier-3 cross-Makefile collision findings (multi-file scope only). Each row: tier, rule_id, location, status, reasoning + `recommended_changes` excerpt. Optionally — per user confirmation in the Repair Loop — targeted edits to Makefile.
-
 **Chainable to:** `/build:build-makefile` (rebuild non-compliant Makefile from scratch).

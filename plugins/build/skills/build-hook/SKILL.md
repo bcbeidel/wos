@@ -276,6 +276,4 @@ offers `/build:check-hook` to audit the configuration.
 
 ## Handoff
 
-**Receives:** Hook event, handler type, enforcement goal.
-**Produces:** Hook script at `.claude/hooks/<name>.sh` + settings.json entry snippet.
 **Chainable to:** `/build:check-hook` (audit the hook against the per-dimension files in `check-hook/references/`).

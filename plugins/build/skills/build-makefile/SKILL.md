@@ -308,12 +308,5 @@ Check missed and gives the user a baseline-clean starting point.
 
 ## Handoff
 
-**Receives:** user intent for a top-level Makefile (purpose, target
-surface, primary tools, build artifacts, destructive-op flag,
-local-override opt-in, save path).
-
-**Produces:** a `Makefile` at the repo root plus, optionally, a
-`.gitignore` diff for `.env.mk`.
-
 **Chainable to:** `/build:check-makefile` (audit the scaffolded
 Makefile against the deterministic + judgment dimensions).

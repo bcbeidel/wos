@@ -278,6 +278,4 @@ vs. synthetic), not heading names.
 
 ## Handoff
 
-**Receives:** Topic name or description of one or more conventions to capture
-**Produces:** One or more rule files under `.claude/rules/` (or subdirectories)
 **Chainable to:** `/build:check-rule` (verify new rules fit the existing library without conflicts)

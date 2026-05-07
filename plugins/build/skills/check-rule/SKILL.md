@@ -162,8 +162,4 @@ After each applied fix, re-run the relevant Tier-1 script (or re-judge the Tier-
 
 ## Handoff
 
-**Receives:** Path to a `.md` rule file or directory under `.claude/rules/`, or no argument (scans `.claude/rules/`).
-
-**Produces:** A unified findings table merging the 9 Tier-1 envelopes (script JSON), 8 Tier-2 judgment findings per rule, and the Tier-3 cross-rule-conflict findings per rule pair. Each row: tier, rule_id, location, status, reasoning + `recommended_changes` excerpt. Optionally — per user confirmation in the Repair Loop — targeted edits to rule files.
-
 **Chainable to:** `/build:build-rule` (rebuild non-compliant rules from scratch when targeted repair would exceed the rule's scope).

@@ -184,8 +184,4 @@ After each applied fix, re-run the relevant Tier-1 script (or re-judge the Tier-
 
 ## Handoff
 
-**Receives:** Path to a `SKILL.md` file or directory under `skills/`, or no argument (scans the current plugin's skills).
-
-**Produces:** A unified findings table merging the 22 Tier-1 envelopes (script JSON), 9 Tier-2 judgment findings per skill, and Tier-3 cross-skill collision findings per skill pair. Each row: tier, rule_id, location, status, reasoning + `recommended_changes` excerpt. Optionally — per user confirmation in the Repair Loop — targeted edits to SKILL.md files.
-
 **Chainable to:** `/build:build-skill` (rebuild non-compliant skills from scratch when targeted repair would exceed the skill's scope); `/build:check-skill-pair <primitive>` (audit pair-level integrity for build/check pairs).

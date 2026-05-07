@@ -322,11 +322,6 @@ Also offer the CI mirror (explicitly not scaffolded above):
 
 ## Handoff
 
-**Receives:** repo root path, languages present, tooling preferences,
-baseline-hooks opt-in, custom-local-hook list, CI-mirror status,
-minimum pre-commit version.
-**Produces:** a `.pre-commit-config.yaml`, optional
-`scripts/hooks/*.sh|py` stubs, and a README bootstrap snippet.
 **Chainable to:** `/build:check-pre-commit-config` (audit the
 scaffolded config), `/build:build-bash-script` or
 `/build:build-python-script` (when a local hook's logic is

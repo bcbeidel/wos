@@ -188,8 +188,4 @@ After each fix, re-run the relevant Tier-1 script.
 
 ## Handoff
 
-**Receives:** Path to a `.py` file or directory containing Python scripts.
-
-**Produces:** A unified findings table merging the 25 Tier-1 envelopes (script JSON), 9 Tier-2 judgment findings per script, and Tier-3 cross-script collision findings (multi-script scope only). Each row: tier, rule_id, location, status, reasoning + `recommended_changes` excerpt.
-
 **Chainable to:** `/build:build-python-script` (rebuild non-compliant scripts from scratch).

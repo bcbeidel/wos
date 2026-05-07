@@ -424,11 +424,5 @@ baseline-clean starting point.
 
 ## Handoff
 
-**Receives:** user intent for a Python script (purpose, invocation
-style, input shape, output destination, destructive-op flag,
-third-party dependencies + declaration mechanism, save path).
-**Produces:** an executable Python script at the user-supplied path
-plus a suggested invocation line; optionally a `requirements.txt`
-when that declaration mechanism was picked.
 **Chainable to:** `/build:check-python-script` (audit the scaffolded
 script against the deterministic checks and judgment dimensions).

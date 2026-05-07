@@ -201,6 +201,4 @@ Step 9: runs `/build:check-resolver`. All Tier-1 checks PASS; two Tier-2 WARN on
 
 ## Handoff
 
-**Receives:** Target directory (defaults to CWD); walks up to the nearest existing `RESOLVER.md` for regenerate mode, or scaffolds at the target for fresh-scaffold mode.
-**Produces:** `RESOLVER.md` at the resolver root, sibling `.resolver/evals.yml`, and an AGENTS.md pointer line at the resolver root (appended or created).
 **Chainable to:** `/build:check-resolver` (audits the three artifacts; runs evals; flags dark capabilities).

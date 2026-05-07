@@ -381,15 +381,6 @@ catches anything the Safety Check missed and gives a clean baseline.
 
 ## Handoff
 
-**Receives:** user intent for a GitHub Actions workflow (purpose,
-triggers, jobs + dependencies, runner, external actions + SHAs,
-deploy target, cloud auth mode, concurrency behavior, artifacts,
-save filename).
-
-**Produces:** a workflow YAML at `.github/workflows/<name>.yml` plus
-a commit summary describing what it does, what triggers it, and
-what it produces.
-
 **Chainable to:** `/build:check-github-workflow` (audit the scaffolded
 workflow against actionlint, zizmor, yamllint, shellcheck, and the
 seven judgment dimensions); `/build:build-bash-script` if a `run:`

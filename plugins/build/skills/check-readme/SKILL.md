@@ -169,8 +169,4 @@ After each applied fix, re-run the relevant Tier-1 script. Terminate when the us
 
 ## Handoff
 
-**Receives:** Path to a README.md or a directory containing one (top-level only).
-
-**Produces:** A unified findings table merging the 28 Tier-1 envelopes (script JSON), 7 Tier-2 judgment findings per README, and the Tier-3 cross-README collision findings (multi-scope only). Each row: tier, rule_id, location, status, reasoning + `recommended_changes` excerpt. Optionally — per user confirmation in the Repair Loop — targeted edits to README.md.
-
 **Chainable to:** `/build:build-readme` (rebuild non-compliant README from scratch).

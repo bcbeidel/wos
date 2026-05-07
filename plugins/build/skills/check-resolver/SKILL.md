@@ -157,8 +157,4 @@ After each applied fix, re-run the affected Tier-1 script (or re-judge the Tier-
 
 ## Handoff
 
-**Receives:** Target directory (defaults to CWD); walks up to the nearest `RESOLVER.md` and audits that resolver. Optional `--run-evals` flag.
-
-**Produces:** A unified findings table merging the 11 Tier-1 envelopes (script JSON), 4 Tier-2 judgment findings, and optional Tier-3 eval-execution results. Each row: tier, rule_id, location, severity, reasoning + `recommended_changes` excerpt. Optionally — per user confirmation in the Repair Loop — targeted edits to RESOLVER.md, AGENTS.md, or `.resolver/evals.yml`.
-
 **Chainable to:** `/build:build-resolver --regenerate` (rebuild managed region); `/build:build-resolver --add-filing <type>` (add missing filing row).
