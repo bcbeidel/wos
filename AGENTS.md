@@ -34,11 +34,6 @@ LLMs lose attention mid-document — first and last sections are what agents ret
 - Link bidirectionally — if A references B in `related`, B should reference A.
 <!-- wiki:end -->
 
-## Content Routing
-
-Before filing new content or loading context beyond a skill's eager
-`references:`, consult [RESOLVER.md](RESOLVER.md).
-
 ## Plugin Structure
 
 | Plugin | Path | Skills |
