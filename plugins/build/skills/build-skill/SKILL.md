@@ -99,30 +99,36 @@ This skill is the workflow; the principles doc is the rubric.
 
 6. **Draft the skill.** Follow the anatomy in
    [skill-best-practices.md](../../_shared/references/skill-best-practices.md).
-   Required frontmatter: `name`, `description`, `version`, `owner`.
+   Required frontmatter: `name`, `description`, `version`, `owner`,
+   `allowed-tools`. `allowed-tools` is required even when empty —
+   declare `allowed-tools: []` for skills that invoke no tools so the
+   scope is explicit, not default-permissive. Canonical forms:
+   space-separated string **or** YAML list; never comma-separated as
+   a string (YAML parses it as one literal). Name tokens `anthropic`
+   and `claude` are platform-owned and rejected at load time.
    Required body sections: `## When to use`, `## Prerequisites`,
-   `## Steps`, `## Failure modes`, `## Examples`. Optional frontmatter
-   fields — `license` (SPDX id like `MIT`, or a short reference to a
-   bundled `LICENSE` file; default to the host repo's license),
-   `argument-hint`, `when_to_use`, `user-invocable: false`,
-   `disable-model-invocation: true`, `paths:`, `allowed-tools`,
-   `context: fork` + `agent:`, `model`, `effort`, `hooks`,
-   `tested_with` — reach for only when the use case calls.
-   `allowed-tools` takes canonical forms: space-separated string
-   **or** YAML list. Never comma-separated as a string — YAML parses
-   it as one literal. Name tokens `anthropic` and `claude` are
-   platform-owned and rejected at load time. First ~5K tokens survive
-   Claude Code compaction — lead with load-bearing content.
+   `## Steps`, `## Failure modes`, `## Examples`. Cap the
+   `description` trigger enumeration at 2–3 phrases — long lists
+   dilute retrieval ranking. Optional frontmatter fields — `license`
+   (SPDX id like `MIT`, or a short reference to a bundled `LICENSE`
+   file; default to the host repo's license), `argument-hint`,
+   `when_to_use`, `user-invocable: false`,
+   `disable-model-invocation: true`, `paths:`, `context: fork` +
+   `agent:`, `model`, `effort`, `hooks`, `tested_with` — reach for
+   only when the use case calls. First ~5K tokens survive Claude Code
+   compaction — lead with load-bearing content.
 
 7. **Present for approval.** Before writing, narrate the design
-   choices in 3–6 bullets. Cover the frontmatter choices and why any
-   non-default field is set; the structure choices (ordering, where
-   gates sit); the partition outcome from Step 5 (which substeps
-   became scripts and why, or that the workflow is judgment-only);
-   and what was skipped and why (often more educational than what
-   was used). A reader who doesn't know skill authoring should be
-   able to follow the narration and disagree with any choice.
-   Iterate on feedback. Hold the write until the user approves.
+   choices in 3–6 bullets. Cover the frontmatter choices (including
+   the `allowed-tools` value and the rationale for any non-empty
+   entries — the user must see and approve the tool scope before the
+   skill is written); the structure choices (ordering, where gates
+   sit); the partition outcome from Step 5 (which substeps became
+   scripts and why, or that the workflow is judgment-only); and what
+   was skipped and why (often more educational than what was used).
+   A reader who doesn't know skill authoring should be able to
+   follow the narration and disagree with any choice. Iterate on
+   feedback. Hold the write until the user approves.
 
 8. **Write.** Create the skill directory if it doesn't exist. Write
    `SKILL.md` to the full path from Step 3. Copy any bundled files
@@ -253,9 +259,13 @@ Runs `/build:check-skill` — 0 findings. Reports the path.
 8. **Invented frontmatter keys.** Unknown top-level frontmatter is
    silently ignored by Claude Code. Stick to the documented spec;
    cross-check against a peer toolkit skill when uncertain.
-9. **Absolute paths in bundled references.** `/home/…` or
-   drive-letter paths break portability. Principle:
-   *(Anatomy — bundled assets referenced by relative path only.)*
+9. **Omitting `allowed-tools`.** Missing the field is not "all tools
+   allowed by intent" — it is "tool scope was never decided." Always
+   declare the field; use `allowed-tools: []` when the skill genuinely
+   invokes none.
+10. **Absolute paths in bundled references.** `/home/…` or
+    drive-letter paths break portability. Principle:
+    *(Anatomy — bundled assets referenced by relative path only.)*
 
 ## Handoff
 

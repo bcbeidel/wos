@@ -282,6 +282,14 @@ option-parsing commands.
 `shfmt -i 2 -ci -bn` (2-space indent, switch-case indent, binop on
 next line).
 
+**Detector-script hygiene** *(applies to pattern-scanners)*. When the
+draft scans source for forbidden constructs (header naming detect /
+scanner / linter, or destination under `check-*/scripts/`), apply the
+*Detector-Script Pattern Hygiene* rules from
+[bash-script-best-practices.md](../../_shared/references/bash-script-best-practices.md):
+paraphrase docstrings/comments/identifiers and split regex literals so
+the scanned byte sequence is non-contiguous in source.
+
 If any check fails, revise the draft before presenting. The Review
 Gate is for user approval, not correctness recovery.
 
