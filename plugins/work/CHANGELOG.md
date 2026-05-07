@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.4
+
+- **Cycle 5 row 12**: merge `start-work/SKILL.md` Key Instructions /
+  Anti-Pattern Guards overlap. Drop two KI bullets that restated guards
+  ("Commit per task creates rollback boundaries" → AG #6;
+  "Execute the plan as written" → AG #4). Anti-Pattern Guards retain
+  all 6 bullets.
+
 ## 0.2.3
 
 - Cycle 4 process-echo guard sweep: drop guards whose body paraphrases
