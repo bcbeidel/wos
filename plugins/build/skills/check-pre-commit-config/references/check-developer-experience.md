@@ -6,8 +6,6 @@ paths:
   - "**/.pre-commit-config.yml"
 ---
 
-Mirror enforcement in CI, document bootstrap, and keep `rev:` pins fresh via a regular `pre-commit autoupdate` cadence.
-
 **Why:** A hook config without these supports rots — *Mirror enforcement in CI*, *Document bootstrap in README*, *Run `pre-commit autoupdate` on a regular cadence*, *Leave `--no-verify` working*. Without a CI mirror, local pre-commit and CI diverge — what passes one fails the other, producing unreproducible failures. Without README bootstrap, new contributors don't run `pre-commit install`, hooks never fire, the gate is theatre. Without an autoupdate cadence, `rev:` pins drift 18+ months stale, missing security fixes and breaking against newer language versions.
 
 **How to apply:** Confirm a CI workflow exists (`.github/workflows/*.yml` running `pre-commit run --all-files`, or a `pre-commit.ci` badge / config). Confirm bootstrap is documented (README mentions `pre-commit install`, or `make setup` / `husky install` includes it). Confirm autoupdate cadence is visible — a recent dated commit, a scheduled workflow, or an external service like `pre-commit.ci` running it.
