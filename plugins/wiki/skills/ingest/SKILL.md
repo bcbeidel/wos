@@ -2,8 +2,8 @@
 name: ingest
 description: >
   Ingest any source into wiki pages. Use when the user says "ingest this",
-  "add to wiki", "process this source", "update wiki with", or provides a
-  URL, file path, or pasted text for knowledge capture.
+  "add to wiki", or "update wiki with", or provides a URL, file path, or
+  pasted text for knowledge capture.
 argument-hint: "[URL | file path | pasted content]"
 user-invocable: true
 license: MIT
@@ -12,6 +12,12 @@ license: MIT
 # Ingest
 
 Update wiki pages from any source: URL, file path, pasted text, or research document.
+
+## When to use
+
+Also fires when the user phrases the request as:
+
+- "process this source"
 
 ## Input Handling
 
