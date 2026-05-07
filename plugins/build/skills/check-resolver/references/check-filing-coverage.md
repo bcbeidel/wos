@@ -5,8 +5,6 @@ paths:
   - "**/RESOLVER.md"
 ---
 
-Classify every depth-1 directory on disk explicitly: as a filing row, a context-row entry, an out-of-scope entry, an ambient default (`.git/`, `node_modules/`, `dist/`, `build/`, `.cache/`, `.venv/`, `target/`, `__pycache__/`, `.resolver/`), or a directory containing its own nested `RESOLVER.md` (delegated).
-
 **Why:** Unclassified directories are "dark capabilities" — reachable on disk but invisible to Claude's filing decisions. The failure mode is the surgeon the hospital can't find: the right destination exists, but the routing layer never points at it, so new content drifts into wrong locations and accumulates silently. Silence in the resolver is ambiguous; explicit classification is load-bearing.
 
 **How to apply:** Walk every depth-1 directory and verify each appears in exactly one bucket. A filing row that names "research" but only points at `.research/public/` when `.research/private/` also holds research is incomplete — widen with a glob-style location or add the sibling row. Out-of-scope must be non-empty when ambient directories like `.git/` or `node_modules/` are present. Filing rows must match the directory's frontmatter `type:` or naming-pattern purpose (don't route hooks at a research directory). Subdirectories of a filing dir are not auto-classified — the filing rule names files directly inside, so a depth-2 directory still needs explicit classification or delegation.

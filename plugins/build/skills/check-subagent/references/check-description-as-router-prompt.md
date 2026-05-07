@@ -6,8 +6,6 @@ paths:
   - "**/agents/**/*.md"
 ---
 
-Write the `description` as a routing instruction for the main agent — verb-led capability, trigger conditions, at least one exclusion, and what the agent returns.
-
 **Why:** The main agent uses the `description` to decide whether to delegate. A capability summary ("Agent that handles TypeScript work") gives the router nothing to classify against; a verb-led routing rule with explicit triggers and exclusions does. Proactive subagents need explicit routing language ("use proactively") or the router will not self-invoke them. Source principle: *Description is a router prompt, not human documentation.*
 
 **How to apply:** Rewrite the description with four elements: verb-phrase capability, trigger conditions (when to invoke), at least one exclusion (when NOT to invoke), and the returned output (format, location, artifact). Add "use proactively" or equivalent if the agent should self-invoke without explicit user request.
