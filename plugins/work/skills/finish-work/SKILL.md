@@ -136,8 +136,6 @@ Summary:
 
 ## Key Instructions
 
-- **Won't present integration options until tests pass** — the hard gate in Step 1 enforces this; failing tests must be fixed before continuing
-- **Won't discard without typed "discard" confirmation** — Option 4 is irreversible; no shortcut, no yes/no prompt
 - **Plan is optional.** The skill works for both plan-backed branches and
   ad-hoc feature branches. Skip plan-related steps when no plan exists.
 - **Worktree cleanup follows the option.** Only clean up worktrees on

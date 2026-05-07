@@ -6,8 +6,7 @@ paths:
   - "**/agents/**/*.md"
 ---
 
-**Why:** Downstream callers parse the response. Free-form prose output forces every consumer to write its own parser — and drifts silently when the agent's phrasing changes. A concrete input/output example at the point of maximum ambiguity removes interpretive ambiguity the prose alone cannot. Synthetic placeholders (`<placeholder>`, `foo`, `bar`) do not pin behavior the way a realistic case does. Source principles: *Output format is explicit.* *One concrete example when the task is ambiguous.*
-
+**Why:** Downstream callers parse the response. Free-form prose output forces every consumer to write its own parser — and drifts silently when the agent's phrasing changes. A concrete input/output example at the point of maximum ambiguity removes interpretive ambiguity the prose alone cannot. Synthetic placeholders (`<placeholder>`, `foo`, `bar`) do not pin behavior the way a realistic case does.
 **How to apply:** Name the output format explicitly — JSON schema, named markdown structure, or artifact path. For ambiguous tasks (multiple reasonable output shapes exist), add one realistic input/output example with real-looking values.
 
 ```markdown

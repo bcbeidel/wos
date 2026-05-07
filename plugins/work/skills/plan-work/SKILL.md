@@ -118,8 +118,6 @@ ready for execution by an agent with zero prior context.
 
 ## Key Instructions
 
-- **Won't write code, modify files, or invoke execution skills** — the plan is the
-  deliverable; implementation is `start-work`'s job.
 - **Plans are files, not chat.** Save to disk with frontmatter. Plans that
   exist only in conversation are lost on context reset.
 - **Plans survive context resets.** A new session resumes by reading

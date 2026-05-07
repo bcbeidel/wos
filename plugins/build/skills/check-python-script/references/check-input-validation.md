@@ -5,8 +5,7 @@ paths:
   - "**/*.py"
 ---
 
-**Why:** "Fail before damage" is cheap to implement and expensive to skip. A `shutil.rmtree()` that runs before the path is checked destroys state on bad input; a `--dry-run` flag that's declared but never consulted is worse than no flag — it implies a safety that isn't there. Hardcoded credentials and hostnames leak through git history and break across environments. Source principles: *Fail loud, fail early, return meaningful codes*; *Hold the safety posture.*
-
+**Why:** "Fail before damage" is cheap to implement and expensive to skip. A `shutil.rmtree()` that runs before the path is checked destroys state on bad input; a `--dry-run` flag that's declared but never consulted is worse than no flag — it implies a safety that isn't there. Hardcoded credentials and hostnames leak through git history and break across environments.
 **How to apply:** make input validation the first work `main()` does after argparse — exists/readable/correct-shape checks before any irreversible step. In every destructive branch (delete, overwrite, irreversible network call), read `args.dry_run` (or the confirmation flag) and short-circuit when set. Keep credentials and absolute paths out of string literals — read them from arguments or `os.environ.get(...)`.
 
 ```python

@@ -150,10 +150,6 @@ Report what was done:
 
 If everything was already set up, confirm: "Project context is up to date. No changes needed."
 
-## Key Instructions
-
-- **Won't overwrite content outside managed markers** — only the section between `<!-- wiki:begin -->` / `<!-- wiki:end -->` is managed; content the user wrote outside these markers is never touched
-
 ## Anti-Pattern Guards
 
 1. **Running setup with uncommitted changes in the repo** — setup writes AGENTS.md and CLAUDE.md. Check for tracked modified files (`git diff --name-only HEAD`) before proceeding. Untracked-only changes are advisory — note them but do not block. If tracked modifications exist, warn the user: setup writes to AGENTS.md and CLAUDE.md, making the diff ambiguous and recovery harder if setup fails partway. Suggest `git stash` as remediation and wait for the user to decide whether to stash, continue anyway, or abort.
