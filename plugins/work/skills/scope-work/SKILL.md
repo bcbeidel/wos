@@ -134,19 +134,14 @@ feedback format and revision-vs-supersede decision tree.
 
 ## Anti-Pattern Guards
 
-1. **Premature convergence** — jumping to solutions before exploring the
-   problem space. If only one approach is proposed, divergence was skipped.
-2. **Over-specification** — if the spec reads like pseudo-code, it has
-   crossed into implementation. Specs should be verifiable from the outside.
-3. **Skipping exploration** — even "simple" tasks benefit from clarification.
+1. **Skipping exploration** — even "simple" tasks benefit from clarification.
    The calibration instruction handles truly trivial changes, not anything
    involving design decisions.
-4. **Scope blindness** — not flagging projects that need decomposition
+2. **Scope blindness** — not flagging projects that need decomposition
    before deep-diving into details.
-5. **False confidence from spec compliance** — a confident-sounding but
+3. **False confidence from spec compliance** — a confident-sounding but
    incorrect specification is worse than no specification. The spec must
    be verified by the user (Step 5), not just by the agent that produced it.
-6. **Single-option proposal** — presenting one approach gives the user nothing to evaluate. A user approving the only option presented is not making a real choice. If two or three approaches genuinely cannot be identified, say so explicitly rather than dressing up one approach as "the recommendation."
 
 ## Output Format
 

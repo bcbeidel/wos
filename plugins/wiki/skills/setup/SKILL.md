@@ -157,8 +157,7 @@ If everything was already set up, confirm: "Project context is up to date. No ch
 ## Anti-Pattern Guards
 
 1. **Running setup with uncommitted changes in the repo** — setup writes AGENTS.md and CLAUDE.md. Check for tracked modified files (`git diff --name-only HEAD`) before proceeding. Untracked-only changes are advisory — note them but do not block. If tracked modifications exist, warn the user: setup writes to AGENTS.md and CLAUDE.md, making the diff ambiguous and recovery harder if setup fails partway. Suggest `git stash` as remediation and wait for the user to decide whether to stash, continue anyway, or abort.
-2. **Overwriting content outside managed markers** — only the section between `<!-- wiki:begin -->` and `<!-- wiki:end -->` markers is managed. Content written by the user outside these markers must not be touched. A full AGENTS.md rewrite is always wrong.
-3. **Skipping the current-state check** — setup is idempotent, but it must check what already exists before writing.
+2. **Skipping the current-state check** — setup is idempotent, but it must check what already exists before writing.
 
 ## Handoff
 

@@ -152,20 +152,15 @@ ready for execution by an agent with zero prior context.
 
 ## Anti-Pattern Guards
 
-1. **Premature implementation** — writing code or invoking execution skills
-   before the plan is approved. The plan is the deliverable.
-2. **Vague validation** — "verify it works" is not a criterion. Every
+1. **Vague validation** — "verify it works" is not a criterion. Every
    validation item needs a concrete command or observable check.
-3. **Task granularity extremes** — tasks should be independently verifiable
+2. **Task granularity extremes** — tasks should be independently verifiable
    outcomes. Neither "implement the feature" nor "add import statement."
-4. **Scope creep during planning** — if the plan grows beyond the design,
+3. **Scope creep during planning** — if the plan grows beyond the design,
    something is wrong. Check whether the design needs revision (step 4)
    or the plan needs splitting (step 2).
-5. **Skipping the infeasibility check** — even if everything seems fine,
-   confirm the design's assumptions against the actual codebase before
-   presenting for review.
-6. **Session-dependent task descriptions** — tasks that reference conversation context ("as discussed", "the approach we agreed on") cannot be resumed in a new session. Plans are procedural memory, not session notes. Every task must be startable with zero conversation history and no access to this chat.
-7. **Missing branch in frontmatter** — the `branch:` field is load-bearing for multi-session execution. An executor resuming in a new session cannot determine where to work without it. Always set it before handing off to start-work.
+4. **Session-dependent task descriptions** — tasks that reference conversation context ("as discussed", "the approach we agreed on") cannot be resumed in a new session. Plans are procedural memory, not session notes. Every task must be startable with zero conversation history and no access to this chat.
+5. **Missing branch in frontmatter** — the `branch:` field is load-bearing for multi-session execution. An executor resuming in a new session cannot determine where to work without it. Always set it before handing off to start-work.
 
 ## Output Format
 

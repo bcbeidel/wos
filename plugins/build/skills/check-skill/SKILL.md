@@ -18,6 +18,7 @@ references:
   - references/check-description-retrieval-signal.md
   - references/check-example-realism.md
   - references/check-failure-handling.md
+  - references/check-guards-name-novel-failure.md
   - references/check-mechanical-work-partition.md
   - references/check-prerequisites-and-contract.md
   - references/check-safety-gating.md
@@ -30,7 +31,7 @@ license: MIT
 
 Evaluate the quality of an existing Claude Code skill. Three tiers, in order: deterministic format checks (no LLM), per-skill semantic checks (ten always-on dimensions in a single locked-rubric call), then cross-skill description collision detection.
 
-This skill follows the [check-skill pattern](../../_shared/references/check-skill-pattern.md). Tier-1 detection is in 8 per-skill scripts emitting JSON envelopes via `_common.py` plus three shared detectors (`_shared/scripts/check_handoff_shape.py`, `_shared/scripts/check_reference_lead.py`, and `_shared/scripts/check_evaluator_policy_echo.py`, all invoked with `--envelope`), 24 rule_ids total. Tier-2 has 10 judgment dimensions read inline by the primary agent. Tier-3 is a judgment-driven cross-skill description-collision pass over candidate pairs.
+This skill follows the [check-skill pattern](../../_shared/references/check-skill-pattern.md). Tier-1 detection is in 8 per-skill scripts emitting JSON envelopes via `_common.py` plus four shared detectors (`_shared/scripts/check_handoff_shape.py`, `_shared/scripts/check_reference_lead.py`, `_shared/scripts/check_evaluator_policy_echo.py`, and `_shared/scripts/check_guard_step_echo.py`, all invoked with `--envelope`), 25 rule_ids total. Tier-2 has 11 judgment dimensions read inline by the primary agent. Tier-3 is a judgment-driven cross-skill description-collision pass over candidate pairs.
 
 The audit rubric mirrors the authoring principles in [skill-best-practices.md](../../_shared/references/skill-best-practices.md). Each Tier-2 dimension cites its source principle. When the principles doc changes, the dimensions should follow.
 
@@ -53,7 +54,7 @@ Report: "Found N skills. Auditing..."
 
 ### 2. Tier-1 Deterministic Format Checks
 
-Invoke 10 detection scripts:
+Invoke 11 detection scripts:
 
 ```bash
 SCRIPTS="${SKILL_DIR}/scripts"
@@ -71,11 +72,12 @@ python3 "$SCRIPTS/check_cisco.py"              $TARGETS   # 2 rules: scanner-fai
 python3 "$SHARED_SCRIPTS/check_handoff_shape.py"           --envelope $TARGETS   # 1 rule:  handoff-shape
 python3 "$SHARED_SCRIPTS/check_reference_lead.py"          --envelope $TARGETS   # 1 rule:  reference-lead-echo (walks each SKILL.md's sibling references/)
 python3 "$SHARED_SCRIPTS/check_evaluator_policy_echo.py"   --envelope $TARGETS   # 1 rule:  evaluator-policy-echo
+python3 "$SHARED_SCRIPTS/check_guard_step_echo.py"         --envelope $TARGETS   # 1 rule:  guard-step-echo
 ```
 
 Each script emits a JSON array of envelopes: `{rule_id, overall_status, findings[]}`. `recommended_changes` is canonical — copy through verbatim.
 
-**Script-to-rules map** (24 Tier-1 rule_ids):
+**Script-to-rules map** (25 Tier-1 rule_ids):
 
 | Script | rule_ids | Severity |
 |---|---|---|
@@ -103,6 +105,7 @@ Each script emits a JSON array of envelopes: `{rule_id, overall_status, findings
 | `_shared/scripts/check_handoff_shape.py` | `handoff-shape` | warn |
 | `_shared/scripts/check_reference_lead.py` | `reference-lead-echo` | warn |
 | `_shared/scripts/check_evaluator_policy_echo.py` | `evaluator-policy-echo` | warn |
+| `_shared/scripts/check_guard_step_echo.py` | `guard-step-echo` | warn |
 
 **Tier-2 exclusion list.** Any FAIL in `filename`, `directory-basename`, `name-slug`, `reserved-names`, `required-frontmatter`, `version-shape`, `description-cap`, `required-sections`, `body-length` (>400 line case), `secret`, or `scanner-fail` excludes the skill from Tier-2 — malformed skills don't reach the LLM step.
 
@@ -110,7 +113,7 @@ Each script emits a JSON array of envelopes: `{rule_id, overall_status, findings
 
 ### 3. Tier-2 Semantic Dimensions (One LLM Call per Skill)
 
-For each structurally valid skill, evaluate against the **10 judgment rules** at `references/check-*.md`:
+For each structurally valid skill, evaluate against the **11 judgment rules** at `references/check-*.md`:
 
 | File | Dimension | Severity |
 |---|---|---|
@@ -124,8 +127,9 @@ For each structurally valid skill, evaluate against the **10 judgment rules** at
 | [check-example-realism.md](references/check-example-realism.md) | D8 — examples use domain-specific identifiers | warn |
 | [check-mechanical-work-partition.md](references/check-mechanical-work-partition.md) | D9 — mechanical work in scripts; judgment in SKILL.md | warn |
 | [check-best-practices-doc-restatement.md](references/check-best-practices-doc-restatement.md) | D10 — SKILL.md cites `*-best-practices.md`; does not restate principles | warn |
+| [check-guards-name-novel-failure.md](references/check-guards-name-novel-failure.md) | D11 — Anti-Pattern Guards name non-obvious failure modes; do not paraphrase workflow steps or Key Instructions | warn |
 
-**Evaluator policy:** see [check-skill-pattern.md §Evaluator policy](../../_shared/references/check-skill-pattern.md#evaluator-policy). Read all 10 rule files first, then evaluate each skill in turn against the unified rubric.
+**Evaluator policy:** see [check-skill-pattern.md §Evaluator policy](../../_shared/references/check-skill-pattern.md#evaluator-policy). Read all 11 rule files first, then evaluate each skill in turn against the unified rubric.
 
 Include the full SKILL.md verbatim — never summarize. Dimensions that don't apply (e.g., D7 Safety Gating on a skill with no destructive ops; D8 Example Realism on a skill with no examples) return `inapplicable` silently.
 
@@ -169,15 +173,15 @@ After each applied fix, re-run the relevant Tier-1 script (or re-judge the Tier-
 3. **Ambiguous compliance reported as PASS.** Surface as WARN (default-closed).
 4. **Vague finding text.** Cite the specific SKILL.md and the exact phrasing or field that triggered the finding.
 5. **Cross-skill collision-comparing skills with disjoint descriptions.** Gate Tier-3 on co-fire potential (overlapping trigger phrases or both always-on).
-6. **Trigger-gating Tier-2 dimensions.** Don't skip dimensions based on whether the skill "opts into" a shape; run all 9. Dimensions that don't apply return `inapplicable` silently.
-7. **Re-evaluating scripted rules in Tier-2.** Scripts are authoritative for the 22 Tier-1 rules; trust the `pass` envelope.
+6. **Trigger-gating Tier-2 dimensions.** Don't skip dimensions based on whether the skill "opts into" a shape; run all 11. Dimensions that don't apply return `inapplicable` silently.
+7. **Re-evaluating scripted rules in Tier-2.** Scripts are authoritative for the 25 Tier-1 rules; trust the `pass` envelope.
 8. **Suppressing the inapplicable envelope.** When the cisco scanner is missing, surface `inapplicable` — do not silently skip.
 9. **Embellishing scripts' `recommended_changes`.** Each rule's recipe constant is canonical guidance sourced from `skill-best-practices.md`. Copy it through.
 
 ## Key Instructions
 
 - Run Tier-1 deterministic checks first; gate LLM evaluation on structural validity.
-- Present all 10 Tier-2 dimensions as a single locked-rubric call per skill.
+- Present all 11 Tier-2 dimensions as a single locked-rubric call per skill.
 - Include the full SKILL.md verbatim in every LLM evaluation.
 - Limit Tier-3 collision comparison to skill pairs that could co-fire.
 - Surface borderline evidence as WARN (default-closed).

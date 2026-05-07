@@ -235,6 +235,11 @@ Runs `/build:check-skill` — 0 findings. Reports the path.
   not a restatement; the linked doc IS the authority. Verbatim copies
   are flagged by `evaluator-policy-echo` (Tier-1) and
   `best-practices-doc-restatement` (Tier-2).
+- When the draft includes `## Anti-Pattern Guards`, each emitted guard
+  names a non-obvious failure mode the workflow steps cannot prevent
+  on their own. A guard whose body paraphrases "Step N" of the
+  workflow is process echo — drop it. Flagged by `guard-step-echo`
+  (Tier-1) and `guards-name-novel-failure` (Tier-2).
 - Lead with load-bearing content in the first ~5K tokens —
   compaction-safe window
 - Hold the write until the user approves the draft (Step 7 gate)

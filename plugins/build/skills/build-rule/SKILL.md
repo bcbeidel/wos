@@ -270,11 +270,8 @@ vs. synthetic), not heading names.
 
 1. **Rule outside `.claude/rules/`** — Claude Code only auto-loads rules from `.claude/rules/` (and `~/.claude/rules/`); files elsewhere are inert. Refuse to write to `docs/rules/` or other invented paths.
 2. **Multi-concern rule written as one file** — if Step 1 missed a split opportunity and the draft covers multiple topics, fork back to Step 1 and re-split before writing.
-3. **Vague directive** ("be clean", "format properly") — restate in concrete, verifiable terms before accepting. Principle: Specific enough to be falsifiable.
-4. **Convention enforceable by a traditional linter** (syntax, formatting, import ordering) — redirect to the linter and stop. Principle: Reserve rules for judgment.
-5. **Conflict check skipped** — run Step 4 before drafting; contradicting rules produce arbitrary behavior.
-6. **Always-on rule that should be path-scoped** — flag rules whose content names a specific directory or file type but that omit `paths:`; the unscoped rule consumes context every session for content that only applies sometimes.
-7. **Negative-only framing** — rule states only what to avoid without naming the positive action. Negations are fragile in English; a dropped `not` inverts the rule. Principle: Frame in the positive.
+3. **Conflict check skipped** — run Step 4 before drafting; contradicting rules produce arbitrary behavior.
+4. **Always-on rule that should be path-scoped** — flag rules whose content names a specific directory or file type but that omit `paths:`; the unscoped rule consumes context every session for content that only applies sometimes.
 
 ## Handoff
 

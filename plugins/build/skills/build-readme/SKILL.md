@@ -276,24 +276,19 @@ catches anything the Safety Check missed.
 
 ## Anti-Pattern Guards
 
-1. **Skipping the Scope Gate** — always probe the three signals
-   before Elicit. Scaffolding over an existing non-trivial README
-   destroys work.
-2. **Omitting the License section** — even if the user does not yet
+1. **Omitting the License section** — even if the user does not yet
    have a LICENSE file, the section is required. The scaffold links
    to a LICENSE file that may not exist yet; that is the prompt to
    create it, not an excuse to skip the section.
-3. **Scaffolding marketing language** — the H1 is the project name,
+2. **Scaffolding marketing language** — the H1 is the project name,
    not a tagline. The one-sentence description is what it *is*, not
    what it *promises*. Salesy language belongs on a landing page.
-4. **Forgetting expected output in Quickstart** — the command alone
+3. **Forgetting expected output in Quickstart** — the command alone
    is half the contract. Silence after a command breeds doubt.
-5. **Shell prompts in code blocks** — `$ npm install` cannot be
+4. **Shell prompts in code blocks** — `$ npm install` cannot be
    copy-pasted. Drop the prompt.
-6. **Real secrets in examples** — even in a draft. Readers copy-paste
+5. **Real secrets in examples** — even in a draft. Readers copy-paste
    before reviewers read.
-7. **Skipping the Review Gate** — write to disk only after explicit
-   user approval. Present the whole draft first.
 
 ## Key Instructions
 
