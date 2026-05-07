@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.0
+
+- **Cycle 5 rows 2 + 24**: simplify `consider` skills.
+  - Row 2: replace the 17-row `## Available Models` table in
+    `consider/SKILL.md` with a one-line invocation note pointing at the
+    marketplace listing.
+  - Row 24: drop the `- Does not X; produces Y` Key Instructions
+    bullets across 16 mental-model SKILLs (`<objective>` blocks already
+    convey the positive scope). Meta `consider/SKILL.md` also drops its
+    "Does not execute implementations" bullet. `pick-model` is out of
+    scope — its bold `**Does not recommend...**` bullets serve a
+    different rhetorical role.
+
 ## 0.1.3
 
 - Add `license: MIT` to skill frontmatter; teach the scaffolder and
