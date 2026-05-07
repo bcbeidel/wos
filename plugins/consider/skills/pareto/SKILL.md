@@ -78,7 +78,6 @@ Two changes (self-service password reset + billing page redesign) would eliminat
 ## Key Instructions
 
 - Contribution estimates don't need to be precise — ballpark percentages identify the vital few; perfect data is usually unavailable and not required.
-- Does not prescribe what to cut; produces a leverage map the user applies.
 
 ## Anti-Pattern Guards
 

@@ -77,8 +77,6 @@ Bring in outside expertise. Hire or contract a mobile developer for the app shel
 ## Key Instructions
 
 - If the user has no relevant experience to assess, help them identify who does before mapping the circle.
-- Does not evaluate whether a decision is worth making; only maps competence boundaries relative to it.
-- Does not apply to pure preference questions where competence is irrelevant.
 
 ## Anti-Pattern Guards
 

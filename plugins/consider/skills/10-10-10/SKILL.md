@@ -71,8 +71,6 @@ Incremental refactor (Option B). The 10-month horizon reveals that the rewrite's
 
 - If the user hasn't identified options yet, help them articulate 2–3 distinct choices before running the analysis.
 - If all three time horizons point to the same option, state that clearly — the model confirms rather than complicates the decision.
-- Does not make the decision for the user; produces structured analysis to inform the choice.
-- Does not apply to factual questions or already-made decisions being rationalized after the fact.
 
 ## Anti-Pattern Guards
 

@@ -70,7 +70,6 @@ The assumption "scaling = microservices" skipped the question "what are we actua
 ## Key Instructions
 
 - If all assumptions survive challenge, note that the conventional approach may already be optimal — first-principles doesn't always produce a novel solution.
-- Does not generate solutions from scratch; produces a framework for rebuilding reasoning once fundamentals are verified.
 
 ## Anti-Pattern Guards
 

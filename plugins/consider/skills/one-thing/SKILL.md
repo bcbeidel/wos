@@ -74,7 +74,6 @@ Pause the architecture video project and the onboarding doc rewrite until setup 
 
 - If no candidate action dominates on domino effect, help the user identify the constraint blocking progress before forcing a single choice.
 - The one thing must be within the user's control — not "hope the market changes" or "wait for someone else to decide."
-- Does not make the decision; produces a leverage analysis so the user can commit to one focus.
 
 ## Anti-Pattern Guards
 

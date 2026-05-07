@@ -76,7 +76,6 @@ Ask the external team for their delivery date and confidence level. If they can'
 ## Key Instructions
 
 - The goal is to find gaps before they cause failures, not to invalidate the model — a well-calibrated map with known limits is still useful.
-- Does not update the model; produces a gap audit and a verification plan the user acts on.
 
 ## Anti-Pattern Guards
 

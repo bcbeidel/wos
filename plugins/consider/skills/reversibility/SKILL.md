@@ -70,7 +70,6 @@ Use PostgreSQL vs DynamoDB for a new event-sourcing service.
 ## Key Instructions
 
 - If a decision appears one-way but has a viable partial path (pilot, phased rollout, abstraction layer), always surface it — full irreversibility is rarer than it appears.
-- Does not recommend whether to proceed; calibrates the appropriate level of analysis and commitment.
 
 ## Anti-Pattern Guards
 

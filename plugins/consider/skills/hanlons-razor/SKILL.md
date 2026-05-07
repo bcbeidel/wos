@@ -74,7 +74,6 @@ Break the PR into 2-3 smaller PRs if possible. Message the reviewer offering to 
 ## Key Instructions
 
 - Charitable interpretation does not mean ignoring evidence of genuine malice; it means exhausting more likely explanations first.
-- Does not resolve the situation; produces a clearer interpretation framework and a recommended response approach.
 
 ## Anti-Pattern Guards
 

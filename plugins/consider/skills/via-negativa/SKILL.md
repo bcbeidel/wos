@@ -74,7 +74,6 @@ The 30-minute canary monitor looks like wasted time but caught a memory leak las
 ## Key Instructions
 
 - Always assess whether a removal candidate is load-bearing before proposing it; the "What NOT to Remove" section must be completed, not skipped.
-- Does not implement removals; produces a removal plan the user executes.
 
 ## Anti-Pattern Guards
 
