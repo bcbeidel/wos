@@ -4,8 +4,7 @@ description: >
   Audits Claude Code hooks configuration for event coverage, script
   safety, async and blocking contradictions, Stop hook loop risks,
   rule overlap, and idempotency. Use when the user wants to "audit
-  hooks", "check hooks", "review hooks", "check my hooks", "what
-  quality gates are missing", or "are my hooks safe".
+  hooks", "review hooks", or "are my hooks safe".
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 argument-hint: "[settings.json path]"
 user-invocable: true
@@ -47,6 +46,14 @@ pattern](../../_shared/references/check-skill-pattern.md). It is a
 18 rules live as `references/check-*.md` files read inline by the
 primary agent during Tier-2. Tier-3 (cross-entity collision) does not
 apply (single configuration scope per audit).
+
+## When to use
+
+Also fires when the user phrases the request as:
+
+- "check hooks"
+- "check my hooks"
+- "what quality gates are missing"
 
 ## Workflow
 
