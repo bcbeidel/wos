@@ -1,6 +1,6 @@
 ---
 name: build-resolver
-description: Scaffold a root-level RESOLVER.md — a dual routing table (filing for writes, context for reads) plus an AGENTS.md pointer and a trigger-eval sidecar at `.resolver/evals.yml`. Use when the user wants to "create a resolver", "scaffold RESOLVER.md", "add a routing table for filing and context", or "set up dynamic context routing".
+description: Scaffold a root-level RESOLVER.md — a dual routing table (filing for writes, context for reads) plus an AGENTS.md pointer and a trigger-eval sidecar at `.resolver/evals.yml`. Use when the user wants to "scaffold RESOLVER.md", "create a resolver", or "add a routing table for filing and context".
 argument-hint: "[target directory — defaults to CWD; walks up to nearest existing RESOLVER.md, or scaffolds at target]"
 user-invocable: true
 references:
@@ -13,6 +13,12 @@ license: MIT
 # /build:build-resolver
 
 Scaffold the three linked artifacts that make a resolver work: `RESOLVER.md` at the target repo root with a machine-managed region, a one-line AGENTS.md pointer, and a seeded `.resolver/evals.yml`. The skill is the workflow; authoring principles live in [resolver-best-practices.md](../../_shared/references/resolver-best-practices.md).
+
+## When to use
+
+Also fires when the user phrases the request as:
+
+- "set up dynamic context routing"
 
 ## Workflow
 
