@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.24.0
+
+- **Cycle 4 — Process-Echo Guards Sweep** (codify-then-sweep, per
+  design `.designs/2026-05-07-simplification-sweep.design.md` rows 9,
+  11, 13, 14, 15, 16):
+  - New Tier-1 detector
+    `_shared/scripts/check_guard_step_echo.py` flags numbered bullets
+    in any SKILL.md `## Anti-Pattern Guards` section whose body cites
+    `\bstep\s*#?\d+(\.\d+)?\b` (case-insensitive). Boolean rule_id
+    `guard-step-echo`, severity `warn`. Mirrors `check_handoff_shape.py`
+    CLI surface (positional paths, `--human`, `--envelope`).
+  - New Tier-2 dimension
+    `check-skill/references/check-guards-name-novel-failure.md`
+    covering the broader paraphrase pattern that Tier-1 cannot catch
+    ("Premature implementation", "Skipping the Scope Gate"). Cites
+    `skill-best-practices.md` as source principle; carries an
+    exception clause for guards whose substance is a non-obvious
+    primitive-specific failure that incidentally cites a step number
+    (e.g., declared-but-unused `--dry-run`, mutable refs).
+  - Wired both into `check-skill/SKILL.md`: 24 → 25 Tier-1 rule_ids;
+    10 → 11 Tier-2 judgment dimensions; three → four shared detectors.
+  - Codified the rule in `_shared/references/skill-best-practices.md`
+    (Authoring Principles → Anti-Pattern Guards). Updated
+    `build-skill/SKILL.md` Key Instructions so the scaffolder emits
+    only non-obvious guards.
+  - Sweep dropped 9 process-echo guards across 5 build-* SKILL.md:
+    - `build-bash-script` (Scope Gate + Review Gate; 6 → 4 guards)
+    - `build-python-script` (Scope Gate + Review Gate; 5 → 3 guards)
+    - `build-readme` (Scope Gate + Review Gate; 7 → 5 guards)
+    - `build-github-workflow` (Scope Gate + Review Gate; 9 → 7 guards)
+    - `build-rule` (Vague directive + Linter-enforceable + Negative-only
+      framing — all rule-best-practices.md restatements; 7 → 4 guards)
+
 ## 0.23.0
 
 - Repo simplification sweep cycles 1–3 (codify-then-sweep, per design
