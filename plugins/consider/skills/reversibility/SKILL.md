@@ -79,7 +79,5 @@ Use PostgreSQL vs DynamoDB for a new event-sourcing service.
 
 ## Handoff
 
-**Receives:** A decision the user wants to evaluate for reversibility before committing
-**Produces:** A one-way/two-way classification with rollback path (if reversible) or blast radius and partial-reversibility options (if irreversible)
 **Chainable to:** `opportunity-cost` (to weigh the cost of commitment), `second-order` (to trace consequences of irreversible choices)
 

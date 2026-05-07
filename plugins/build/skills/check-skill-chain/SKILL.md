@@ -144,9 +144,6 @@ fixes: "Skill-chain manifest is well-formed — 0 issues found."
 
 ## Handoff
 
-**Receives:** Free-text workflow goal (goal mode) or path to `*.chain.md` (manifest mode)
-**Produces:** Goal mode — `plans/YYYY-MM-DD-<name>.chain.md`. Manifest mode — structured
-findings table; optionally, targeted edits applied to the manifest or referenced SKILL.md files.
 **Chainable to:** start-work (to run the skill-chain steps), build-skill (gap case in repair loop)
 
 ## Key Instructions

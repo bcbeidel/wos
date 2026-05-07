@@ -87,7 +87,5 @@ Two changes (self-service password reset + billing page redesign) would eliminat
 
 ## Handoff
 
-**Receives:** An area where the user wants to find the highest-leverage inputs or activities
-**Produces:** An input-to-outcome ranking identifying the vital few and a recommended focus shift
 **Chainable to:** `one-thing` (to narrow from the vital few to a single action), `eisenhower-matrix` (to prioritize vital-few items against urgency)
 

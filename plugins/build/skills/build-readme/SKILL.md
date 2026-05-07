@@ -321,14 +321,6 @@ catches anything the Safety Check missed.
 
 ## Handoff
 
-**Receives:** user intent for a top-level `README.md` (project name,
-one-sentence description, problem statement, language/runtime,
-install / quickstart commands, configuration surface, license,
-distribution channel, badges, save path).
-
-**Produces:** a single `README.md` at the user-supplied path (default
-repo root) plus a suggested `git add` invocation line.
-
 **Chainable to:** `/build:check-readme` (audit the scaffolded README
 against structure, safety, completeness, and the seven judgment
 dimensions).

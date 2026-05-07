@@ -148,8 +148,4 @@ After each applied fix, re-run the relevant Tier-1 script. Terminate when the us
 
 ## Handoff
 
-**Receives:** Path to a `.pre-commit-config.yaml` or repo root containing one.
-
-**Produces:** A unified findings table merging the 20 Tier-1 envelopes (script JSON), 7 Tier-2 judgment findings per config, and Tier-3 cross-config collision findings (multi-config scope only). Each row: tier, rule_id, location, status, reasoning + `recommended_changes` excerpt.
-
 **Chainable to:** `/build:build-pre-commit-config` (rebuild non-compliant config from scratch).

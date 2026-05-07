@@ -264,6 +264,4 @@ Results:
 
 ## Handoff
 
-**Receives:** Plan file path (optional); validates current working state against plan criteria
-**Produces:** Validation report with pass/fail verdict per criterion
 **Chainable to:** finish-work (on pass), start-work (on fail)

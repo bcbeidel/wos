@@ -87,7 +87,5 @@ We haven't considered what happens if pilot teams' pain points diverge significa
 
 ## Handoff
 
-**Receives:** A goal or desired outcome the user wants to achieve
-**Produces:** A ranked failure-mode inventory with avoidance strategies and a synthesized positive plan
 **Chainable to:** `second-order` (to trace consequences of each failure mode), `first-principles` (to challenge whether the goal's assumptions are sound)
 

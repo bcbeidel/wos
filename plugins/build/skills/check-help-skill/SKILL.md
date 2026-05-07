@@ -226,15 +226,6 @@ exhausts findings.
 
 ## Handoff
 
-**Receives:** Path to a help-skill SKILL.md or a plugin name.
-
-**Produces:** A unified findings table merging the 17 Tier-1
-envelopes (script JSON), 5 Tier-2 judgment findings, and the Tier-3
-trigger-collision finding. Each row: tier, rule_id, location, status,
-reasoning + recommended_changes excerpt. Optionally — per user
-confirmation in the Repair Loop — targeted edits to the help-skill
-SKILL.md.
-
 **Chainable to:** `/build:check-skill <path>` (catches generic
 SKILL.md structural issues outside the help-skill rubric);
 `/build:check-skill-pair help-skill` (audits pair-level integrity);

@@ -434,19 +434,6 @@ paragraph under *What Each Primitive Was Designed For* and appending
 
 ## Handoff
 
-**Receives:** primitive name, one-sentence definition, scope boundary,
-best-practice input material (files / URLs / pasted text /
-named-model-knowledge), and a routing-doc placement decision (new
-top-level class or variant of an existing class).
-
-**Produces:** at the chosen target — the distilled principles doc
-under `<SHARED_REF_DIR>/`, `build-<primitive>/SKILL.md`,
-`check-<primitive>/SKILL.md`, and one
-`check-<primitive>/references/check-<dim>.md` per judgment dimension.
-In `plugin` mode, also produces an updated `primitive-routing.md`. In
-`project` / `user` mode, the routing-doc update is skipped unless one
-already exists at the chosen scope.
-
 **Chainable to:** `/build:check-skill-pair <primitive>` for
 pair-level integrity (principles doc present, dimension coverage,
 routing registration, shared principles path);

@@ -270,11 +270,5 @@ Runs `/build:check-skill` — 0 findings. Reports the path.
 
 ## Handoff
 
-**Receives:** Skill name + intent, or path to an existing SKILL.md
-(routes to Improve), or no argument (prompts for intake).
-
-**Produces:** `SKILL.md` written to `<scope>/skills/<name>/SKILL.md`;
-optional `.skill` package when `present_files` is available.
-
 **Chainable to:** `/build:check-skill` (to audit the just-built
 skill); `/work:verify-work` (to validate against a broader plan).

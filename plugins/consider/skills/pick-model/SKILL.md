@@ -144,6 +144,4 @@ for a two-tier setup: DeepSeek for initial scan, Sonnet for flagged PRs.
 
 ## Handoff
 
-**Receives:** A task or workload description the user wants to select a model for; optionally, constraints (budget, provider preference, latency requirements)
-**Produces:** A model recommendation with benchmark rationale, effort parameter guidance, cost comparison, and freshness caveat
 **Chainable to:** `opportunity-cost` (to analyze what switching models gives up), `pareto` (to find the 20% of workloads driving 80% of model costs)

@@ -55,6 +55,4 @@ suggest 2-3 models that would be most relevant to their problem.
 
 ## Handoff
 
-**Receives:** A problem, decision, or question the user wants to analyze; optionally, a specific model name
-**Produces:** A structured mental model analysis using the requested or recommended model
 **Chainable to:** Any `/consider:{model-name}` sub-skill

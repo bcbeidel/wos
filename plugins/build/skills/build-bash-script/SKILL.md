@@ -381,10 +381,5 @@ baseline-clean starting point.
 
 ## Handoff
 
-**Receives:** user intent for a Bash 4.0+ script (purpose, invocation
-style, input shape, output destination, destructive-op flag, external
-CLI dependencies, save path).
-**Produces:** an executable Bash script at the user-supplied path
-plus a suggested invocation line.
 **Chainable to:** `/build:check-bash-script` (audit the scaffolded
 script against ShellCheck, shfmt, and the judgment dimensions).

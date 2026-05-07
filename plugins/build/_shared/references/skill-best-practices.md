@@ -62,6 +62,8 @@ Load-bearing elements: the frontmatter identity (`name`, `description`, `version
 
 **Declare inputs, outputs, and their shapes.** Name parameters the skill consumes, artifacts it produces, and environment variables it reads. Implicit contracts invite guessing.
 
+**Keep the Handoff section to `Chainable to:` only.** When a skill ends with a `## Handoff` section, write a single `**Chainable to:**` line naming the next-step skills. Do not include `**Receives:**` (it restates `argument-hint:` frontmatter) or `**Produces:**` (it restates the `## Output Format` heading). The deterministic check is `plugins/build/_shared/scripts/check_handoff_shape.py`.
+
 **Speak in plain, direct English.** Define domain terms on first use; avoid undefined jargon and abbreviations. Keep terminology consistent — if one step names `service_name`, don't later call it `svc`. Prefer definite phrasing over hedges like *etc.*, *maybe*, *probably*, *somehow*, *TBD*, *???*; ambiguity propagates directly into model behavior.
 
 **Anchor with a concrete example.** At least one `## Examples` entry with inputs, outputs, and observable side effects. Abstract rules alone drift.

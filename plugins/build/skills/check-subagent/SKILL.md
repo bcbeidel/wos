@@ -173,8 +173,4 @@ After each applied fix, re-run the relevant Tier-1 script (or re-judge the Tier-
 
 ## Handoff
 
-**Receives:** Path to a single subagent `.md` file or a directory containing subagent definitions.
-
-**Produces:** A unified findings table merging the 20 Tier-1 envelopes (script JSON), 7 Tier-2 judgment findings per subagent, and the Tier-3 description-collision findings per subagent pair. Each row: tier, rule_id, location, status, reasoning + `recommended_changes` excerpt. Optionally — per user confirmation in the Repair Loop — targeted edits to subagent files.
-
 **Chainable to:** `/build:build-subagent` (rebuild non-compliant subagents); `/build:check-skill-pair subagent` (audit pair-level integrity for build/check pairs).

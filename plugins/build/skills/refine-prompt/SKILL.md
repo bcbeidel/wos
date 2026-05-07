@@ -164,6 +164,4 @@ If the user declines, move on without saving.
 
 ## Handoff
 
-**Receives:** Prompt text or file path to refine; optional target use-case context
-**Produces:** Refined prompt with assessment scores and improvement rationale; optionally saved to `.prompts/`
 **Chainable to:** build-skill (when refining a SKILL.md instruction block), build-hook (when refining a hook enforcement goal), build-rule (when refining a rule's intent statement)

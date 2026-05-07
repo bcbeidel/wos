@@ -200,6 +200,4 @@ warns when no `RESOLVER.md` exists but the repo crosses the threshold.
 
 ## Handoff
 
-**Receives:** Project root path (defaults to CWD); optional flags (--urls, --strict)
-**Produces:** Validation report listing warnings and failures by file; read-only — no modifications made
 **Chainable to:** `/build:check-skill` (per-skill quality); `/build:check-resolver` (routing-artifact audit when RESOLVER.md exists); `/build:build-resolver` (when threshold is crossed without one)

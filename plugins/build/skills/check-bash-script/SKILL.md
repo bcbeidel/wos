@@ -338,14 +338,6 @@ the user's ability to review individual edits.
 
 ## Handoff
 
-**Receives:** Path to a single `.sh` file (or extensionless
-executable with a bash shebang) or a directory holding such files at
-the top level.
-**Produces:** Structured findings table merging Tier-1 JSON envelopes
-and Tier-2 judgment findings (`<SEVERITY>  <path> — <rule_id>:
-<reasoning>` with a `Recommendation:` follow-up line drawn from the
-finding's `recommended_changes`); optionally, targeted edits applied
-after per-finding confirmation.
 **Chainable to:** `/build:build-bash-script` (rebuild from scratch
 after flagged repairs if the repair loop surfaces structural issues
 bigger than point fixes).

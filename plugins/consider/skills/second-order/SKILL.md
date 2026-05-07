@@ -84,7 +84,5 @@ Keep mandatory review but with one approval, not two. Add a "trivial" label for 
 
 ## Handoff
 
-**Receives:** A proposed action or decision the user wants to evaluate for downstream consequences
-**Produces:** A consequence chain to third order with feedback loops and a revised assessment of whether to proceed
 **Chainable to:** `inversion` (to identify which second-order effects become failure modes), `reversibility` (to assess how locked in the decision becomes once second-order effects activate)
 

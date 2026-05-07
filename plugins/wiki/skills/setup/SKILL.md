@@ -162,6 +162,4 @@ If everything was already set up, confirm: "Project context is up to date. No ch
 
 ## Handoff
 
-**Receives:** Project root path (new or existing)
-**Produces:** AGENTS.md with managed-region pointer to RESOLVER.md; CLAUDE.md with @AGENTS.md; optional `## Working Agreements` section
 **Chainable to:** `/build:build-resolver` (when Step 5 detects threshold crossing without an existing resolver); `/wiki:lint` (audit content quality)

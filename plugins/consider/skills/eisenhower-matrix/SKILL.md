@@ -86,7 +86,5 @@ PR reviews feel urgent because notifications pile up, but they're not important 
 
 ## Handoff
 
-**Receives:** A list of tasks, decisions, or competing priorities the user wants to sort
-**Produces:** A four-quadrant prioritization matrix with specific next actions for Q1 and Q2 items
 **Chainable to:** `pareto` (to find the highest-leverage Q2 items), `one-thing` (to identify the single most important Q2 action)
 

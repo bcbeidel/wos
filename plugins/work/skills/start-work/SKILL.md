@@ -157,6 +157,4 @@ Wait for user confirmation before invoking the skill.
 
 ## Handoff
 
-**Receives:** Plan file path (`.plan.md`) with `status: approved`
-**Produces:** Implemented code and files per plan; plan tasks marked `[x]` with commit SHAs
 **Chainable to:** verify-work

@@ -156,8 +156,4 @@ After each fix, re-run the relevant Tier-1 script.
 
 ## Handoff
 
-**Receives:** Path to a `.github/workflows/*.yml` file or a directory containing workflows.
-
-**Produces:** A unified findings table merging the 30 Tier-1 envelopes (script JSON) and 7 Tier-2 judgment findings per workflow. Each row: tier, rule_id, location, status, reasoning + `recommended_changes` excerpt. Optionally — per user confirmation in the Repair Loop — targeted edits to workflow YAML.
-
 **Chainable to:** `/build:build-github-workflow` (rebuild non-compliant workflows from scratch).

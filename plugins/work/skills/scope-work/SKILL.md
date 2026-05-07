@@ -167,6 +167,4 @@ design docs.
 
 ## Handoff
 
-**Receives:** User-described topic or problem to explore; optional seed research or constraints
-**Produces:** Design document saved to `.designs/` with structured requirements and scope boundaries
 **Chainable to:** plan-work, research

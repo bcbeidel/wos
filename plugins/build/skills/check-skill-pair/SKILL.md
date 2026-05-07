@@ -274,18 +274,6 @@ enters `n`, or confirms `done`.
 
 ## Handoff
 
-**Receives:** primitive name — kebab-case, no path prefix (e.g.,
-`bash-script`, not `<SKILL_ROOT>/build-bash-script/`); optional
-`--target` flag selecting `plugin` (default), `project`, or `user`.
-
-**Produces:** a unified findings table merging `audit_pair.py`'s JSON
-envelopes (Tier-1 + Tier-3) and the brief-content-quality judgment
-(Tier-2). Each row carries the tier, `rule_id`, artifact path,
-severity, and a reasoning + `recommended_changes` excerpt. Optionally
-— per user confirmation in the Repair Loop — targeted edits to the
-check half's frontmatter, the routing doc, the build half's handoff
-wording, or the brief.
-
 **Chainable to:** `/build:check-skill` (to audit each half's
 per-SKILL.md quality once structural integrity is clean);
 `/build:build-skill-pair` (to rebuild when the principles doc is

@@ -79,7 +79,5 @@ The assumption "scaling = microservices" skipped the question "what are we actua
 
 ## Handoff
 
-**Receives:** A problem or system the user wants to deconstruct and reason about from fundamentals
-**Produces:** An assumptions audit, verified fundamentals, and a rebuilt solution compared against the conventional approach
 **Chainable to:** `inversion` (to stress-test the rebuilt solution), `consider` (to apply additional mental models)
 

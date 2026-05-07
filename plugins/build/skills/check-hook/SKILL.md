@@ -224,16 +224,6 @@ further findings, enters `n`, or confirms `done`.
 
 ## Handoff
 
-**Receives:** Settings file path (optional); defaults to
-`.claude/settings.json` and `.claude/settings.local.json`.
-
-**Produces:** A unified findings table merging the 18 judgment
-dimensions plus optional platform-specific findings. Each row carries
-the dimension, hook command, finding, severity, and a
-`recommended_changes` excerpt from the rule body. Optionally — per
-user confirmation in the Repair Loop — targeted edits to settings
-files or hook scripts.
-
 **Chainable to:** `/build:build-hook` (create a new hook or
 substantially rewrite one flagged by the audit);
 `/build:check-skill-pair hook` (audit pair-level integrity).

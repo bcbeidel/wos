@@ -331,11 +331,5 @@ Check missed and gives a baseline-clean starting point.
 
 ## Handoff
 
-**Receives:** user intent for a Claude Code subagent (name,
-routing-oriented description, primary capability + workflow, tool
-requirements, any advanced fields the workflow signals).
-**Produces:** an executable subagent definition at
-`.claude/agents/<name>.md` with complete frontmatter, bounded prompt
-body, mandated output format, and explicit failure behavior.
 **Chainable to:** `/build:check-subagent` (audit the scaffolded
 definition against the Tier-1 checks and judgment dimensions).

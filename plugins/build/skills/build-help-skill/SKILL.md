@@ -290,12 +290,6 @@ Surfaces both diffs before writing.
 
 ## Handoff
 
-**Receives:** Plugin name (resolves to `plugins/<plugin>/`), or no
-argument (prompts for intake).
-
-**Produces:** `plugins/<plugin>/skills/help/SKILL.md`, plus optional
-edits to `plugin.json` and the top-level `AGENTS.md` plugin table.
-
 **Chainable to:** `/build:check-help-skill <path>` (audits the
 just-built help-skill against the rubric — coverage, freshness,
 fidelity, trigger quality, dual audience, scope discipline);
